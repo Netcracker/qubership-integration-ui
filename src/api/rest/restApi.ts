@@ -650,7 +650,7 @@ export class RestApi implements Api {
     }
     if (validateByHash !== undefined) {
       formData.append('validateByHash', validateByHash.toString())
-    }    
+    }
     const response = await this.instance.post(
       `/api/${import.meta.env.VITE_API_APP}/v3/import`,
       formData,
