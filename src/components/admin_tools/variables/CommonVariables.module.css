@@ -1,0 +1,143 @@
+.container {
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+}
+
+.title {
+    margin-bottom: 16px;
+    font-size: 20px;
+}
+
+.controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.input {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    flex: 1;
+    min-width: 180px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.iconButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.iconButton:hover {
+    background-color: #0056b3;
+}
+
+.iconButtonDanger {
+    background-color: #dc3545;
+}
+
+.iconButtonDanger:hover {
+    background-color: #b02a37;
+}
+
+.tableWrapper {
+    flex: 1;
+    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.table th,
+.table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.checkboxColumn {
+    width: 50px;
+    text-align: center;
+}
+
+.keyColumn {
+    width: 30%;
+}
+
+.valueColumn {
+    width: 60%;
+}
+
+.actionsColumn {
+    width: 100px;
+}
+
+.actionButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.actionButton {
+    background: transparent;
+    border: none;
+    color: #333;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.actionButton:hover {
+    color: #007bff;
+}
+
+.actionButton svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+    }
+
+    .input {
+        width: 100%;
+    }
+
+    .iconButton {
+        width: 100%;
+        justify-content: center;
+    }
+}
