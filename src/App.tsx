@@ -1,7 +1,7 @@
 import Navigation from "./components/Navigation.tsx";
 import { BrowserRouter, Route, Routes } from "react-router";
 import Chains from "./pages/Chains";
-import Admin from "./pages/Admin";
+// import Admin from "./pages/Admin";
 import Chain from "./pages/Chain";
 import { Layout } from "antd";
 
@@ -13,6 +13,8 @@ import ChainGraph from "./pages/ChainGraph.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { Content } from "antd/es/layout/layout";
 import { NotImplemented } from "./pages/NotImplemented.tsx";
+import { AdminTools } from "./pages/admin-tools/AdminToolsPage.tsx";
+import { CommonVariablesPage } from "./pages/admin-tools/CommonVariablesPage.tsx";
 
 const { Header } = Layout;
 
@@ -25,7 +27,10 @@ const App = () => (
       <Content className={styles.content}>
         <BrowserRouter>
           <Routes>
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin-tools" element={<AdminTools />}>
+              {/*<Route path="domains" element={<DomainsPage />} />*/}
+              <Route  path="variables/common" element={<CommonVariablesPage />} />
+            </Route>
             <Route index path="/" element={<Chains />} />
             <Route index path="/chains" element={<Chains />} />
             <Route path="/chains/:chainId" element={<Chain />}>

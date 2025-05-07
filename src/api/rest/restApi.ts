@@ -25,7 +25,12 @@ export class RestApi implements Api {
       const response = await this.instance.get<Chain[]>(
         `/api/v1/${import.meta.env.API_APP}/catalog/chains`,
       );
-      return response.data;
+      if (Array.isArray(response?.data)) {
+        return response.data;
+      } else {
+        console.warn('Unexpected data format:', response.data);
+        return [];
+      }
     } catch (err) {
       throw err;
     }

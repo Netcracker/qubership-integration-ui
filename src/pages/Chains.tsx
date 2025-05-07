@@ -13,7 +13,7 @@ const Chains = () => {
   return (
     <>
       <Table
-        dataSource={chains}
+        dataSource={chains? chains : []}
         columns={columns}
         pagination={false}
         onRow={(record) => {
