@@ -15,7 +15,8 @@ import {
   PlusOutlined,
   CloseOutlined,
   DownloadOutlined,
-  UploadOutlined
+  UploadOutlined,
+  SearchOutlined
 } from "@ant-design/icons";
 import {
   getCommonVariables,
@@ -24,14 +25,20 @@ import {
   deleteCommonVariables,
   exportVariables
 } from "../../../api/admin-tools/variables";
+import {
+  getTextColumnFilterFn,
+  TextColumnFilterDropdown,
+  TextColumnFilterDropdownProps,
+} from "../../table/TextColumnFilterDropdown.tsx";
 import { CommonVariable } from "../../../api/admin-tools/commonVariablesApi.ts";
 import ImportVariablesModal from "./ImportVariablesModal.tsx";
 import { useModalsContext } from "../../../Modals.tsx";
+import { FilterDropdownProps } from "antd/lib/table/interface";
+import { JSX } from "react/jsx-runtime";
 
 export const CommonVariables = () => {
   const [variables, setVariables] = useState<CommonVariable[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [filter, setFilter] = useState({ key: "", value: "" });
   const [newVariable, setNewVariable] = useState<CommonVariable | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editedValue, setEditedValue] = useState<string>("");
@@ -116,17 +123,22 @@ export const CommonVariables = () => {
     }
   };
 
-  const filteredVariables = variables.filter(
-    (v) =>
-      v.key.toLowerCase().includes(filter.key.toLowerCase()) &&
-      v.value.toLowerCase().includes(filter.value.toLowerCase())
-  );
-
   const columns = [
     {
       title: "Key",
       dataIndex: "key",
       key: "key",
+      sorter: (a: CommonVariable, b: CommonVariable) =>
+        a.key.localeCompare(b.key),
+      filterDropdown: (
+        props: JSX.IntrinsicAttributes &
+          FilterDropdownProps &
+          TextColumnFilterDropdownProps,
+      ) => <TextColumnFilterDropdown {...props} enableExact />,
+      onFilter: getTextColumnFilterFn<CommonVariable>((r) => r.key),
+      filterIcon: (filtered: any) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
       render: (_: string, record: CommonVariable) => {
         if (record.key === "__new__row__") {
           return (
@@ -146,6 +158,17 @@ export const CommonVariables = () => {
       title: "Value",
       dataIndex: "value",
       key: "value",
+      sorter: (a: CommonVariable, b: CommonVariable) =>
+        a.value.localeCompare(b.value),
+      filterDropdown: (
+        props: JSX.IntrinsicAttributes &
+          FilterDropdownProps &
+          TextColumnFilterDropdownProps,
+      ) => <TextColumnFilterDropdown {...props} enableExact />,
+      onFilter: getTextColumnFilterFn<CommonVariable>((r) => r.value),
+      filterIcon: (filtered: any) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
       render: (_: string, record: CommonVariable) => {
         if (record.key === "__new__row__") {
           return (
@@ -191,7 +214,11 @@ export const CommonVariables = () => {
 
         return editingKey === record.key ? (
           <Space>
-            <Button icon={<CheckOutlined />} type="primary" onClick={saveEdit} />
+            <Button
+              icon={<CheckOutlined />}
+              type="primary"
+              onClick={saveEdit}
+            />
             <Button icon={<CloseOutlined />} onClick={cancelEdit} />
           </Space>
         ) : (
@@ -214,29 +241,31 @@ export const CommonVariables = () => {
 
   const tableData = [
     ...(newVariable ? [{ key: "__new__row__", value: "" }] : []),
-    ...filteredVariables,
+    ...variables,
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, flexWrap: 'wrap' }}>
-        <Space style={{ flexWrap: "wrap" }}>
-          <Input
-            placeholder="Filter by key"
-            value={filter.key}
-            onChange={(e) => setFilter({ ...filter, key: e.target.value })}
-          />
-          <Input
-            placeholder="Filter by value"
-            value={filter.value}
-            onChange={(e) => setFilter({ ...filter, value: e.target.value })}
-          />
-        </Space>
-        <Space wrap>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: 8 }}>
           <Button
             icon={<UploadOutlined />}
             onClick={() =>
-              showModal({component: <ImportVariablesModal onSuccess={fetchVariables} />})
+              showModal({ component: <ImportVariablesModal onSuccess={fetchVariables} /> })
             }
           >
             Import
@@ -244,13 +273,13 @@ export const CommonVariables = () => {
           <Button icon={<DownloadOutlined />} onClick={() => handleExport(selectedRowKeys as string[])}>Export</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setNewVariable({ key: "", value: "" })} disabled={!!newVariable}>Add Variable</Button>
           <Button danger icon={<DeleteOutlined />} onClick={handleDeleteSelected} disabled={!selectedRowKeys.length}>Delete Selected</Button>
-        </Space>
+        </div>
       </div>
 
       <div style={{ flexGrow: 1 }}>
         <Table
           rowKey="key"
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: "max-content" }}
           columns={columns}
           dataSource={tableData}
           rowSelection={{
@@ -261,7 +290,7 @@ export const CommonVariables = () => {
             }),
           }}
           pagination={false}
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
         />
       </div>
     </div>
