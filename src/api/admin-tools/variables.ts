@@ -29,3 +29,10 @@ export const exportVariables = async (
 ): Promise<boolean> => {
   return await commonVariablesApi.exportVariables(keys, asArchive);
 }
+
+export const importVariables = async (
+  formData: FormData,
+  isPreview: boolean
+): Promise<any> => {
+  return await commonVariablesApi.importVariables(formData, isPreview);
+}

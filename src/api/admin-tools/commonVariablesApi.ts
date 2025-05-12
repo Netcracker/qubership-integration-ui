@@ -121,6 +121,24 @@ export class CommonVariablesApi {
       return false;
     }
   }
+
+  async importVariables(formData: FormData, isPreview: boolean): Promise<any> {
+    if (!formData) {
+      return
+    }
+    try {
+       const result = await axios.post(
+        `/api/${isPreview ? "v1" : "v2"}/${import.meta.env.API_APP}/common-variables/${isPreview ? "preview" : "import"}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+       return result.data;
+    } catch (error) {
+      const message: string = `Failed to ${isPreview ? "preview" : "import"}:`;
+      console.error(message, error);
+    }
+  }
 }
 
 export const commonVariablesApi = new CommonVariablesApi();
