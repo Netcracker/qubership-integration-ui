@@ -14,7 +14,7 @@ import {
   CheckOutlined,
   PlusOutlined,
   CloseOutlined,
-  DownloadOutlined,
+  DownloadOutlined
 } from "@ant-design/icons";
 import {
   getCommonVariables,
@@ -24,6 +24,7 @@ import {
   exportVariables
 } from "../../../api/admin-tools/variables";
 import { CommonVariable } from "../../../api/admin-tools/commonVariablesApi.ts";
+import ImportVariablesModal from "./ImportVariablesModal.tsx";
 
 export const CommonVariables = () => {
   const [variables, setVariables] = useState<CommonVariable[]>([]);
@@ -229,7 +230,7 @@ export const CommonVariables = () => {
           />
         </Space>
         <Space wrap>
-          {/*<Button icon={<UploadOutlined />} onClick={handleImport}>Import</Button>*/}
+          <ImportVariablesModal onSuccess={fetchVariables} />
           <Button icon={<DownloadOutlined />} onClick={() => handleExport(selectedRowKeys as string[])}>Export</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setNewVariable({ key: "", value: "" })} disabled={!!newVariable}>Add Variable</Button>
           <Button danger icon={<DeleteOutlined />} onClick={handleDeleteSelected} disabled={!selectedRowKeys.length}>Delete Selected</Button>
