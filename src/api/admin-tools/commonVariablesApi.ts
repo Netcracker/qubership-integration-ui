@@ -21,15 +21,16 @@ export class CommonVariablesApi {
   async getAll(): Promise<CommonVariable[]> {
     try {
       const response = await this.instance.get(
-        `/api/v1/${import.meta.env.API_APP}/common-variables`
+        `/api/v1/${import.meta.env.API_APP}/common-variables`,
       );
 
       const data = response.data;
 
-      if (data && typeof data === 'object' && !Array.isArray(data)) {
-        const variables: CommonVariable[] = Object.entries(data).map(([key, value]) => ({ key, value: (value as string) || ''}) );
-
-        return variables;
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        return Object.entries(data).map(([key, value]) => ({
+          key,
+          value: (value as string) || "",
+        }));
       } else {
         console.warn("Unexpected response format for common variables:", data);
         return [];
@@ -44,11 +45,13 @@ export class CommonVariablesApi {
     return this.createMany({ [variable.key]: variable.value });
   }
 
-  async createMany(variables: Record<string, string>): Promise<string[] | null> {
+  async createMany(
+    variables: Record<string, string>,
+  ): Promise<string[] | null> {
     try {
       const response = await this.instance.post<string[]>(
         `/api/v1/${import.meta.env.API_APP}/common-variables`,
-        variables
+        variables,
       );
       return response.data;
     } catch (error) {
@@ -62,7 +65,7 @@ export class CommonVariablesApi {
       const response = await this.instance.patch<CommonVariable>(
         `/api/v1/${import.meta.env.API_APP}/common-variables/${variable.key}`,
         // `/api/v1/common-variables/${variable.key}`,
-        variable.value
+        variable.value,
       );
       return response.data;
     } catch (error) {
@@ -74,11 +77,44 @@ export class CommonVariablesApi {
   async delete(keys: string[]): Promise<boolean> {
     try {
       const params = new URLSearchParams();
-      keys.forEach(key => params.append('variablesNames', key));
+      keys.forEach((key) => params.append("variablesNames", key));
 
       await this.instance.delete(
-        `/api/v1/${import.meta.env.API_APP}/common-variables?${params.toString()}`
+        `/api/v1/${import.meta.env.API_APP}/common-variables?${params.toString()}`,
       );
+      return true;
+    } catch (error) {
+      console.error("Failed to delete variables:", error);
+      return false;
+    }
+  }
+
+  async exportVariables(keys: string[], asArchive = true): Promise<boolean> {
+    try {
+      const params = new URLSearchParams();
+      if (keys.length > 0) {
+        keys.forEach((key) => params.append("variablesNames", key));
+      }
+      params.append("asArchive", String(asArchive));
+
+      const response = await this.instance.get(
+        `/api/v1/${import.meta.env.API_APP}/common-variables/export?${params.toString()}`,
+        {
+          responseType: "blob",
+        },
+      );
+      const blob = new Blob([response.data], {
+        type: asArchive ? "application/zip" : "application/x-yaml",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = asArchive
+        ? "common-variables.zip"
+        : "common-variables.yaml";
+      document.body.appendChild(link);
+      link.click();
       return true;
     } catch (error) {
       console.error("Failed to delete variables:", error);
