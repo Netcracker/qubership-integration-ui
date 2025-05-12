@@ -14,7 +14,8 @@ import {
   CheckOutlined,
   PlusOutlined,
   CloseOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  UploadOutlined
 } from "@ant-design/icons";
 import {
   getCommonVariables,
@@ -25,6 +26,7 @@ import {
 } from "../../../api/admin-tools/variables";
 import { CommonVariable } from "../../../api/admin-tools/commonVariablesApi.ts";
 import ImportVariablesModal from "./ImportVariablesModal.tsx";
+import { useModalsContext } from "../../../Modals.tsx";
 
 export const CommonVariables = () => {
   const [variables, setVariables] = useState<CommonVariable[]>([]);
@@ -33,6 +35,7 @@ export const CommonVariables = () => {
   const [newVariable, setNewVariable] = useState<CommonVariable | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editedValue, setEditedValue] = useState<string>("");
+  const { showModal } = useModalsContext();
 
   useEffect(() => {
     fetchVariables();
@@ -230,7 +233,14 @@ export const CommonVariables = () => {
           />
         </Space>
         <Space wrap>
-          <ImportVariablesModal onSuccess={fetchVariables} />
+          <Button
+            icon={<UploadOutlined />}
+            onClick={() =>
+              showModal({component: <ImportVariablesModal onSuccess={fetchVariables} />})
+            }
+          >
+            Import
+          </Button>
           <Button icon={<DownloadOutlined />} onClick={() => handleExport(selectedRowKeys as string[])}>Export</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setNewVariable({ key: "", value: "" })} disabled={!!newVariable}>Add Variable</Button>
           <Button danger icon={<DeleteOutlined />} onClick={handleDeleteSelected} disabled={!selectedRowKeys.length}>Delete Selected</Button>
