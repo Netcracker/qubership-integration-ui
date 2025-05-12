@@ -22,3 +22,10 @@ export const deleteCommonVariables = async (
 ): Promise<boolean> => {
   return await commonVariablesApi.delete(keys);
 };
+
+export const exportVariables = async (
+  keys: string[],
+  asArchive: boolean = true
+): Promise<boolean> => {
+  return await commonVariablesApi.exportVariables(keys, asArchive);
+}
