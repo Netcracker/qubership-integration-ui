@@ -51,7 +51,7 @@ const ImportVariablesModal = ({ onSuccess }: Props) => {
     formData.append("file", file);
 
     selectedNames.forEach((name) => {
-      formData.append("variablesNames", name);
+      formData.append("variablesNames", String(name));
     });
 
     try {
@@ -94,7 +94,7 @@ const ImportVariablesModal = ({ onSuccess }: Props) => {
           setFile(file);
           return false;
         }}
-        showUploadList={file ? [{ name: file.name, status: "done" }] : false}
+        showUploadList={file ? { showRemoveIcon: true } : false}
       >
         <p className="ant-upload-drag-icon">
           <InboxOutlined />
