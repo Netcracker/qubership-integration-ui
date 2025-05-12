@@ -14,12 +14,14 @@ import {
   CheckOutlined,
   PlusOutlined,
   CloseOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import {
   getCommonVariables,
   createCommonVariable,
   updateCommonVariable,
   deleteCommonVariables,
+  exportVariables
 } from "../../../api/admin-tools/variables";
 import { CommonVariable } from "../../../api/admin-tools/commonVariablesApi.ts";
 
@@ -98,6 +100,15 @@ export const CommonVariables = () => {
       fetchVariables();
     } catch {
       message.error("Failed to update variable");
+    }
+  };
+
+  const handleExport = async (keys: string[]) => {
+    try {
+      const keysToExport = keys ? keys : [];
+      await exportVariables(keysToExport, true);
+    } catch {
+      message.error("Failed to export variable");
     }
   };
 
@@ -219,7 +230,7 @@ export const CommonVariables = () => {
         </Space>
         <Space wrap>
           {/*<Button icon={<UploadOutlined />} onClick={handleImport}>Import</Button>*/}
-          {/*<Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>*/}
+          <Button icon={<DownloadOutlined />} onClick={() => handleExport(selectedRowKeys as string[])}>Export</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setNewVariable({ key: "", value: "" })} disabled={!!newVariable}>Add Variable</Button>
           <Button danger icon={<DeleteOutlined />} onClick={handleDeleteSelected} disabled={!selectedRowKeys.length}>Delete Selected</Button>
         </Space>
