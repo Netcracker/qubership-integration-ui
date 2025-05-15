@@ -9,7 +9,8 @@ import type {
   Snapshot,
   ConnectionRequest,
   ActionDifference,
-  Deployment
+  Deployment,
+  EventsUpdate
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 
@@ -194,4 +195,20 @@ export class RestApi implements Api {
       throw err;
     }
   }
+
+  getEvents = async (lastEventId: string): Promise<EventsUpdate> => {
+    try {
+      const response = await this.instance.get(`/api/v1/${import.meta.env.API_APP}/catalog/events/test`,
+          {
+            params: {
+              lastEventId: lastEventId
+            }
+          }
+      );
+      return response.data;
+    } catch (err) {
+      throw err;
+    }
+  }
+
 }

@@ -7,7 +7,9 @@ import {
   Element,
   Snapshot,
   ConnectionRequest,
-  ActionDifference, Deployment
+  ActionDifference,
+  Deployment,
+  EventsUpdate
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 
@@ -60,6 +62,8 @@ export interface Api {
   getLibraryElementByType(type: string): Promise<Element>;
 
   getDeployments(chainId: string): Promise<Deployment[]>;
+
+  getEvents(lastEventId: string): Promise<EventsUpdate>;
 }
 
 export const api: Api = new RestApi(); 

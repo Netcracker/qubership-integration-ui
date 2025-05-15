@@ -146,3 +146,22 @@ export type Deployment = {
   runtime: RuntimeStates;
   serviceName: string;
 }
+
+export type EventsUpdate = {
+  lastEventId: string;
+  events: Event[];
+}
+
+export type Event = {
+  id: string;
+  time?: number;
+  userId?: string;
+  objectType: ObjectType;
+  data?: any;
+}
+
+export enum ObjectType {
+  DEPLOYMENT = 'DEPLOYMENT',
+  ENGINE = 'ENGINE',
+  GENERIC_MESSAGE = 'GENERIC_MESSAGE',
+}
