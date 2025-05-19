@@ -16,6 +16,7 @@ import { Sessions } from "./pages/Sessions.tsx";
 import { SessionPage } from "./pages/SessionPage.tsx";
 import { AdminTools } from "./pages/admin-tools/AdminToolsPage.tsx";
 import { CommonVariablesPage } from "./pages/admin-tools/CommonVariablesPage.tsx";
+import { SecuredVariablesPage } from "./pages/admin-tools/SecuredVariablesPage.tsx";
 
 const { Header } = Layout;
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/admin-tools" element={<AdminTools />}>
               {/*<Route path="domains" element={<DomainsPage />} />*/}
               <Route  path="variables/common" element={<CommonVariablesPage />} />
+              <Route  path="variables/secured" element={<SecuredVariablesPage />} />
             </Route>
             <Route index path="/" element={<Chains />} />
             <Route index path="/chains" element={<Chains />} />
