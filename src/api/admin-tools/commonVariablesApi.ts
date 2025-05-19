@@ -1,16 +1,13 @@
 import axios, { AxiosInstance } from "axios";
+import { Variable } from "./variables.ts";
 
-export interface CommonVariable {
-  key: string;
-  value: string;
-}
 
 export class CommonVariablesApi {
   private instance: AxiosInstance;
 
   constructor() {
     this.instance = axios.create({
-      baseURL: import.meta.env.GATEWAY,
+      baseURL: import.meta.env.VITE_GATEWAY,
       timeout: 1000,
       headers: {
         "Content-Type": "application/json",
@@ -18,10 +15,10 @@ export class CommonVariablesApi {
     });
   }
 
-  async getAll(): Promise<CommonVariable[]> {
+  async getAll(): Promise<Variable[]> {
     try {
       const response = await this.instance.get(
-        `/api/v1/${import.meta.env.API_APP}/common-variables`,
+        `/api/v1/${import.meta.env.VITE_API_APP}/common-variables`,
       );
 
       const data = response.data;
@@ -41,7 +38,7 @@ export class CommonVariablesApi {
     }
   }
 
-  async create(variable: CommonVariable): Promise<string[] | null> {
+  async create(variable: Variable): Promise<string[] | null> {
     return this.createMany({ [variable.key]: variable.value });
   }
 
@@ -50,7 +47,7 @@ export class CommonVariablesApi {
   ): Promise<string[] | null> {
     try {
       const response = await this.instance.post<string[]>(
-        `/api/v1/${import.meta.env.API_APP}/common-variables`,
+        `/api/v1/${import.meta.env.VITE_API_APP}/common-variables`,
         variables,
       );
       return response.data;
@@ -60,11 +57,10 @@ export class CommonVariablesApi {
     }
   }
 
-  async update(variable: CommonVariable): Promise<CommonVariable | null> {
+  async update(variable: Variable): Promise<Variable | null> {
     try {
-      const response = await this.instance.patch<CommonVariable>(
-        `/api/v1/${import.meta.env.API_APP}/common-variables/${variable.key}`,
-        // `/api/v1/common-variables/${variable.key}`,
+      const response = await this.instance.patch<Variable>(
+        `/api/v1/${import.meta.env.VITE_API_APP}/common-variables/${variable.key}`,
         variable.value,
       );
       return response.data;
@@ -80,7 +76,7 @@ export class CommonVariablesApi {
       keys.forEach((key) => params.append("variablesNames", key));
 
       await this.instance.delete(
-        `/api/v1/${import.meta.env.API_APP}/common-variables?${params.toString()}`,
+        `/api/v1/${import.meta.env.VITE_API_APP}/common-variables?${params.toString()}`,
       );
       return true;
     } catch (error) {
@@ -98,7 +94,7 @@ export class CommonVariablesApi {
       params.append("asArchive", String(asArchive));
 
       const response = await this.instance.get(
-        `/api/v1/${import.meta.env.API_APP}/common-variables/export?${params.toString()}`,
+        `/api/v1/${import.meta.env.VITE_API_APP}/common-variables/export?${params.toString()}`,
         {
           responseType: "blob",
         },
@@ -128,7 +124,7 @@ export class CommonVariablesApi {
     }
     try {
        const result = await axios.post(
-        `/api/${isPreview ? "v1" : "v2"}/${import.meta.env.API_APP}/common-variables/${isPreview ? "preview" : "import"}`,
+        `/api/${isPreview ? "v1" : "v2"}/${import.meta.env.VITE_API_APP}/common-variables/${isPreview ? "preview" : "import"}`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
