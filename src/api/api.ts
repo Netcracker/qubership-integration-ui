@@ -14,6 +14,12 @@ import {
   EntityLabel,
   ChainLoggingSettings,
   ChainLoggingProperties,
+  MaskedField,
+  SessionFilterAndSearchRequest,
+  PaginationOptions,
+  SessionSearchResponse,
+  Session,
+  CheckpointSession,
   MaskedField, EventsUpdate
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
@@ -110,6 +116,31 @@ export interface Api {
     maskedFieldId: string,
     changes: Partial<Omit<MaskedField, "id">>,
   ): Promise<MaskedField>;
+
+  getSessions(
+    chainId: string | undefined,
+    filters: SessionFilterAndSearchRequest,
+    paginationOptions: PaginationOptions,
+  ): Promise<SessionSearchResponse>;
+
+  deleteSessions(sessionIds: string[]): Promise<void>;
+
+  deleteSessionsByChainId(chainId: string | undefined): Promise<void>;
+
+  exportSessions(sessionIds: string[]): Promise<File>;
+
+  importSessions(files: File[]): Promise<Session[]>;
+
+  retryFromLastCheckpoint(chainId: string, sessionId: string): Promise<void>;
+
+  getSession(sessionId: string): Promise<Session>;
+
+  getCheckpointSessions(sessionIds: string[]): Promise<CheckpointSession[]>;
+
+  retrySessionFromLastCheckpoint(
+    chainId: string,
+    sessionId: string,
+  ): Promise<void>;
 
     getEvents(lastEventId: string): Promise<EventsUpdate>;
 }
