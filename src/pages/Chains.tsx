@@ -13,8 +13,8 @@ const Chains = () => {
   return (
     <>
       <Table
+        dataSource={chains? chains : []}
         size="small"
-        dataSource={chains}
         columns={columns}
         pagination={false}
         onRow={(record) => {

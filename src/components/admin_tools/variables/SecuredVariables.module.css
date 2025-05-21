@@ -1,0 +1,74 @@
+
+.secured-variables-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+}
+
+.secured-variables-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.secret-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.secret-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.secret-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-button,
+.delete-button {
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+
+.expanded-content-wrapper {
+    transform-origin: top;
+    animation: slideDown 0.3s ease-out forwards;
+}
+
+@keyframes slideDown {
+    0% {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.editable-cell-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 8px;
+    position: relative;
+}
+
+.editable-cell-wrapper .edit-icon {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    margin-left: 8px;
+    color: #999;
+}
+
+.secret-row:hover .editable-cell-wrapper .edit-icon {
+    opacity: 1;
+}

@@ -1,0 +1,79 @@
+.sidebar {
+    width: 240px;
+    border-right: 1px solid #e0e0e0;
+    background-color: #fff;
+    padding: 16px 0;
+    height: 100vh;
+    font-family: "Inter", sans-serif;
+}
+
+.link {
+    display: flex;
+    align-items: center;
+    padding: 10px 24px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.link:hover {
+    background-color: #f5f5f5;
+}
+
+.activeLink {
+    background-color: #e6f0ff;
+    color: #1976d2;
+    font-weight: 600;
+}
+
+.icon {
+    margin-right: 12px;
+    font-size: 16px;
+}
+
+.section {
+    margin-bottom: 24px;
+}
+
+.linkGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.groupLabel {
+    display: flex;
+    align-items: center;
+    padding: 10px 24px;
+    font-weight: 500;
+    color: #555;
+    font-size: 14px;
+}
+
+.subsection {
+    display: flex;
+    flex-direction: column;
+}
+.toggleButton {
+    position: absolute;
+    top: 25%;
+    right: -16px;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: #f0f0f0;
+    border: 1px solid #d9d9d9;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.toggleButton:hover {
+    background: #e6f0ff;
+    border-color: #91caff;
+}
