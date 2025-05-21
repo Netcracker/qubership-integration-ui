@@ -100,10 +100,6 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-.common-variables-container {
-    animation: fadeIn 0.5s var(--transition-easing);
-}
-
 @media (max-width: 768px) {
     .common-variables-header {
         flex-direction: column;
