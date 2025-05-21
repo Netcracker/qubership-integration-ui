@@ -1,5 +1,3 @@
-import { NavLink } from "react-router-dom";
-import styles from "./AdminToolsSidebar.module.css";
 import {
   AppstoreOutlined,
   FileTextOutlined,
@@ -10,54 +8,115 @@ import {
   CloudUploadOutlined,
   AuditOutlined,
   CodeOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
+import { Menu, Button } from "antd";
+import Sider from "antd/es/layout/Sider";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import styles from "./AdminToolsSidebar.module.css";
+
+const menuItems = [
+  {
+    key: "/admin-tools/domains",
+    icon: <AppstoreOutlined />,
+    label: "Domains",
+  },
+  {
+    key: "variables",
+    icon: <CodeOutlined />,
+    label: "Variables",
+    children: [
+      {
+        key: "/admin-tools/variables/common",
+        icon: <TableOutlined />,
+        label: "Common",
+      },
+      {
+        key: "/admin-tools/variables/secured",
+        icon: <LockOutlined />,
+        label: "Secured",
+      },
+    ],
+  },
+  {
+    key: "/admin-tools/audit",
+    icon: <AuditOutlined />,
+    label: "Audit",
+  },
+  {
+    key: "/admin-tools/import-instructions",
+    icon: <CloudUploadOutlined />,
+    label: "Import Instructions",
+  },
+  {
+    key: "/admin-tools/sessions",
+    icon: <UserOutlined />,
+    label: "Sessions",
+  },
+  {
+    key: "/admin-tools/roles",
+    icon: <SettingOutlined />,
+    label: "Roles",
+  },
+  {
+    key: "/admin-tools/design-templates",
+    icon: <FileTextOutlined />,
+    label: "Design Templates",
+  },
+];
 
 export const AdminToolsSidebar = () => {
-  return (
-    <nav className={styles.sidebar}>
-      <SidebarItem path="domains" icon={<AppstoreOutlined />} label="Domains" />
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>(
+    location.pathname.includes("variables") ? ["variables"] : []
+  );
 
-      <div className={styles.section}>
-        <div className={styles.linkGroup}>
-          <span className={styles.groupLabel}>
-            <CodeOutlined className={styles.icon} />
-            Variables
-          </span>
-          <div className={styles.subsection}>
-            <SidebarItem path="variables/common" icon={<TableOutlined />} label="Common" small />
-            <SidebarItem path="variables/secured" icon={<LockOutlined />} label="Secured" small />
-          </div>
-        </div>
+  const handleClick = ({ key }: { key: string }) => {
+    if (!key.startsWith("variables")) {
+      navigate(key);
+    } else if (key.startsWith("/admin-tools/variables")) {
+      navigate(key);
+    }
+  };
+
+  const handleOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
+  };
+
+  const selectedKeys = [location.pathname];
+
+  return (
+    <Sider
+      width={240}
+      collapsed={collapsed}
+      style={{
+        background: "#fff",
+        height: "100vh",
+        borderRight: "1px solid #f0f0f0",
+        position: "relative",
+      }}
+    >
+      <div className={styles.toggleButton}>
+        <Button
+          type="text"
+          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          onClick={() => setCollapsed(!collapsed)}
+        />
       </div>
 
-      <SidebarItem path="audit" icon={<AuditOutlined />} label="Audit" />
-      <SidebarItem path="import-instructions" icon={<CloudUploadOutlined />} label="Import Instructions" />
-      <SidebarItem path="sessions" icon={<UserOutlined />} label="Sessions" />
-      <SidebarItem path="roles" icon={<SettingOutlined />} label="Roles" />
-      <SidebarItem path="design-templates" icon={<FileTextOutlined />} label="Design Templates" />
-    </nav>
+      <Menu
+        mode="inline"
+        selectedKeys={selectedKeys}
+        openKeys={collapsed ? [] : openKeys}
+        onOpenChange={handleOpenChange}
+        onClick={handleClick}
+        items={menuItems}
+        style={{ height: "100%", borderRight: 0 }}
+      />
+    </Sider>
   );
 };
-
-const SidebarItem = ({
-                       path,
-                       icon,
-                       label,
-                       small = false,
-                     }: {
-  path: string;
-  icon: React.ReactNode;
-  label: string;
-  small?: boolean;
-}) => (
-  <NavLink
-    to={path}
-    className={({ isActive }) =>
-      isActive ? `${styles.link} ${styles.activeLink}` : styles.link
-    }
-    style={{ paddingLeft: small ? 40 : 24 }}
-  >
-    <span className={styles.icon}>{icon}</span>
-    {label}
-  </NavLink>
-);

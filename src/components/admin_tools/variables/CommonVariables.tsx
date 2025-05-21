@@ -62,19 +62,20 @@ export const CommonVariables = () => {
   };
 
   return (
-    <div className={styles['common-variables-container']}>
-      {/* Заголовок и панель действий */}
-      <div className={styles['common-variables-header']}>
-        <Title level={4} className={styles['common-variables-title']}>
-          <TableOutlined className={styles['common-variables-icon']} />
+    <>
+      <div className={styles["common-variables-header"]}>
+        <Title level={4} className={styles["common-variables-title"]}>
+          <TableOutlined className={styles["common-variables-icon"]} />
           Common Variables
         </Title>
 
-        <div className={styles['common-variables-actions']}>
+        <div className={styles["common-variables-actions"]}>
           <Button
             icon={<UploadOutlined />}
             onClick={() =>
-              showModal({ component: <ImportVariablesModal onSuccess={fetchVariables} /> })
+              showModal({
+                component: <ImportVariablesModal onSuccess={fetchVariables} />,
+              })
             }
           >
             Import
@@ -111,9 +112,7 @@ export const CommonVariables = () => {
           </Popconfirm>
         </div>
       </div>
-
-      {/* Таблица */}
-      <div className={styles['common-variables-table-wrapper']}>
+      <div className={styles["common-variables-table-wrapper"]}>
         <VariablesTable
           variables={variables}
           isAddingNew={isAddingNew}
@@ -134,6 +133,6 @@ export const CommonVariables = () => {
           isValueHidden={false}
         />
       </div>
-    </div>
+    </>
   );
 };
