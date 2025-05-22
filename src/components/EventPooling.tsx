@@ -1,23 +1,23 @@
-import {api} from "../api/api.ts";
-import {useQuery} from "@tanstack/react-query";
-import {notification} from "antd";
-import {Event} from "../api/apiTypes.ts";
 import React, {useEffect, useState} from "react";
-
+import {useQuery} from "@tanstack/react-query";
+import {api} from "../api/api";
+import {Event} from "../api/apiTypes";
+import {useEventContext} from "../contexts/deployment/EventContext.tsx";
 
 export const EventPooling: React.FC = () => {
     const REFRESH_TIME_MS = 3 * 1000;
     const ON_ERR_TIME_MS = 8 * 1000;
+    const [refetchInterval, setRefetchInterval] = useState(REFRESH_TIME_MS);
 
-    const [refetchInterval, setRefetchInterval] = useState(3000);
     const [lastEventId, setLastEventId] = useState<string | null>(null);
+    const { publish } = useEventContext();
 
     const fetchEvents = async () => {
         const lastEventIdRequestParam = lastEventId ? lastEventId : "";
         return await api.getEvents(lastEventIdRequestParam);
-    }
+    };
 
-    const {data, error } = useQuery({
+    const { data, error } = useQuery({
         queryKey: ["events"],
         queryFn: fetchEvents,
         refetchInterval,
@@ -26,7 +26,6 @@ export const EventPooling: React.FC = () => {
     });
 
     useEffect(() => {
-
         if (error) {
             setRefetchInterval(refetchInterval !== ON_ERR_TIME_MS ? ON_ERR_TIME_MS : refetchInterval);
             return;
@@ -35,19 +34,10 @@ export const EventPooling: React.FC = () => {
         if (data && data?.events.length > 0) {
             setRefetchInterval(refetchInterval !== REFRESH_TIME_MS ? REFRESH_TIME_MS : refetchInterval);
 
-            //TODO General Notification Approach
-            data?.events.forEach((event: Event) => {
-                notification.open({
-                    message: "Новое событие",
-                    description: `${event.id}`
-                });
-            });
-
+            data.events.forEach((event: Event) => publish(event));
             setLastEventId(data?.lastEventId);
         }
-
-    }, [data, error, refetchInterval]);
+    }, [data, publish]);
 
     return null;
 };
-

@@ -1,23 +1,43 @@
-import React from "react";
-import { FloatButton, notification, Table, Tooltip } from "antd";
-import { useDeployments } from "../hooks/useDeployments.tsx";
-import { useParams } from "react-router";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { TableProps } from "antd/lib/table";
-import { CreateDeploymentRequest, Deployment } from "../api/apiTypes.ts";
-import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
-import { useSnapshots } from "../hooks/useSnapshots.tsx";
-import { formatTimestamp } from "../misc/format-utils.ts";
-import { useModalsContext } from "../Modals.tsx";
-import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
-import { api } from "../api/api.ts";
-import { LongActionButton } from "../components/LongActionButton.tsx";
+import React, {useEffect} from "react";
+import {FloatButton, notification, Table, Tooltip} from "antd";
+import {useDeployments} from "../hooks/useDeployments.tsx";
+import {useParams} from "react-router";
+import {DeleteOutlined, PlusOutlined} from "@ant-design/icons";
+import {TableProps} from "antd/lib/table";
+import {CreateDeploymentRequest, Deployment, ObjectType} from "../api/apiTypes.ts";
+import {DeploymentRuntimeStates} from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
+import {useSnapshots} from "../hooks/useSnapshots.tsx";
+import {formatTimestamp} from "../misc/format-utils.ts";
+import {useModalsContext} from "../Modals.tsx";
+import {DeploymentCreate} from "../components/modal/DeploymentCreate.tsx";
+import {api} from "../api/api.ts";
+import {LongActionButton} from "../components/LongActionButton.tsx";
+import {getDeploymentFromEvent, mergeDeployment} from "../misc/deployment-utils.ts";
+import {Event} from "../api/apiTypes";
+import {useEventContext} from "../contexts/deployment/EventContext.tsx";
+import {getNotificationConfiguration} from "../misc/notification-util.ts";
 
 export const Deployments: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
   const { isLoading, deployments, setDeployments } = useDeployments(chainId);
   const { snapshots } = useSnapshots(chainId);
   const { showModal } = useModalsContext();
+  const { subscribe } = useEventContext();
+
+  useEffect(() => {
+    return subscribe(ObjectType.DEPLOYMENT, (event: Event) => {
+      notification.open(getNotificationConfiguration(event, ObjectType.DEPLOYMENT));
+      const eventDeployment = getDeploymentFromEvent(event);
+      setDeployments((deploymentsState) => {
+        const currentDeployments = deploymentsState ? deploymentsState : [];
+        const matchedDeployment = currentDeployments.find((d) => d.id === eventDeployment.id);
+        if (matchedDeployment) {
+          return currentDeployments.map((currentDeployment) => currentDeployment.id === eventDeployment.id ? mergeDeployment(currentDeployment, eventDeployment) : currentDeployment);
+        }
+      });
+    });
+  }, [subscribe]);
+
 
   const columns: TableProps<Deployment>["columns"] = [
     {

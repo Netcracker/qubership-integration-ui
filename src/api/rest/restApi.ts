@@ -16,12 +16,13 @@ import {
   ChainLoggingSettings,
   ChainLoggingProperties,
   MaskedField,
+  MaskedFields,
   SessionFilterAndSearchRequest,
   PaginationOptions,
   SessionSearchResponse,
   Session,
   CheckpointSession,
-   EventsUpdate
+  EventsUpdate,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 
@@ -594,7 +595,7 @@ export class RestApi implements Api {
 
     getEvents = async (lastEventId: string): Promise<EventsUpdate> => {
         try {
-            const response = await this.instance.get(`/api/v1/${import.meta.env.API_APP}/catalog/events/test`,
+            const response = await this.instance.get(`/api/v1/${import.meta.env.VITE_API_APP}/catalog/events`,
                 {
                     params: {
                         lastEventId: lastEventId
