@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Menu, notification, Spin } from "antd";
+import { Menu, Spin } from "antd";
 import { Element, LibraryData } from "../../api/apiTypes.ts";
 import { api } from "../../api/api.ts";
 import DraggableElement from "./DraggableElement.tsx";
 import Sider from "antd/lib/layout/Sider";
 
 import styles from "./ElementsLibrarySidebar.module.css";
+import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 
 export const ElementsLibrarySidebar = () => {
   const [_elementsList, setElementsList] = useState<LibraryData | null>(null);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const notificationService = useNotificationService();
 
   type MenuItem = {
     key: string;
@@ -44,10 +46,7 @@ export const ElementsLibrarySidebar = () => {
 
         setItems(Array.from(folderMap.values()));
       } catch (error) {
-        notification.error({
-          message: "Request failed",
-          description: "Failed to load library elements",
-        });
+          notificationService.errorWithDetails("Failed to load library elements", error);
       } finally {
         setLoading(false);
       }
