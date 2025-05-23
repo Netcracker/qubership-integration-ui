@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Chain } from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
-import { Button, notification } from "antd";
+import { Button } from "antd";
 import { TableProps } from "antd/lib/table";
+import { useNotificationService } from "./useNotificationService.tsx";
 
 export const useChains = () => {
   const [chains, setChains] = useState<Chain[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const notificationService = useNotificationService();
 
   useEffect(() => {
     loadChains();
@@ -38,11 +40,8 @@ export const useChains = () => {
     try {
       const data = await api.getChains();
       setChains(data);
-    } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to load chains",
-      });
+    } catch (error) {      
+        notificationService.errorWithDetails("Failed to load chains", error);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +52,7 @@ export const useChains = () => {
       await api.deleteChain(id);
       setChains(chains.filter((chain) => chain.id !== id));
     } catch (error) {
-      notification.error({ message: "Api call failed" });
+      notificationService.errorWithDetails("Failde to delete chain", error);
     }
   };
 

@@ -1,10 +1,11 @@
 import { api } from "../api/api.ts";
 import { Chain } from "../api/apiTypes.ts";
 import { useEffect, useState } from "react";
-import { notification } from "antd";
+import { useNotificationService } from "./useNotificationService.tsx";
 
 export const useChain = (chainId?: string) => {
   const [chain, setChain] = useState<Chain>();
+  const notificationService = useNotificationService();
 
   useEffect(() => {
     if (!chainId) return;
@@ -15,10 +16,7 @@ export const useChain = (chainId?: string) => {
     try {
       await api.updateChain(chainId, chain);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to create snapshot",
-      });
+      notificationService.errorWithDetails("Failed to create snapshot", error);
     }
   };
 
@@ -27,10 +25,7 @@ export const useChain = (chainId?: string) => {
       const data = await api.getChain(chainId);
       setChain(data);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to load snapshots",
-      });
+      notificationService.errorWithDetails("Failed to load snapshots", error);
     }
   };
 
