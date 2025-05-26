@@ -20,7 +20,11 @@ import {
   SessionSearchResponse,
   Session,
   CheckpointSession,
-  MaskedField, EventsUpdate
+  FolderItem,
+  FolderResponse,
+  FolderUpdateRequest,
+  PatchElementRequest,
+    EventsUpdate
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 
@@ -35,6 +39,14 @@ export interface Api {
 
   deleteChain(chainId: string): Promise<void>;
 
+  duplicateChain(chainId: string): Promise<Chain>;
+
+  copyChain(chainId: string, folderId?: string): Promise<Chain>;
+
+  moveChain(chainId: string, folderId?: string): Promise<Chain>;
+
+  exportChains(chainIds: string[], exportSubchains: boolean): Promise<File>;
+
   getLibrary(): Promise<LibraryData>;
 
   getElements(chainId: string): Promise<Element[]>;
@@ -44,7 +56,7 @@ export interface Api {
     chainId: string,
   ): Promise<ActionDifference>;
 
-  updateElement(chainId: string, elementId: string): Promise<ActionDifference>;
+  updateElement(elementRequest: PatchElementRequest, chainId: string, elementId: string): Promise<ActionDifference>;
 
   deleteElement(elementId: string, chainId: string): Promise<ActionDifference>;
 
@@ -141,6 +153,23 @@ export interface Api {
     chainId: string,
     sessionId: string,
   ): Promise<void>;
+
+  getRootFolder(): Promise<FolderItem[]>;
+
+  getFolder(folderId: string): Promise<FolderResponse>;
+
+  createFolder(request: FolderUpdateRequest): Promise<FolderResponse>;
+
+  updateFolder(
+    folderId: string,
+    changes: FolderUpdateRequest,
+  ): Promise<FolderResponse>;
+
+  deleteFolder(folderId: string): Promise<void>;
+
+  moveFolder(folderId: string, targetFolderId?: string): Promise<FolderResponse>;
+
+  getNestedChains(folderId: string): Promise<Chain[]>;
 
     getEvents(lastEventId: string): Promise<EventsUpdate>;
 }
