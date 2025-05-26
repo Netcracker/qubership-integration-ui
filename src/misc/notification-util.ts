@@ -18,7 +18,8 @@ function getDeploymentNotificationConfiguration(event: Event): ArgsProps  {
         case "DEPLOYED": {
             return {
                 type: "success",
-                message: `${chainName} has been deployed successfully`,
+                message: `${chainName}`,
+                description: "Has been deployed successfully",
             }
         }
         case 'PROCESSING':

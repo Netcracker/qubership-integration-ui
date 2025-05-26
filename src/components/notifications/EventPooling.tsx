@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from "react";
 import {useQuery} from "@tanstack/react-query";
-import {api} from "../api/api";
-import {Event} from "../api/apiTypes";
-import {useEventContext} from "../contexts/deployment/EventContext.tsx";
+import {api} from "../../api/api.ts";
+import {Event} from "../../api/apiTypes.ts";
+import {useEventContext} from "./contexts/EventContext.tsx";
 
 export const EventPooling: React.FC = () => {
     const REFRESH_TIME_MS = 3 * 1000;

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, ReactNode } from "react";
-import {Event} from "../../api/apiTypes.ts";
+import {Event} from "../../../api/apiTypes.ts";
 
 export type EventCallback = (event: Event) => void;
 

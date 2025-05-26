@@ -14,7 +14,7 @@ import {api} from "../api/api.ts";
 import {LongActionButton} from "../components/LongActionButton.tsx";
 import {getDeploymentFromEvent, mergeDeployment} from "../misc/deployment-utils.ts";
 import {Event} from "../api/apiTypes";
-import {useEventContext} from "../contexts/deployment/EventContext.tsx";
+import {useEventContext} from "../components/notifications/contexts/EventContext.tsx";
 import {getNotificationConfiguration} from "../misc/notification-util.ts";
 
 export const Deployments: React.FC = () => {
