@@ -1,17 +1,18 @@
-import React, {useEffect} from "react";
-import {FloatButton, notification, Table, Tooltip} from "antd";
-import {useDeployments} from "../hooks/useDeployments.tsx";
-import {useParams} from "react-router";
-import {DeleteOutlined, PlusOutlined} from "@ant-design/icons";
-import {TableProps} from "antd/lib/table";
-import {CreateDeploymentRequest, Deployment, ObjectType} from "../api/apiTypes.ts";
-import {DeploymentRuntimeStates} from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
-import {useSnapshots} from "../hooks/useSnapshots.tsx";
-import {formatTimestamp} from "../misc/format-utils.ts";
-import {useModalsContext} from "../Modals.tsx";
-import {DeploymentCreate} from "../components/modal/DeploymentCreate.tsx";
-import {api} from "../api/api.ts";
-import {LongActionButton} from "../components/LongActionButton.tsx";
+import React from "react";
+import { FloatButton, Table, Tooltip } from "antd";
+import { useDeployments } from "../hooks/useDeployments.tsx";
+import { useParams } from "react-router";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { TableProps } from "antd/lib/table";
+import { CreateDeploymentRequest, Deployment } from "../api/apiTypes.ts";
+import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
+import { useSnapshots } from "../hooks/useSnapshots.tsx";
+import { formatTimestamp } from "../misc/format-utils.ts";
+import { useModalsContext } from "../Modals.tsx";
+import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
+import { api } from "../api/api.ts";
+import { LongActionButton } from "../components/LongActionButton.tsx";
+import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import {getDeploymentFromEvent, mergeDeployment} from "../misc/deployment-utils.ts";
 import {Event} from "../api/apiTypes";
 import {useEventContext} from "../components/notifications/contexts/EventContext.tsx";
@@ -38,6 +39,7 @@ export const Deployments: React.FC = () => {
     });
   }, [subscribe]);
 
+  const notificationService = useNotificationService();
 
   const columns: TableProps<Deployment>["columns"] = [
     {
@@ -103,10 +105,7 @@ export const Deployments: React.FC = () => {
       await api.deleteDeployment(deployment.id);
       setDeployments(deployments?.filter((d) => d.id !== deployment.id) ?? []);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to delete deployment",
-      });
+      notificationService.requestFailed("Failed to delete deployment", error);
     }
   };
 
@@ -116,10 +115,7 @@ export const Deployments: React.FC = () => {
       const deployment = await api.createDeployment(chainId, request);
       await onDeploymentCreated(deployment);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to create deployment",
-      });
+      notificationService.requestFailed("Failed to create deployment", error);
     }
   };
 
