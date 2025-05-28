@@ -22,7 +22,6 @@ import {
   Dropdown,
   Flex,
   Modal,
-  notification,
   Progress,
   Space,
   Steps,
@@ -41,6 +40,7 @@ import { capitalize } from "../../misc/format-utils.ts";
 import { SelectEdit } from "../table/SelectEdit.tsx";
 import Checkbox from "antd/lib/checkbox";
 import { ImportStatus } from "../labels/ImportStatus.tsx";
+import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 
 type ImportChainsProps = {
   onSuccess?: () => void;
@@ -82,6 +82,7 @@ function getInstructionTableItems(
 export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
   const IMPORT_STATUS_UPDATE_INTERVAL_MS = 1000;
 
+  const notificationService = useNotificationService();
   const { closeContainingModal } = useModalContext();
   const [step, setStep] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -191,10 +192,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
     try {
       return api.getDomains();
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to get domains",
-      });
+      notificationService.requestFailed("Failed to get domains", error);
       return [];
     } finally {
       setLoading(false);
@@ -207,10 +205,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
       const preview = await api.getImportPreview(file);
       setImportPreview(preview);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to get import preview",
-      });
+      notificationService.requestFailed("Failed to get import preview", error);
     } finally {
       setLoading(false);
     }
@@ -266,10 +261,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
       );
       return response.importId;
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to commit import request",
-      });
+      notificationService.requestFailed("Failed to commit import request", error);
     } finally {
       setLoading(false);
     }
@@ -299,10 +291,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
         );
       }
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to get import status",
-      });
+      notificationService.requestFailed("Failed to get import status", error);
       setLoading(false);
     }
   };
