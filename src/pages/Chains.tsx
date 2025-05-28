@@ -7,7 +7,6 @@ import {
   MenuProps,
   message,
   Modal,
-  notification,
   Table,
 } from "antd";
 import { useNavigate, useSearchParams } from "react-router";
@@ -54,6 +53,7 @@ import {
 } from "../components/modal/ExportChains.tsx";
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
+import { useNotificationService } from "../hooks/useNotificationService.tsx";
 
 type ChainTableItem = FolderItem & {
   children?: ChainTableItem[];
@@ -148,6 +148,7 @@ const Chains = () => {
     "modifiedWhen",
   ]);
   const [operation, setOperation] = useState<Operation | undefined>(undefined);
+  const notificationService = useNotificationService();
 
   useEffect(() => {
     updateFolderItems();
@@ -182,12 +183,9 @@ const Chains = () => {
   const getRootFolderItems = async (): Promise<FolderItem[]> => {
     setIsLoading(true);
     try {
-      return api.getRootFolder();
+      return await api.getRootFolder();
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to get root folder content",
-      });
+      notificationService.requestFailed("Failed to get root folder content", error);
       return [];
     } finally {
       setIsLoading(false);
@@ -199,10 +197,7 @@ const Chains = () => {
     try {
       return api.getFolder(folderId);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to get folder content",
-      });
+      notificationService.requestFailed("Failed to get folder content", error);
     } finally {
       setIsLoading(false);
     }
@@ -247,10 +242,7 @@ const Chains = () => {
         }
       }
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to create folder",
-      });
+      notificationService.requestFailed("Failed to create folder", error);
     } finally {
       setIsLoading(false);
     }
@@ -269,10 +261,7 @@ const Chains = () => {
         ),
       );
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to update folder",
-      });
+      notificationService.requestFailed("Failed to update folder", error);
     } finally {
       setIsLoading(false);
     }
@@ -290,10 +279,7 @@ const Chains = () => {
       });
       setFolderItems(folderItems.filter((i) => !ids.has(i.id)));
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to delete folder",
-      });
+      notificationService.requestFailed("Failed to delete folder", error);
     } finally {
       setIsLoading(false);
     }
@@ -321,10 +307,7 @@ const Chains = () => {
         }
       }
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to create chain",
-      });
+      notificationService.requestFailed("Failed to create chain", error);
     } finally {
       setIsLoading(false);
     }
@@ -336,10 +319,7 @@ const Chains = () => {
       await api.deleteChain(chainId);
       setFolderItems(folderItems.filter((item) => item.id !== chainId));
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to delete chain",
-      });
+      notificationService.requestFailed("Failed to delete chain", error);
     } finally {
       setIsLoading(false);
     }
@@ -355,10 +335,7 @@ const Chains = () => {
         { itemType: FolderItemType.CHAIN, ...chain } as FolderItem,
       ]);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to delete chain",
-      });
+      notificationService.requestFailed("Failed to delete chain", error);
     } finally {
       setIsLoading(false);
     }
@@ -374,10 +351,7 @@ const Chains = () => {
         { itemType: FolderItemType.CHAIN, ...chain } as FolderItem,
       ]);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to copy chain",
-      });
+      notificationService.requestFailed("Failed to copy chain", error);
     } finally {
       setIsLoading(false);
     }
@@ -396,10 +370,7 @@ const Chains = () => {
         ),
       );
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to move chain",
-      });
+      notificationService.requestFailed("Failed to move chain", error);
     } finally {
       setIsLoading(false);
     }
@@ -415,10 +386,7 @@ const Chains = () => {
         ),
       );
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to move folder",
-      });
+      notificationService.requestFailed("Failed to move folder", error);
     } finally {
       setIsLoading(false);
     }
@@ -491,10 +459,7 @@ const Chains = () => {
       });
       downloadFile(file);
     } catch (error) {
-      notification.error({
-        message: "Request failed",
-        description: "Failed to export chains",
-      });
+      notificationService.requestFailed("Failed to export chains", error);
     }
   };
 
