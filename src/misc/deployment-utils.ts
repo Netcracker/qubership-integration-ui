@@ -2,6 +2,7 @@ import {Deployment, Event} from "../api/apiTypes.ts";
 
 export function getDeploymentFromEvent(deploymentUpdateEvent: Event){
 
+    // @ts-ignore
     const updatedDeployment: Deployment = {
         id: deploymentUpdateEvent.data.id,
         chainId: deploymentUpdateEvent.data.chainId,

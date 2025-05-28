@@ -1,10 +1,8 @@
 import React from "react";
 import {
-    CheckCircleOutlined,
     CloseOutlined,
     ExclamationCircleOutlined,
-    StopOutlined,
-    WarningOutlined
+    CloseCircleOutlined,
 } from "@ant-design/icons";
 import {List} from "antd";
 import {ArgsProps} from "antd/es/notification";
@@ -19,12 +17,8 @@ export const NotificationBarElement: React.FC<NotificationBarElementProps> = ({p
     const getIconByType = (type?: string) => {
         const style = {fontSize: "18", marginTop: 4};
         switch (type) {
-            case "success":
-                return <CheckCircleOutlined style={{...style, color: "#14fa2b"}}/>;
-            case "warning":
-                return <WarningOutlined style={{...style, color: "#faad14"}}/>;
             case "error":
-                return <StopOutlined style={{...style, color: "#ff4d4f"}}/>;
+                return <CloseCircleOutlined style={{...style, color: "#ff4d4f"}}/>;
             case "info":
             default:
                 return <ExclamationCircleOutlined style={{...style, color: "#1890ff"}}/>;

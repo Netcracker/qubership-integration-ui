@@ -1,5 +1,5 @@
 import {Badge, Button, Drawer, List} from "antd";
-import { WarningOutlined,} from "@ant-design/icons";
+import { BellOutlined,} from "@ant-design/icons";
 import styles from "../Navigation.module.css";
 import React, {useState} from "react";
 import {useNotificationLog} from "./contexts/NotificationLogContext.tsx";
@@ -33,7 +33,7 @@ export const NotificationBar: React.FC = () => {
     return <Badge count={notificationLogData.history.length}>
         <Button
             type="default"
-            icon={<WarningOutlined/>}
+            icon={<BellOutlined />}
             onClick={showDrawer}
             className={styles.button}
         />

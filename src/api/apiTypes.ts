@@ -442,3 +442,24 @@ export enum ObjectType {
     ENGINE = 'ENGINE',
     GENERIC_MESSAGE = 'GENERIC_MESSAGE',
 }
+
+export type ErrorResponse = {
+  serviceName: string;
+  errorMessage: string;
+  stackTrace: string;
+  errorDate: string;
+}
+
+export class RestApiError extends Error {
+    responseCode: number;
+    responseBody?: ErrorResponse;
+    rawError?: unknown;
+
+    constructor(message: string, responseCode: number, responseBody?: ErrorResponse, raw?: unknown) {
+      super(message);
+      this.name = "RestApiError";
+      this.responseCode = responseCode;
+      this.responseBody = responseBody;
+      this.rawError = raw;
+    }
+}
