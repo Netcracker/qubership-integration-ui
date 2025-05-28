@@ -1,10 +1,10 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { FloatButton, Table, Tooltip } from "antd";
 import { useDeployments } from "../hooks/useDeployments.tsx";
 import { useParams } from "react-router";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { TableProps } from "antd/lib/table";
-import { CreateDeploymentRequest, Deployment, ObjectType, RestApiError } from "../api/apiTypes.ts";
+import { CreateDeploymentRequest, Deployment } from "../api/apiTypes.ts";
 import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
 import { formatTimestamp } from "../misc/format-utils.ts";
@@ -13,75 +13,12 @@ import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
 import { api } from "../api/api.ts";
 import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import {getDeploymentFromEvent, mergeDeployment} from "../misc/deployment-utils.ts";
-import {Event} from "../api/apiTypes";
-import {useEventContext} from "../components/notifications/contexts/EventContext.tsx";
-
-export enum DeploymentStatus  {
-  DEPLOYED = "DEPLOYED",
-  PROCESSING = "PROCESSING",
-  FAILED = "FAILED",
-  REMOVED = "REMOVED"
-}
-
-export type StatusNotificationData = {
-  type: "info" | "error",
-  message: string;
-}
-
-export const StatusNotificationMap: Record<DeploymentStatus, StatusNotificationData> = {
-  DEPLOYED: {
-    type: "info",
-    message: "Has been deployed successfully",
-  },
-  PROCESSING: {
-    type: "info",
-    message: "Is progressing",
-  },
-  FAILED: {
-    type: "error",
-    message: "Has been failed",
-  },
-  REMOVED: {
-    type: "info",
-    message: "Has been removed successfully",
-  }
-}
-
 
 export const Deployments: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
   const { isLoading, deployments, setDeployments } = useDeployments(chainId);
   const { snapshots } = useSnapshots(chainId);
   const { showModal } = useModalsContext();
-  const { subscribe } = useEventContext();
-
-  function showEventNotification(event: Event) {
-    const chainName = event.data.chainName;
-    const status : DeploymentStatus = event.data.state.status;
-    const notificationData = StatusNotificationMap[status];
-    if (status === DeploymentStatus.FAILED) {
-      const errorDetails = event.data.errorDetails;
-      notificationService.errorWithDetails(chainName, notificationData.message, errorDetails);
-      return;
-    }
-    notificationService.info(chainName, notificationData.message);
-  }
-
-  useEffect(() => {
-    return subscribe(ObjectType.DEPLOYMENT, (event: Event) => {
-      const eventDeployment = getDeploymentFromEvent(event);
-      showEventNotification(event);
-      setDeployments((deploymentsState) => {
-        const currentDeployments = deploymentsState ? deploymentsState : [];
-        const matchedDeployment = currentDeployments.find((d) => d.id === eventDeployment.id);
-        if (matchedDeployment) {
-          return currentDeployments.map((currentDeployment) => currentDeployment.id === eventDeployment.id ? mergeDeployment(currentDeployment, eventDeployment) : currentDeployment);
-        }
-      });
-    });
-  }, [subscribe]);
-
   const notificationService = useNotificationService();
 
   const columns: TableProps<Deployment>["columns"] = [
