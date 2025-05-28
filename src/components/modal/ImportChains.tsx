@@ -4,6 +4,7 @@ import {
   ChainImportPreview,
   EngineDomain,
   ImportChainResult,
+  ImportEntityStatus,
   ImportEntityType,
   ImportInstructionResult,
   ImportInstructions,
@@ -13,6 +14,7 @@ import {
   ImportResult,
   ImportSystemResult,
   ImportVariableResult,
+  SystemImportStatus,
 } from "../../api/apiTypes.ts";
 import React, { useEffect, useState } from "react";
 import {
@@ -464,6 +466,15 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
     {
       title: "Name",
       dataIndex: "name",
+      render: (_, item) =>
+        item.status === ImportEntityStatus.CREATED ||
+        item.status === ImportEntityStatus.UPDATED ? (
+          <a onClick={() => window.open(`/chains/${item.id}`, "_blank")}>
+            {item.name}
+          </a>
+        ) : (
+          item.name
+        ),
     },
     {
       title: "ID",
@@ -482,6 +493,19 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
     {
       title: "Name",
       dataIndex: "name",
+      render: (_, item) =>
+        item.status === SystemImportStatus.CREATED ||
+        item.status === SystemImportStatus.UPDATED ? (
+          <a
+            onClick={() => {
+              window.open(`/services/systems/${item.id}`, "_blank");
+            }}
+          >
+            item.name
+          </a>
+        ) : (
+          item.name
+        ),
     },
     {
       title: "ID",
@@ -535,7 +559,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
 
   return (
     <Modal
-      title="Import Chains"
+      title="Import"
       centered
       open={true}
       onCancel={closeContainingModal}
