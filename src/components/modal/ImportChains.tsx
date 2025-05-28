@@ -116,9 +116,9 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
 
   useEffect(() => {
     if (importPreview) {
-      setSelectedServiceRowKeys(importPreview?.systems.map((i) => i.id) ?? []);
+      setSelectedServiceRowKeys(importPreview?.systems?.map((i) => i.id) ?? []);
       setSelectedVariableRowKeys(
-        importPreview?.variables.map((i) => i.name) ?? [],
+        importPreview?.variables?.map((i) => i.name) ?? [],
       );
       getDomains().then(setDomains);
     }
@@ -223,25 +223,25 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
     })),
     systemsCommitRequest: {
       importMode:
-        selectedServiceRowKeys.length === importPreview?.systems.length
+        selectedServiceRowKeys.length === importPreview?.systems?.length
           ? ImportMode.FULL
           : selectedServiceRowKeys.length === 0
             ? ImportMode.NONE
             : ImportMode.PARTIAL,
       systemIds:
-        selectedServiceRowKeys.length === importPreview?.systems.length
+        selectedServiceRowKeys.length === importPreview?.systems?.length
           ? []
           : selectedServiceRowKeys.map((i) => i.toString()),
     },
     variablesCommitRequest: {
       importMode:
-        selectedVariableRowKeys.length === importPreview?.variables.length
+        selectedVariableRowKeys.length === importPreview?.variables?.length
           ? ImportMode.FULL
           : selectedVariableRowKeys.length === 0
             ? ImportMode.NONE
             : ImportMode.PARTIAL,
       variablesNames:
-        selectedVariableRowKeys.length === importPreview?.variables.length
+        selectedVariableRowKeys.length === importPreview?.variables?.length
           ? []
           : selectedVariableRowKeys.map((i) => i.toString()),
     },
