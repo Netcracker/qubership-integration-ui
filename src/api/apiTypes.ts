@@ -640,3 +640,44 @@ export enum ImportInstructionStatus {
   ERROR_ON_OVERRIDE = "ERROR_ON_OVERRIDE",
   NO_ACTION = "NO_ACTION",
 }
+
+
+export type EventsUpdate = {
+    lastEventId: string;
+    events: Event[];
+}
+
+export type Event = {
+    id: string;
+    time?: number;
+    userId?: string;
+    objectType: ObjectType;
+    data?: any;
+}
+
+export enum ObjectType {
+    DEPLOYMENT = 'DEPLOYMENT',
+    ENGINE = 'ENGINE',
+    GENERIC_MESSAGE = 'GENERIC_MESSAGE',
+}
+
+export type ErrorResponse = {
+  serviceName: string;
+  errorMessage: string;
+  stackTrace: string;
+  errorDate: string;
+}
+
+export class RestApiError extends Error {
+    responseCode: number;
+    responseBody?: ErrorResponse;
+    rawError?: unknown;
+
+    constructor(message: string, responseCode: number, responseBody?: ErrorResponse, raw?: unknown) {
+      super(message);
+      this.name = "RestApiError";
+      this.responseCode = responseCode;
+      this.responseBody = responseBody;
+      this.rawError = raw;
+    }
+}

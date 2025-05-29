@@ -29,6 +29,7 @@ import {
   ImportRequest,
   ImportCommitResponse,
   ImportStatusResponse,
+  EventsUpdate
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 
@@ -197,6 +198,8 @@ export interface Api {
   ): Promise<ImportCommitResponse>;
 
   getImportStatus(importId: string): Promise<ImportStatusResponse>;
+
+  getEvents(lastEventId: string): Promise<EventsUpdate>;
 }
 
 export const api: Api = new RestApi();
