@@ -9,7 +9,7 @@ type ModalContextFunctions = {
 
 type Props = React.FC<PropsWithChildren<{ modalId: string }>>;
 
-export const useModalContext = () => {
+export const useModalContext = (): ModalContextFunctions => {
   const context = useContext(ModalContext);
   if (!context) {
     throw new Error(

@@ -8,6 +8,7 @@ import {
   message,
   Modal,
   Table,
+  Tooltip,
 } from "antd";
 import { useNavigate, useSearchParams } from "react-router";
 import {
@@ -16,6 +17,7 @@ import {
   ExportOutlined,
   FileAddOutlined,
   FileOutlined,
+  FilterOutlined,
   FolderAddOutlined,
   FolderOutlined,
   HomeOutlined,
@@ -56,6 +58,7 @@ import {
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
+import { Filter } from "../components/filter/Filter.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -544,6 +547,14 @@ const Chains = () => {
     });
   };
 
+  const addFilter = () => {
+    showModal({
+      component: (
+        <Filter />
+      ),
+    });
+  }
+
   const onExportBtnClick = async () => {
     return exportChainsWithOptions(selectedRowKeys.map((k) => k.toString()));
   };
@@ -874,6 +885,9 @@ const Chains = () => {
           >
             <Button icon={<SettingOutlined />} />
           </Dropdown>
+          <Tooltip title="Filters">
+            <Button icon={<FilterOutlined />} onClick={addFilter} />
+          </Tooltip>
         </Flex>
         <Table<ChainTableItem>
           className="flex-table"
