@@ -23,8 +23,6 @@ import {
   Session,
   CheckpointSession,
   FolderItem,
-  FolderResponse,
-  FolderUpdateRequest,
   PatchElementRequest,
   UsedService,
   ImportPreview,
