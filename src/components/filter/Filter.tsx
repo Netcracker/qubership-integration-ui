@@ -3,34 +3,44 @@ import { useModalContext } from "../../ModalContextProvider";
 import { FilterItem, FilterItemProps } from "./FilterItem";
 import { ClearOutlined, PlusOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { FilterModel } from "./tableFilter";
 
-export const Filter = () => {
+export type FilterProps = {
+  filterModel: FilterModel
+}
+export const Filter = (props: FilterProps) => {
   const { closeContainingModal } = useModalContext();
   const [form] = Form.useForm();
 
   const removeFilterItem = (id: string) => {
-    setProps(props.filter((item) => item.id !== id));
+    setItems(items.filter((item) => item.id !== id));
   }
 
   const duplicateFilterItem = (id: string) => {
     alert(`Duplicate item: ${id}`);
   }
 
-  const [props, setProps] = useState([
+  const [items, setItems] = useState([
     { id: crypto.randomUUID() },
     { id: 'sdfsdf1' }
   ]);
 
-  const filterItems = props.map(prop =>
-    <FilterItem key={prop.id} id={prop.id}
-      onRemove={() => removeFilterItem(prop.id)}
-      onDuplicate={() => duplicateFilterItem(prop.id)}
+  const filterItems = items.map(item =>
+    <FilterItem key={item.id} id={item.id}
+      filterModel={props.filterModel}
+      onRemove={() => removeFilterItem(item.id)}
+      onDuplicate={() => duplicateFilterItem(item.id)}
     ></FilterItem>
   );
 
   const addFilterItem = () => {
-    const newProp: FilterItemProps = { id: crypto.randomUUID(), onRemove: removeFilterItem, onDuplicate: duplicateFilterItem };
-    setProps([...props, newProp]);
+    const newProp: FilterItemProps = {
+      id: crypto.randomUUID(),
+      filterModel: props.filterModel,
+      onRemove: removeFilterItem,
+      onDuplicate: duplicateFilterItem
+    };
+    setItems([...items, newProp]);
   }
 
   return <Modal
