@@ -1,12 +1,12 @@
 import { CopyOutlined, DeleteOutlined, EllipsisOutlined } from "@ant-design/icons";
 import { Button, Col, Dropdown, Form, MenuProps, Row, Select, SelectProps } from "antd"
 import { ItemType } from "antd/es/menu/interface";
-import { FilterConditionNew, TableFilter } from "./tableFilter";
+import { FilterConditionNew, FilterValueType, TableFilter, FilterTypeConditions } from "./tableFilter";
 import { useState } from "react";
 
 const { Option } = Select;
 
-const items: ItemType[] = [
+const actionItems: ItemType[] = [
   {
     key: 'remove',
     label: <><DeleteOutlined /> Remove</>,
@@ -26,6 +26,8 @@ export type FilterItemProps = {
 
 export const FilterItem = (props: FilterItemProps) => {
   const [conditionOptions, setConditionOptions] = useState<SelectProps["options"]>([]);
+  const [condition, setCondition] = useState<FilterTypeConditions | null>(null);
+  const [valueType, setValueType] = useState<FilterValueType | null>(null);
 
   const onActionClick: MenuProps['onClick'] = ({ item, key }) => {
     switch (key) {
@@ -39,7 +41,7 @@ export const FilterItem = (props: FilterItemProps) => {
   };
 
   const actionProps: MenuProps = {
-    items,
+    items: actionItems,
     onClick: onActionClick,
   };
 
@@ -49,11 +51,17 @@ export const FilterItem = (props: FilterItemProps) => {
 
   const changeColumn = (value: string) => {
     const columnFilter = props.tableFilters.find((filter: TableFilter) => filter.id === value);
-    const conditions = columnFilter!.type.conditions.allowedConditions
+    const conditionOptions = columnFilter!.type.conditions.allowedConditions
       .map((condition: FilterConditionNew) => ({ value: condition.id, label: condition.name }));
 
-    setConditionOptions(conditions);
+    setConditionOptions(conditionOptions);
   };
+
+  const changeCondition = (value: string) => {
+    //alert('change condition');
+    setCondition();
+    setValueType();
+  }
 
   return <Row gutter={8}>
     <Col span={7}>
@@ -63,7 +71,7 @@ export const FilterItem = (props: FilterItemProps) => {
     </Col>
     <Col span={7}>
       <Form.Item>
-        <Select placeholder="Condition" options={conditionOptions}/>
+        <Select placeholder="Condition" options={conditionOptions} onChange={changeCondition}/>
       </Form.Item>
     </Col>
     <Col span={7}>
