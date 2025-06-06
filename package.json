@@ -19,7 +19,7 @@
     "@xyflow/react": "^12.4.2",
     "antd": "^5.23.3",
     "axios": "^1.7.9",
-    "axios-rate-limit": "^1.4.0",
+    "axios-rate-limit": "1.4.0",
     "elkjs": "^0.10.0",
     "framer-motion": "^12.12.1",
     "jszip": "^3.10.1",
