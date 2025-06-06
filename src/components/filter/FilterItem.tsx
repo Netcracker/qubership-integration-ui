@@ -1,7 +1,7 @@
 import { CopyOutlined, DeleteOutlined, EllipsisOutlined } from "@ant-design/icons";
 import { Button, Col, Dropdown, Form, MenuProps, Row, Select, SelectProps } from "antd"
 import { ItemType } from "antd/es/menu/interface";
-import { FilterModel } from "./tableFilter";
+import { FilterModel, TableFilter } from "./tableFilter";
 
 const { Option } = Select;
 
@@ -18,7 +18,7 @@ const items: ItemType[] = [
 
 export type FilterItemProps = {
   id: string;
-  filterModel: FilterModel;
+  tableFilters: TableFilter[];
   onRemove: (key: string) => void;
   onDuplicate: (key: string) => void;
 }
@@ -40,14 +40,14 @@ export const FilterItem = (props: FilterItemProps) => {
     onClick: onActionClick,
   };
 
-  /* const columnOptions: SelectProps["options"] = [
-    {value: "sdf", label: "sdf"}
-  ]; */
+  const columnOptions = (): SelectProps["options"] => {
+    return props.tableFilters.map(filter => ({value: filter.id, label: filter.name}));
+  }
 
   return <Row gutter={8}>
     <Col span={7}>
       <Form.Item>
-        <Select placeholder="Column" options={props.filterModel.columnOptions} />
+        <Select placeholder="Column" options={columnOptions()} />
       </Form.Item>
     </Col>
     <Col span={7}>

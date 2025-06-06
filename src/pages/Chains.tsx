@@ -59,7 +59,7 @@ import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { Filter } from "../components/filter/Filter.tsx";
-import { useChainsFilter } from "../components/filter/useChainFilter.ts";
+import { useChainFilters } from "../components/filter/useChainFilter.ts";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -156,7 +156,7 @@ const Chains = () => {
   const [operation, setOperation] = useState<Operation | undefined>(undefined);
   const [searchString, setSearchString] = useState<string>("");
   const notificationService = useNotificationService();
-  const [chainsFilterModel] = useChainsFilter();
+  const [tableFilters] = useChainFilters();
 
   useEffect(() => {
     updateFolderItems();
@@ -552,7 +552,7 @@ const Chains = () => {
   const addFilter = () => {
     showModal({
       component: (
-        <Filter filterModel={chainsFilterModel} />
+        <Filter tableFilters={tableFilters} />
       ),
     });
   }

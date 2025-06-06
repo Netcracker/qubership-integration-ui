@@ -1,6 +1,6 @@
-import { FilterColumn, FilterModel } from "./tableFilter";
+import { FilterColumn, FilterModel, StringTableFilter, TableFilter } from "./tableFilter";
 
-export const useChainsFilter = () => {
+/* export const useChainsFilter = () => {
     const chainsFilterModel: FilterModel = {
         columnOptions: [
             { value: FilterColumn.NAME, label: "Name" },
@@ -10,4 +10,12 @@ export const useChainsFilter = () => {
         valueOptions: []
     }
     return [ chainsFilterModel ];
+} */
+
+export const useChainFilters = () => {
+    const tableFilters: TableFilter[] = [
+        { id: "NAME", name: "Name", type: StringTableFilter }
+    ];
+
+    return [tableFilters];
 }

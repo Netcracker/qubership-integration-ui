@@ -3,11 +3,12 @@ import { useModalContext } from "../../ModalContextProvider";
 import { FilterItem, FilterItemProps } from "./FilterItem";
 import { ClearOutlined, PlusOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { FilterModel } from "./tableFilter";
+import { FilterModel, TableFilter } from "./tableFilter";
 
 export type FilterProps = {
-  filterModel: FilterModel
+  tableFilters: TableFilter[]
 }
+
 export const Filter = (props: FilterProps) => {
   const { closeContainingModal } = useModalContext();
   const [form] = Form.useForm();
@@ -27,7 +28,7 @@ export const Filter = (props: FilterProps) => {
 
   const filterItems = items.map(item =>
     <FilterItem key={item.id} id={item.id}
-      filterModel={props.filterModel}
+      tableFilters={props.tableFilters}
       onRemove={() => removeFilterItem(item.id)}
       onDuplicate={() => duplicateFilterItem(item.id)}
     ></FilterItem>
@@ -36,7 +37,7 @@ export const Filter = (props: FilterProps) => {
   const addFilterItem = () => {
     const newProp: FilterItemProps = {
       id: crypto.randomUUID(),
-      filterModel: props.filterModel,
+      tableFilters: props.tableFilters,
       onRemove: removeFilterItem,
       onDuplicate: duplicateFilterItem
     };
