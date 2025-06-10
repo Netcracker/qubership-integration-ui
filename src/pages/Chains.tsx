@@ -56,6 +56,7 @@ import {
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
+import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -309,7 +310,7 @@ const Chains = () => {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const createChain = async (
     request: ChainCreationRequest,
@@ -357,13 +358,13 @@ const Chains = () => {
     setIsLoading(true);
     try {
       await api.deleteChains(chainIds);
-      setFolderItems(folderItems.filter(item => !chainIds.includes(item.id)));
+      setFolderItems(folderItems.filter((item) => !chainIds.includes(item.id)));
     } catch (error) {
       notificationService.requestFailed("Failed to delete chains", error);
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const duplicateChain = async (chainId: string) => {
     setIsLoading(true);
@@ -489,7 +490,11 @@ const Chains = () => {
       }
 
       if (options.exportVariables) {
-        // TODO
+        const variablesData = await commonVariablesApi.exportVariables(
+          [],
+          true,
+        );
+        data.push(variablesData);
       }
 
       const archiveData = await mergeZipArchives(data);
@@ -592,14 +597,16 @@ const Chains = () => {
     const folderIds = folderItems
       .filter(
         (i) =>
-          selectedRowKeys.includes(i.id) && i.itemType === CatalogItemType.FOLDER,
+          selectedRowKeys.includes(i.id) &&
+          i.itemType === CatalogItemType.FOLDER,
       )
       .map((i) => i.id);
     await deleteFolders(folderIds);
     const chainIds = folderItems
       .filter(
         (i) =>
-          selectedRowKeys.includes(i.id) && i.itemType === CatalogItemType.CHAIN,
+          selectedRowKeys.includes(i.id) &&
+          i.itemType === CatalogItemType.CHAIN,
       )
       .map((i) => i.id);
     await deleteChains(chainIds);
@@ -900,42 +907,45 @@ const Chains = () => {
         />
         <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
           <FloatButton
-            tooltip="Deploy selected chains"
+            tooltip={{ title: "Deploy selected chains", placement: "left" }}
             icon={<SendOutlined />}
             // onClick={onDeployBtnClick}
           />
           <FloatButton
-            tooltip="Paste"
+            tooltip={{ title: "Paste", placement: "left" }}
             icon={<CarryOutOutlined />}
             onClick={() => pasteItem(getFolderId())}
           />
           <FloatButton
-            tooltip="Compare selected chains"
+            tooltip={{ title: "Compare selected chains", placement: "left" }}
             icon={<>⇄</>}
             // onClick={onCompareBtnClick}
           />
           <FloatButton
-            tooltip="Import chains"
+            tooltip={{ title: "Import chains", placement: "left" }}
             icon={<ImportOutlined />}
             onClick={onImportBtnClick}
           />
           <FloatButton
-            tooltip="Export selected chains"
+            tooltip={{ title: "Export selected chains", placement: "left" }}
             icon={<ExportOutlined />}
             onClick={onExportBtnClick}
           />
           <FloatButton
-            tooltip="Delete selected chains and folders"
+            tooltip={{
+              title: "Delete selected chains and folders",
+              placement: "left",
+            }}
             icon={<DeleteOutlined />}
             onClick={onDeleteBtnClick}
           />
           <FloatButton
-            tooltip="Create folder"
+            tooltip={{ title: "Create folder", placement: "left" }}
             icon={<FolderAddOutlined />}
             onClick={() => onCreateFolderBtnClick(getFolderId())}
           />
           <FloatButton
-            tooltip="Create chain"
+            tooltip={{ title: "Create chain", placement: "left" }}
             icon={<FileAddOutlined />}
             onClick={() => onCreateChainBtnClick(getFolderId())}
           />
