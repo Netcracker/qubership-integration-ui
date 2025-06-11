@@ -78,16 +78,27 @@ export class CommonVariablesApi extends BaseApi {
       return getFileFromResponse(response);
   }
 
-  async importVariables(formData: FormData, isPreview: boolean): Promise<any> {
-    if (!formData) return;
+  async importVariables(formData: FormData, isPreview: boolean): Promise<ApiResponse<any>> {
+    if (!formData) {
+      return {
+        success: false,
+        error: {
+          responseBody: {
+            serviceName: this.serviceName,
+            errorMessage: "No file selected or form data is empty.",
+            errorDate: new Date().toISOString(),
+          }
+        }
+      };
+    }
 
     const path = `/api/${isPreview ? "v1" : "v2"}/${import.meta.env.VITE_API_APP}/variables-management/common-variables/${isPreview ? "preview" : "import"}`;
-    return this.wrapRaw(async () => {
+    return this.wrap(async () => {
       const response = await this.instance.post(path, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return response.data;
-    }, `Failed to ${isPreview ? "preview" : "import"}`);
+    }, `Failed to ${isPreview ? "preview" : "import"}`, this.serviceName);
   }
 }
 
