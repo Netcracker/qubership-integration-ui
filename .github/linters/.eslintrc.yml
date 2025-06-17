@@ -1,9 +1,12 @@
 ---
 env:
+  browser: true
   es6: true
 
 extends:
   - "eslint:recommended"
+  - "plugin:react/recommended"
+  - "plugin:@typescript-eslint/recommended"
 
 parser: "@typescript-eslint/parser"
 
@@ -11,7 +14,8 @@ plugins:
   - "@typescript-eslint"
 
 rules:
-  no-undef: 'warn'
+  no-undef: "warn"
+  react/react-in-jsx-scope": "off"
 
 globals:
   module: "writable"
