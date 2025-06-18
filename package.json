@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "z": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint -c .github/linters/eslint.config.js .",
     "preview": "vite preview"
   },
   "dependencies": {
