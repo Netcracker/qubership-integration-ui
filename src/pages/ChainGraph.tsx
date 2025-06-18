@@ -11,7 +11,7 @@ import "@xyflow/react/dist/style.css";
 import { MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ElementsLibrarySidebar } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { DnDProvider } from "../components/DndContext.tsx";
-import { Flex, FloatButton } from "antd";
+import { Flex, FloatButton, notification } from "antd";
 import { MoreOutlined, SendOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router-dom";
@@ -97,20 +97,14 @@ const ChainGraph = () => {
     if (!chainId) return;
     try {
       await api.createSnapshot(chainId).then(async (snapshot) => {
-        notificationService.info(
-          "Created snapshot",
-          `Created snapshot ${snapshot.name}`,
-        );
+        notification.success({ message: `Created snapshot ${snapshot.name}` });
         const request: CreateDeploymentRequest = {
           domain,
           snapshotId: snapshot.id,
           suspended: false,
         };
         await api.createDeployment(chainId, request);
-        notificationService.info(
-          "Deployed snapshot",
-          `Deployed snapshot ${snapshot.name}`,
-        );
+        notification.success({ message: `Deployed snapshot ${snapshot.name}` });
       });
     } catch (error) {
       notificationService.requestFailed(
