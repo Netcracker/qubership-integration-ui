@@ -142,38 +142,30 @@ export class RestApi implements Api {
   };
 
   exportAllChains = async (): Promise<File> => {
-    try {
-      const response = await this.instance.get<Blob>(
-        `/api/v1/${import.meta.env.VITE_API_APP}/catalog/export`,
-        {
-          responseType: "blob",
-        },
-      );
-      return getFileFromResponse(response);
-    } catch (err) {
-      throw err;
-    }
+    const response = await this.instance.get<Blob>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/export`,
+      {
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
   };
 
   exportChains = async (
     chainIds: string[],
     exportSubchains: boolean,
   ): Promise<File> => {
-    try {
-      const response = await this.instance.get<Blob>(
-        `/api/v1/${import.meta.env.VITE_API_APP}/catalog/export/chains`,
-        {
-          params: { chainIds, exportWithSubChains: exportSubchains },
-          paramsSerializer: {
-            indexes: null,
-          },
-          responseType: "blob",
+    const response = await this.instance.get<Blob>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/export/chains`,
+      {
+        params: { chainIds, exportWithSubChains: exportSubchains },
+        paramsSerializer: {
+          indexes: null,
         },
-      );
-      return getFileFromResponse(response);
-    } catch (err) {
-      throw err;
-    }
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
   };
 
   getLibrary = async (): Promise<LibraryData> => {
@@ -342,8 +334,7 @@ export class RestApi implements Api {
   };
 
   deleteDeployment = async (deploymentId: string): Promise<void> => {
-    // @ts-ignore
-    const response = await this.instance.delete(
+    await this.instance.delete(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/chainId/deployments/${deploymentId}`,
     );
   };
@@ -368,16 +359,14 @@ export class RestApi implements Api {
     chainId: string,
     properties: ChainLoggingProperties,
   ): Promise<void> => {
-    // @ts-ignore
-    const response = await this.instance.post(
+    await this.instance.post(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/properties/logging`,
       properties,
     );
   };
 
   deleteLoggingSettings = async (chainId: string): Promise<void> => {
-    // @ts-ignore
-    const response = await this.instance.delete(
+    await this.instance.delete(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/properties/logging`,
     );
   };
@@ -393,7 +382,6 @@ export class RestApi implements Api {
     chainId: string,
     maskedField: Partial<Omit<MaskedField, "id">>,
   ): Promise<MaskedField> => {
-    // @ts-ignore
     const response = await this.instance.post(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/masking`,
       maskedField,
@@ -405,8 +393,7 @@ export class RestApi implements Api {
     chainId: string,
     maskedFieldIds: string[],
   ): Promise<void> => {
-    // @ts-ignore
-    const response = await this.instance.post(
+    await this.instance.post(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/masking/field`,
       maskedFieldIds,
     );
@@ -416,8 +403,7 @@ export class RestApi implements Api {
     chainId: string,
     maskedFieldId: string,
   ): Promise<void> => {
-    // @ts-ignore
-    const response = await this.instance.delete(
+    await this.instance.delete(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
     );
   };
@@ -427,7 +413,6 @@ export class RestApi implements Api {
     maskedFieldId: string,
     changes: Partial<Omit<MaskedField, "id">>,
   ): Promise<MaskedField> => {
-    // @ts-ignore
     const response = await this.instance.put(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
       changes,
@@ -449,7 +434,6 @@ export class RestApi implements Api {
     if (paginationOptions.count) {
       params["count"] = paginationOptions.count.toString(10);
     }
-    // @ts-ignore
     const response = await this.instance.post(url, filters, { params });
     return response.data;
   };
@@ -466,8 +450,7 @@ export class RestApi implements Api {
   ): Promise<void> => {
     const prefix = `/api/v1/${import.meta.env.VITE_API_APP}/sessions-management/sessions`;
     const url = chainId ? `${prefix}/chains/${chainId}` : prefix;
-    // @ts-ignore
-    const response = await this.instance.delete(url);
+    await this.instance.delete(url);
   };
 
   exportSessions = async (sessionIds: string[]): Promise<File> => {
@@ -497,8 +480,7 @@ export class RestApi implements Api {
     chainId: string,
     sessionId: string,
   ): Promise<void> => {
-    // @ts-ignore
-    const response = await this.instance.post(
+    await this.instance.post(
       `/api/v1/${import.meta.env.VITE_API_APP}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
       null,
     );

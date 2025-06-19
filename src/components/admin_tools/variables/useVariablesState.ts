@@ -39,7 +39,7 @@ export const useVariablesState = ({
       } else {
         notificationService.requestFailed("Failed to load variables", response.error);
       }
-    } catch (error: any) {
+    } catch (error) {
       notificationService.requestFailed("Failed to load variables", error);
     }
   };
@@ -66,10 +66,10 @@ export const useVariablesState = ({
         cancelEditing();
         fetchVariables();
       } else {
-        const errorMessage = response.error?.errorMessage || "Failed to update variable";
+        const errorMessage = response.error?.responseBody.errorMessage || "Failed to update variable";
         notificationService.requestFailed(errorMessage, response.error);
       }
-    } catch (error: any) {
+    } catch (error) {
       notificationService.requestFailed("Failed to update variable", error);
     }
   };
@@ -83,7 +83,7 @@ export const useVariablesState = ({
       } else {
         notificationService.requestFailed(`Failed to delete ${key}`, { message: "Operation failed" });
       }
-    } catch (error: any) {
+    } catch (error) {
       notificationService.requestFailed(`Failed to delete ${key}`, error);
     }
   };
@@ -100,10 +100,10 @@ export const useVariablesState = ({
         setIsAddingNew(false);
         fetchVariables();
       } else {
-        const errorMessage = response.error?.errorMessage || "Failed to add variable";
+        const errorMessage = response.error?.responseBody.errorMessage || "Failed to add variable";
         notificationService.requestFailed(errorMessage, response.error);
       }
-    } catch (error: any) {
+    } catch (error) {
       notificationService.requestFailed("Failed to add variable", error);
     }
   };
@@ -113,7 +113,7 @@ export const useVariablesState = ({
     try {
       await exportVariables(keys);
       message.success("Exported");
-    } catch (error: any) {
+    } catch (error) {
       notificationService.requestFailed("Failed to export", error);
     }
   };

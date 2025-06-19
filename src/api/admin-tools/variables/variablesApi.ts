@@ -1,6 +1,7 @@
 import { commonVariablesApi } from "./commonVariablesApi";
 import { securedVariablesApi } from "./securedVariablesAPI.ts";
 import { Variable, SecretWithVariables, ApiResponse, IVariablesApi } from "./types.ts";
+import { ImportVariablesResult, VariableImportPreview } from "../../apiTypes.ts";
 
 export class VariablesApi implements IVariablesApi {
   async getCommonVariables(): Promise<ApiResponse<Variable[]>> {
@@ -30,8 +31,12 @@ export class VariablesApi implements IVariablesApi {
     return commonVariablesApi.exportVariables(keys, asArchive);
   }
 
-  async importVariables(formData: FormData, isPreview: boolean): Promise<any> {
-    return commonVariablesApi.importVariables(formData, isPreview);
+  async importVariablesPreview(formData: FormData): Promise<ApiResponse<VariableImportPreview[]>> {
+    return commonVariablesApi.importVariablesPreview(formData);
+  }
+
+  async importVariables(formData: FormData): Promise<ApiResponse<ImportVariablesResult>> {
+    return commonVariablesApi.importVariables(formData);
   }
 
   async getSecuredVariables(): Promise<
