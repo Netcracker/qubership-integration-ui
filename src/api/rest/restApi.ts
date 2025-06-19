@@ -46,13 +46,17 @@ export class RestApi implements Api {
   instance: AxiosInstance;
 
   constructor() {
-      this.instance = rateLimit( axios.create({
-          baseURL: import.meta.env.VITE_GATEWAY,
-          timeout: 1000,
-          headers: { "content-type": "application/json" },
-      }), {
-          maxRequests: 50, perMilliseconds: 1000
-      });
+    this.instance = rateLimit(
+      axios.create({
+        baseURL: import.meta.env.VITE_GATEWAY,
+        timeout: 1000,
+        headers: { "content-type": "application/json" },
+      }),
+      {
+        maxRequests: 50,
+        perMilliseconds: 1000,
+      },
+    );
 
     this.instance.interceptors.response.use(
       (response) => response,
@@ -110,7 +114,7 @@ export class RestApi implements Api {
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/bulk-delete`,
       chainIds,
     );
-  }
+  };
 
   duplicateChain = async (chainId: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
@@ -530,7 +534,7 @@ export class RestApi implements Api {
       `/api/v2/${import.meta.env.VITE_API_APP}/catalog/folders/${folderId}/path`,
     );
     return response.data;
-  }
+  };
 
   createFolder = async (request: CreateFolderRequest): Promise<FolderItem> => {
     const response = await this.instance.post<FolderItem>(
@@ -663,7 +667,7 @@ export class RestApi implements Api {
       formData.append("importRequest", JSON.stringify(request));
     }
     if (validateByHash !== undefined) {
-      formData.append('validateByHash', validateByHash.toString())
+      formData.append("validateByHash", validateByHash.toString());
     }
     const response = await this.instance.post(
       `/api/${import.meta.env.VITE_API_APP}/v3/import`,

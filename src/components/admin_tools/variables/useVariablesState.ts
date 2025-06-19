@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { message } from "antd";
 import { useNotificationService } from "../../../hooks/useNotificationService";
-import { ApiResponse, Variable } from "../../../api/admin-tools/variables/types.ts";
+import {
+  ApiResponse,
+  Variable,
+} from "../../../api/admin-tools/variables/types.ts";
 
 export const NEW_VARIABLE_KEY = "__new__";
 
@@ -14,12 +17,12 @@ type UseVariablesStateParams = {
 };
 
 export const useVariablesState = ({
-                                    getVariables,
-                                    createVariable,
-                                    updateVariable,
-                                    deleteVariables,
-                                    exportVariables,
-                                  }: UseVariablesStateParams) => {
+  getVariables,
+  createVariable,
+  updateVariable,
+  deleteVariables,
+  exportVariables,
+}: UseVariablesStateParams) => {
   const [variables, setVariables] = useState<Variable[]>([]);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
@@ -37,7 +40,10 @@ export const useVariablesState = ({
       if (response.success) {
         setVariables(response.data as Variable[]);
       } else {
-        notificationService.requestFailed("Failed to load variables", response.error);
+        notificationService.requestFailed(
+          "Failed to load variables",
+          response.error,
+        );
       }
     } catch (error) {
       notificationService.requestFailed("Failed to load variables", error);
@@ -66,7 +72,9 @@ export const useVariablesState = ({
         cancelEditing();
         fetchVariables();
       } else {
-        const errorMessage = response.error?.responseBody.errorMessage || "Failed to update variable";
+        const errorMessage =
+          response.error?.responseBody.errorMessage ||
+          "Failed to update variable";
         notificationService.requestFailed(errorMessage, response.error);
       }
     } catch (error) {
@@ -81,7 +89,9 @@ export const useVariablesState = ({
         message.success(`Deleted ${key}`);
         fetchVariables();
       } else {
-        notificationService.requestFailed(`Failed to delete ${key}`, { message: "Operation failed" });
+        notificationService.requestFailed(`Failed to delete ${key}`, {
+          message: "Operation failed",
+        });
       }
     } catch (error) {
       notificationService.requestFailed(`Failed to delete ${key}`, error);
@@ -90,7 +100,10 @@ export const useVariablesState = ({
 
   const addVariable = async (key: string, value: string) => {
     if (key === NEW_VARIABLE_KEY) {
-      notificationService.info(`Cannot save variable with key '${NEW_VARIABLE_KEY}'`, "This key is reserved.");
+      notificationService.info(
+        `Cannot save variable with key '${NEW_VARIABLE_KEY}'`,
+        "This key is reserved.",
+      );
       return;
     }
     try {
@@ -100,7 +113,8 @@ export const useVariablesState = ({
         setIsAddingNew(false);
         fetchVariables();
       } else {
-        const errorMessage = response.error?.responseBody.errorMessage || "Failed to add variable";
+        const errorMessage =
+          response.error?.responseBody.errorMessage || "Failed to add variable";
         notificationService.requestFailed(errorMessage, response.error);
       }
     } catch (error) {

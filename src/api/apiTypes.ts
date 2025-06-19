@@ -657,7 +657,7 @@ export type EngineUpdate = {
   domainId: string;
   domainName: string;
   actionType: EventActionType;
-}
+};
 
 export enum EventActionType {
   ADDED = "ADDED",
@@ -684,7 +684,7 @@ export type DeploymentUpdate = {
   createdWhen: number;
   serviceName: string;
   chainStatusCode: string;
-}
+};
 
 export class RestApiError extends Error {
   responseCode: number;

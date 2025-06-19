@@ -12,7 +12,11 @@ export abstract class BaseApi {
     });
   }
 
-  protected fail(serviceName: string, message: string, stacktrace?: string): ApiResponse<never> {
+  protected fail(
+    serviceName: string,
+    message: string,
+    stacktrace?: string,
+  ): ApiResponse<never> {
     return {
       success: false,
       error: {
@@ -26,16 +30,23 @@ export abstract class BaseApi {
     };
   }
 
-  protected async wrap<T>(fn: () => Promise<T>, fallbackMessage: string, serviceName: string): Promise<ApiResponse<T>> {
+  protected async wrap<T>(
+    fn: () => Promise<T>,
+    fallbackMessage: string,
+    serviceName: string,
+  ): Promise<ApiResponse<T>> {
     try {
       const data = await fn();
-      return ({ success: true, data });
+      return { success: true, data };
     } catch (error) {
       console.error(fallbackMessage, error);
       if (axios.isAxiosError(error) && error.response?.data) {
         const backendError = error.response.data;
         if (backendError?.serviceName && backendError?.errorMessage) {
-          return { success: false, error: { responseBody: backendError as ApiError["responseBody"] } };
+          return {
+            success: false,
+            error: { responseBody: backendError as ApiError["responseBody"] },
+          };
         }
         if (typeof error.response.data === "string") {
           return this.fail(serviceName, error.response.data);
@@ -45,7 +56,10 @@ export abstract class BaseApi {
     }
   }
 
-  protected async wrapBoolean(fn: () => Promise<void>, fallbackMessage: string): Promise<boolean> {
+  protected async wrapBoolean(
+    fn: () => Promise<void>,
+    fallbackMessage: string,
+  ): Promise<boolean> {
     try {
       await fn();
       return true;

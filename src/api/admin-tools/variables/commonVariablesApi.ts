@@ -103,9 +103,13 @@ export class CommonVariablesApi extends BaseApi {
     const path = `/api/v1/${import.meta.env.VITE_API_APP}/variables-management/common-variables/preview`;
     return this.wrap(
       async () => {
-        const response = await this.instance.post<VariableImportPreview[]>(path, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const response = await this.instance.post<VariableImportPreview[]>(
+          path,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
+        );
         return response.data;
       },
       `Failed to get import variables preview`,
@@ -123,9 +127,13 @@ export class CommonVariablesApi extends BaseApi {
     const path = `/api/v2/${import.meta.env.VITE_API_APP}/variables-management/common-variables/import`;
     return this.wrap(
       async () => {
-        const response = await this.instance.post<ImportVariablesResult>(path, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const response = await this.instance.post<ImportVariablesResult>(
+          path,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
+        );
         return response.data;
       },
       `Failed to import`,
