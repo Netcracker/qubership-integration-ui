@@ -144,7 +144,7 @@ const ChainGraphInner: React.FC = () => {
             fitView
           >
             <Background variant={BackgroundVariant.Dots} />
-            <MiniMap zoomable pannable />
+            <MiniMap zoomable pannable position="top-right"/>
             <CustomControls />
           </ReactFlow>
         </ElkDirectionContextProvider>
