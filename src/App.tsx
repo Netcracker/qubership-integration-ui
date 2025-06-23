@@ -33,7 +33,7 @@ const App = () => (
                 <Content className={styles.content}>
                     <BrowserRouter>
                         <Routes>
-                            <Route path="/admin-tools" element={<AdminTools />}>
+                            <Route path="/admintools" element={<AdminTools />}>
                             {/*<Route path="domains" element={<DomainsPage />} />*/}
                               <Route  path="variables/common" element={<CommonVariables />} />
                               <Route  path="variables/secured" element={<SecuredVariables />} />
