@@ -22,6 +22,7 @@ const items: MenuItem[] = [
 const Navigation = () => (
   <nav className={styles.navigation}>
     <Menu
+      style={{ border: "none" }}
       items={items}
       key="menu"
       mode="horizontal"

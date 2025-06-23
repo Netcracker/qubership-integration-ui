@@ -16,16 +16,8 @@
     composes: variables-container;
 }
 
-.common-variables-header {
-    composes: variables-header;
-}
-
 .common-variables-title {
     composes: variables-title;
-}
-
-.common-variables-actions {
-    composes: variables-actions;
 }
 
 .common-variables-icon {
