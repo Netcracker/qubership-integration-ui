@@ -71,6 +71,8 @@ jobs:
         mkdir -p ./.github/linters
         cp --update=none -vR /tmp/linter-config/linters/* ./.github/linters
 
+    - name: "Install npm dependencies"
+      run: npm install --only=dev
     - name: "Load super-linter environment file"
       shell: bash
       run: |
