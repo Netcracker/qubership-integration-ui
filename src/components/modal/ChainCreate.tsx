@@ -68,10 +68,11 @@ export const ChainCreate: React.FC<ChainCreateProps> = ({ onSubmit }) => {
             onSubmit?.(
               {
                 ...{ ...values, openChain: undefined, newTab: undefined },
-                labels: values.labels?.map((s) => ({
-                  name: s,
-                  technical: false,
-                })) ?? [],
+                labels:
+                  values.labels?.map((s) => ({
+                    name: s,
+                    technical: false,
+                  })) ?? [],
               },
               values.openChain,
               values.newTab,
@@ -100,7 +101,7 @@ export const ChainCreate: React.FC<ChainCreateProps> = ({ onSubmit }) => {
                     <Select
                       mode="tags"
                       tokenSeparators={[" "]}
-                      popupClassName="not-displayed"
+                      classNames={{ popup: { root: "not-displayed" } }}
                       suffixIcon={<></>}
                     />
                   </Form.Item>
