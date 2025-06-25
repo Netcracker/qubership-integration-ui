@@ -56,7 +56,7 @@ const ChainPage = () => {
         : []),
     ];
     setPathItems(items);
-  }, [chain, sessionId])
+  }, [chain, chainId, sessionId])
 
   const handlePageChange = (event: RadioChangeEvent) => {
     navigate(`${event.target.value}`); // Update the URL with the selected tab key
