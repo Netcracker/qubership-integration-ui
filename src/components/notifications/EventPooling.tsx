@@ -4,9 +4,10 @@ import {api} from "../../api/api.ts";
 import {Event} from "../../api/apiTypes.ts";
 import {useEventContext} from "./contexts/EventContext.tsx";
 
+const REFRESH_TIME_MS = 3 * 1000;
+const ON_ERR_TIME_MS = 8 * 1000;
+
 export const EventPooling: React.FC = () => {
-    const REFRESH_TIME_MS = 3 * 1000;
-    const ON_ERR_TIME_MS = 8 * 1000;
     const [refetchInterval, setRefetchInterval] = useState(REFRESH_TIME_MS);
 
     const [lastEventId, setLastEventId] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export const EventPooling: React.FC = () => {
             data.events.forEach((event: Event) => publish(event));
             setLastEventId(data?.lastEventId);
         }
-    }, [data, publish]);
+    }, [data, error, publish, refetchInterval]);
 
     return null;
 };
