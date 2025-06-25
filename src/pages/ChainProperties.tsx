@@ -33,7 +33,7 @@ export const ChainProperties: React.FC = () => {
       };
       form.setFieldsValue(formData);
     }
-  }, [chainContext]);
+  }, [chainContext, form]);
 
   return (
     <Form<FormData>
@@ -70,7 +70,7 @@ export const ChainProperties: React.FC = () => {
         <Select
           mode="tags"
           tokenSeparators={[" "]}
-          popupClassName="not-displayed"
+          classNames={{ popup: { root: "not-displayed" } }}
           onChange={() => setHasChanges(true)}
           suffixIcon={<></>}
         />
