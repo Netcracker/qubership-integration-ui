@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Flex, FloatButton, Table } from "antd";
 import { TableProps } from "antd/lib/table";
@@ -32,11 +32,7 @@ export const SessionPage: React.FC = () => {
   const { showModal } = useModalsContext();
   const notificationService = useNotificationService();
 
-  useEffect(() => {
-    getSession();
-  }, [sessionId]);
-
-  const getSession = async () => {
+  const getSession = useCallback(async () => {
     if (!sessionId) {
       return;
     }
@@ -52,7 +48,11 @@ export const SessionPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [notificationService, sessionId]);
+
+  useEffect(() => {
+    getSession().then(() => {});
+  }, [getSession, sessionId]);
 
   const showElementDetails = (element: SessionElement) => {
     if (!session) {
