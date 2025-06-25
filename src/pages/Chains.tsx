@@ -33,7 +33,7 @@ import {
   ListFolderRequest,
   UpdateFolderRequest,
 } from "../api/apiTypes.ts";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
 import { TextColumnFilterDropdown } from "../components/table/TextColumnFilterDropdown.tsx";
@@ -153,15 +153,55 @@ const Chains = () => {
   const [searchString, setSearchString] = useState<string>("");
   const notificationService = useNotificationService();
 
-  useEffect(() => {
-    updateFolderItems();
-  }, [searchParams, searchString]);
+  const getFolderId = useCallback((): string | undefined => {
+    return searchParams.get("folder") ?? undefined;
+  }, [searchParams]);
 
-  useEffect(() => {
-    setTableItems(buildTableItems(folderItems));
-  }, [folderItems]);
+  const getPathToFolder = useCallback(
+    async (folderId: string | undefined) => {
+      if (!folderId) {
+        return [];
+      }
+      setIsLoading(true);
+      try {
+        return await api.getPathToFolder(folderId);
+      } catch (error) {
+        notificationService.requestFailed(
+          "Failed to get path to folder",
+          error,
+        );
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [notificationService],
+  );
 
-  const updateFolderItems = async () => {
+  const listFolder = useCallback(
+    async (folderId: string | undefined) => {
+      const request: ListFolderRequest = {
+        folderId,
+        filters: [], // TODO
+        searchString,
+      };
+      setIsLoading(true);
+      try {
+        return await api.listFolder(request);
+      } catch (error) {
+        notificationService.requestFailed(
+          "Failed to get folder content",
+          error,
+        );
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [notificationService, searchString],
+  );
+
+  const updateFolderItems = useCallback(async () => {
     const folderId = getFolderId();
     listFolder(folderId).then((items) => {
       setIsLoading(true);
@@ -174,43 +214,7 @@ const Chains = () => {
     getPathToFolder(folderId).then((path) =>
       setPathItems(buildPathItems(path)),
     );
-  };
-
-  const getFolderId = (): string | undefined => {
-    return searchParams.get("folder") ?? undefined;
-  };
-
-  const getPathToFolder = async (folderId: string | undefined) => {
-    if (!folderId) {
-      return [];
-    }
-    setIsLoading(true);
-    try {
-      return await api.getPathToFolder(folderId);
-    } catch (error) {
-      notificationService.requestFailed("Failed to get path to folder", error);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const listFolder = async (folderId: string | undefined) => {
-    const request: ListFolderRequest = {
-      folderId,
-      filters: [], // TODO
-      searchString,
-    };
-    setIsLoading(true);
-    try {
-      return await api.listFolder(request);
-    } catch (error) {
-      notificationService.requestFailed("Failed to get folder content", error);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [getFolderId, getPathToFolder, listFolder]);
 
   const openFolder = async (folderId: string) => {
     return listFolder(folderId).then((response) => {
@@ -854,6 +858,14 @@ const Chains = () => {
     checkStrictly: false,
     onChange: onSelectChange,
   };
+
+  useEffect(() => {
+    updateFolderItems().then(() => {});
+  }, [updateFolderItems]);
+
+  useEffect(() => {
+    setTableItems(buildTableItems(folderItems));
+  }, [folderItems]);
 
   return (
     <>
