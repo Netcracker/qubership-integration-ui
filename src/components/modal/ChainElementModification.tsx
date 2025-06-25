@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import {
   Button,
   CheckboxOptionType,
@@ -32,6 +32,10 @@ type ElementModificationProps = {
   onClose?: () => void;
 };
 
+function constructTitle(name: string, type?: string): string {
+  return type ? `${name} (${type})` : `${name}`;
+}
+
 export const ChainElementModification: React.FC<ElementModificationProps> = ({
   node,
   chainId,
@@ -39,15 +43,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   onSubmit,
   onClose,
 }) => {
-  const { libraryElement } = useLibraryElement(node.type);
+  const { isLoading: libraryElementIsLoading, libraryElement } = useLibraryElement(node.type);
   const [isLoading, setIsLoading] = useState(false);
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const { updateElement } = useElement();
   const { closeContainingModal } = useModalContext();
   const [form] = Form.useForm();
-  const constructTitle = (name: string, type?: string) => {
-    return type ? `${name} (${type})` : `${name}`;
-  };
   const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
 
   const paramsOptions: CheckboxOptionType<string>[] = [
@@ -62,11 +63,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   }
   const [paramsRadioValue, setParamsRadioValue] = useState(PropertyType.COMMON);
   const notificationService = useNotificationService();
-
-  useEffect(() => {
-    setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
-    categorizeProperties(node.data.properties);
-  }, [libraryElement]);
 
   const handleOk = async () => {
     setIsLoading(true);
@@ -117,32 +113,16 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     }
   };
 
-  const categorizeProperties = (properties: Record<string, unknown>) => {
-    if (!properties || !libraryElement) {
-      return;
-    }
-    setPropertiesByCategory(properties, PropertyType.COMMON);
-    setPropertiesByCategory(properties, PropertyType.ADVANCED);
-    setPropertiesByCategory(properties, PropertyType.HIDDEN);
-    setUnknownProperties(properties);
-  };
+  const setPropertiesFormValue = useCallback((value: Record<string, unknown>, type: PropertyType) => {
+    form.setFieldValue(
+      type,
+      value && Object.keys(value).length
+        ? (YAML.stringify(value, null, 2)).trim()
+        : undefined,
+    );
+  }, [form]);
 
-  function setPropertiesByCategory(properties: Record<string, unknown>, type: PropertyType) {
-    const result = Object.keys(properties)
-      .filter((key) => {
-        // @ts-expect-error suppressed as it will be replaced with proper elements code
-        return libraryElement!.properties[type].find(
-          (val: Property) => val.name === key,
-        );
-      })
-      .reduce((obj: Record<string, unknown>, key) => {
-        obj[key] = properties[key];
-        return obj;
-      }, {});
-    setPropertiesFormValue(result, type);
-  }
-
-  function setUnknownProperties(properties: Record<string, unknown>) {
+  const setUnknownProperties = useCallback((properties: Record<string, unknown>) => {
     const result = Object.keys(properties)
       .filter(
         (key) =>
@@ -163,16 +143,32 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         return obj;
       }, {});
     setPropertiesFormValue(result, PropertyType.UNKNOWN);
-  }
+  }, [libraryElement, setPropertiesFormValue]);
 
-  function setPropertiesFormValue(value: Record<string, unknown>, type: PropertyType) {
-    form.setFieldValue(
-      type,
-      value && Object.keys(value).length
-        ? (YAML.stringify(value, null, 2)).trim()
-        : undefined,
-    );
-  }
+  const setPropertiesByCategory = useCallback((properties: Record<string, unknown>, type: PropertyType) => {
+    const result = Object.keys(properties)
+      .filter((key) => {
+        // @ts-expect-error suppressed as it will be replaced with proper elements code
+        return libraryElement!.properties[type].find(
+          (val: Property) => val.name === key,
+        );
+      })
+      .reduce((obj: Record<string, unknown>, key) => {
+        obj[key] = properties[key];
+        return obj;
+      }, {});
+    setPropertiesFormValue(result, type);
+  }, [libraryElement, setPropertiesFormValue]);
+
+  const categorizeProperties = useCallback((properties: Record<string, unknown>) => {
+    if (!properties || !libraryElement) {
+      return;
+    }
+    setPropertiesByCategory(properties, PropertyType.COMMON);
+    setPropertiesByCategory(properties, PropertyType.ADVANCED);
+    setPropertiesByCategory(properties, PropertyType.HIDDEN);
+    setUnknownProperties(properties);
+  }, [libraryElement, setPropertiesByCategory, setUnknownProperties]);
 
   const onNameChange = ({
     target: { value },
@@ -192,6 +188,10 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     setIsDescriptionModalOpen(false);
   }
 
+  useEffect(() => {
+    setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
+    categorizeProperties(node.data.properties);
+  }, [categorizeProperties, libraryElement, node]);
 
   return (
     <Modal
@@ -199,6 +199,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       title={title}
       onCancel={handleClose}
       maskClosable={false}
+      loading={libraryElementIsLoading}
       footer={[
         <Button key="cancel" onClick={handleClose}>
           Cancel
