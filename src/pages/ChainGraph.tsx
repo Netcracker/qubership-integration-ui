@@ -29,8 +29,7 @@ import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 
 const ChainGraphInner: React.FC = () => {
-  const { chainId } = useParams<string>();
-  let { elementId } = useParams<string>();
+  const { chainId, elementId } = useParams<string>();
   const { showModal } = useModalsContext();
   const reactFlowWrapper = useRef(null);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
@@ -85,12 +84,10 @@ const ChainGraphInner: React.FC = () => {
 
   const setElementPath = (newElementId: string) => {
     navigate(`/chains/${chainId}/graph/${newElementId}`);
-    elementId = newElementId;
   };
 
   const clearElementPath = () => {
     navigate(`/chains/${chainId}/graph`);
-    elementId = undefined;
   };
 
   const saveAndDeploy = async (domain: string) => {
