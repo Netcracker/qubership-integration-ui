@@ -87,7 +87,7 @@ const SecuredVariables: React.FC = () => {
         return false;
       }
     },
-    [variablesApi.getSecuredVariablesForSecret, setVariables, message],
+    [notificationService],
   );
 
   const loadSecrets = useCallback(async () => {
@@ -123,13 +123,7 @@ const SecuredVariables: React.FC = () => {
         null,
       );
     }
-  }, [
-    variablesApi.getSecuredVariables,
-    setSecrets,
-    setVariables,
-    setDefaultSecret,
-    message,
-  ]);
+  }, [notificationService]);
 
   useEffect(() => {
     loadSecrets();
@@ -154,13 +148,7 @@ const SecuredVariables: React.FC = () => {
         );
       }
     },
-    [
-      variablesApi.createSecret,
-      message,
-      setCreateModalVisible,
-      createForm,
-      loadSecrets,
-    ],
+    [createForm, loadSecrets, notificationService],
   );
 
   const handleAddVariable = useCallback(
@@ -183,12 +171,7 @@ const SecuredVariables: React.FC = () => {
         );
       }
     },
-    [
-      variablesApi.createSecuredVariables,
-      message,
-      refreshSecretVariables,
-      setNewVariableKeys,
-    ],
+    [refreshSecretVariables, notificationService],
   );
 
   const handleUpdateVariable = useCallback(
@@ -211,13 +194,7 @@ const SecuredVariables: React.FC = () => {
         );
       }
     },
-    [
-      variablesApi.updateSecuredVariables,
-      message,
-      refreshSecretVariables,
-      setEditing,
-      setEditingValue,
-    ],
+    [refreshSecretVariables, notificationService],
   );
 
   const handleDeleteVariable = useCallback(
@@ -237,7 +214,7 @@ const SecuredVariables: React.FC = () => {
         );
       }
     },
-    [variablesApi.deleteSecuredVariables, message, refreshSecretVariables],
+    [refreshSecretVariables, notificationService],
   );
 
   const handleDeleteSelected = useCallback(async () => {
@@ -285,15 +262,7 @@ const SecuredVariables: React.FC = () => {
         error,
       );
     }
-  }, [
-    selectedKeys,
-    variablesApi.deleteSecuredVariables,
-    variablesApi.getSecuredVariables,
-    setVariables,
-    setSelectedKeys,
-    message,
-    loadSecrets,
-  ]);
+  }, [selectedKeys, loadSecrets, notificationService]);
 
   const hasSelected = Object.values(selectedKeys).some(
     (keys) => keys.length > 0,
