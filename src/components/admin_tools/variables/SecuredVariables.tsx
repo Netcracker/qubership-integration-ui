@@ -138,7 +138,7 @@ const SecuredVariables: React.FC = () => {
         message.success(`Secret "${name}" created`);
         setCreateModalVisible(false);
         createForm.resetFields();
-        loadSecrets();
+        await loadSecrets();
       } else {
         console.error("Failed to create secret:", response.error);
         notificationService.requestFailed(
@@ -245,7 +245,7 @@ const SecuredVariables: React.FC = () => {
       }
 
       if (allSuccessful) {
-        loadSecrets();
+        await loadSecrets();
       } else {
         notificationService.requestFailed(
           "Some selected variables failed to delete. Check console for details.",

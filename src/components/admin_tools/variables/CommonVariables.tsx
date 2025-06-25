@@ -75,7 +75,7 @@ export const CommonVariables = () => {
       if (success) {
         message.success("Deleted selected variables");
         setSelectedRowKeys([]);
-        fetchVariables();
+        await fetchVariables();
       } else {
         message.error("Failed to delete selected variables");
       }
