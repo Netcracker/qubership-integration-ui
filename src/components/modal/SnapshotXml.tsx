@@ -1,6 +1,6 @@
 import { Modal } from "antd";
 import { useModalContext } from "../../ModalContextProvider.tsx";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Snapshot } from "../../api/apiTypes.ts";
 import { api } from "../../api/api.ts";
 import { Editor } from "@monaco-editor/react";
@@ -18,20 +18,23 @@ export const SnapshotXmlView: React.FC<SnapshotXmlViewProps> = ({
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const notificationService = useNotificationService();
 
+  const getSnapshot = useCallback(
+    async (snapshotId: string) => {
+      setIsLoading(true);
+      try {
+        setSnapshot(await api.getSnapshot(snapshotId));
+      } catch (err) {
+        notificationService.requestFailed("Failed to get snapshot", err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [notificationService],
+  );
+
   useEffect(() => {
     getSnapshot(snapshotId);
-  }, [snapshotId]);
-
-  const getSnapshot = async (snapshotId: string) => {
-    setIsLoading(true);
-    try {
-      setSnapshot(await api.getSnapshot(snapshotId));
-    } catch (err) {
-      notificationService.requestFailed("Failed to get snapshot", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [getSnapshot, snapshotId]);
 
   return (
     <Modal
