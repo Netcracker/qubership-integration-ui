@@ -35,7 +35,7 @@ export function InlineEdit<Values>({
     if (active) {
       form.setFieldsValue(values);
     }
-  }, [values, active]);
+  }, [values, active, form]);
 
   const toggle = () => {
     setActive(!active);
