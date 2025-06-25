@@ -102,13 +102,15 @@ export const Deployments: React.FC = () => {
   return (
     <>
       <Table
+        className="flex-table"
+        style={{ height: "100%" }}
         size="small"
         columns={columns}
         dataSource={deployments}
         pagination={false}
         loading={isLoading}
-        rowKey="name"
-        scroll={{ y: "calc(100vh - 200px)" }}
+        rowKey="id"
+        scroll={{ y: "" }}
       />
       <FloatButton
         icon={<PlusOutlined />}
