@@ -16,7 +16,7 @@ import {
   ImportVariableResult,
   SystemImportStatus,
 } from "../../api/apiTypes.ts";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
   Dropdown,
@@ -114,6 +114,18 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
     setResultImportInstructionTableItems,
   ] = useState<ResultImportInstructionTableItem[]>([]);
 
+  const getDomains = useCallback(async () => {
+    setLoading(true);
+    try {
+      return api.getDomains();
+    } catch (error) {
+      notificationService.requestFailed("Failed to get domains", error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [notificationService]);
+
   useEffect(() => {
     if (importPreview) {
       setSelectedServiceRowKeys(importPreview?.systems?.map((i) => i.id) ?? []);
@@ -122,7 +134,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
       );
       getDomains().then(setDomains);
     }
-  }, [importPreview]);
+  }, [getDomains, importPreview]);
 
   useEffect(() => {
     if (importPreview) {
@@ -188,18 +200,6 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
     ]);
   }, [importPreview]);
 
-  const getDomains = async () => {
-    setLoading(true);
-    try {
-      return api.getDomains();
-    } catch (error) {
-      notificationService.requestFailed("Failed to get domains", error);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getImportPreview = async (file: File) => {
     setLoading(true);
     try {
@@ -262,7 +262,10 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
       );
       return response.importId;
     } catch (error) {
-      notificationService.requestFailed("Failed to commit import request", error);
+      notificationService.requestFailed(
+        "Failed to commit import request",
+        error,
+      );
     } finally {
       setLoading(false);
     }
