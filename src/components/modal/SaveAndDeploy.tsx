@@ -10,15 +10,18 @@ export type SaveAndDeployProps = {
 
 type SaveAndDeployFormData = {
   domain: string;
-}
+};
 
-export const SaveAndDeploy: React.FC<SaveAndDeployProps> = ({ chainId, onSubmit }) => {
+export const SaveAndDeploy: React.FC<SaveAndDeployProps> = ({
+  chainId,
+  onSubmit,
+}) => {
   const [form] = Form.useForm();
   const [confirmLoading, setConfirmLoading] = useState(false);
   const { closeContainingModal } = useModalContext();
-  const domainsState = useDomains();
+  const { isLoading: domainsLoading, domains } = useDomains();
 
-  const domainOptions: SelectProps["options"] = domainsState.domains
+  const domainOptions: SelectProps["options"] = domains
     ?.sort((d1, d2) => d1.name.localeCompare(d2.name))
     .map((domain) => ({
       label: domain.name,
@@ -65,7 +68,7 @@ export const SaveAndDeploy: React.FC<SaveAndDeployProps> = ({ chainId, onSubmit 
         layout="horizontal"
         labelCol={{ span: 4 }}
         style={{ maxWidth: 600 }}
-        disabled={domainsState.isLoading}
+        disabled={domainsLoading}
         labelWrap
         onFinish={(values) => handleSubmit(values)}
       >
@@ -74,12 +77,9 @@ export const SaveAndDeploy: React.FC<SaveAndDeployProps> = ({ chainId, onSubmit 
           name="domain"
           rules={[{ required: true, message: "Please specify a domain" }]}
         >
-          <Select
-            options={domainOptions}
-            loading={domainsState.isLoading}
-          />
+          <Select options={domainOptions} loading={domainsLoading} />
         </Form.Item>
       </Form>
     </Modal>
   );
-}
+};
