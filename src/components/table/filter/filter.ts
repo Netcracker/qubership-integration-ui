@@ -9,6 +9,9 @@ export class FilterCondition {
   public static readonly IS_NOT = { id: 'IS_NOT', name: 'Is not' };
   public static readonly EMPTY = { id: 'EMPTY', name: 'Empty', valueRequired: false };
   public static readonly NOT_EMPTY = { id: 'NOT_EMPTY', name: 'Not empty', valueRequired: false };
+  public static readonly IS_BEFORE = { id: 'IS_BEFORE', name: 'Is before' };
+  public static readonly IS_AFTER = { id: 'IS_AFTER', name: 'Is after' };
+  public static readonly IS_WITHIN = { id: 'IS_WITHIN', name: 'Is within' };
 
   private constructor(
     public readonly id: string,
@@ -93,6 +96,16 @@ export const ListFilterConditions: FilterConditions = {
     FilterCondition.IN, FilterCondition.NOT_IN
   ],
   valueType: FilterValueType.LIST,
+};
+
+export const DateFilterConditions: FilterConditions = {
+    defaultCondition: FilterCondition.IS_BEFORE,
+    allowedConditions: [
+        FilterCondition.IS_AFTER,
+        FilterCondition.IS_BEFORE,
+        FilterCondition.IS_WITHIN,
+    ],
+    valueType: FilterValueType.DATE,
 };
 
 export interface EntityFilterModel {

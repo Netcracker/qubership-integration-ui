@@ -26,16 +26,13 @@ export const FilterItem = (props: FilterItemProps) => {
     column: FilterColumn | undefined;
     conditionOptions: SelectProps["options"];
     conditions: FilterConditions | undefined;
-  }>({ column: undefined, conditionOptions: [], conditions: undefined });
-  const [condition, setCondition] = useState<FilterCondition>();
+    condition: FilterCondition | undefined;
+  }>({ column: undefined, conditionOptions: [], conditions: undefined, condition: undefined });
   const [state, setState] = useState<FilterItemState>(props.state);
 
   useEffect(() => {
     if (props.state.columnValue) {
-      changeColumn(props.state.columnValue);
-    }
-    if (props.state.conditionValue) {
-      changeCondition(props.state.conditionValue);
+      setColumnAndCondition(props.state.columnValue, props.state.conditionValue);
     }
   }, []);
 
@@ -71,28 +68,33 @@ export const FilterItem = (props: FilterItemProps) => {
   }
 
   const changeColumn = (value: string) => {
-    const column: FilterColumn | null = props.filterColumns.find((filter: FilterColumn) => filter.id === value)??null;
-
-    if (column) {
-      const conditionOptions = column.conditions.allowedConditions
-        .map((condition: FilterCondition) => ({ value: condition.id, label: condition.name }));
-
-      setColumnData({column: column, conditionOptions: conditionOptions, conditions: column.conditions});
-
-      updateCurrentAndParentStates({...state, columnValue: value, conditionValue: column.conditions.defaultCondition.id, value: undefined});
-    }
+    setColumnAndCondition(value);
   };
 
+  const setColumnAndCondition = (columnValue: string, conditionValue?: string) => {
+    const column: FilterColumn = props.filterColumns.find((col: FilterColumn) => col.id === columnValue)!;
+
+    const conditions = column.conditions;
+    const conditionOptions = conditions.allowedConditions
+      .map((condition: FilterCondition) => ({ value: condition.id, label: condition.name }));
+
+    const condition: FilterCondition = conditionValue ? getCondition(conditions, conditionValue) : conditions.defaultCondition;
+
+    setColumnData({ column: column, conditionOptions: conditionOptions, conditions: conditions, condition: condition });
+    updateCurrentAndParentStates({ ...state, columnValue: columnValue, conditionValue: condition.id, value: conditionValue ? state.value : undefined });
+  }
+
   const changeCondition = (value: string) => {
-    const currentCondition: FilterCondition | undefined = columnData.conditions?.allowedConditions.find(allowedCondition => allowedCondition.id == value);
-
-    setCondition(currentCondition);
-
+    setColumnData({...columnData, condition: getCondition(columnData.conditions!, value)});
     updateCurrentAndParentStates({ ...state, conditionValue: value });
   }
 
   const handleStringValue = (value: string | undefined) => {
     updateCurrentAndParentStates({...state, value: value});
+  }
+
+  function getCondition(conditions: FilterConditions, conditionValue: string): FilterCondition {
+    return conditions.allowedConditions.find(allowedCondition => allowedCondition.id == conditionValue)!;
   }
 
   function updateCurrentAndParentStates(newState: FilterItemState) {
@@ -102,28 +104,28 @@ export const FilterItem = (props: FilterItemProps) => {
 
   const itemStyle = { marginBottom: 8 };
 
-  return <Row gutter={8}>
-    <Col span={7}>
+  return <Row gutter={4}>
+    <Col span={6}>
       <Form.Item style={itemStyle}>
         <Select placeholder="Column" options={columnOptions()} onChange={changeColumn} value={state.columnValue}/>
       </Form.Item>
     </Col>
-    <Col span={7}>
+    <Col span={6}>
       <Form.Item style={itemStyle}>
         <Select disabled={!columnData.column} placeholder="Condition" options={columnData.conditionOptions} onChange={changeCondition} value={state.conditionValue} />
       </Form.Item>
     </Col>
-    <Col span={7}>
+    <Col span={10}>
       <Form.Item style={itemStyle}>
         <FilterValue type={columnData.column?.conditions?.valueType ?? FilterValueType.STRING}
-          condition={condition}
+          condition={columnData.condition}
           handleStringValue={handleStringValue}
           allowedValues={columnData.column?.allowedValues??[]}
           value={state.value}
         />
       </Form.Item>
     </Col>
-    <Col span={3}>
+    <Col>
       <Dropdown menu={actionProps}>
         <Button icon={<EllipsisOutlined />} />
       </Dropdown>

@@ -2,7 +2,7 @@ import { FilterDropdownProps } from "antd/lib/table/interface";
 import React, { ReactNode } from "react";
 import { Button, Col, DatePicker, Row, Select } from "antd";
 import type { AnyObject } from "antd/lib/_util/type";
-import dayjs, { Dayjs } from "dayjs";
+import { toDayjs, toEpochMillis } from "../../misc/date-utils";
 
 export type TimestampFilterCondition = "is-before" | "is-after" | "is-within";
 
@@ -10,14 +10,6 @@ export type TimestampFilter = {
   condition: TimestampFilterCondition;
   value: number[];
 };
-
-function toEpochMillis(v: Dayjs | null): number {
-  return (v?.unix() ?? 0) * 1000;
-}
-
-function toDayjs(v: number | null | undefined): Dayjs | undefined {
-  return v ? dayjs(v) : undefined;
-}
 
 function getTimestampFilterFunction(
   condition: TimestampFilterCondition,
