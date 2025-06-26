@@ -163,7 +163,7 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
             onKeyDown={handleAddKeyDown}
           />
         ) : (
-          <span>{record.key}</span>
+          <div className={styles["key-text"]}>{record.key}</div>
         ),
     },
     {
@@ -302,13 +302,13 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
     {
       title: "",
       key: "actions",
-      width: 50,
-      fixed: "right" as const,
+      width: 40,
       align: "right" as const,
       render: (_: unknown, record: Variable) =>
         record.key !== NEW_VARIABLE_KEY && (
           <Popconfirm
             title="Delete variable?"
+            placement="topLeft"
             onConfirm={() => onDelete(record.key)}
           >
             <Button

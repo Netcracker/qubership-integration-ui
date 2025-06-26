@@ -34,7 +34,7 @@ import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 
 const { Title } = Typography;
 
-const SecuredVariables: React.FC = () => {
+export const SecuredVariables: React.FC = () => {
   const [secrets, setSecrets] = useState<string[]>([]);
   const [defaultSecret, setDefaultSecret] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, Variable[]>>({});
@@ -488,5 +488,3 @@ const SecuredVariables: React.FC = () => {
     </Flex>
   );
 };
-
-export default SecuredVariables;

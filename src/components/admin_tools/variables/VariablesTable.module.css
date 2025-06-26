@@ -44,7 +44,14 @@
 
 .value-text {
     flex: 1;
-    white-space: pre-wrap;
+    white-space: pre;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.key-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }

@@ -19,7 +19,8 @@ import { EventNotification } from "./components/notifications/EventNotification.
 
 import { AdminTools } from "./pages/admin-tools/AdminToolsPage.tsx";
 import { CommonVariables } from "./components/admin_tools/variables/CommonVariables.tsx";
-import SecuredVariables from "./components/admin_tools/variables/SecuredVariables.tsx";
+import { SecuredVariables } from "./components/admin_tools/variables/SecuredVariables.tsx";
+import { Domains } from "./components/admin_tools/domains/Domains.tsx";
 
 const { Header } = Layout;
 
@@ -34,7 +35,7 @@ const App = () => (
                     <BrowserRouter>
                         <Routes>
                             <Route path="/admintools" element={<AdminTools />}>
-                            {/*<Route path="domains" element={<DomainsPage />} />*/}
+                              <Route path="domains" element={<Domains />} />
                               <Route  path="variables/common" element={<CommonVariables />} />
                               <Route  path="variables/secured" element={<SecuredVariables />} />
                             </Route>
