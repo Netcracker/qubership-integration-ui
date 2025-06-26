@@ -11,12 +11,6 @@
 }
 
 .container {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
   min-height: 0;
   height: 100%;
 }

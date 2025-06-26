@@ -49,9 +49,7 @@
 .contentArea {
   flex-grow: 1;
   overflow: auto;
-  padding: 12px;
-  /*background: #f9f9f9;*/
-  /*flex: 1;*/
+  padding: 24px;
   min-height: 0;
   height: 100%;
 }

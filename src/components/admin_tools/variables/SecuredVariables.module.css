@@ -1,13 +1,5 @@
 @import "./variables.module.css";
 
-.secured-variables-container {
-  composes: variables-container;
-}
-
-.secured-variables-title {
-  composes: variables-title;
-}
-
 .secret-content {
   display: flex;
   justify-content: space-between;

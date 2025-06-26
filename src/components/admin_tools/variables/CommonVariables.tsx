@@ -8,7 +8,7 @@ import {
   CloudUploadOutlined,
   CloudDownloadOutlined,
 } from "@ant-design/icons";
-import styles from "./CommonVariables.module.css";
+import styles from "../CommonStyle.module.css";
 import ImportVariablesModal from "./ImportVariablesModal.tsx";
 import { useModalsContext } from "../../../Modals.tsx";
 import VariablesTable from "./VariablesTable.tsx";
@@ -88,10 +88,10 @@ export const CommonVariables = () => {
   };
 
   return (
-    <Flex vertical style={{ height: "100%" }}>
+    <Flex vertical className={styles["container"]}>
       <Flex vertical={false}>
-        <Title level={4} className={styles["common-variables-title"]}>
-          <TableOutlined className={styles["common-variables-icon"]} />
+        <Title level={4} className={styles["title"]}>
+          <TableOutlined className={styles["icon"]} />
           Common Variables
         </Title>
       </Flex>

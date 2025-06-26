@@ -19,7 +19,7 @@ import {
   MoreOutlined,
   CloudDownloadOutlined,
 } from "@ant-design/icons";
-
+import commonStyles from "../CommonStyle.module.css";
 import styles from "./SecuredVariables.module.css";
 import VariablesTable from "./VariablesTable";
 import { variablesApi } from "../../../api/admin-tools/variables/variablesApi.ts";
@@ -326,10 +326,10 @@ export const SecuredVariables: React.FC = () => {
   );
 
   return (
-    <Flex vertical style={{ height: "100%" }}>
+    <Flex vertical className={commonStyles["container"]}>
       <Flex vertical={false}>
-        <Title level={4} className={styles["secured-variables-title"]}>
-          <LockOutlined />
+        <Title level={4} className={commonStyles["title"]}>
+          <LockOutlined className={commonStyles["icon"]} />
           Secured Variables
         </Title>
       </Flex>
