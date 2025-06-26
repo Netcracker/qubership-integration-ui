@@ -1,14 +1,13 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export type ElkDirection = "RIGHT" | "DOWN";
 
 export const useElkDirection = () => {
   const [elkDirection, setElkDirection] = useState<ElkDirection>("RIGHT");
 
-  const onChangeDirection = () => {
-    const nextDirection: ElkDirection = elkDirection === "RIGHT" ? "DOWN" : "RIGHT";
-    setElkDirection(nextDirection);
-  };
+  const toggleDirection = useCallback(() => {
+    setElkDirection((direction) => (direction === "RIGHT" ? "DOWN" : "RIGHT"));
+  }, []);
 
-  return { elkDirection, onChangeDirection };
+  return { elkDirection, toggleDirection };
 };
