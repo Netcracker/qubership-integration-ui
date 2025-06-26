@@ -81,7 +81,7 @@ export const useChainGraph = (chainId?: string) => {
         setIsLoading(false);
       }
     };
-    fetchData().then(() => {});
+    void fetchData();
   }, [arrangeNodes, chainId, notificationService, setEdges, setNodes]);
 
   const onConnect = useCallback(

@@ -59,7 +59,7 @@ export const useDeployments = (chainId?: string) => {
   }, [chainId, notificationService]);
 
   useEffect(() => {
-    getDeployments().then(setDeployments);
+    void getDeployments().then(setDeployments);
   }, [getDeployments]);
 
   const showEventNotification = useCallback(
@@ -85,7 +85,7 @@ export const useDeployments = (chainId?: string) => {
     return subscribe(ObjectType.DEPLOYMENT, (event: Event) => {
       const data: DeploymentUpdate = event.data as DeploymentUpdate;
       if (data.chainId !== chainId || !data.chainId) return;
-      getDeployments().then(setDeployments);
+      void getDeployments().then(setDeployments);
       showEventNotification(data);
     });
   }, [chainId, getDeployments, showEventNotification, subscribe]);

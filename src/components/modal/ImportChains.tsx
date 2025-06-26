@@ -132,7 +132,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
       setSelectedVariableRowKeys(
         importPreview?.variables?.map((i) => i.name) ?? [],
       );
-      getDomains().then(setDomains);
+      void getDomains().then(setDomains);
     }
   }, [getDomains, importPreview]);
 
@@ -569,14 +569,14 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
                   switch (step) {
                     case 0: {
                       if (fileList[0].originFileObj) {
-                        return getImportPreview(fileList[0].originFileObj).then(
+                        await getImportPreview(fileList[0].originFileObj).then(
                           () => setStep(1),
                         );
                       }
                       break;
                     }
                     case 1: {
-                      doImport().then(waitForImportIsDone);
+                      await doImport().then(waitForImportIsDone);
                       break;
                     }
                   }

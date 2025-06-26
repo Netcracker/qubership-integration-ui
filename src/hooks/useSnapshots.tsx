@@ -25,7 +25,7 @@ export const useSnapshots = (chainId?: string) => {
 
   useEffect(() => {
     if (!chainId) return;
-    getSnapshots(chainId).then(() => {});
+    void getSnapshots(chainId);
   }, [chainId, getSnapshots]);
 
   return { isLoading, snapshots, setSnapshots };

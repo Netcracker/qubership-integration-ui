@@ -83,11 +83,11 @@ function autoLayout(
     reactFlow.getEdges(),
     direction,
   );
-  elk.layout(elkGraph).then((layout) => {
+  void elk.layout(elkGraph).then((layout) => {
     layout.children?.forEach((node) =>
       reactFlow.updateNode(node.id, (n) => buildNode(node, n, direction)),
     );
-    requestAnimationFrame(() => reactFlow.fitView());
+    requestAnimationFrame(() => void reactFlow.fitView());
   });
 }
 

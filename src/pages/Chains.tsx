@@ -203,7 +203,7 @@ const Chains = () => {
 
   const updateFolderItems = useCallback(async () => {
     const folderId = getFolderId();
-    listFolder(folderId).then((items) => {
+    await listFolder(folderId).then((items) => {
       setIsLoading(true);
       setExpandedRowKeys([]);
       setLoadedFolders(new Set());
@@ -211,7 +211,7 @@ const Chains = () => {
       setIsLoading(false);
     });
 
-    getPathToFolder(folderId).then((path) =>
+    await getPathToFolder(folderId).then((path) =>
       setPathItems(buildPathItems(path)),
     );
   }, [getFolderId, getPathToFolder, listFolder]);
@@ -247,7 +247,7 @@ const Chains = () => {
         if (newTab) {
           window.open(path, "_blank", "noreferrer");
         } else {
-          navigate(path);
+          await navigate(path);
         }
       }
     } catch (error) {
@@ -332,7 +332,7 @@ const Chains = () => {
         if (newTab) {
           window.open(path, "_blank", "noreferrer");
         } else {
-          navigate(path);
+          await navigate(path);
         }
       }
     } catch (error) {
@@ -729,7 +729,7 @@ const Chains = () => {
           <a
             onClick={(event) => {
               event.stopPropagation();
-              navigate(
+              void navigate(
                 item.itemType === CatalogItemType.FOLDER
                   ? `/chains?folder=${item.id}`
                   : `/chains/${item.id}`,
@@ -860,7 +860,7 @@ const Chains = () => {
   };
 
   useEffect(() => {
-    updateFolderItems().then(() => {});
+    void updateFolderItems();
   }, [updateFolderItems]);
 
   useEffect(() => {

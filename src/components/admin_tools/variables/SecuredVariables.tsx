@@ -128,7 +128,7 @@ export const SecuredVariables: React.FC = () => {
   }, [notificationService]);
 
   useEffect(() => {
-    loadSecrets();
+    void loadSecrets();
   }, [loadSecrets]);
 
   const handleCreateSecret = useCallback(

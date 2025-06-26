@@ -47,7 +47,7 @@ export const useVariablesState = ({
   }, [getVariables, notificationService]);
 
   useEffect(() => {
-    fetchVariables().then(() => {});
+    void fetchVariables();
   }, [fetchVariables]);
 
   const startEditing = useCallback((key: string, value: string) => {

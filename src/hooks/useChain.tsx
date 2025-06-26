@@ -36,7 +36,7 @@ export const useChain = (chainId?: string) => {
   }, [chainId, notificationService]);
 
   useEffect(() => {
-    getChain().then(setChain);
+    void getChain().then(setChain);
   }, [getChain]);
 
   return { isLoading, chain, setChain, updateChain };

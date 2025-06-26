@@ -56,7 +56,7 @@ export const ElementsLibrarySidebar = () => {
         setLoading(false);
       }
     };
-    loadLibrary();
+    void loadLibrary();
   }, [notificationService]);
 
   const prettifyName = (name: string): string => {

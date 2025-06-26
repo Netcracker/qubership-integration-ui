@@ -88,8 +88,8 @@ export const LoggingSettings: React.FC = () => {
   }, [chainId, notificationService]);
 
   useEffect(() => {
-    getLoggingSettings().then(setLoggingSettings);
-    getMaskedFields().then(setMaskedFields);
+    void getLoggingSettings().then(setLoggingSettings);
+    void getMaskedFields().then(setMaskedFields);
   }, [chainId, getLoggingSettings, getMaskedFields]);
 
   useEffect(() => {

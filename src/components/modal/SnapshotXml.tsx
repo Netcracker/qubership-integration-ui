@@ -33,7 +33,7 @@ export const SnapshotXmlView: React.FC<SnapshotXmlViewProps> = ({
   );
 
   useEffect(() => {
-    getSnapshot(snapshotId);
+    void getSnapshot(snapshotId);
   }, [getSnapshot, snapshotId]);
 
   return (

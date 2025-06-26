@@ -28,7 +28,7 @@ export function InlineEdit<Values>({
   onCancel,
   initialActive,
 }: InlineEditProps<Values>): ReactNode {
-  const [form] = useForm();
+  const [form] = useForm<Values>();
   const [active, setActive] = useState<boolean>(initialActive ?? false);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export function InlineEdit<Values>({
         <Form<Values>
           form={form}
           component={false}
-          onFinish={async () => {
+          onFinish={() => {
             onSubmit?.(form.getFieldsValue());
             toggle();
           }}

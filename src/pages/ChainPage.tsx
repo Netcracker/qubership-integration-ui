@@ -45,7 +45,7 @@ const ChainPage = () => {
 
   useEffect(() => {
     const items: BreadcrumbProps["items"] = [
-      ...(buildPathItems(chain?.navigationPath ?? new Map()) ?? []),
+      ...(buildPathItems(chain?.navigationPath ?? new Map<string, string>()) ?? []),
       ...(sessionId
         ? [
             { title: "Sessions", href: `/chains/${chainId}/sessions` },
@@ -56,8 +56,8 @@ const ChainPage = () => {
     setPathItems(items);
   }, [chain, chainId, sessionId]);
 
-  const handlePageChange = (event: RadioChangeEvent) => {
-    navigate(`${event.target.value}`); // Update the URL with the selected tab key
+  const handlePageChange = async (event: RadioChangeEvent) => {
+    await navigate(`${event.target.value}`); // Update the URL with the selected tab key
   };
 
   return (

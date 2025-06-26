@@ -21,7 +21,7 @@ export const useDomains = () => {
   }, [notificationService]);
 
   useEffect(() => {
-    getDomains().then(() => {});
+    void getDomains();
   }, [getDomains]);
 
   return { isLoading, domains };

@@ -52,13 +52,13 @@ function getTextToCopy<ValueType>(
     case "name":
       return item.name;
     case "typeBefore":
-      return typeTextGetter ? typeTextGetter(item.before) : `${item.before}`;
+      return typeTextGetter ? typeTextGetter(item.before) : String(item.before);
     case "typeAfter":
-      return typeTextGetter ? typeTextGetter(item.after) : `${item.after}`;
+      return typeTextGetter ? typeTextGetter(item.after) : String(item.after);
     case "valueBefore":
-      return valueTextGetter ? valueTextGetter(item.before) : `${item.before}`;
+      return valueTextGetter ? valueTextGetter(item.before) : String(item.before);
     case "valueAfter":
-      return valueTextGetter ? valueTextGetter(item.after) : `${item.after}`;
+      return valueTextGetter ? valueTextGetter(item.after) : String(item.after);
   }
 }
 

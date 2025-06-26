@@ -51,7 +51,7 @@ export const SessionPage: React.FC = () => {
   }, [notificationService, sessionId]);
 
   useEffect(() => {
-    getSession().then(() => {});
+    void getSession();
   }, [getSession, sessionId]);
 
   const showElementDetails = (element: SessionElement) => {

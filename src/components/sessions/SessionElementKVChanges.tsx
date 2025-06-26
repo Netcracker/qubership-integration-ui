@@ -67,7 +67,7 @@ function getCellContent<ValueType = unknown>(
   return value !== undefined
     ? renderer
       ? renderer(value)
-      : `${value}`
+      : String(value)
     : PLACEHOLDER;
 }
 

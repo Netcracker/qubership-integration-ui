@@ -508,7 +508,7 @@ export const Sessions: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchSessions(0).then(() => {});
+    void fetchSessions(0);
   }, [fetchSessions]);
 
   useEffect(() => {
@@ -516,7 +516,7 @@ export const Sessions: React.FC = () => {
   }, [buildColumns]);
 
   useEffect(() => {
-    updateTableData().then(() => {});
+    void updateTableData();
   }, [updateTableData]);
 
   return (

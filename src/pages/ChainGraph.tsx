@@ -73,13 +73,13 @@ const ChainGraphInner: React.FC = () => {
 
   const setElementPath = useCallback(
     (newElementId: string) => {
-      navigate(`/chains/${chainId}/graph/${newElementId}`);
+      void navigate(`/chains/${chainId}/graph/${newElementId}`);
     },
     [chainId, navigate],
   );
 
   const clearElementPath = useCallback(() => {
-    navigate(`/chains/${chainId}/graph`);
+    void navigate(`/chains/${chainId}/graph`);
   }, [chainId, navigate]);
 
   const openElementModal = useCallback(

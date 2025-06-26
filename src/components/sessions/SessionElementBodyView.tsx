@@ -28,11 +28,11 @@ export function getContentType(
   )?.[1];
 }
 
-export function formatDocumentInEditor(
+export async function formatDocumentInEditor(
   editor: editor_.IStandaloneCodeEditor | undefined,
 ) {
   editor?.updateOptions({ readOnly: false });
-  editor
+  await editor
     ?.getAction("editor.action.formatDocument")
     ?.run()
     .then(() => editor?.updateOptions({ readOnly: true }));
