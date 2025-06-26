@@ -1,4 +1,4 @@
-import React, { UIEvent, useEffect, useState } from "react";
+import React, { UIEvent, useCallback, useEffect, useState } from "react";
 import { Button, Flex, FloatButton, message, Modal, Table } from "antd";
 import { useNavigate, useParams } from "react-router";
 import {
@@ -133,19 +133,7 @@ export const Sessions: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const notificationService = useNotificationService();
 
-  useEffect(() => {
-    fetchSessions(true);
-  }, [chainId, filters]);
-
-  useEffect(() => {
-    setColumns(buildColumns());
-  }, [chainId]);
-
-  useEffect(() => {
-    updateTableData();
-  }, [sessions, checkpointMap]);
-
-  const updateTableData = async () => {
+  const updateTableData = useCallback(async () => {
     setIsLoading(true);
     const rowMap = new Map<string, SessionTableItem>(
       sessions.map((session) => [
@@ -210,7 +198,7 @@ export const Sessions: React.FC = () => {
     sortByStartTime(items);
     setTableData(items);
     setIsLoading(false);
-  };
+  }, [checkpointMap, sessions]);
 
   const setTableFilters = (
     tableFilters: Record<string, FilterValue | null>,
@@ -262,162 +250,173 @@ export const Sessions: React.FC = () => {
     setFilters({ ...filters, filterRequestList });
   };
 
-  const fetchSessions = async (reset?: boolean) => {
-    const options: PaginationOptions = { offset: reset ? 0 : offset };
-    setIsLoading(true);
-    try {
-      const response = await api.getSessions(chainId, filters, options);
-      setSessions([...(reset ? [] : sessions), ...response.sessions]);
-      setOffset(response.offset);
-      setAllSessionsLoaded(response.sessions.length === 0);
-      const ids = response.sessions.map((session) => session.id);
-      const checkpointSessions = await api.getCheckpointSessions(ids);
-      const m = new Map(reset ? [] : checkpointMap.entries());
-      checkpointSessions.forEach((session) =>
-        m.set(session.id, session.checkpoints),
-      );
-      setCheckpointMap(m);
-    } catch (error) {
-      notificationService.requestFailed("Failed to fetch sessions", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const fetchSessions = useCallback(
+    async (offset: number) => {
+      const options: PaginationOptions = { offset };
+      setIsLoading(true);
+      try {
+        const response = await api.getSessions(chainId, filters, options);
+        setSessions((sessions) => [
+          ...(offset ? sessions : []),
+          ...response.sessions,
+        ]);
+        setOffset(response.offset);
+        setAllSessionsLoaded(response.sessions.length === 0);
+        const ids = response.sessions.map((session) => session.id);
+        const checkpointSessions = await api.getCheckpointSessions(ids);
+        setCheckpointMap((checkpointMap) => {
+          const m = new Map(offset ? checkpointMap.entries() : []);
+          checkpointSessions.forEach((session) =>
+            m.set(session.id, session.checkpoints),
+          );
+          return m;
+        });
+      } catch (error) {
+        notificationService.requestFailed("Failed to fetch sessions", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [chainId, filters, notificationService],
+  );
 
-  const retryFromLastCheckpoint = async (
-    chainId: string,
-    sessionId: string,
-  ) => {
-    try {
-      await api.retrySessionFromLastCheckpoint(chainId, sessionId);
-      messageApi.info(
-        "Session was retried successfully. Please update table to see session result.",
-      );
-    } catch (error) {
-      notificationService.requestFailed("Failed to retry session", error);
-    }
-  };
+  const retryFromLastCheckpoint = useCallback(
+    async (chainId: string, sessionId: string) => {
+      try {
+        await api.retrySessionFromLastCheckpoint(chainId, sessionId);
+        messageApi.info(
+          "Session was retried successfully. Please update table to see session result.",
+        );
+      } catch (error) {
+        notificationService.requestFailed("Failed to retry session", error);
+      }
+    },
+    [messageApi, notificationService],
+  );
 
-  const buildColumns = (): TableProps<SessionTableItem>["columns"] => [
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      render: (_, item) =>
-        isCorrelationItem(item) ? (
-          <span style={{ fontWeight: 600 }}>{item.id}</span>
-        ) : (
-          <Flex gap={8}>
-            <a
-              onClick={async () =>
-                navigate(`/chains/${item.chainId}/sessions/${item.id}`)
-              }
-            >
-              {item.id}
-            </a>
-            {item.checkpoints && item.checkpoints?.length > 0 ? (
-              <Button
-                size="small"
-                type="text"
-                icon={<RedoOutlined />}
+  const buildColumns = useCallback(
+    (): TableProps<SessionTableItem>["columns"] => [
+      {
+        title: "ID",
+        dataIndex: "id",
+        key: "id",
+        render: (_, item) =>
+          isCorrelationItem(item) ? (
+            <span style={{ fontWeight: 600 }}>{item.id}</span>
+          ) : (
+            <Flex gap={8}>
+              <a
                 onClick={async () =>
-                  retryFromLastCheckpoint(item.chainId, item.id)
+                  navigate(`/chains/${item.chainId}/sessions/${item.id}`)
                 }
-              />
-            ) : null}
-          </Flex>
-        ),
-    },
-    ...(chainId
-      ? []
-      : [
-          {
-            title: "Chain",
-            dataIndex: "chainName",
-            key: "chainName",
-            filterDropdown: (props: FilterDropdownProps) => (
-              <TextColumnFilterDropdown {...props} enableExact={false} />
-            ),
-            render: (_: unknown, item: SessionTableItem) => (
-              <a onClick={async () => navigate(`/chains/${item.chainId}`)}>
-                {item.chainName}
+              >
+                {item.id}
               </a>
-            ),
-          },
-        ]),
-    {
-      title: "Status",
-      dataIndex: "executionStatus",
-      key: "executionStatus",
-      filters: Object.values(ExecutionStatus).map((value) => ({
-        value,
-        text: formatSnakeCased(value),
-      })),
-      render: (_, item) =>
-        isCorrelationItem(item) ? (
-          <>{`${item.children?.length} session${item.children?.length === 1 ? "" : "s"}`}</>
-        ) : (
-          <SessionStatus status={item.executionStatus} />
+              {item.checkpoints && item.checkpoints?.length > 0 ? (
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<RedoOutlined />}
+                  onClick={async () =>
+                    retryFromLastCheckpoint(item.chainId, item.id)
+                  }
+                />
+              ) : null}
+            </Flex>
+          ),
+      },
+      ...(chainId
+        ? []
+        : [
+            {
+              title: "Chain",
+              dataIndex: "chainName",
+              key: "chainName",
+              filterDropdown: (props: FilterDropdownProps) => (
+                <TextColumnFilterDropdown {...props} enableExact={false} />
+              ),
+              render: (_: unknown, item: SessionTableItem) => (
+                <a onClick={async () => navigate(`/chains/${item.chainId}`)}>
+                  {item.chainName}
+                </a>
+              ),
+            },
+          ]),
+      {
+        title: "Status",
+        dataIndex: "executionStatus",
+        key: "executionStatus",
+        filters: Object.values(ExecutionStatus).map((value) => ({
+          value,
+          text: formatSnakeCased(value),
+        })),
+        render: (_, item) =>
+          isCorrelationItem(item) ? (
+            <>{`${item.children?.length} session${item.children?.length === 1 ? "" : "s"}`}</>
+          ) : (
+            <SessionStatus status={item.executionStatus} />
+          ),
+      },
+      {
+        title: "Start time",
+        dataIndex: "started",
+        key: "started",
+        filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
+        render: (_, session) => (
+          <>{formatUTCSessionDate(session.started, true)}</>
         ),
-    },
-    {
-      title: "Start time",
-      dataIndex: "started",
-      key: "started",
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      render: (_, session) => (
-        <>{formatUTCSessionDate(session.started, true)}</>
-      ),
-    },
-    {
-      title: "Finish time",
-      dataIndex: "finished",
-      key: "finished",
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      render: (_, session) => (
-        <>{formatUTCSessionDate(session.finished, true)}</>
-      ),
-    },
-    {
-      title: "Session level",
-      dataIndex: "loggingLevel",
-      key: "loggingLevel",
-      render: (_, session) => <>{capitalize(session.loggingLevel)}</>,
-    },
-    {
-      title: "Duration",
-      dataIndex: "duration",
-      key: "duration",
-      render: (_, session) => <>{formatDuration(session.duration)}</>,
-    },
-    {
-      title: "Snapshot",
-      dataIndex: "snapshotName",
-      key: "snapshotName",
-      render: (_, session) => <>{session.snapshotName}</>,
-    },
-    {
-      title: "Engine",
-      dataIndex: "engineAddress",
-      key: "engineAddress",
-      filterDropdown: (props) => (
-        <TextColumnFilterDropdown {...props} enableExact={false} />
-      ),
-      render: (_, item) =>
-        isCorrelationItem(item) ? (
-          <></>
-        ) : (
-          <>{`${item.domain} (${item.engineAddress})`}</>
+      },
+      {
+        title: "Finish time",
+        dataIndex: "finished",
+        key: "finished",
+        filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
+        render: (_, session) => (
+          <>{formatUTCSessionDate(session.finished, true)}</>
         ),
-    },
-  ];
+      },
+      {
+        title: "Session level",
+        dataIndex: "loggingLevel",
+        key: "loggingLevel",
+        render: (_, session) => <>{capitalize(session.loggingLevel)}</>,
+      },
+      {
+        title: "Duration",
+        dataIndex: "duration",
+        key: "duration",
+        render: (_, session) => <>{formatDuration(session.duration)}</>,
+      },
+      {
+        title: "Snapshot",
+        dataIndex: "snapshotName",
+        key: "snapshotName",
+        render: (_, session) => <>{session.snapshotName}</>,
+      },
+      {
+        title: "Engine",
+        dataIndex: "engineAddress",
+        key: "engineAddress",
+        filterDropdown: (props) => (
+          <TextColumnFilterDropdown {...props} enableExact={false} />
+        ),
+        render: (_, item) =>
+          isCorrelationItem(item) ? (
+            <></>
+          ) : (
+            <>{`${item.domain} (${item.engineAddress})`}</>
+          ),
+      },
+    ],
+    [chainId, navigate, retryFromLastCheckpoint],
+  );
 
   const onScroll = async (event: UIEvent<HTMLDivElement>) => {
     const target = event.target as HTMLDivElement;
     const isScrolledToTheEnd =
       target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
     if (!allSessionsLoaded && isScrolledToTheEnd) {
-      await fetchSessions();
+      await fetchSessions(offset);
     }
   };
 
@@ -507,6 +506,18 @@ export const Sessions: React.FC = () => {
     checkStrictly: false,
     onChange: onSelectChange,
   };
+
+  useEffect(() => {
+    fetchSessions(0).then(() => {});
+  }, [fetchSessions]);
+
+  useEffect(() => {
+    setColumns(buildColumns());
+  }, [buildColumns]);
+
+  useEffect(() => {
+    updateTableData().then(() => {});
+  }, [updateTableData]);
 
   return (
     <>
