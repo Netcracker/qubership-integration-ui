@@ -22,6 +22,15 @@ export class FilterCondition {
     "Not empty",
     false,
   );
+  public static readonly IS_BEFORE = new FilterCondition(
+    "IS_BEFORE",
+    "Is before",
+  );
+  public static readonly IS_AFTER = new FilterCondition("IS_AFTER", "Is after");
+  public static readonly IS_WITHIN = new FilterCondition(
+    "IS_WITHIN",
+    "Is within",
+  );
 
   private static VALUES: FilterCondition[] = [
     this.CONTAINS,
@@ -132,6 +141,16 @@ export const ListFilterConditions: FilterConditions = {
   defaultCondition: FilterCondition.IN,
   allowedConditions: [FilterCondition.IN, FilterCondition.NOT_IN],
   valueType: FilterValueType.LIST,
+};
+
+export const DateFilterConditions: FilterConditions = {
+  defaultCondition: FilterCondition.IS_BEFORE,
+  allowedConditions: [
+    FilterCondition.IS_AFTER,
+    FilterCondition.IS_BEFORE,
+    FilterCondition.IS_WITHIN,
+  ],
+  valueType: FilterValueType.DATE,
 };
 
 export interface EntityFilterModel {
