@@ -53,7 +53,6 @@ export const SecuredVariables: React.FC = () => {
   const [createForm] = Form.useForm();
   const [columnsWidth, setColumnsWidth] = useState<{ [key: string]: number }>({
     key: 300,
-    value: 600,
   });
   const notificationService = useNotificationService();
 
