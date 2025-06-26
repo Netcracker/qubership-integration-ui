@@ -37,17 +37,12 @@ const DeploymentsTable: React.FC<Props> = ({
     {
       title: <span className={tableStyles.columnHeader}>State</span>,
       key: "state",
-      render: (_, record) => (
+      render: (_: unknown, record: ChainDeployment) => (
         <DeploymentRuntimeState
           name={record.state.status}
           service={record.chainName}
           timestamp={Date.now()}
-          runtimeState={{
-            status: record.state.status,
-            error: "",
-            stacktrace: "",
-            suspended: record.state.suspended,
-          }}
+          runtimeState={record.state}
         />
       ),
       align: "right",

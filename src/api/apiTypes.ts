@@ -783,8 +783,5 @@ export type ChainDeployment = {
   chainId: string;
   chainName: string;
   snapshotName: string;
-  state: {
-    status: string;
-    suspended: boolean;
-  };
+  state: RuntimeState;
 };
