@@ -12,8 +12,9 @@ import { useModalContext } from "../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
 import {
   Element,
-  PatchElementRequest, Property,
-  PropertyType
+  PatchElementRequest,
+  Property,
+  PropertyType,
 } from "../../api/apiTypes.ts";
 import { Node } from "@xyflow/react";
 import TextArea from "antd/lib/input/TextArea";
@@ -43,7 +44,8 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   onSubmit,
   onClose,
 }) => {
-  const { isLoading: libraryElementIsLoading, libraryElement } = useLibraryElement(node.type);
+  const { isLoading: libraryElementIsLoading, libraryElement } =
+    useLibraryElement(node.type);
   const [isLoading, setIsLoading] = useState(false);
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const { updateElement } = useElement();
@@ -59,8 +61,8 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   ];
   const textAreaOptions = {
     minRows: 3,
-    maxRows: 10
-  }
+    maxRows: 10,
+  };
   const [paramsRadioValue, setParamsRadioValue] = useState(PropertyType.COMMON);
   const notificationService = useNotificationService();
 
@@ -87,7 +89,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         onSubmit?.(changedElement, node);
       }
     } catch (error) {
-      notificationService.errorWithDetails("Save element failed", "Failed to save element", error);
+      notificationService.errorWithDetails(
+        "Save element failed",
+        "Failed to save element",
+        error,
+      );
     } finally {
       setIsLoading(false);
       handleClose();
@@ -101,74 +107,98 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
   const constructProperties = (): Record<string, unknown> | undefined => {
     try {
-       return {
-         ...form.getFieldValue(PropertyType.COMMON) ? YAML.parse(form.getFieldValue(PropertyType.COMMON)) : {},
-         ...form.getFieldValue(PropertyType.ADVANCED) ? YAML.parse(form.getFieldValue(PropertyType.ADVANCED)) : {},
-         ...form.getFieldValue(PropertyType.HIDDEN) ? YAML.parse(form.getFieldValue(PropertyType.HIDDEN)) : {},
-         ...form.getFieldValue(PropertyType.UNKNOWN) ? YAML.parse(form.getFieldValue(PropertyType.UNKNOWN)) : {},
-       }
+      return {
+        ...(form.getFieldValue(PropertyType.COMMON)
+          ? YAML.parse(form.getFieldValue(PropertyType.COMMON))
+          : {}),
+        ...(form.getFieldValue(PropertyType.ADVANCED)
+          ? YAML.parse(form.getFieldValue(PropertyType.ADVANCED))
+          : {}),
+        ...(form.getFieldValue(PropertyType.HIDDEN)
+          ? YAML.parse(form.getFieldValue(PropertyType.HIDDEN))
+          : {}),
+        ...(form.getFieldValue(PropertyType.UNKNOWN)
+          ? YAML.parse(form.getFieldValue(PropertyType.UNKNOWN))
+          : {}),
+      };
     } catch (error) {
       console.error(error);
-      notificationService.errorWithDetails("Parse element failed", "Failed to construct element properties", error);
+      notificationService.errorWithDetails(
+        "Parse element failed",
+        "Failed to construct element properties",
+        error,
+      );
     }
   };
 
-  const setPropertiesFormValue = useCallback((value: Record<string, unknown>, type: PropertyType) => {
-    form.setFieldValue(
-      type,
-      value && Object.keys(value).length
-        ? (YAML.stringify(value, null, 2)).trim()
-        : undefined,
-    );
-  }, [form]);
+  const setPropertiesFormValue = useCallback(
+    (value: Record<string, unknown>, type: PropertyType) => {
+      form.setFieldValue(
+        type,
+        value && Object.keys(value).length
+          ? YAML.stringify(value, null, 2).trim()
+          : undefined,
+      );
+    },
+    [form],
+  );
 
-  const setUnknownProperties = useCallback((properties: Record<string, unknown>) => {
-    const result = Object.keys(properties)
-      .filter(
-        (key) =>
-          !(
-            libraryElement!.properties[PropertyType.COMMON].find(
-              (val) => val.name === key,
-            ) ||
-            libraryElement!.properties[PropertyType.ADVANCED].find(
-              (val) => val.name === key,
-            ) ||
-            libraryElement!.properties[PropertyType.HIDDEN].find(
-              (val) => val.name === key,
-            )
-          ),
-      )
-      .reduce((obj: Record<string, unknown>, key) => {
-        obj[key] = properties[key];
-        return obj;
-      }, {});
-    setPropertiesFormValue(result, PropertyType.UNKNOWN);
-  }, [libraryElement, setPropertiesFormValue]);
+  const setUnknownProperties = useCallback(
+    (properties: Record<string, unknown>) => {
+      const result = Object.keys(properties)
+        .filter(
+          (key) =>
+            !(
+              libraryElement!.properties[PropertyType.COMMON].find(
+                (val) => val.name === key,
+              ) ||
+              libraryElement!.properties[PropertyType.ADVANCED].find(
+                (val) => val.name === key,
+              ) ||
+              libraryElement!.properties[PropertyType.HIDDEN].find(
+                (val) => val.name === key,
+              )
+            ),
+        )
+        .reduce((obj: Record<string, unknown>, key) => {
+          obj[key] = properties[key];
+          return obj;
+        }, {});
+      setPropertiesFormValue(result, PropertyType.UNKNOWN);
+    },
+    [libraryElement, setPropertiesFormValue],
+  );
 
-  const setPropertiesByCategory = useCallback((properties: Record<string, unknown>, type: PropertyType) => {
-    const result = Object.keys(properties)
-      .filter((key) => {
-        // @ts-expect-error suppressed as it will be replaced with proper elements code
-        return libraryElement!.properties[type].find(
-          (val: Property) => val.name === key,
-        );
-      })
-      .reduce((obj: Record<string, unknown>, key) => {
-        obj[key] = properties[key];
-        return obj;
-      }, {});
-    setPropertiesFormValue(result, type);
-  }, [libraryElement, setPropertiesFormValue]);
+  const setPropertiesByCategory = useCallback(
+    (properties: Record<string, unknown>, type: PropertyType) => {
+      const result = Object.keys(properties)
+        .filter((key) => {
+          // @ts-expect-error suppressed as it will be replaced with proper elements code
+          return libraryElement!.properties[type].find(
+            (val: Property) => val.name === key,
+          );
+        })
+        .reduce((obj: Record<string, unknown>, key) => {
+          obj[key] = properties[key];
+          return obj;
+        }, {});
+      setPropertiesFormValue(result, type);
+    },
+    [libraryElement, setPropertiesFormValue],
+  );
 
-  const categorizeProperties = useCallback((properties: Record<string, unknown>) => {
-    if (!properties || !libraryElement) {
-      return;
-    }
-    setPropertiesByCategory(properties, PropertyType.COMMON);
-    setPropertiesByCategory(properties, PropertyType.ADVANCED);
-    setPropertiesByCategory(properties, PropertyType.HIDDEN);
-    setUnknownProperties(properties);
-  }, [libraryElement, setPropertiesByCategory, setUnknownProperties]);
+  const categorizeProperties = useCallback(
+    (properties: Record<string, unknown>) => {
+      if (!properties || !libraryElement) {
+        return;
+      }
+      setPropertiesByCategory(properties, PropertyType.COMMON);
+      setPropertiesByCategory(properties, PropertyType.ADVANCED);
+      setPropertiesByCategory(properties, PropertyType.HIDDEN);
+      setUnknownProperties(properties);
+    },
+    [libraryElement, setPropertiesByCategory, setUnknownProperties],
+  );
 
   const onNameChange = ({
     target: { value },
@@ -182,11 +212,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
   const openDescriptionModal = () => {
     setIsDescriptionModalOpen(true);
-  }
+  };
 
   const closeDescriptionModal = () => {
     setIsDescriptionModalOpen(false);
-  }
+  };
 
   useEffect(() => {
     setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
@@ -294,7 +324,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         <TextArea
           autoSize={{
             minRows: 10,
-            maxRows: 20
+            maxRows: 20,
           }}
           value={YAML.stringify(
             // @ts-expect-error Waiting for proper implementation of element page

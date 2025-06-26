@@ -8,7 +8,14 @@ import {
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
-import React, { DragEvent, MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  DragEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { ElementsLibrarySidebar } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { DnDProvider } from "../components/DndContext.tsx";
 import { Flex, FloatButton } from "antd";
@@ -21,7 +28,10 @@ import { useModalsContext } from "../Modals.tsx";
 import { ChainElementModification } from "../components/modal/ChainElementModification.tsx";
 import styles from "./ChainGraph.module.css";
 
-import { ChainGraphNodeData, useChainGraph } from "../hooks/graph/useChainGraph.tsx";
+import {
+  ChainGraphNodeData,
+  useChainGraph,
+} from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
 import { CreateDeploymentRequest } from "../api/apiTypes.ts";
@@ -54,33 +64,49 @@ const ChainGraphInner: React.FC = () => {
     isLoading,
   } = useChainGraph(chainId);
 
-  const onNodeDoubleClick = (_event: MouseEvent, node: Node<ChainGraphNodeData>) => {
+  const onNodeDoubleClick = (
+    _event: MouseEvent,
+    node: Node<ChainGraphNodeData>,
+  ) => {
     openElementModal(node);
   };
 
-  const setElementPath = useCallback((newElementId: string) => {
-    navigate(`/chains/${chainId}/graph/${newElementId}`);
-  }, [chainId, navigate]);
+  const setElementPath = useCallback(
+    (newElementId: string) => {
+      navigate(`/chains/${chainId}/graph/${newElementId}`);
+    },
+    [chainId, navigate],
+  );
 
   const clearElementPath = useCallback(() => {
     navigate(`/chains/${chainId}/graph`);
   }, [chainId, navigate]);
 
-  const openElementModal = useCallback((node?: Node<ChainGraphNodeData>) => {
-    if (!node?.type) return;
-    setElementPath(node.id);
-    showModal({
-      component: (
-        <ChainElementModification
-          node={node}
-          chainId={chainId!}
-          elementId={elementId!}
-          onSubmit={updateNodeData}
-          onClose={clearElementPath}
-        />
-      ),
-    });
-  }, [chainId, clearElementPath, elementId, setElementPath, showModal, updateNodeData]);
+  const openElementModal = useCallback(
+    (node?: Node<ChainGraphNodeData>) => {
+      if (!node?.type) return;
+      setElementPath(node.id);
+      showModal({
+        component: (
+          <ChainElementModification
+            node={node}
+            chainId={chainId!}
+            elementId={elementId!}
+            onSubmit={updateNodeData}
+            onClose={clearElementPath}
+          />
+        ),
+      });
+    },
+    [
+      chainId,
+      clearElementPath,
+      elementId,
+      setElementPath,
+      showModal,
+      updateNodeData,
+    ],
+  );
 
   const saveAndDeploy = async (domain: string) => {
     if (!chainId) return;

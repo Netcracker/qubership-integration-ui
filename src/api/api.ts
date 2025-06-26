@@ -208,7 +208,10 @@ export interface Api {
 
   getEvents(lastEventId: string): Promise<EventsUpdate>;
 
-  getDeploymentsByEngine(domain: string, engineHost: string): Promise<ChainDeployment[]>;
+  getDeploymentsByEngine(
+    domain: string,
+    engineHost: string,
+  ): Promise<ChainDeployment[]>;
 
   getEnginesByDomain(domain: string): Promise<Engine[]>;
 }

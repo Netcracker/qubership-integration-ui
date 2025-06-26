@@ -8,17 +8,23 @@ export const useLibraryElement = (elementType?: string) => {
   const [libraryElement, setLibraryElement] = useState<Element>();
   const notificationService = useNotificationService();
 
-  const getLibraryElement = useCallback(async (elementType: string) => {
-    setIsLoading(true);
-    try {
-      return await api.getLibraryElementByType(elementType);
-    } catch (error) {
-      notificationService.requestFailed("Failed to load element from library", error);
-      return undefined;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [notificationService]);
+  const getLibraryElement = useCallback(
+    async (elementType: string) => {
+      setIsLoading(true);
+      try {
+        return await api.getLibraryElementByType(elementType);
+      } catch (error) {
+        notificationService.requestFailed(
+          "Failed to load element from library",
+          error,
+        );
+        return undefined;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [notificationService],
+  );
 
   useEffect(() => {
     if (!elementType) return;

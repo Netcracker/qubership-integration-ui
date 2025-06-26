@@ -18,6 +18,6 @@ export const LongActionButton: React.FC<
     } finally {
       setIsInProcess(false);
     }
-  }
+  };
   return <Button {...rest} loading={isInProcess} onClick={onClick} />;
 };

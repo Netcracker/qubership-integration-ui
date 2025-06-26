@@ -49,7 +49,8 @@ export const DeploymentsCumulativeState: React.FC<
   DeploymentsCumulativeStateProps
 > = ({ chainId }) => {
   const [status, setStatus] = useState<string>("DRAFT");
-  const [badgeStatus, setBadgeStatus] = useState<BadgeProps["status"]>("default");
+  const [badgeStatus, setBadgeStatus] =
+    useState<BadgeProps["status"]>("default");
   const { isLoading, deployments } = useDeployments(chainId);
 
   useEffect(() => {
@@ -60,5 +61,9 @@ export const DeploymentsCumulativeState: React.FC<
     setBadgeStatus(getDeploymentBadgeStatus(status));
   }, [status]);
 
-  return isLoading ? <Spin /> : <Badge status={badgeStatus} text={capitalize(status)} />;
+  return isLoading ? (
+    <Spin />
+  ) : (
+    <Badge status={badgeStatus} text={capitalize(status)} />
+  );
 };

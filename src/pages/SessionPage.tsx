@@ -78,7 +78,7 @@ export const SessionPage: React.FC = () => {
     } catch (error) {
       notificationService.requestFailed("Failed to export session", error);
     }
-  }
+  };
 
   const columns: TableProps<SessionElement>["columns"] = [
     {
@@ -149,10 +149,19 @@ export const SessionPage: React.FC = () => {
   ];
   return (
     <Flex vertical gap={16} style={{ height: "100%" }}>
-      <Flex vertical={false} justify="space-between" style={{ paddingLeft: 8, paddingRight: 8 }}>
-        <span>{session ? formatUTCSessionDate(session.started) : PLACEHOLDER}</span>
+      <Flex
+        vertical={false}
+        justify="space-between"
+        style={{ paddingLeft: 8, paddingRight: 8 }}
+      >
+        <span>
+          {session ? formatUTCSessionDate(session.started) : PLACEHOLDER}
+        </span>
         {session?.executionStatus ? (
-          <SessionStatus status={session?.executionStatus} suffix={`in ${formatDuration(session.duration)}`} />
+          <SessionStatus
+            status={session?.executionStatus}
+            suffix={`in ${formatDuration(session.duration)}`}
+          />
         ) : (
           <span>{PLACEHOLDER}</span>
         )}

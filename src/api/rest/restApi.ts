@@ -703,16 +703,19 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getDeploymentsByEngine = async (domain: string, engineHost: string): Promise<ChainDeployment[]> => {
+  getDeploymentsByEngine = async (
+    domain: string,
+    engineHost: string,
+  ): Promise<ChainDeployment[]> => {
     const response = await this.instance.get<ChainDeployment[]>(
-      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/domains/${domain}/engines/${engineHost}/deployments`
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/domains/${domain}/engines/${engineHost}/deployments`,
     );
     return response.data;
   };
 
   getEnginesByDomain = async (domain: string): Promise<Engine[]> => {
     const response = await this.instance.get<Engine[]>(
-      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/domains/${domain}/engines`
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/domains/${domain}/engines`,
     );
     return response.data;
   };

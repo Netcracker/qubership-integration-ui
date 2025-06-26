@@ -17,9 +17,7 @@ export const ChainContext = createContext<ChainContextData | undefined>(
   undefined,
 );
 
-function buildPathItems(
-  path: Map<string, string>,
-): BreadcrumbProps["items"] {
+function buildPathItems(path: Map<string, string>): BreadcrumbProps["items"] {
   const entries = Object.entries(path).reverse();
   const items = entries.map(([key, value], index) => ({
     title: value,
@@ -50,13 +48,13 @@ const ChainPage = () => {
       ...(buildPathItems(chain?.navigationPath ?? new Map()) ?? []),
       ...(sessionId
         ? [
-          { title: "Sessions", href: `/chains/${chainId}/sessions` },
-          { title: sessionId },
-        ]
+            { title: "Sessions", href: `/chains/${chainId}/sessions` },
+            { title: sessionId },
+          ]
         : []),
     ];
     setPathItems(items);
-  }, [chain, chainId, sessionId])
+  }, [chain, chainId, sessionId]);
 
   const handlePageChange = (event: RadioChangeEvent) => {
     navigate(`${event.target.value}`); // Update the URL with the selected tab key
@@ -92,8 +90,7 @@ const ChainPage = () => {
           <ChainContext.Provider
             value={{
               chain,
-              update: async (changes) =>
-                updateChain(changes).then(setChain),
+              update: async (changes) => updateChain(changes).then(setChain),
             }}
           >
             <Outlet />

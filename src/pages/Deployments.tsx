@@ -16,7 +16,8 @@ import { useNotificationService } from "../hooks/useNotificationService.tsx";
 
 export const Deployments: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
-  const { isLoading, deployments, setDeployments, removeDeployment } = useDeployments(chainId);
+  const { isLoading, deployments, setDeployments, removeDeployment } =
+    useDeployments(chainId);
   const { snapshots } = useSnapshots(chainId);
   const { showModal } = useModalsContext();
   const notificationService = useNotificationService();

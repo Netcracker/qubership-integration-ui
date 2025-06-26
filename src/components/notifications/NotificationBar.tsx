@@ -30,13 +30,10 @@ export const NotificationBar: React.FC = () => {
   };
 
   return (
-    <Badge
-      offset={[-8, 8]}
-      count={notificationLogData.history.length}
-    >
+    <Badge offset={[-8, 8]} count={notificationLogData.history.length}>
       <Button
         type="text"
-        style={{ fontSize: "18px"}}
+        style={{ fontSize: "18px" }}
         icon={<BellOutlined />}
         onClick={showDrawer}
         className={styles.button}

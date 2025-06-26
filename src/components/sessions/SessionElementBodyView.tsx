@@ -47,12 +47,12 @@ export function setUpDocumentFormatting(editor: editor_.IStandaloneCodeEditor) {
   // on every initialization
   editor.onDidLayoutChange(formatDocument);
 
-  editor.onDidChangeModelContent(() => setTimeout(formatDocument, 1))
+  editor.onDidChangeModelContent(() => setTimeout(formatDocument, 1));
 }
 
 export const SessionElementBodyView: React.FC<SessionElementBodyViewProps> = ({
   headers,
-  body
+  body,
 }) => {
   const [language, setLanguage] = useState<string | undefined>(undefined);
 

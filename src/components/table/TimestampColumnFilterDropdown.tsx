@@ -61,7 +61,7 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
   const options = [
     { label: "Is before", value: "is-before" },
     { label: "Is after", value: "is-after" },
-    { label: "Is within", value: "is-within" }
+    { label: "Is within", value: "is-within" },
   ];
 
   const getFilter = () => {
@@ -97,25 +97,30 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
           />
         </Col>
         <Col>
-          {
-            getFilter()?.condition === 'is-within' ?
-              <DatePicker.RangePicker
-                showTime={{ format: 'HH:mm' }}
-                format="YYYY-MM-DD HH:mm"
-                value={[toDayjs(getFilter()?.value?.[0]), toDayjs(getFilter()?.value?.[1])]}
-                onChange={(value) => {
-                  updateFilter({ value: value?.map(v => toEpochMillis(v)) ?? [] });
-                }}
-              />
-              : <DatePicker
-                showTime={{ format: 'HH:mm' }}
-                format="YYYY-MM-DD HH:mm"
-                value={toDayjs(getFilter()?.value?.[0])}
-                onChange={(value) => {
-                  updateFilter({ value: [toEpochMillis(value)] });
-                }}
-              />
-          }
+          {getFilter()?.condition === "is-within" ? (
+            <DatePicker.RangePicker
+              showTime={{ format: "HH:mm" }}
+              format="YYYY-MM-DD HH:mm"
+              value={[
+                toDayjs(getFilter()?.value?.[0]),
+                toDayjs(getFilter()?.value?.[1]),
+              ]}
+              onChange={(value) => {
+                updateFilter({
+                  value: value?.map((v) => toEpochMillis(v)) ?? [],
+                });
+              }}
+            />
+          ) : (
+            <DatePicker
+              showTime={{ format: "HH:mm" }}
+              format="YYYY-MM-DD HH:mm"
+              value={toDayjs(getFilter()?.value?.[0])}
+              onChange={(value) => {
+                updateFilter({ value: [toEpochMillis(value)] });
+              }}
+            />
+          )}
         </Col>
       </Row>
       <Row gutter={[8, 8]} justify="end">

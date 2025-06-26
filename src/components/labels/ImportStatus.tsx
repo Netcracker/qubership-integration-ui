@@ -5,7 +5,7 @@ import {
   ImportEntityStatus,
   ImportInstructionAction,
   ImportInstructionStatus,
-  SystemImportStatus
+  SystemImportStatus,
 } from "../../api/apiTypes.ts";
 import type { PresetStatusColorType } from "antd/es/_util/colors";
 

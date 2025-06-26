@@ -24,14 +24,14 @@ export type ChainGraphNodeData = {
   description: string;
   properties: Element["properties"];
   direction?: ElkDirection;
-}
+};
 
 function getDataFromElement(element: Element): ChainGraphNodeData {
   return {
     label: element.name,
     description: element.description,
     properties: element.properties,
-  }
+  };
 }
 
 export const useChainGraph = (chainId?: string) => {
@@ -51,14 +51,16 @@ export const useChainGraph = (chainId?: string) => {
 
         const elements = await api.getElements(chainId);
 
-        const newNodes: Node<ChainGraphNodeData>[] = elements.map((element: Element) => ({
-          id: element.id,
-          type: element.type,
-          position: { x: 0, y: 0 },
-          data: {
-            ...getDataFromElement(element)
-          },
-        }));
+        const newNodes: Node<ChainGraphNodeData>[] = elements.map(
+          (element: Element) => ({
+            id: element.id,
+            type: element.type,
+            position: { x: 0, y: 0 },
+            data: {
+              ...getDataFromElement(element),
+            },
+          }),
+        );
 
         const connections = await api.getConnections(chainId);
 
@@ -71,7 +73,10 @@ export const useChainGraph = (chainId?: string) => {
         setNodes(await arrangeNodes(newNodes, newEdges));
         setEdges(newEdges);
       } catch (error) {
-        notificationService.requestFailed("Failed to load elements or connections", error);
+        notificationService.requestFailed(
+          "Failed to load elements or connections",
+          error,
+        );
       } finally {
         setIsLoading(false);
       }
@@ -92,7 +97,10 @@ export const useChainGraph = (chainId?: string) => {
         );
 
         console.log(response.createdDependencies?.[0]?.id);
-        const edge: Edge = { ...connection, id: response.createdDependencies?.[0]?.id ?? ""};
+        const edge: Edge = {
+          ...connection,
+          id: response.createdDependencies?.[0]?.id ?? "",
+        };
         console.log(edge);
         setEdges((eds) => addEdge(edge, eds));
       } catch (error) {
@@ -146,44 +154,54 @@ export const useChainGraph = (chainId?: string) => {
     [chainId, direction, notificationService, screenToFlowPosition, setNodes],
   );
 
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    changes.forEach(async (change) => {
-      if (!chainId) return;
-      if (change.type === "remove") {
-        await api.deleteConnection(change.id, chainId);
-      }
-      setEdges((eds) => applyEdgeChanges(changes, eds));
-    });
-  }, [chainId, setEdges]);
-
-  const onNodesChange = useCallback((changes: NodeChange<Node<ChainGraphNodeData>>[]) => {
-    changes.forEach(async (change) => {
-      if (!chainId) return;
-      if (change.type === "remove") {
-        await api.deleteElement(change.id, chainId);
-      }
-      setNodes((nds) => applyNodeChanges(changes, nds));
-    });
-  }, [chainId, setNodes]);
-
-  const updateNodeData = useCallback((element: Element, node: Node<ChainGraphNodeData>) => {
-    node.data = {
-      ...node.data,
-      ...getDataFromElement(element),
-    }
-    setNodes((nds) =>
-      nds.map((nd) => {
-        if (nd.id === node.id) {
-          return {
-            ...node,
-            data: {
-              ...node.data
-            }
-          };
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      changes.forEach(async (change) => {
+        if (!chainId) return;
+        if (change.type === "remove") {
+          await api.deleteConnection(change.id, chainId);
         }
-        return nd;
-      }));
-  }, [setNodes]);
+        setEdges((eds) => applyEdgeChanges(changes, eds));
+      });
+    },
+    [chainId, setEdges],
+  );
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<Node<ChainGraphNodeData>>[]) => {
+      changes.forEach(async (change) => {
+        if (!chainId) return;
+        if (change.type === "remove") {
+          await api.deleteElement(change.id, chainId);
+        }
+        setNodes((nds) => applyNodeChanges(changes, nds));
+      });
+    },
+    [chainId, setNodes],
+  );
+
+  const updateNodeData = useCallback(
+    (element: Element, node: Node<ChainGraphNodeData>) => {
+      node.data = {
+        ...node.data,
+        ...getDataFromElement(element),
+      };
+      setNodes((nds) =>
+        nds.map((nd) => {
+          if (nd.id === node.id) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+              },
+            };
+          }
+          return nd;
+        }),
+      );
+    },
+    [setNodes],
+  );
 
   return {
     nodes,
@@ -195,6 +213,6 @@ export const useChainGraph = (chainId?: string) => {
     direction,
     toggleDirection,
     updateNodeData,
-    isLoading
+    isLoading,
   };
 };

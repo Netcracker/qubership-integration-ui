@@ -86,7 +86,11 @@ export const FolderEdit: React.FC<FolderEditProps> = ({
           }
         }}
       >
-        <Form.Item name="name" label="Name" rules={[{ required: true, message: "Name is required" }]}>
+        <Form.Item
+          name="name"
+          label="Name"
+          rules={[{ required: true, message: "Name is required" }]}
+        >
           <Input ref={nameInput} />
         </Form.Item>
         <Form.Item name="Description" label="description">

@@ -3,7 +3,13 @@ import React, { ReactNode } from "react";
 import { Button, Col, Input, Row, Select, SelectProps } from "antd";
 import type { AnyObject } from "antd/lib/_util/type";
 
-export type TextFilterCondition = "contains" | "not-contains" | "starts-with" | "ends-with" | "is" | "is-not";
+export type TextFilterCondition =
+  | "contains"
+  | "not-contains"
+  | "starts-with"
+  | "ends-with"
+  | "is"
+  | "is-not";
 
 export type TextFilter = {
   condition: TextFilterCondition;
@@ -56,7 +62,7 @@ export function getTextListColumnFilterFn<RecordType = AnyObject>(
     const filter: TextFilter = JSON.parse(value.toString());
     const predicate = getTextFilterPredicate(filter);
     const keys = keysGetter(record);
-    return keys.some(key => predicate(key));
+    return keys.some((key) => predicate(key));
   };
 }
 
@@ -94,7 +100,11 @@ export const TextColumnFilterDropdown: React.FC<
 
   const updateTextFilter = (changes: Partial<TextFilter>) => {
     setSelectedKeys([
-      JSON.stringify({ condition: options[0].value, ...getTextFilter(), ...changes }),
+      JSON.stringify({
+        condition: options[0].value,
+        ...getTextFilter(),
+        ...changes,
+      }),
     ]);
   };
 
@@ -114,7 +124,10 @@ export const TextColumnFilterDropdown: React.FC<
             style={{ width: 150 }}
             onChange={(value) => updateTextFilter({ condition: value })}
             options={options}
-            value={getTextFilter()?.condition ?? (options[0].value as TextFilterCondition)}
+            value={
+              getTextFilter()?.condition ??
+              (options[0].value as TextFilterCondition)
+            }
             defaultValue={options[0].value as TextFilterCondition}
           />
         </Col>
