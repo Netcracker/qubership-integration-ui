@@ -48,25 +48,25 @@ const ChainGraphInner: React.FC = () => {
     onDrop,
     onEdgesChange,
     onNodesChange,
-    elkDirectionControl,
+    direction,
+    toggleDirection,
     updateNodeData,
     isLoading,
   } = useChainGraph(chainId);
-
-  useEffect(() => {
-    if (!isPageLoaded && !isLoading && nodes?.length) {
-      setIsPageLoaded(true);
-      if (elementId) {
-        openElementModal(nodes.find((node) => node.id === elementId));
-      }
-    }
-  }, [nodes]);
 
   const onNodeDoubleClick = (_event: MouseEvent, node: Node<ChainGraphNodeData>) => {
     openElementModal(node);
   };
 
-  const openElementModal = (node?: Node<ChainGraphNodeData>) => {
+  const setElementPath = useCallback((newElementId: string) => {
+    navigate(`/chains/${chainId}/graph/${newElementId}`);
+  }, [chainId, navigate]);
+
+  const clearElementPath = useCallback(() => {
+    navigate(`/chains/${chainId}/graph`);
+  }, [chainId, navigate]);
+
+  const openElementModal = useCallback((node?: Node<ChainGraphNodeData>) => {
     if (!node?.type) return;
     setElementPath(node.id);
     showModal({
@@ -80,15 +80,7 @@ const ChainGraphInner: React.FC = () => {
         />
       ),
     });
-  };
-
-  const setElementPath = (newElementId: string) => {
-    navigate(`/chains/${chainId}/graph/${newElementId}`);
-  };
-
-  const clearElementPath = () => {
-    navigate(`/chains/${chainId}/graph`);
-  };
+  }, [chainId, clearElementPath, elementId, setElementPath, showModal, updateNodeData]);
 
   const saveAndDeploy = async (domain: string) => {
     if (!chainId) return;
@@ -123,11 +115,22 @@ const ChainGraphInner: React.FC = () => {
     });
   };
 
+  useEffect(() => {
+    if (!isPageLoaded && !isLoading && nodes?.length) {
+      setIsPageLoaded(true);
+      if (elementId) {
+        openElementModal(nodes.find((node) => node.id === elementId));
+      }
+    }
+  }, [elementId, isLoading, isPageLoaded, nodes, openElementModal]);
+
   return (
     <Flex className={styles["graph-wrapper"]}>
       <ElementsLibrarySidebar />
       <div className="react-flow-container" ref={reactFlowWrapper}>
-        <ElkDirectionContextProvider elkDirectionControl={elkDirectionControl}>
+        <ElkDirectionContextProvider
+          elkDirectionControl={{ direction, toggleDirection }}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -141,7 +144,7 @@ const ChainGraphInner: React.FC = () => {
             fitView
           >
             <Background variant={BackgroundVariant.Dots} />
-            <MiniMap zoomable pannable position="top-right"/>
+            <MiniMap zoomable pannable position="top-right" />
             <CustomControls />
           </ReactFlow>
         </ElkDirectionContextProvider>

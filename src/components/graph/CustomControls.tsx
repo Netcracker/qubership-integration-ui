@@ -12,7 +12,7 @@ import { Button } from "antd";
 
 export const CustomControls = () => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
-  const { onChangeDirection } = useElkDirectionContext();
+  const { toggleDirection } = useElkDirectionContext();
 
   return (
     <div className={styles.container}>
@@ -43,7 +43,7 @@ export const CustomControls = () => {
         className={styles.button}
         type={"text"}
         title="Change Layout Direction"
-        onClick={onChangeDirection}
+        onClick={toggleDirection}
         icon={<RotateRightOutlined />}
       />
     </div>

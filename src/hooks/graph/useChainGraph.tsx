@@ -12,7 +12,7 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../../api/api.ts";
 import { Connection, Element } from "../../api/apiTypes.ts";
 import { useAutoLayout } from "./useAutoLayout.tsx";
@@ -26,6 +26,14 @@ export type ChainGraphNodeData = {
   direction?: ElkDirection;
 }
 
+function getDataFromElement(element: Element): ChainGraphNodeData {
+  return {
+    label: element.name,
+    description: element.description,
+    properties: element.properties,
+  }
+}
+
 export const useChainGraph = (chainId?: string) => {
   const { screenToFlowPosition } = useReactFlow();
 
@@ -33,13 +41,7 @@ export const useChainGraph = (chainId?: string) => {
   const [edges, setEdges] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(true);
   const notificationService = useNotificationService();
-
-  const { autoLayout, elkDirectionControl } = useAutoLayout(
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-  );
+  const { arrangeNodes, direction, toggleDirection } = useAutoLayout();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,8 +60,6 @@ export const useChainGraph = (chainId?: string) => {
           },
         }));
 
-        setNodes(newNodes);
-
         const connections = await api.getConnections(chainId);
 
         const newEdges: Edge[] = connections.map((connection: Connection) => ({
@@ -68,17 +68,16 @@ export const useChainGraph = (chainId?: string) => {
           target: connection.to,
         }));
 
+        setNodes(await arrangeNodes(newNodes, newEdges));
         setEdges(newEdges);
-
-        autoLayout(newNodes, newEdges);
       } catch (error) {
         notificationService.requestFailed("Failed to load elements or connections", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    fetchData().then(() => {});
+  }, [arrangeNodes, chainId, notificationService, setEdges, setNodes]);
 
   const onConnect = useCallback(
     async (connection: ReactFlowConnection) => {
@@ -100,13 +99,13 @@ export const useChainGraph = (chainId?: string) => {
         notificationService.requestFailed("Failed to create connection", error);
       }
     },
-    [setEdges],
+    [chainId, notificationService, setEdges],
   );
 
   const onDrop = useCallback(
     async (event: React.DragEvent) => {
       event.preventDefault();
-      const isHorizontal = elkDirectionControl.elkDirection === "RIGHT";
+      const isHorizontal = direction === "RIGHT";
       if (!chainId) return;
       const name = event.dataTransfer.getData("application/reactflow");
 
@@ -133,7 +132,7 @@ export const useChainGraph = (chainId?: string) => {
             position,
             data: {
               ...getDataFromElement(createdElement),
-              direction: elkDirectionControl.elkDirection,
+              direction,
             },
             targetPosition: isHorizontal ? Position.Left : Position.Top,
             sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
@@ -144,7 +143,7 @@ export const useChainGraph = (chainId?: string) => {
         notificationService.requestFailed("Failed to create element", error);
       }
     },
-    [screenToFlowPosition],
+    [chainId, direction, notificationService, screenToFlowPosition, setNodes],
   );
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
@@ -155,7 +154,7 @@ export const useChainGraph = (chainId?: string) => {
       }
       setEdges((eds) => applyEdgeChanges(changes, eds));
     });
-  }, []);
+  }, [chainId, setEdges]);
 
   const onNodesChange = useCallback((changes: NodeChange<Node<ChainGraphNodeData>>[]) => {
     changes.forEach(async (change) => {
@@ -165,9 +164,9 @@ export const useChainGraph = (chainId?: string) => {
       }
       setNodes((nds) => applyNodeChanges(changes, nds));
     });
-  }, []);
+  }, [chainId, setNodes]);
 
-  const updateNodeData = (element: Element, node: Node<ChainGraphNodeData>) => {
+  const updateNodeData = useCallback((element: Element, node: Node<ChainGraphNodeData>) => {
     node.data = {
       ...node.data,
       ...getDataFromElement(element),
@@ -184,15 +183,7 @@ export const useChainGraph = (chainId?: string) => {
         }
         return nd;
       }));
-  }
-
-  const getDataFromElement = (element: Element): ChainGraphNodeData => {
-    return {
-      label: element.name,
-      description: element.description,
-      properties: element.properties,
-    }
-  }
+  }, [setNodes]);
 
   return {
     nodes,
@@ -201,7 +192,8 @@ export const useChainGraph = (chainId?: string) => {
     onDrop,
     onEdgesChange,
     onNodesChange,
-    elkDirectionControl,
+    direction,
+    toggleDirection,
     updateNodeData,
     isLoading
   };
