@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Button, Flex, message, Popconfirm, Typography } from "antd";
+import { Flex, FloatButton, message, Modal, Typography } from "antd";
 import {
-  UploadOutlined,
-  DownloadOutlined,
   PlusOutlined,
   DeleteOutlined,
   TableOutlined,
+  MoreOutlined,
+  CloudUploadOutlined,
+  CloudDownloadOutlined,
 } from "@ant-design/icons";
 import styles from "./CommonVariables.module.css";
 import ImportVariablesModal from "./ImportVariablesModal.tsx";
@@ -16,6 +17,7 @@ import { variablesApi } from "../../../api/admin-tools/variables/variablesApi.ts
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 
 const { Title } = Typography;
 
@@ -87,55 +89,12 @@ export const CommonVariables = () => {
 
   return (
     <Flex vertical style={{ height: "100%" }}>
-      <div className={styles["common-variables-header"]}>
+      <Flex vertical={false}>
         <Title level={4} className={styles["common-variables-title"]}>
           <TableOutlined className={styles["common-variables-icon"]} />
           Common Variables
         </Title>
-
-        <div className={styles["common-variables-actions"]}>
-          <Button
-            icon={<UploadOutlined />}
-            onClick={() =>
-              showModal({
-                component: <ImportVariablesModal onSuccess={fetchVariables} />,
-              })
-            }
-          >
-            Import
-          </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={() => onExport(selectedRowKeys)}
-            disabled={!selectedRowKeys.length}
-          >
-            Export
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsAddingNew(true)}
-            disabled={isAddingNew}
-          >
-            Add Variable
-          </Button>
-          <Popconfirm
-            title={`Delete ${selectedRowKeys.length} selected variable(s)?`}
-            onConfirm={onDeleteSelected}
-            okText="Yes"
-            cancelText="No"
-            disabled={!selectedRowKeys.length}
-          >
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              disabled={!selectedRowKeys.length}
-            >
-              Delete Selected
-            </Button>
-          </Popconfirm>
-        </div>
-      </div>
+      </Flex>
       <VariablesTable
         flex
         variables={variables}
@@ -158,6 +117,45 @@ export const CommonVariables = () => {
         columnsWidth={columnsWidth}
         onResize={handleResize}
       />
+      <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
+        <FloatButton
+          tooltip={{ title: "Import variables", placement: "left" }}
+          icon={<CloudUploadOutlined />}
+          onClick={() =>
+            showModal({
+              component: <ImportVariablesModal onSuccess={fetchVariables} />,
+            })
+          }
+        />
+        <FloatButton
+          tooltip={{ title: "Export selected variables", placement: "left" }}
+          icon={<CloudDownloadOutlined />}
+          onClick={async () => {
+            if (!selectedRowKeys.length) return;
+            await onExport(selectedRowKeys);
+          }}
+        />
+        <FloatButton
+          tooltip={{
+            title: "Delete selected variables",
+            placement: "left",
+          }}
+          icon={<DeleteOutlined />}
+          onClick={() => {
+            if (!selectedRowKeys.length) return;
+            Modal.confirm({
+              title: `Delete ${selectedRowKeys.length} selected variable(s)?`,
+              content: `Are you sure you want to delete ${selectedRowKeys.length} variables(s)?`,
+              onOk: onDeleteSelected,
+            });
+          }}
+        />
+        <FloatButton
+          tooltip={{ title: "Add variable", placement: "left" }}
+          icon={<PlusOutlined />}
+          onClick={() => setIsAddingNew(true)}
+        />
+      </FloatButtonGroup>
     </Flex>
   );
 };

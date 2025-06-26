@@ -6,16 +6,18 @@ import {
   Form,
   message,
   Modal,
-  Popconfirm,
   Table,
   Tag,
   Flex,
+  FloatButton,
+  Tooltip,
 } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
-  DownloadOutlined,
   LockOutlined,
+  MoreOutlined,
+  CloudDownloadOutlined,
 } from "@ant-design/icons";
 
 import styles from "./SecuredVariables.module.css";
@@ -28,10 +30,11 @@ import {
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 
 const { Title } = Typography;
 
-const SecuredVariables: React.FC = () => {
+export const SecuredVariables: React.FC = () => {
   const [secrets, setSecrets] = useState<string[]>([]);
   const [defaultSecret, setDefaultSecret] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, Variable[]>>({});
@@ -324,28 +327,12 @@ const SecuredVariables: React.FC = () => {
 
   return (
     <Flex vertical style={{ height: "100%" }}>
-      <div className={styles["secured-variables-header"]}>
+      <Flex vertical={false}>
         <Title level={4} className={styles["secured-variables-title"]}>
           <LockOutlined />
           Secured Variables
         </Title>
-        <div className={styles["secret-actions"]}>
-          <Popconfirm
-            title="Delete all selected variables?"
-            onConfirm={handleDeleteSelected}
-            okText="Yes"
-            cancelText="No"
-            disabled={!hasSelected}
-          >
-            <Button icon={<DeleteOutlined />} danger disabled={!hasSelected}>
-              Delete Selected
-            </Button>
-          </Popconfirm>
-          <Button type="primary" onClick={() => setCreateModalVisible(true)}>
-            Create Secret
-          </Button>
-        </div>
-      </div>
+      </Flex>
 
       <Modal
         title="Create New Secret"
@@ -395,34 +382,41 @@ const SecuredVariables: React.FC = () => {
                   )}
                 </div>
                 <div className={styles["secret-actions"]}>
-                  <Button
-                    size="small"
-                    icon={<DownloadOutlined />}
-                    onClick={async () => {
-                      try {
-                        downloadFile(
-                          await variablesApi.downloadHelmChart(secret),
-                        );
-                      } catch (error) {
-                        notificationService.requestFailed(
-                          "Failed to get helm chart",
-                          error,
-                        );
-                      }
-                    }}
+                  <Tooltip
+                    placement="topRight"
+                    title="Export secret as Helm Chart"
                   >
-                    HELM Chart
-                  </Button>
-                  <Button
-                    icon={<PlusOutlined />}
-                    size="small"
-                    onClick={() =>
-                      setNewVariableKeys((prev) => ({
-                        ...prev,
-                        [secret]: true,
-                      }))
-                    }
-                  />
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<CloudDownloadOutlined />}
+                      onClick={async () => {
+                        try {
+                          downloadFile(
+                            await variablesApi.downloadHelmChart(secret),
+                          );
+                        } catch (error) {
+                          notificationService.requestFailed(
+                            "Failed to get helm chart",
+                            error,
+                          );
+                        }
+                      }}
+                    />
+                  </Tooltip>
+                  <Tooltip placement="topRight" title="Add variable">
+                    <Button
+                      icon={<PlusOutlined />}
+                      size="small"
+                      type="text"
+                      onClick={() =>
+                        setNewVariableKeys((prev) => ({
+                          ...prev,
+                          [secret]: true,
+                        }))
+                      }
+                    />
+                  </Tooltip>
                 </div>
               </div>
             ),
@@ -438,8 +432,28 @@ const SecuredVariables: React.FC = () => {
         sticky
         scroll={{ y: "" }}
       />
+      <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
+        <FloatButton
+          tooltip={{
+            title: "Delete selected variables",
+            placement: "left",
+          }}
+          icon={<DeleteOutlined />}
+          onClick={() => {
+            if (!hasSelected) return;
+            Modal.confirm({
+              title: `Delete selected variable(s)?`,
+              content: `Are you sure you want to delete variables(s)?`,
+              onOk: handleDeleteSelected,
+            });
+          }}
+        />
+        <FloatButton
+          tooltip={{ title: "Add secret", placement: "left" }}
+          icon={<PlusOutlined />}
+          onClick={() => setCreateModalVisible(true)}
+        />
+      </FloatButtonGroup>
     </Flex>
   );
 };
-
-export default SecuredVariables;
