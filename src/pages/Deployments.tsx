@@ -77,7 +77,7 @@ export const Deployments: React.FC = () => {
     },
   ];
 
-  const onDeploymentCreated = async (deployment: Deployment) => {
+  const onDeploymentCreated = (deployment: Deployment) => {
     setDeployments([...(deployments ?? []), deployment]);
   };
 
@@ -94,7 +94,7 @@ export const Deployments: React.FC = () => {
     if (!chainId) return;
     try {
       const deployment = await api.createDeployment(chainId, request);
-      await onDeploymentCreated(deployment);
+      onDeploymentCreated(deployment);
     } catch (error) {
       notificationService.requestFailed("Failed to create deployment", error);
     }

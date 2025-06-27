@@ -536,11 +536,11 @@ const Chains = () => {
     });
   };
 
-  const onCreateFolderBtnClick = async (parentId?: string) => {
+  const onCreateFolderBtnClick = (parentId?: string) => {
     showEditFolderModal("create", undefined, undefined, parentId);
   };
 
-  const onCreateChainBtnClick = async (parentId?: string) => {
+  const onCreateChainBtnClick = (parentId?: string) => {
     showModal({
       component: (
         <ChainCreate
@@ -552,11 +552,11 @@ const Chains = () => {
     });
   };
 
-  const onExportBtnClick = async () => {
+  const onExportBtnClick = () => {
     return exportChainsWithOptions(selectedRowKeys.map((k) => k.toString()));
   };
 
-  const onDeleteBtnClick = async () => {
+  const onDeleteBtnClick = () => {
     if (selectedRowKeys.length > 0) {
       Modal.confirm({
         title: "Delete selected",
@@ -566,13 +566,13 @@ const Chains = () => {
     }
   };
 
-  const onImportBtnClick = async () => {
+  const onImportBtnClick = () => {
     showModal({
       component: <ImportChains onSuccess={updateFolderItems} />,
     });
   };
 
-  const exportChainsWithOptions = async (ids: string[]) => {
+  const exportChainsWithOptions = (ids: string[]) => {
     const multiple =
       ids.length !== 1 ||
       folderItems.find((i) => i.id === ids[0])?.itemType ===
@@ -906,7 +906,7 @@ const Chains = () => {
           loading={isLoading}
           expandable={{
             expandedRowKeys,
-            onExpandedRowsChange: async (rowKeys) => {
+            onExpandedRowsChange: (rowKeys) => {
               setExpandedRowKeys([...rowKeys]);
             },
             onExpand: async (expanded, item) => {

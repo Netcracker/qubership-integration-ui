@@ -41,7 +41,7 @@ export const SnapshotXmlView: React.FC<SnapshotXmlViewProps> = ({
       title="XML Definition"
       centered
       open={true}
-      onCancel={async () => closeContainingModal()}
+      onCancel={closeContainingModal}
       footer={null}
       width={"90%"}
       loading={isLoading}

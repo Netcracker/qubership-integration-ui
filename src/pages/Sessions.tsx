@@ -133,7 +133,7 @@ export const Sessions: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const notificationService = useNotificationService();
 
-  const updateTableData = useCallback(async () => {
+  const updateTableData = useCallback(() => {
     setIsLoading(true);
     const rowMap = new Map<string, SessionTableItem>(
       sessions.map((session) => [
@@ -424,7 +424,7 @@ export const Sessions: React.FC = () => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  const onDeleteBtnClick = async () => {
+  const onDeleteBtnClick = () => {
     if (selectedRowKeys.length === 0) return;
     Modal.confirm({
       title: "Delete Sessions",
@@ -466,7 +466,7 @@ export const Sessions: React.FC = () => {
     }
   };
 
-  const onImportBtnClick = async () => {
+  const onImportBtnClick = () => {
     showModal({
       component: (
         <ImportSessions

@@ -220,7 +220,7 @@ export const SessionElementDetails: React.FC<SessionElementDetailsProps> = ({
       }
       centered
       open={true}
-      onCancel={async () => closeContainingModal()}
+      onCancel={closeContainingModal}
       width={"90%"}
       footer={null}
     >

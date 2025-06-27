@@ -40,7 +40,7 @@ export const ImportSessions: React.FC<ImportSessionsProps> = ({
       title="Import Sessions"
       centered
       open={true}
-      onCancel={async () => closeContainingModal()}
+      onCancel={closeContainingModal}
       width={"60%"}
       height={"70%"}
       footer={[

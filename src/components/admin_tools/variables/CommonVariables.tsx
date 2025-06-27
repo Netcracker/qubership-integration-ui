@@ -55,10 +55,10 @@ export const CommonVariables = () => {
     onExport,
     fetchVariables,
   } = useVariablesState({
-    getVariables: variablesApi.getCommonVariables,
-    createVariable: variablesApi.createCommonVariable,
-    updateVariable: variablesApi.updateCommonVariable,
-    deleteVariables: variablesApi.deleteCommonVariables,
+    getVariables: () => variablesApi.getCommonVariables(),
+    createVariable: (variable) => variablesApi.createCommonVariable(variable),
+    updateVariable: (variable) => variablesApi.updateCommonVariable(variable),
+    deleteVariables: (keys) => variablesApi.deleteCommonVariables(keys),
     exportVariables: async (keys) => {
       try {
         downloadFile(await variablesApi.exportVariables(keys, true));
