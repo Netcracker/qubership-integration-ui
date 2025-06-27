@@ -36,6 +36,9 @@ import {
   Engine,
   ChainDeployment,
   ElementFilter,
+  ActionLogSearchRequest,
+  ActionLogResponse,
+  LogExportRequestParams,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 
@@ -194,7 +197,9 @@ export interface Api {
 
   moveFolder(folderId: string, targetFolderId?: string): Promise<FolderItem>;
 
-  filterChains(filters: EntityFilterModel[]): Promise<(FolderItem | ChainItem)[]>;
+  filterChains(
+    filters: EntityFilterModel[],
+  ): Promise<(FolderItem | ChainItem)[]>;
 
   getNestedChains(folderId: string): Promise<Chain[]>;
 
@@ -214,9 +219,32 @@ export interface Api {
 
   getEvents(lastEventId: string): Promise<EventsUpdate>;
 
-  getDeploymentsByEngine(domain: string, engineHost: string): Promise<ChainDeployment[]>;
+  getDeploymentsByEngine(
+    domain: string,
+    engineHost: string,
+  ): Promise<ChainDeployment[]>;
 
   getEnginesByDomain(domain: string): Promise<Engine[]>;
+
+  loadSystemCatalogManagementActionsLog(
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse>;
+
+  loadRuntimeCatalogManagementActionsLog(
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse>;
+
+  loadVariablesManagementActionsLog(
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse>;
+
+  exportSystemCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
+
+  exportRuntimeCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
+
+  exportVariablesManagementActionsLog(
+    params: LogExportRequestParams,
+  ): Promise<Blob>;
 }
 
 export const api: Api = new RestApi();
