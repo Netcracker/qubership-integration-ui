@@ -41,6 +41,9 @@ import {
   Engine,
   ChainDeployment,
   ElementFilter,
+  ActionLogSearchRequest,
+  ActionLogResponse,
+  LogExportRequestParams,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -731,6 +734,67 @@ export class RestApi implements Api {
   getEnginesByDomain = async (domain: string): Promise<Engine[]> => {
     const response = await this.instance.get<Engine[]>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/domains/${domain}/engines`
+    );
+    return response.data;
+  };
+
+  loadSystemCatalogManagementActionsLog = async (
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse> => {
+    return await this.loadActionsLog("systems-catalog", searchRequest);
+  };
+
+  loadRuntimeCatalogManagementActionsLog = async (
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse> => {
+    return await this.loadActionsLog("catalog", searchRequest);
+  };
+
+  loadVariablesManagementActionsLog = async (
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse> => {
+    return await this.loadActionsLog("variables-management", searchRequest);
+  };
+
+  loadActionsLog = async (
+    serviceName: string,
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse> => {
+    const response = await this.instance.post(
+      `/api/v1/${import.meta.env.VITE_API_APP}/${serviceName}/actions-log`,
+      searchRequest,
+    );
+    return response.data;
+  };
+
+  exportSystemCatalogActionsLog = async (
+    params: LogExportRequestParams,
+  ): Promise<Blob> => {
+    return await this.exportActionLog("systems-catalog", params);
+  };
+
+  exportRuntimeCatalogActionsLog = async (
+    params: LogExportRequestParams,
+  ): Promise<Blob> => {
+    return await this.exportActionLog("runtime-catalog", params);
+  };
+
+  exportVariablesManagementActionsLog = async (
+    params: LogExportRequestParams,
+  ): Promise<Blob> => {
+    return await this.exportActionLog("variables-management", params);
+  };
+
+  exportActionLog = async (
+    serviceName: string,
+    params: LogExportRequestParams,
+  ): Promise<Blob> => {
+    const response = await this.instance.get(
+      `/api/v1/${import.meta.env.VITE_API_APP}/${serviceName}/actions-log/export`,
+      {
+        responseType: "blob",
+        params: params,
+      },
     );
     return response.data;
   };

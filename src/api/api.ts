@@ -36,6 +36,9 @@ import {
   Engine,
   ChainDeployment,
   ElementFilter,
+  ActionLogSearchRequest,
+  ActionLogResponse,
+  LogExportRequestParams,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 
@@ -217,6 +220,26 @@ export interface Api {
   getDeploymentsByEngine(domain: string, engineHost: string): Promise<ChainDeployment[]>;
 
   getEnginesByDomain(domain: string): Promise<Engine[]>;
+
+  loadSystemCatalogManagementActionsLog(
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse>;
+
+  loadRuntimeCatalogManagementActionsLog(
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse>;
+
+  loadVariablesManagementActionsLog(
+    searchRequest: ActionLogSearchRequest,
+  ): Promise<ActionLogResponse>;
+
+  exportSystemCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
+
+  exportRuntimeCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
+
+  exportVariablesManagementActionsLog(
+    params: LogExportRequestParams,
+  ): Promise<Blob>;
 }
 
 export const api: Api = new RestApi();
