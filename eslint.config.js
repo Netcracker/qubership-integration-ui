@@ -8,7 +8,7 @@ import * as reactHooks from "eslint-plugin-react-hooks";
 export default [
   { ignores: ["dist/*", "node_modules/*"] },
   pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
   pluginReact.configs.flat.recommended,
   reactHooks.configs["recommended-latest"],
   {
@@ -16,6 +16,10 @@ export default [
     languageOptions: {
       globals: {
         ...globals.browser,
+      },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
