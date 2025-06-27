@@ -40,6 +40,7 @@ import {
   ChainItem,
   Engine,
   ChainDeployment,
+  isErrorResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -63,11 +64,16 @@ export class RestApi implements Api {
     this.instance.interceptors.response.use(
       (response) => response,
       (error) => {
-        const responseCode = error.response?.status ?? 500;
-        const responseBody =
-          (error?.response?.data as ErrorResponse) ?? undefined;
-        const message = responseBody?.errorMessage || error.message;
-
+        let message = "";
+        let responseCode = 500;
+        let responseBody: ErrorResponse | undefined = undefined;
+        if (axios.isAxiosError(error)) {
+          responseCode = error.response?.status ?? 500;
+          if (isErrorResponse(error?.response?.data)) {
+            responseBody = error.response?.data;
+            message = responseBody?.errorMessage;
+          }
+        }
         return Promise.reject(
           new RestApiError(message, responseCode, responseBody, error),
         );

@@ -673,6 +673,20 @@ export type ErrorResponse = {
   errorDate: string;
 };
 
+export function isErrorResponse(obj: unknown): obj is ErrorResponse {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    "serviceName" in obj &&
+    "errorMessage" in obj &&
+    "errorDate" in obj &&
+    typeof obj.serviceName === 'string' &&
+    typeof obj.errorMessage === 'string' &&
+    (!("stackTrace" in obj) || typeof obj.stackTrace === 'string') &&
+    typeof obj.errorDate === 'string'
+  );
+}
+
 export type DeploymentUpdate = {
   id: string;
   engineHost: string;

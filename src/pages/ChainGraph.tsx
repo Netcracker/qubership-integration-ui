@@ -135,7 +135,7 @@ const ChainGraphInner: React.FC = () => {
     }
   };
 
-  const openSaveAndDeployDialog = async () => {
+  const openSaveAndDeployDialog = () => {
     showModal({
       component: <SaveAndDeploy chainId={chainId} onSubmit={saveAndDeploy} />,
     });
@@ -182,7 +182,7 @@ const ChainGraphInner: React.FC = () => {
             title: "Save and deploy",
             placement: "left",
           }}
-          onClick={async () => openSaveAndDeployDialog()}
+          onClick={openSaveAndDeployDialog}
         />
       </FloatButtonGroup>
     </Flex>

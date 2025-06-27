@@ -306,8 +306,8 @@ export const Sessions: React.FC = () => {
           ) : (
             <Flex gap={8}>
               <a
-                onClick={async () =>
-                  navigate(`/chains/${item.chainId}/sessions/${item.id}`)
+                onClick={() =>
+                  void navigate(`/chains/${item.chainId}/sessions/${item.id}`)
                 }
               >
                 {item.id}
@@ -317,8 +317,8 @@ export const Sessions: React.FC = () => {
                   size="small"
                   type="text"
                   icon={<RedoOutlined />}
-                  onClick={async () =>
-                    retryFromLastCheckpoint(item.chainId, item.id)
+                  onClick={() =>
+                    void retryFromLastCheckpoint(item.chainId, item.id)
                   }
                 />
               ) : null}
@@ -336,7 +336,7 @@ export const Sessions: React.FC = () => {
                 <TextColumnFilterDropdown {...props} enableExact={false} />
               ),
               render: (_: unknown, item: SessionTableItem) => (
-                <a onClick={async () => navigate(`/chains/${item.chainId}`)}>
+                <a onClick={() => void navigate(`/chains/${item.chainId}`)}>
                   {item.chainName}
                 </a>
               ),
@@ -539,7 +539,7 @@ export const Sessions: React.FC = () => {
           rowKey="id"
           sticky
           scroll={{ y: "" }}
-          onScroll={onScroll}
+          onScroll={(event) => void onScroll(event)}
           onChange={(_, tableFilters) => setTableFilters(tableFilters)}
         />
         <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>

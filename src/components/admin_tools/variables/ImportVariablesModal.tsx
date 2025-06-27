@@ -83,7 +83,7 @@ const ImportVariablesModal = ({ onSuccess }: Props) => {
       open={true}
       onCancel={handleCancel}
       footer={[
-        <Button key="preview" onClick={handlePreview} loading={loading}>
+        <Button key="preview" onClick={() => void handlePreview()} loading={loading}>
           Preview
         </Button>,
         <Button
