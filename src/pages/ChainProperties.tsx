@@ -38,11 +38,12 @@ export const ChainProperties: React.FC = () => {
   return (
     <Form<FormData>
       form={form}
+      disabled={isUpdating}
       labelCol={{ flex: "150px" }}
       wrapperCol={{ flex: "auto" }}
       labelWrap
       onChange={() => setHasChanges(true)}
-      onFinish={async (values) => {
+      onFinish={(values) => {
         if (chainContext) {
           const changes: Partial<Chain> = {
             name: values.name,
@@ -56,10 +57,10 @@ export const ChainProperties: React.FC = () => {
             outOfScope: values.outOfScope,
           };
           setIsUpdating(true);
-          return chainContext
+          void chainContext
             .update(changes)
             .then(() => setHasChanges(false))
-            .then(() => setIsUpdating(false));
+            .finally(() => setIsUpdating(false));
         }
       }}
     >

@@ -56,7 +56,9 @@ function getTextToCopy<ValueType>(
     case "typeAfter":
       return typeTextGetter ? typeTextGetter(item.after) : String(item.after);
     case "valueBefore":
-      return valueTextGetter ? valueTextGetter(item.before) : String(item.before);
+      return valueTextGetter
+        ? valueTextGetter(item.before)
+        : String(item.before);
     case "valueAfter":
       return valueTextGetter ? valueTextGetter(item.after) : String(item.after);
   }
@@ -122,7 +124,7 @@ export const SessionElementDetails: React.FC<SessionElementDetailsProps> = ({
             before={element?.headersBefore}
             after={element?.headersAfter}
             onColumnClick={(item, column) =>
-              copyItemFieldToClipboard(item, column)
+              void copyItemFieldToClipboard(item, column)
             }
             style={{ height: "100%" }}
           />
@@ -144,7 +146,7 @@ export const SessionElementDetails: React.FC<SessionElementDetailsProps> = ({
             typeRenderer={(property) => property.type}
             valueRenderer={(property) => property.value}
             onColumnClick={(item, column) =>
-              copyItemFieldToClipboard(
+              void copyItemFieldToClipboard(
                 item,
                 column,
                 (v) => v?.type,
@@ -163,7 +165,7 @@ export const SessionElementDetails: React.FC<SessionElementDetailsProps> = ({
             before={element?.contextBefore}
             after={element?.contextAfter}
             onColumnClick={(item, column) =>
-              copyItemFieldToClipboard(item, column)
+              void copyItemFieldToClipboard(item, column)
             }
             style={{ height: "100%" }}
           />

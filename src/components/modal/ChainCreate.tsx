@@ -4,13 +4,14 @@ import { useModalContext } from "../../ModalContextProvider.tsx";
 import { ChainCreationRequest } from "../../api/apiTypes.ts";
 import TextArea from "antd/lib/input/TextArea";
 import Checkbox from "antd/lib/checkbox";
+import { FieldData } from "rc-field-form/lib/interface";
 
 export type ChainCreateProps = {
   onSubmit: (
     request: ChainCreationRequest,
     openChain: boolean,
     newTab: boolean,
-  ) => void;
+  ) => void | Promise<void>;
 };
 
 type FormData = Omit<ChainCreationRequest, "labels"> & {
@@ -35,7 +36,7 @@ export const ChainCreate: React.FC<ChainCreateProps> = ({ onSubmit }) => {
       open={true}
       onCancel={closeContainingModal}
       footer={[
-        <Button key="cancel" onClick={closeContainingModal}>
+        <Button key="cancel" disabled={confirmLoading} onClick={closeContainingModal}>
           Cancel
         </Button>,
         <Button
@@ -51,21 +52,22 @@ export const ChainCreate: React.FC<ChainCreateProps> = ({ onSubmit }) => {
     >
       <Form<FormData>
         id="createChainForm"
+        disabled={confirmLoading}
         labelCol={{ flex: "150px" }}
         wrapperCol={{ flex: "auto" }}
         labelWrap
         initialValues={{ openChain: isOpenChecked }}
-        onFieldsChange={(changedFields) => {
+        onFieldsChange={(changedFields: FieldData<FormData>[]) => {
           changedFields
-            .filter((field) => field.name[0] === "openChain")
+            .filter((field) => field.name?.[0] === "openChain")
             .forEach((field) => {
-              setIsOpenChecked(field.value);
+              setIsOpenChecked(field.value as boolean);
             });
         }}
-        onFinish={async (values) => {
+        onFinish={(values) => {
           setConfirmLoading(true);
           try {
-            onSubmit?.(
+            const result = onSubmit?.(
               {
                 ...{ ...values, openChain: undefined, newTab: undefined },
                 labels:
@@ -77,8 +79,21 @@ export const ChainCreate: React.FC<ChainCreateProps> = ({ onSubmit }) => {
               values.openChain,
               values.newTab,
             );
-            closeContainingModal();
-          } finally {
+            if (result instanceof Promise) {
+              result
+                .then(() => {
+                  closeContainingModal();
+                  setConfirmLoading(false);
+                })
+                .catch(() => {
+                  setConfirmLoading(false);
+                });
+            } else {
+              closeContainingModal();
+              setConfirmLoading(false);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (error) {
             setConfirmLoading(false);
           }
         }}

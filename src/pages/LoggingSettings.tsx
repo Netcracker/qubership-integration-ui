@@ -344,12 +344,12 @@ export const LoggingSettings: React.FC = () => {
             labelWrap
             form={form}
             {...formItemLayout}
-            onValuesChange={(formState) => {
-              if (formState.custom !== undefined) {
-                setIsCustom(formState.custom);
+            onValuesChange={(changedValues: Partial<LogSettingsFormState>) => {
+              if (changedValues.custom !== undefined) {
+                setIsCustom(changedValues.custom);
               }
             }}
-            onFinish={async (formState) => setLoggingProperties(formState)}
+            onFinish={(formState) => void setLoggingProperties(formState)}
           >
             <Form.Item label={null} name="custom" valuePropName="checked">
               <Checkbox>Override default properties</Checkbox>
@@ -422,12 +422,12 @@ export const LoggingSettings: React.FC = () => {
             placement: "left",
           }}
           icon={<DeleteOutlined />}
-          onClick={onDeleteBtnClick}
+          onClick={() => void onDeleteBtnClick()}
         />
         <FloatButton
           tooltip={{ title: "Add new masked field", placement: "left" }}
           icon={<PlusOutlined />}
-          onClick={onCreateBtnClick}
+          onClick={() => void onCreateBtnClick()}
         />
       </FloatButtonGroup>
     </>

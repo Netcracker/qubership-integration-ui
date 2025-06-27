@@ -2,7 +2,7 @@ import React from "react";
 import { Button, Flex, Spin, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Engine, RunningStatus } from "../../../api/apiTypes.ts";
-import DeploymentsTable from "./DeploymentsTable";
+import { DeploymentsTable } from "./DeploymentsTable";
 import tableStyles from "./Tables.module.css";
 import { useDeploymentsForEngine } from "./hooks/useDeploymentsForEngine";
 import { RunningStatusValue } from "./RunningStatusValue.tsx";
@@ -71,7 +71,7 @@ const DeploymentsForEngine: React.FC<{
     return (
       <Typography.Text type="danger">
         Error while loading engines list {engine.name}.{" "}
-        <Button onClick={() => retry()}>Retry</Button>
+        <Button onClick={() => void retry()}>Retry</Button>
       </Typography.Text>
     );
   }
@@ -79,7 +79,7 @@ const DeploymentsForEngine: React.FC<{
   return <DeploymentsTable deployments={deployments} isLoading={isLoading} />;
 };
 
-const EngineTable: React.FC<Props> = ({
+export const EngineTable: React.FC<Props> = ({
   engines,
   isLoading = false,
   domainName,
@@ -115,5 +115,3 @@ const EngineTable: React.FC<Props> = ({
     </div>
   );
 };
-
-export default EngineTable;

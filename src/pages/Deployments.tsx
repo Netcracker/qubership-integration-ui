@@ -70,7 +70,7 @@ export const Deployments: React.FC = () => {
             size="small"
             icon={<DeleteOutlined />}
             type="text"
-            onAction={async () => deleteDeployment(deployment)}
+            onSubmit={async () => deleteDeployment(deployment)}
           />
         </Tooltip>
       ),

@@ -52,7 +52,7 @@ export const ExportChains: React.FC<ExportChainsProps> = ({
           exportServices: true,
           exportVariables: true,
         }}
-        onFinish={async (values) => {
+        onFinish={(values) => {
           setConfirmLoading(true);
           try {
             onSubmit?.(values);

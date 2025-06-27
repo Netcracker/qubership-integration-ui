@@ -57,7 +57,7 @@ export const ErrorDetails: React.FC<ErrorDetailsProps> = ({
           key="copy"
           icon={<CopyOutlined />}
           type="text"
-          onClick={async () => copyToClipboard(getErrorDetailsText())}
+          onClick={() => void copyToClipboard(getErrorDetailsText())}
         >
           Copy
         </Button>,

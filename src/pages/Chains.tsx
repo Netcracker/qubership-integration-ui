@@ -522,7 +522,7 @@ const Chains = () => {
           mode={mode}
           name={name}
           description={description}
-          onSubmit={(name, description, openFolder, newTab) => {
+          onSubmit={async (name, description, openFolder, newTab) => {
             return mode === "create"
               ? createFolder(
                   { name, description, parentId: parentOrItemId },
@@ -544,7 +544,7 @@ const Chains = () => {
     showModal({
       component: (
         <ChainCreate
-          onSubmit={(request, openChain, newTab) => {
+          onSubmit={async (request, openChain, newTab) => {
             return createChain({ ...request, parentId }, openChain, newTab);
           }}
         />
@@ -568,7 +568,7 @@ const Chains = () => {
 
   const onImportBtnClick = () => {
     showModal({
-      component: <ImportChains onSuccess={updateFolderItems} />,
+      component: <ImportChains onSuccess={() => void updateFolderItems()} />,
     });
   };
 
@@ -589,7 +589,7 @@ const Chains = () => {
             const chainIds = items
               .filter((i) => i.itemType === CatalogItemType.CHAIN)
               .map((i) => i.id);
-            return exportChains(folderIds, chainIds, options);
+            void exportChains(folderIds, chainIds, options);
           }}
         />
       ),
@@ -840,7 +840,7 @@ const Chains = () => {
                 item.itemType === CatalogItemType.FOLDER
                   ? folderMenuItems
                   : chainMenuItems,
-              onClick: ({ key }) => onContextMenuItemClick(item, key),
+              onClick: ({ key }) => void onContextMenuItemClick(item, key),
             }}
             trigger={["click"]}
             placement="bottomRight"
@@ -909,9 +909,9 @@ const Chains = () => {
             onExpandedRowsChange: (rowKeys) => {
               setExpandedRowKeys([...rowKeys]);
             },
-            onExpand: async (expanded, item) => {
+            onExpand: (expanded, item) => {
               if (expanded && !loadedFolders.has(item.id)) {
-                return openFolder(item.id);
+                void openFolder(item.id);
               }
             },
           }}
@@ -925,7 +925,7 @@ const Chains = () => {
           <FloatButton
             tooltip={{ title: "Paste", placement: "left" }}
             icon={<CarryOutOutlined />}
-            onClick={() => pasteItem(getFolderId())}
+            onClick={() => void pasteItem(getFolderId())}
           />
           <FloatButton
             tooltip={{ title: "Compare selected chains", placement: "left" }}

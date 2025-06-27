@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Flex, FloatButton, message, Modal, Typography } from "antd";
 import {
   PlusOutlined,
@@ -18,8 +18,13 @@ import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
+import { ApiResponse, Variable } from "../../../api/admin-tools/variables/types.ts";
 
 const { Title } = Typography;
+
+async function getVariables(): Promise<ApiResponse<Variable[]>> {
+  return variablesApi.getCommonVariables();
+}
 
 export const CommonVariables = () => {
   const { showModal } = useModalsContext();
@@ -29,16 +34,18 @@ export const CommonVariables = () => {
   });
   const notificationService = useNotificationService();
 
-  const handleResize =
+  const handleResize = useCallback(
     (dataIndex: string) =>
-    (_: unknown, { size }: ResizeCallbackData) => {
-      requestAnimationFrame(() => {
-        setColumnsWidth((prev) => ({
-          ...prev,
-          [dataIndex]: size.width,
-        }));
-      });
-    };
+      (_: unknown, { size }: ResizeCallbackData) => {
+        requestAnimationFrame(() => {
+          setColumnsWidth((prev) => ({
+            ...prev,
+            [dataIndex]: size.width,
+          }));
+        });
+      },
+    [],
+  );
 
   const {
     variables,
@@ -55,7 +62,7 @@ export const CommonVariables = () => {
     onExport,
     fetchVariables,
   } = useVariablesState({
-    getVariables: () => variablesApi.getCommonVariables(),
+    getVariables,
     createVariable: (variable) => variablesApi.createCommonVariable(variable),
     updateVariable: (variable) => variablesApi.updateCommonVariable(variable),
     deleteVariables: (keys) => variablesApi.deleteCommonVariables(keys),
@@ -105,9 +112,9 @@ export const CommonVariables = () => {
         onStartEditing={onStartEditing}
         onChangeEditingValue={onChangeEditingValue}
         onCancelEditing={onCancelEditing}
-        onConfirmEdit={onConfirmEdit}
-        onDelete={onDelete}
-        onAdd={onAdd}
+        onConfirmEdit={(key, value) => void onConfirmEdit(key, value)}
+        onDelete={(key) => void onDelete(key)}
+        onAdd={(key, value) => void onAdd(key, value)}
         enableKeySort
         enableValueSort
         enableKeyFilter
@@ -122,16 +129,18 @@ export const CommonVariables = () => {
           icon={<CloudUploadOutlined />}
           onClick={() =>
             showModal({
-              component: <ImportVariablesModal onSuccess={fetchVariables} />,
+              component: (
+                <ImportVariablesModal onSuccess={() => void fetchVariables()} />
+              ),
             })
           }
         />
         <FloatButton
           tooltip={{ title: "Export selected variables", placement: "left" }}
           icon={<CloudDownloadOutlined />}
-          onClick={async () => {
+          onClick={() => {
             if (!selectedRowKeys.length) return;
-            await onExport(selectedRowKeys);
+            void onExport(selectedRowKeys);
           }}
         />
         <FloatButton

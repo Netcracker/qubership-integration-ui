@@ -37,6 +37,15 @@ function constructTitle(name: string, type?: string): string {
   return type ? `${name} (${type})` : `${name}`;
 }
 
+type ChainElementPropertiesFormData = {
+  name: string;
+  description: string;
+  [PropertyType.COMMON]: string;
+  [PropertyType.ADVANCED]: string;
+  [PropertyType.HIDDEN]: string;
+  [PropertyType.UNKNOWN]: string;
+};
+
 export const ChainElementModification: React.FC<ElementModificationProps> = ({
   node,
   chainId,
@@ -66,17 +75,17 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const [paramsRadioValue, setParamsRadioValue] = useState(PropertyType.COMMON);
   const notificationService = useNotificationService();
 
-  const handleOk = async () => {
+  const handleOk = async (data: ChainElementPropertiesFormData) => {
     setIsLoading(true);
     try {
-      const properties = constructProperties();
+      const properties = constructProperties(data);
       if (properties === undefined) {
         return;
       }
 
       const request: PatchElementRequest = {
-        name: form.getFieldValue("name"),
-        description: form.getFieldValue("description"),
+        name: data.name,
+        description: data.description,
         type: node.type!,
         properties: properties,
       };
@@ -105,20 +114,22 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     onClose?.();
   };
 
-  const constructProperties = (): Record<string, unknown> | undefined => {
+  const constructProperties = (
+    data: ChainElementPropertiesFormData,
+  ): Record<string, unknown> | undefined => {
     try {
       return {
-        ...(form.getFieldValue(PropertyType.COMMON)
-          ? YAML.parse(form.getFieldValue(PropertyType.COMMON))
+        ...(data[PropertyType.COMMON]
+          ? YAML.parse(data[PropertyType.COMMON]) as object
           : {}),
-        ...(form.getFieldValue(PropertyType.ADVANCED)
-          ? YAML.parse(form.getFieldValue(PropertyType.ADVANCED))
+        ...(data[PropertyType.ADVANCED]
+          ? YAML.parse(data[PropertyType.ADVANCED]) as object
           : {}),
-        ...(form.getFieldValue(PropertyType.HIDDEN)
-          ? YAML.parse(form.getFieldValue(PropertyType.HIDDEN))
+        ...(data[PropertyType.HIDDEN]
+          ? YAML.parse(data[PropertyType.HIDDEN]) as object
           : {}),
-        ...(form.getFieldValue(PropertyType.UNKNOWN)
-          ? YAML.parse(form.getFieldValue(PropertyType.UNKNOWN))
+        ...(data[PropertyType.UNKNOWN]
+          ? YAML.parse(data[PropertyType.UNKNOWN]) as object
           : {}),
       };
     } catch (error) {
@@ -173,7 +184,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     (properties: Record<string, unknown>, type: PropertyType) => {
       const result = Object.keys(properties)
         .filter((key) => {
-          // @ts-expect-error suppressed as it will be replaced with proper elements code
           return libraryElement!.properties[type].find(
             (val: Property) => val.name === key,
           );
@@ -207,7 +217,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   };
 
   const onParamsRadioChange = ({ target: { value } }: RadioChangeEvent) => {
-    setParamsRadioValue(value);
+    setParamsRadioValue(value as PropertyType);
   };
 
   const openDescriptionModal = () => {
@@ -248,10 +258,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         content: styles["modal"],
       }}
     >
-      <Form
+      <Form<ChainElementPropertiesFormData>
         id="elementModificationForm"
+        disabled={isLoading}
         form={form}
-        onFinish={handleOk}
+        onFinish={(values) => void handleOk(values)}
         layout="horizontal"
         labelCol={{ span: 4 }}
         style={{ width: "100%" }}
@@ -327,7 +338,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             maxRows: 20,
           }}
           value={YAML.stringify(
-            // @ts-expect-error Waiting for proper implementation of element page
             libraryElement?.properties[paramsRadioValue],
             null,
             2,

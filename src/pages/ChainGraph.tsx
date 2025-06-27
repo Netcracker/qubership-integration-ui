@@ -91,7 +91,7 @@ const ChainGraphInner: React.FC = () => {
           <ChainElementModification
             node={node}
             chainId={chainId!}
-            elementId={elementId!}
+            elementId={node.id}
             onSubmit={updateNodeData}
             onClose={clearElementPath}
           />
@@ -160,10 +160,10 @@ const ChainGraphInner: React.FC = () => {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onDrop={onDrop}
+            onNodesChange={(changes) => void onNodesChange(changes)}
+            onEdgesChange={(changes) => void onEdgesChange(changes)}
+            onConnect={(connection) => void onConnect(connection)}
+            onDrop={(event) => void onDrop(event)}
             onDragOver={onDragOver}
             onNodeDoubleClick={onNodeDoubleClick}
             deleteKeyCode={["Backspace", "Delete"]}

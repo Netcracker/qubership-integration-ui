@@ -179,7 +179,7 @@ export const SessionPage: React.FC = () => {
       <FloatButton
         tooltip={{ title: "Export session", placement: "left" }}
         icon={<CloudDownloadOutlined />}
-        onClick={onExportBtnClick}
+        onClick={() => void onExportBtnClick()}
       />
     </Flex>
   );

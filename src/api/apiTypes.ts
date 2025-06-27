@@ -103,10 +103,10 @@ export type Element = {
   parentRestriction: string[];
   allowedChildren: Record<string, "one" | "many">;
   properties: {
-    common: Property[];
-    advanced: Property[];
-    hidden: Property[];
-    async: Property[];
+    [PropertyType.COMMON]: Property[];
+    [PropertyType.ADVANCED]: Property[];
+    [PropertyType.HIDDEN]: Property[];
+    [PropertyType.UNKNOWN]: Property[];
   };
   customTabs: unknown[];
   deprecated: boolean;
@@ -675,15 +675,15 @@ export type ErrorResponse = {
 
 export function isErrorResponse(obj: unknown): obj is ErrorResponse {
   return (
-    typeof obj === 'object' &&
+    typeof obj === "object" &&
     obj !== null &&
     "serviceName" in obj &&
     "errorMessage" in obj &&
     "errorDate" in obj &&
-    typeof obj.serviceName === 'string' &&
-    typeof obj.errorMessage === 'string' &&
-    (!("stackTrace" in obj) || typeof obj.stackTrace === 'string') &&
-    typeof obj.errorDate === 'string'
+    typeof obj.serviceName === "string" &&
+    typeof obj.errorMessage === "string" &&
+    (!("stackTrace" in obj) || typeof obj.stackTrace === "string") &&
+    typeof obj.errorDate === "string"
   );
 }
 

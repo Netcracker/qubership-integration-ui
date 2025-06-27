@@ -7,7 +7,7 @@ import { CreateDeploymentRequest } from "../../api/apiTypes.ts";
 
 type Props = {
   chainId?: string;
-  onSubmit?: (request: CreateDeploymentRequest) => void;
+  onSubmit?: (request: CreateDeploymentRequest) => void | Promise<void>;
 };
 
 export const DeploymentCreate: React.FC<Props> = ({ chainId, onSubmit }) => {
@@ -32,19 +32,29 @@ export const DeploymentCreate: React.FC<Props> = ({ chainId, onSubmit }) => {
         value: snapshot.id,
       })) ?? [];
 
-  const handleOk = async () => {
+  const handleOk = (domain: string, snapshotId: string) => {
     if (!chainId) {
       return;
     }
     setConfirmLoading(true);
     const request: CreateDeploymentRequest = {
-      domain: form.getFieldValue("domain"),
-      snapshotId: form.getFieldValue("snapshot"),
+      domain,
+      snapshotId,
       suspended: false,
     };
     try {
-      onSubmit?.(request);
-    } finally {
+      const result = onSubmit?.(request);
+      if (result instanceof Promise) {
+        void result.finally(() => {
+          setConfirmLoading(false);
+          closeContainingModal();
+        });
+      } else {
+        setConfirmLoading(false);
+        closeContainingModal();
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       setConfirmLoading(false);
       closeContainingModal();
     }
@@ -75,10 +85,10 @@ export const DeploymentCreate: React.FC<Props> = ({ chainId, onSubmit }) => {
         </Button>,
       ]}
     >
-      <Form
+      <Form<{ domain: string; snapshot: string }>
         id="deploymentCreateForm"
         form={form}
-        onFinish={handleOk}
+        onFinish={(values) => handleOk(values.domain, values.snapshot)}
         layout="horizontal"
         labelCol={{ span: 4 }}
         style={{ maxWidth: 600 }}

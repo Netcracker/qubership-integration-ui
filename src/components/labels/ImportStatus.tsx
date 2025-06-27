@@ -10,14 +10,13 @@ import {
 import type { PresetStatusColorType } from "antd/es/_util/colors";
 
 export type CombinedImportStatus =
-  | string
   | ImportEntityStatus
   | SystemImportStatus
   | ImportInstructionStatus
   | ImportInstructionAction;
 
 export type ImportStatusProps = {
-  status: CombinedImportStatus;
+  status?: CombinedImportStatus;
   message?: string;
 };
 
@@ -59,9 +58,9 @@ export const ImportStatus: React.FC<ImportStatusProps> = ({
   const [color, setColor] = useState<PresetStatusColorType>("default");
 
   useEffect(() => {
-    setColor(getStatusColor(status));
+    setColor(status ? getStatusColor(status) : "default");
   }, [status]);
 
-  const statusNode = <Tag color={color}>{formatSnakeCased(status)}</Tag>;
+  const statusNode = <Tag color={color}>{formatSnakeCased(status ?? "")}</Tag>;
   return message ? <Tooltip title={message}>{statusNode}</Tooltip> : statusNode;
 };

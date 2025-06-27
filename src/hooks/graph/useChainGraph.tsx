@@ -155,27 +155,31 @@ export const useChainGraph = (chainId?: string) => {
   );
 
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      changes.forEach(async (change) => {
-        if (!chainId) return;
-        if (change.type === "remove") {
-          await api.deleteConnection(change.id, chainId);
-        }
-        setEdges((eds) => applyEdgeChanges(changes, eds));
-      });
+    async (changes: EdgeChange[]) => {
+      await Promise.all(
+        changes.map(async (change) => {
+          if (!chainId) return;
+          if (change.type === "remove") {
+            await api.deleteConnection(change.id, chainId);
+          }
+          setEdges((eds) => applyEdgeChanges(changes, eds));
+        }),
+      );
     },
     [chainId, setEdges],
   );
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<Node<ChainGraphNodeData>>[]) => {
-      changes.forEach(async (change) => {
-        if (!chainId) return;
-        if (change.type === "remove") {
-          await api.deleteElement(change.id, chainId);
-        }
-        setNodes((nds) => applyNodeChanges(changes, nds));
-      });
+    async (changes: NodeChange<Node<ChainGraphNodeData>>[]) => {
+      await Promise.all(
+        changes.map(async (change) => {
+          if (!chainId) return;
+          if (change.type === "remove") {
+            await api.deleteElement(change.id, chainId);
+          }
+          setNodes((nds) => applyNodeChanges(changes, nds));
+        }),
+      );
     },
     [chainId, setNodes],
   );

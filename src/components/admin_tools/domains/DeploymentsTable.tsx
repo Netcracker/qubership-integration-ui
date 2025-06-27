@@ -10,7 +10,7 @@ interface Props {
   isLoading?: boolean;
 }
 
-const DeploymentsTable: React.FC<Props> = ({
+export const DeploymentsTable: React.FC<Props> = ({
   deployments,
   isLoading = false,
 }) => {
@@ -51,19 +51,15 @@ const DeploymentsTable: React.FC<Props> = ({
   ];
 
   return (
-    <div className={tableStyles.table}>
-      <Spin spinning={isLoading}>
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={deployments}
-          pagination={false}
-          size="small"
-          className={tableStyles.smallHeaderTable}
-        />
-      </Spin>
-    </div>
+    <Spin spinning={isLoading}>
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={deployments}
+        pagination={false}
+        size="small"
+        className={tableStyles.smallHeaderTable}
+      />
+    </Spin>
   );
 };
-
-export default DeploymentsTable;

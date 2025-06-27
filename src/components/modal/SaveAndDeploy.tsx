@@ -5,7 +5,7 @@ import { useDomains } from "../../hooks/useDomains.tsx";
 
 export type SaveAndDeployProps = {
   chainId?: string;
-  onSubmit?: (domain: string) => void;
+  onSubmit?: (domain: string) => void | Promise<void>;
 };
 
 type SaveAndDeployFormData = {
@@ -28,15 +28,24 @@ export const SaveAndDeploy: React.FC<SaveAndDeployProps> = ({
       value: domain.id,
     }));
 
-  const handleSubmit = async (data: SaveAndDeployFormData) => {
+  const handleSubmit = (data: SaveAndDeployFormData) => {
     if (!chainId) {
       return;
     }
     setConfirmLoading(true);
     try {
-      console.log({ data });
-      onSubmit?.(data.domain);
-    } finally {
+      const result = onSubmit?.(data.domain);
+      if (result instanceof Promise) {
+        void result.finally(() => {
+          setConfirmLoading(false);
+          closeContainingModal();
+        });
+      } else {
+        setConfirmLoading(false);
+        closeContainingModal();
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       setConfirmLoading(false);
       closeContainingModal();
     }

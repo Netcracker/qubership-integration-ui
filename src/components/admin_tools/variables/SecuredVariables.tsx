@@ -31,6 +31,7 @@ import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
+import { LongActionButton } from "../../LongActionButton.tsx";
 
 const { Title } = Typography;
 
@@ -292,9 +293,11 @@ export const SecuredVariables: React.FC = () => {
           setEditing(null);
           setEditingValue("");
         }}
-        onConfirmEdit={(key, value) => handleUpdateVariable(secret, key, value)}
-        onDelete={(key) => handleDeleteVariable(secret, key)}
-        onAdd={(key, value) => handleAddVariable(secret, key, value)}
+        onConfirmEdit={(key, value) =>
+          void handleUpdateVariable(secret, key, value)
+        }
+        onDelete={(key) => void handleDeleteVariable(secret, key)}
+        onAdd={(key, value) => void handleAddVariable(secret, key, value)}
         onSelectedChange={(keys) =>
           setSelectedKeys((prev) => ({ ...prev, [secret]: keys }))
         }
@@ -324,6 +327,17 @@ export const SecuredVariables: React.FC = () => {
     ],
   );
 
+  const exportHelmChart = useCallback(
+    async (secret: string) => {
+      try {
+        downloadFile(await variablesApi.downloadHelmChart(secret));
+      } catch (error) {
+        notificationService.requestFailed("Failed to get helm chart", error);
+      }
+    },
+    [notificationService],
+  );
+
   return (
     <Flex vertical className={commonStyles["container"]}>
       <Flex vertical={false}>
@@ -339,7 +353,11 @@ export const SecuredVariables: React.FC = () => {
         onCancel={() => setCreateModalVisible(false)}
         footer={null}
       >
-        <Form layout="vertical" form={createForm} onFinish={handleCreateSecret}>
+        <Form<{secretName: string }>
+          layout="vertical"
+          form={createForm}
+          onFinish={(values) => void handleCreateSecret(values)}
+        >
           <Form.Item
             name="secretName"
             label="Secret Name"
@@ -355,7 +373,7 @@ export const SecuredVariables: React.FC = () => {
         </Form>
       </Modal>
 
-      <Table
+      <Table<{ key: string; secret: string }>
         className="flex-table"
         dataSource={secrets.map((s) => ({ key: s, secret: s }))}
         columns={[
@@ -363,7 +381,7 @@ export const SecuredVariables: React.FC = () => {
             title: "Secret",
             dataIndex: "secret",
             key: "secret",
-            render: (secret) => (
+            render: (secret: string) => (
               <div className={styles["secret-content"]}>
                 <div className="secret-label">
                   <span>{secret}</span>
@@ -385,22 +403,11 @@ export const SecuredVariables: React.FC = () => {
                     placement="topRight"
                     title="Export secret as Helm Chart"
                   >
-                    <Button
+                    <LongActionButton
                       size="small"
                       type="text"
                       icon={<CloudDownloadOutlined />}
-                      onClick={async () => {
-                        try {
-                          downloadFile(
-                            await variablesApi.downloadHelmChart(secret),
-                          );
-                        } catch (error) {
-                          notificationService.requestFailed(
-                            "Failed to get helm chart",
-                            error,
-                          );
-                        }
-                      }}
+                      onSubmit={async () => exportHelmChart(secret)}
                     />
                   </Tooltip>
                   <Tooltip placement="topRight" title="Add variable">

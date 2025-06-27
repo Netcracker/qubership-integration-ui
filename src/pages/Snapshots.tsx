@@ -42,9 +42,9 @@ export const Snapshots: React.FC = () => {
   const { showModal } = useModalsContext();
   const notificationService = useNotificationService();
 
-  const onCreateBtnClick = async () => {
+  const onCreateBtnClick = () => {
     if (!chainId) return;
-    await createSnapshot(chainId);
+    void createSnapshot(chainId);
   };
 
   const onDeleteBtnClick = () => {
@@ -254,7 +254,7 @@ export const Snapshots: React.FC = () => {
               size="small"
               icon={<DeleteOutlined />}
               type="text"
-              onAction={() => deleteSnapshotWithConfirmation(snapshot)}
+              onSubmit={() => deleteSnapshotWithConfirmation(snapshot)}
             />
           </Tooltip>
           <Tooltip title="Revert to snapshot" placement="topRight">
@@ -262,7 +262,7 @@ export const Snapshots: React.FC = () => {
               size="small"
               icon={<RollbackOutlined />}
               type="text"
-              onAction={() => revertToSnapshotWithConfirmation(snapshot)}
+              onSubmit={() => revertToSnapshotWithConfirmation(snapshot)}
             />
           </Tooltip>
           <Tooltip title="Show snapshot XML" placement="topRight">

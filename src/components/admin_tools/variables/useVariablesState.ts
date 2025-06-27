@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { message } from "antd";
 import { useNotificationService } from "../../../hooks/useNotificationService";
 import {
@@ -145,34 +145,19 @@ export const useVariablesState = ({
     [exportVariables, notificationService],
   );
 
-  return useMemo(
-    () => ({
-      variables,
-      editingKey,
-      editingValue,
-      isAddingNew,
-      setIsAddingNew,
-      onStartEditing: startEditing,
-      onChangeEditingValue: setEditingValue,
-      onCancelEditing: cancelEditing,
-      onConfirmEdit: confirmEdit,
-      onDelete: deleteVariable,
-      onAdd: addVariable,
-      onExport: handleExport,
-      fetchVariables,
-    }),
-    [
-      addVariable,
-      cancelEditing,
-      confirmEdit,
-      deleteVariable,
-      editingKey,
-      editingValue,
-      fetchVariables,
-      handleExport,
-      isAddingNew,
-      startEditing,
-      variables,
-    ],
-  );
+  return {
+    variables,
+    editingKey,
+    editingValue,
+    isAddingNew,
+    setIsAddingNew,
+    onStartEditing: startEditing,
+    onChangeEditingValue: setEditingValue,
+    onCancelEditing: cancelEditing,
+    onConfirmEdit: confirmEdit,
+    onDelete: deleteVariable,
+    onAdd: addVariable,
+    onExport: handleExport,
+    fetchVariables,
+  };
 };

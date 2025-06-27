@@ -1,5 +1,5 @@
 import Navigation from "./components/Navigation.tsx";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import Chains from "./pages/Chains";
 import ChainPage from "./pages/ChainPage.tsx";
 import { Layout } from "antd";
@@ -21,6 +21,7 @@ import { AdminTools } from "./pages/admin-tools/AdminToolsPage.tsx";
 import { CommonVariables } from "./components/admin_tools/variables/CommonVariables.tsx";
 import { SecuredVariables } from "./components/admin_tools/variables/SecuredVariables.tsx";
 import { Domains } from "./components/admin_tools/domains/Domains.tsx";
+import { SessionsPage } from "./pages/SessionsPage.tsx";
 
 const { Header } = Layout;
 
@@ -41,8 +42,9 @@ const App = () => (
                   path="variables/secured"
                   element={<SecuredVariables />}
                 />
+                <Route path="sessions" element={<SessionsPage />} />
               </Route>
-              <Route index path="/" element={<Chains />} />
+              <Route index path="/" element={<Navigate to="/chains" />} />
               <Route index path="/chains" element={<Chains />} />
               <Route path="/chains/:chainId" element={<ChainPage />}>
                 <Route index element={<ChainGraph />} />
