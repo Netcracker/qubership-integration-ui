@@ -245,11 +245,11 @@ export const Sessions: React.FC = () => {
         ),
       );
     }
-    if (tableFilters.status) {
+    if (tableFilters.executionStatus) {
       filterRequestList.push({
         feature: SessionFilterFeature.STATUS,
         condition: SessionFilterCondition.IN,
-        value: tableFilters.status.join(","),
+        value: tableFilters.executionStatus.join(","),
       });
     }
     setFilters({ ...filters, filterRequestList });
