@@ -56,7 +56,7 @@ export const ImportSessions: React.FC<ImportSessionsProps> = ({
           type="primary"
           disabled={!fileList || !fileList.length}
           loading={uploading}
-          onClick={() => importSessions()}
+          onClick={() => void importSessions()}
         >
           Import
         </Button>,
