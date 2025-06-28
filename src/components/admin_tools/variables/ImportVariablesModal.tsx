@@ -89,7 +89,7 @@ const ImportVariablesModal = ({ onSuccess }: Props) => {
         <Button
           key="import"
           type="primary"
-          onClick={handleImport}
+          onClick={() => void handleImport()}
           loading={loading}
         >
           Import
