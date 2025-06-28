@@ -542,10 +542,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
         title: "Status",
         dataIndex: "status",
         render: (_, item) => (
-          <ImportStatus
-            status={item.status ?? ""}
-            message={item.errorMessage}
-          />
+          <ImportStatus status={item.status} message={item.errorMessage} />
         ),
       },
     ];
@@ -565,18 +562,18 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
                 type="primary"
                 disabled={step === 0 && (!fileList || !fileList.length)}
                 loading={loading}
-                onClick={async () => {
+                onClick={() => {
                   switch (step) {
                     case 0: {
                       if (fileList[0].originFileObj) {
-                        await getImportPreview(fileList[0].originFileObj).then(
+                        void getImportPreview(fileList[0].originFileObj).then(
                           () => setStep(1),
                         );
                       }
                       break;
                     }
                     case 1: {
-                      await doImport().then(waitForImportIsDone);
+                      void doImport().then(waitForImportIsDone);
                       break;
                     }
                   }
