@@ -36,6 +36,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/admintools" element={<AdminTools />}>
+                <Route path="" element={<Navigate to="domains" />} />
                 <Route path="domains" element={<Domains />} />
                 <Route path="variables/common" element={<CommonVariables />} />
                 <Route
