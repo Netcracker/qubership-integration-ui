@@ -37,17 +37,20 @@ import { downloadFile } from "../misc/download-utils.ts";
 import { ImportSessions } from "../components/modal/ImportSessions.tsx";
 import Search from "antd/lib/input/Search";
 import {
+  isTimestampFilter,
   TimestampColumnFilterDropdown,
   TimestampFilter,
-  TimestampFilterCondition,
+  TimestampFilterCondition
 } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import type { FilterValue } from "antd/es/table/interface";
 import {
+  isTextFilter,
   TextColumnFilterDropdown,
   TextFilter,
-  TextFilterCondition,
+  TextFilterCondition
 } from "../components/table/TextColumnFilterDropdown.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
+import { parseJson } from "../misc/json-helper.ts";
 
 type SessionTableItem = Session & {
   children?: SessionTableItem[];
@@ -97,7 +100,7 @@ function convertTimestampFilter(
   feature: SessionFilterFeature,
   filterStr: string,
 ): SessionFilterRequest {
-  const timestampFilter: TimestampFilter = JSON.parse(filterStr);
+  const timestampFilter= parseJson<TimestampFilter>(filterStr, isTimestampFilter);
   const condition = convertTimestampFilterCondition(timestampFilter.condition);
   return {
     feature,
@@ -205,8 +208,9 @@ export const Sessions: React.FC = () => {
   ) => {
     const filterRequestList: SessionFilterRequest[] = [];
     if (tableFilters.chainName) {
-      const textFilter: TextFilter = JSON.parse(
+      const textFilter = parseJson<TextFilter>(
         tableFilters.chainName[0].toString(),
+        isTextFilter,
       );
       filterRequestList.push({
         feature: SessionFilterFeature.CHAIN_NAME,
@@ -215,8 +219,9 @@ export const Sessions: React.FC = () => {
       });
     }
     if (tableFilters.engineAddress) {
-      const textFilter: TextFilter = JSON.parse(
+      const textFilter = parseJson<TextFilter>(
         tableFilters.engineAddress[0].toString(),
+        isTextFilter
       );
       filterRequestList.push({
         feature: SessionFilterFeature.ENGINE,
@@ -546,7 +551,7 @@ export const Sessions: React.FC = () => {
           <FloatButton
             tooltip={{ title: "Retry selected sessions", placement: "left" }}
             icon={<RedoOutlined />}
-            onClick={onRetryBtnClick}
+            onClick={() => void onRetryBtnClick()}
           />
           {chainId ? null : (
             <FloatButton
@@ -558,7 +563,7 @@ export const Sessions: React.FC = () => {
           <FloatButton
             tooltip={{ title: "Export selected sessions", placement: "left" }}
             icon={<CloudDownloadOutlined />}
-            onClick={onExportBtnClick}
+            onClick={() => void onExportBtnClick()}
           />
           <FloatButton
             tooltip={{ title: "Delete selected sessions", placement: "left" }}
