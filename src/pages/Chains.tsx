@@ -17,7 +17,6 @@ import {
   DeleteOutlined,
   FileAddOutlined,
   FileOutlined,
-  FilterOutlined,
   FolderAddOutlined,
   FolderOutlined,
   HomeOutlined,
@@ -60,8 +59,6 @@ import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { Filter } from "../components/table/filter/Filter.tsx";
 import { useChainFilters } from "../hooks/useChainFilter.ts";
-import { EntityFilterModel } from "../components/table/filter/filter.ts";
-import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { FilterButton } from "../components/table/filter/FilterButton.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
@@ -573,6 +570,18 @@ const Chains = () => {
     }
   };
 
+  const addFilter = () => {
+    showModal({
+      component: (
+        <Filter
+          filterColumns={filterColumns}
+          filterItemStates={filterItemStates}
+          onApplyFilters={setFilterItemStates}
+        />
+      ),
+    });
+  };
+
   const onImportBtnClick = () => {
     showModal({
       component: <ImportChains onSuccess={() => void updateFolderItems()} />,
@@ -899,7 +908,7 @@ const Chains = () => {
           >
             <Button icon={<SettingOutlined />} />
           </Dropdown>
-          <FilterButton count={filterItemStates.length} onClick={addFilter}/>
+          <FilterButton count={filterItemStates.length} onClick={addFilter} />
         </Flex>
         <Table<ChainTableItem>
           className="flex-table"

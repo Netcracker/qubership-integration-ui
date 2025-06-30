@@ -1,4 +1,3 @@
-import { EntityFilterModel } from "../components/table/filter/filter.ts";
 import {
   Chain,
   ChainCreationRequest,
@@ -193,8 +192,6 @@ export interface Api {
   deleteFolders(folderIds: string[]): Promise<void>;
 
   moveFolder(folderId: string, targetFolderId?: string): Promise<FolderItem>;
-
-  filterChains(filters: EntityFilterModel[]): Promise<(FolderItem | ChainItem)[]>;
 
   getNestedChains(folderId: string): Promise<Chain[]>;
 

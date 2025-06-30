@@ -98,14 +98,7 @@ const ChainGraphInner: React.FC = () => {
         ),
       });
     },
-    [
-      chainId,
-      clearElementPath,
-      elementId,
-      setElementPath,
-      showModal,
-      updateNodeData,
-    ],
+    [chainId, clearElementPath, setElementPath, showModal, updateNodeData],
   );
 
   const saveAndDeploy = async (domain: string) => {

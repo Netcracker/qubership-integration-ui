@@ -41,6 +41,7 @@ import {
   Engine,
   ChainDeployment,
   isErrorResponse,
+  ElementFilter,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -183,6 +184,13 @@ export class RestApi implements Api {
   getLibrary = async (): Promise<LibraryData> => {
     const response = await this.instance.get<LibraryData>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/library`,
+    );
+    return response.data;
+  };
+
+  getElementTypes = async (): Promise<ElementFilter[]> => {
+    const response = await this.instance.get<ElementFilter[]>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/library/elements/types`,
     );
     return response.data;
   };
