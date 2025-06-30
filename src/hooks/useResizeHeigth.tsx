@@ -14,7 +14,7 @@ export function useResizeHeight<T extends HTMLElement>(): [
 
         const ro = new ResizeObserver(update);
         ro.observe(ref.current);
-        update(); // первая инициализация
+        update();
 
         return () => ro.disconnect();
     }, []);

@@ -197,7 +197,9 @@ export interface Api {
 
   moveFolder(folderId: string, targetFolderId?: string): Promise<FolderItem>;
 
-  filterChains(filters: EntityFilterModel[]): Promise<(FolderItem | ChainItem)[]>;
+  filterChains(
+    filters: EntityFilterModel[],
+  ): Promise<(FolderItem | ChainItem)[]>;
 
   getNestedChains(folderId: string): Promise<Chain[]>;
 
@@ -217,7 +219,10 @@ export interface Api {
 
   getEvents(lastEventId: string): Promise<EventsUpdate>;
 
-  getDeploymentsByEngine(domain: string, engineHost: string): Promise<ChainDeployment[]>;
+  getDeploymentsByEngine(
+    domain: string,
+    engineHost: string,
+  ): Promise<ChainDeployment[]>;
 
   getEnginesByDomain(domain: string): Promise<Engine[]>;
 

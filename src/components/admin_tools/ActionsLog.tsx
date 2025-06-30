@@ -11,7 +11,7 @@ import {
   Typography,
 } from "antd";
 import { TableProps } from "antd/lib/table";
-import React, { useEffect, useRef, useState } from "react";
+import React, { UIEvent, useRef, useState } from "react";
 import { useActionLog } from "../../hooks/useActionLog.tsx";
 import { capitalize, formatTimestamp } from "../../misc/format-utils.ts";
 import {
@@ -31,6 +31,7 @@ import {
   GlobalOutlined,
   QuestionOutlined,
   RadarChartOutlined,
+  RedoOutlined,
   SaveOutlined,
   SendOutlined,
   SettingOutlined,
@@ -168,10 +169,21 @@ const { Title } = Typography;
 const EXTERNAL_ENTITY_PATTERN = /^[^\\/:*?"<>|]+\.(zip|ya?ml|xml|wsdl)$/i;
 
 export const ActionsLog: React.FC = () => {
-  const { logsData, isLoading, refetch } = useActionLog();
+  const { logsData, fetchNextPage, hasNextPage, isFetching, refresh } =
+    useActionLog();
   const [currentActionLog, setCurrentActionLog] = useState<ActionLog | null>(
     null,
   );
+
+  const onScroll = async (event: UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    const isScrolledToTheEnd =
+      target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
+    if (hasNextPage && isScrolledToTheEnd) {
+      await fetchNextPage();
+    }
+  };
+
   const [containerRef, containerHeight] = useResizeHeight<HTMLElement>();
 
   const [selectedKeys, setSelectedKeys] = useState<string[]>([
@@ -225,20 +237,6 @@ export const ActionsLog: React.FC = () => {
       ? firstLine.slice(0, maxVisibleChars) + "..."
       : firstLine;
   };
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        refetch();
-      }
-    });
-
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [refetch]);
 
   const columns: TableProps<ActionLog>["columns"] = [
     {
@@ -523,6 +521,7 @@ export const ActionsLog: React.FC = () => {
           Audit
         </Title>
         <Flex vertical={false} gap={8}>
+          <Button icon={<RedoOutlined />} onClick={() => refresh()} />
           <DateRangePicker
             trigger={<Button icon={<ExportOutlined />} />}
             onRangeApply={(from, to) => {
@@ -617,11 +616,11 @@ export const ActionsLog: React.FC = () => {
               size="small"
               columns={columns}
               dataSource={logsData}
-              virtual={true}
               scroll={{ x: totalColumnsWidth, y: containerHeight - 59 || 400 }}
               pagination={false}
               rowKey="id"
-              loading={isLoading}
+              loading={isFetching}
+              onScroll={onScroll}
               components={{
                 header: {
                   cell: ResizableTitle,

@@ -1,11 +1,13 @@
 import {
-    Button,
-    Card,
-    DatePicker,
-    Dropdown,
-    GetProps,
-    Space, theme,
-    Typography,
+  Button,
+  Card,
+  DatePicker,
+  Dropdown,
+  Flex,
+  GetProps,
+  Space,
+  theme,
+  Typography,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import React, { useState } from "react";
@@ -69,29 +71,27 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       }}
     >
       <Card title="Export Time Range">
-        <Text type="secondary">Time Range</Text>
-        <RangePicker
-          showTime={{ format: "HH:mm" }}
-          format="YYYY-MM-DD HH:mm"
-          onChange={(value: RangePickerProps["value"], dateString) => {
-            console.log("Selected Time: ", value);
-            console.log("Formatted Selected Time: ", dateString);
-            setFromDate(dayjs(dateString[0]));
-            setToDate(dayjs(dateString[1]));
-          }}
-          style={{ width: "100%", marginBottom: 8 }}
-          onOk={onOk}
-        />
-
-        <div
+        <Flex
+          vertical
+          gap={8}
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            marginBottom: 12,
             alignItems: "flex-start",
+            marginBottom: 12,
           }}
         >
+          <Text type="secondary">Time Range</Text>
+          <RangePicker
+            showTime={{ format: "HH:mm" }}
+            format="YYYY-MM-DD HH:mm"
+            onChange={(value: RangePickerProps["value"], dateString) => {
+              console.log("Selected Time: ", value);
+              console.log("Formatted Selected Time: ", dateString);
+              setFromDate(dayjs(dateString[0]));
+              setToDate(dayjs(dateString[1]));
+            }}
+            style={{ width: "100%", marginBottom: 8, marginTop: 8 }}
+            onOk={onOk}
+          />
           <Button type="link" size="small" onClick={() => handleQuickApply(15)}>
             Last 15 min
           </Button>
@@ -115,7 +115,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
           >
             Last 24 hours
           </Button>
-        </div>
+        </Flex>
 
         <Space>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
