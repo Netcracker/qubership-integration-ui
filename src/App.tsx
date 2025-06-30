@@ -21,6 +21,7 @@ import { AdminTools } from "./pages/admin-tools/AdminToolsPage.tsx";
 import { CommonVariables } from "./components/admin_tools/variables/CommonVariables.tsx";
 import { SecuredVariables } from "./components/admin_tools/variables/SecuredVariables.tsx";
 import { Domains } from "./components/admin_tools/domains/Domains.tsx";
+import { SessionsPage } from "./pages/SessionsPage.tsx";
 
 const { Header } = Layout;
 
@@ -35,6 +36,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/admintools" element={<AdminTools />}>
+                <Route path="" element={<Navigate to="domains" />} />
                 <Route path="domains" element={<Domains />} />
                 <Route path="engine-list" element={<Navigate to="../domains" relative={"path"} />} />
                 <Route path="variables/common" element={<CommonVariables />} />
@@ -42,8 +44,9 @@ const App = () => (
                   path="variables/secured"
                   element={<SecuredVariables />}
                 />
+                <Route path="sessions" element={<SessionsPage />} />
               </Route>
-              <Route index path="/" element={<Chains />} />
+              <Route index path="/" element={<Navigate to="/chains" />} />
               <Route index path="/chains" element={<Chains />} />
               <Route path="/chains/:chainId" element={<ChainPage />}>
                 <Route index element={<ChainGraph />} />
