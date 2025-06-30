@@ -17,6 +17,7 @@ import {
   DeleteOutlined,
   FileAddOutlined,
   FileOutlined,
+  FilterOutlined,
   FolderAddOutlined,
   FolderOutlined,
   HomeOutlined,
@@ -57,6 +58,11 @@ import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
+import { Filter } from "../components/table/filter/Filter.tsx";
+import { useChainFilters } from "../hooks/useChainFilter.ts";
+import { EntityFilterModel } from "../components/table/filter/filter.ts";
+import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
+import { FilterButton } from "../components/table/filter/FilterButton.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -152,6 +158,7 @@ const Chains = () => {
   const [operation, setOperation] = useState<Operation | undefined>(undefined);
   const [searchString, setSearchString] = useState<string>("");
   const notificationService = useNotificationService();
+  const {filterColumns, filterItemStates, setFilterItemStates} = useChainFilters();
 
   const getFolderId = useCallback((): string | undefined => {
     return searchParams.get("folder") ?? undefined;
@@ -892,6 +899,7 @@ const Chains = () => {
           >
             <Button icon={<SettingOutlined />} />
           </Dropdown>
+          <FilterButton count={filterItemStates.length} onClick={addFilter}/>
         </Flex>
         <Table<ChainTableItem>
           className="flex-table"
