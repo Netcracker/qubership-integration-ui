@@ -40,13 +40,16 @@ const App = () => (
               <Route path="/admintools" element={<AdminTools />}>
                 <Route path="" element={<Navigate to="domains" />} />
                 <Route path="domains" element={<Domains />} />
-                <Route path="engine-list" element={<Navigate to="../domains" relative={"path"} />} />
+                <Route
+                  path="engine-list"
+                  element={<Navigate to="../domains" relative={"path"} />}
+                />
                 <Route path="variables/common" element={<CommonVariables />} />
                 <Route
                   path="variables/secured"
                   element={<SecuredVariables />}
                 />
-                  <Route  path="audit" element={<ActionsLog />} />
+                <Route path="audit" element={<ActionsLog />} />
                 <Route path="sessions" element={<SessionsPage />} />
               </Route>
               <Route index path="/" element={<Navigate to="/chains" />} />
@@ -63,7 +66,7 @@ const App = () => (
                 <Route path="properties" element={<ChainProperties />} />
               </Route>
               <Route path="*" element={<NotFound />} />
-                <Route path="/not-implemented" element={<NotImplemented/>}/>
+              <Route path="/not-implemented" element={<NotImplemented />} />
             </Routes>
           </BrowserRouter>
         </Content>

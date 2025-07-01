@@ -13,7 +13,7 @@ import {
 import { TableProps } from "antd/lib/table";
 import React, { UIEvent, useRef, useState } from "react";
 import { useActionLog } from "../../hooks/useActionLog.tsx";
-import { capitalize, formatTimestamp } from "../../misc/format-utils.ts";
+import {capitalize, formatSnakeCased, formatTimestamp} from "../../misc/format-utils.ts";
 import {
   ApartmentOutlined,
   ApiOutlined,
@@ -169,8 +169,14 @@ const { Title } = Typography;
 const EXTERNAL_ENTITY_PATTERN = /^[^\\/:*?"<>|]+\.(zip|ya?ml|xml|wsdl)$/i;
 
 export const ActionsLog: React.FC = () => {
-  const { logsData, fetchNextPage, hasNextPage, isFetching, refresh } =
-    useActionLog();
+  const {
+    logsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isLoading,
+    refresh,
+  } = useActionLog();
   const [currentActionLog, setCurrentActionLog] = useState<ActionLog | null>(
     null,
   );
@@ -210,12 +216,12 @@ export const ActionsLog: React.FC = () => {
   );
 
   const operationOptions = Object.values(LogOperation).map((value) => ({
-    label: value,
+    label: formatSnakeCased(capitalize(value)),
     value,
   }));
 
   const entityTypeOptions = Object.values(EntityType).map((value) => ({
-    label: value,
+    label: formatSnakeCased(capitalize(value)),
     value,
   }));
 
@@ -288,7 +294,7 @@ export const ActionsLog: React.FC = () => {
             color={OperationTypeColour[OperationTypeMap[actionLog.operation]]}
             style={{ marginRight: 10 }}
           />
-          {capitalize(actionLog.operation)}
+          {formatSnakeCased(capitalize(actionLog.operation))}
         </>
       ),
     },
@@ -306,7 +312,7 @@ export const ActionsLog: React.FC = () => {
       render: (_, actionLog) => (
         <>
           {getIconByEntityType(actionLog.entityType)}
-          {capitalize(actionLog.entityType)}
+          {formatSnakeCased(capitalize(actionLog.entityType))}
         </>
       ),
     },
@@ -521,11 +527,15 @@ export const ActionsLog: React.FC = () => {
           Audit
         </Title>
         <Flex vertical={false} gap={8}>
-          <Button icon={<RedoOutlined />} onClick={() => refresh()} />
+          <Button
+            icon={<RedoOutlined />}
+            disabled={isLoading || isFetching}
+            onClick={() => void refresh()}
+          />
           <DateRangePicker
             trigger={<Button icon={<ExportOutlined />} />}
             onRangeApply={(from, to) => {
-              exportActionLogs(from, to);
+              void exportActionLogs(from, to);
             }}
           />
           <Dropdown
@@ -620,7 +630,7 @@ export const ActionsLog: React.FC = () => {
               pagination={false}
               rowKey="id"
               loading={isFetching}
-              onScroll={onScroll}
+              onScroll={(event) => void onScroll(event)}
               components={{
                 header: {
                   cell: ResizableTitle,

@@ -741,13 +741,7 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  loadSystemCatalogManagementActionsLog = async (
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse> => {
-    return await this.loadActionsLog("systems-catalog", searchRequest);
-  };
-
-  loadRuntimeCatalogManagementActionsLog = async (
+  loadCatalogActionsLog = async (
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse> => {
     return await this.loadActionsLog("catalog", searchRequest);
@@ -763,23 +757,17 @@ export class RestApi implements Api {
     serviceName: string,
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse> => {
-    const response = await this.instance.post(
+    const response = await this.instance.post<ActionLogResponse>(
       `/api/v1/${import.meta.env.VITE_API_APP}/${serviceName}/actions-log`,
       searchRequest,
     );
     return response.data;
   };
 
-  exportSystemCatalogActionsLog = async (
+  exportCatalogActionsLog = async (
     params: LogExportRequestParams,
   ): Promise<Blob> => {
-    return await this.exportActionLog("systems-catalog", params);
-  };
-
-  exportRuntimeCatalogActionsLog = async (
-    params: LogExportRequestParams,
-  ): Promise<Blob> => {
-    return await this.exportActionLog("runtime-catalog", params);
+    return await this.exportActionLog("catalog", params);
   };
 
   exportVariablesManagementActionsLog = async (
@@ -792,7 +780,7 @@ export class RestApi implements Api {
     serviceName: string,
     params: LogExportRequestParams,
   ): Promise<Blob> => {
-    const response = await this.instance.get(
+    const response = await this.instance.get<Blob>(
       `/api/v1/${import.meta.env.VITE_API_APP}/${serviceName}/actions-log/export`,
       {
         responseType: "blob",

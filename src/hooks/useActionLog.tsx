@@ -1,5 +1,5 @@
 import { api } from "../api/api.ts";
-import { ActionLog, ActionLogResponse, RestApiError } from "../api/apiTypes.ts";
+import {ActionLog, ActionLogResponse, ActionLogSearchRequest, RestApiError} from "../api/apiTypes.ts";
 import {
   InfiniteData,
   InfiniteQueryObserverResult,
@@ -15,6 +15,11 @@ const RANGE_MIN = 1000 * 60 * 60 * 6; // 6 hours
 const RANGE_MAX = 1000 * 60 * 60 * 48; // 2 days
 const CONTENT_SIZE_THRESHOLD = 200;
 
+type ActionLogSourcePair = {
+    sourceName: string,
+    fn: (searchRequest: ActionLogSearchRequest) => Promise<ActionLogResponse | RestApiError>,
+};
+
 export const useActionLog = (): {
   fetchNextPage: () => Promise<
     InfiniteQueryObserverResult<
@@ -29,14 +34,20 @@ export const useActionLog = (): {
   logsData: ActionLog[];
   hasNextPage: boolean;
   isFetching: boolean;
+  isLoading: boolean;
   refresh: () => Promise<void>;
 } => {
   const notificationService = useNotificationService();
 
-  const logSources = [
-    api.loadSystemCatalogManagementActionsLog,
-    api.loadRuntimeCatalogManagementActionsLog,
-    api.loadVariablesManagementActionsLog,
+  const logSources: ActionLogSourcePair[] = [
+      {
+          sourceName: "Catalog",
+          fn: (searchRequest) => api.loadCatalogActionsLog(searchRequest)
+      },
+      {
+          sourceName: "Variables Management",
+          fn: (searchRequest) => api.loadVariablesManagementActionsLog(searchRequest)
+      },
   ];
 
   const sourceRequestStateRef = useRef(
@@ -55,54 +66,56 @@ export const useActionLog = (): {
     initialPageParam: Date.now(),
     queryKey: ["actionLogs"],
     queryFn: async () => {
-      const requests = logSources.map((fn, i) => {
+      const requests = logSources.map((pair, i) => {
         const sourceRequestState = sourceRequestStateRef.current[i];
         if (sourceRequestState.stopped) return Promise.resolve(undefined);
-        return fn({
+        return pair.fn({
           offsetTime: sourceRequestState.offset,
           rangeTime: sourceRequestState.range,
         });
       });
 
-      const responses = (await Promise.all(requests)) as (
-        | ActionLogResponse
-        | RestApiError
-        | undefined
-      )[];
+      const responsesPromiseSettledResult: Array<PromiseSettledResult<Awaited<Promise<Awaited<undefined>> | Promise<ActionLogResponse | RestApiError>>>> = await Promise.allSettled(requests);
 
-      responses.forEach((res, i) => {
+      responsesPromiseSettledResult.forEach((res, i) => {
         const currentRequestState = sourceRequestStateRef.current[i];
-        if (!res) return;
 
-        if (res instanceof RestApiError) {
-          notificationService.requestFailed("Failed to load action logs", {
+        if (res.status === "rejected") {
+          const errorResponse: RestApiError = res.reason as RestApiError;
+          notificationService.requestFailed("Failed to retrieve action logs from " + logSources[i].sourceName, {
             type: "error",
-            message: res.message,
+            message: errorResponse,
           });
           currentRequestState.stopped = true;
           return;
         }
 
-        const { actionLogs, recordsAfterRange } = res;
-        const hasLogs = actionLogs.length > 0;
-        const hasMore = recordsAfterRange > 0;
-        const logCount = actionLogs.length;
+        if (res.status === "fulfilled") {
+          if (!res) return;
 
-        if (!hasLogs && hasMore) {
-          currentRequestState.range = Math.min(
-            currentRequestState.range * 2,
-            RANGE_MAX,
-          );
-        } else if (hasLogs) {
-          currentRequestState.range =
-            logCount > CONTENT_SIZE_THRESHOLD ? RANGE_MIN : RANGE_DEFAULT;
+          const fulfilledResponse: ActionLogResponse =
+            res.value as ActionLogResponse;
+          const { actionLogs, recordsAfterRange } = fulfilledResponse;
+          const hasLogs = actionLogs.length > 0;
+          const hasMore = recordsAfterRange > 0;
+          const logCount = actionLogs.length;
+
+          if (!hasLogs && hasMore) {
+            currentRequestState.range = Math.min(
+              currentRequestState.range * 2,
+              RANGE_MAX,
+            );
+          } else if (hasLogs) {
+            currentRequestState.range =
+              logCount > CONTENT_SIZE_THRESHOLD ? RANGE_MIN : RANGE_DEFAULT;
+          }
+
+          currentRequestState.offset -= currentRequestState.range;
+
+          if (!hasMore) currentRequestState.stopped = true;
+
+          actionLogs.forEach((log) => allLogsRef.current.set(log.id, log));
         }
-
-        currentRequestState.offset -= currentRequestState.range;
-
-        if (!hasMore) currentRequestState.stopped = true;
-
-        actionLogs.forEach((log) => allLogsRef.current.set(log.id, log));
       });
 
       return Array.from(allLogsRef.current.values()).sort(
@@ -128,8 +141,8 @@ export const useActionLog = (): {
     }));
 
     await queryClient.resetQueries({
-        queryKey: ["actionLogs"],
-        exact: true,
+      queryKey: ["actionLogs"],
+      exact: true,
     });
   };
 
@@ -138,6 +151,7 @@ export const useActionLog = (): {
     fetchNextPage: () => actionLogsQuery.fetchNextPage(),
     hasNextPage: actionLogsQuery.hasNextPage,
     isFetching: actionLogsQuery.isFetching,
+      isLoading: actionLogsQuery.isLoading,
     refresh,
   };
 };

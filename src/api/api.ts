@@ -221,11 +221,7 @@ export interface Api {
 
   getEnginesByDomain(domain: string): Promise<Engine[]>;
 
-  loadSystemCatalogManagementActionsLog(
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse>;
-
-  loadRuntimeCatalogManagementActionsLog(
+  loadCatalogActionsLog(
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse>;
 
@@ -233,9 +229,7 @@ export interface Api {
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse>;
 
-  exportSystemCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
-
-  exportRuntimeCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
+  exportCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
 
   exportVariablesManagementActionsLog(
     params: LogExportRequestParams,
