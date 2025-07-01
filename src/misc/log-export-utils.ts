@@ -5,10 +5,18 @@ import ExcelJS from "exceljs";
 import { downloadFile } from "./download-utils.ts";
 
 const exportLogSources = [
-  api.exportSystemCatalogActionsLog,
-  api.exportRuntimeCatalogActionsLog,
-  api.exportVariablesManagementActionsLog,
+  api.exportCatalogActionsLog.bind(api),
+  api.exportVariablesManagementActionsLog.bind(api),
 ];
+
+const toTimestamp = (value: unknown): number => {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string" || typeof value === "number") {
+    const ts = new Date(value).getTime();
+    return Number.isNaN(ts) ? -Infinity : ts;
+  }
+  return -Infinity;
+};
 
 export async function exportActionsLogAsExcel(dateFrom: Date, dateTo: Date) {
   const requestParams: LogExportRequestParams = {
@@ -30,9 +38,12 @@ export async function exportActionsLogAsExcel(dateFrom: Date, dateTo: Date) {
 
     const sheet = workbook.worksheets[0];
     const headerRow = sheet.getRow(1);
-    const headers: string[] =
-      // @ts-expect-error remove zero element - ExcelJS specific
-      headerRow.values?.slice(1).map((cell) => String(cell)) || [];
+
+    const rawValues = headerRow.values;
+
+    const headers: string[] = Array.isArray(rawValues)
+      ? rawValues.slice(1).map((cell: unknown) => String(cell))
+      : [];
 
     sheet.eachRow((row, rowIndex) => {
       if (rowIndex === 1) return;
@@ -44,12 +55,10 @@ export async function exportActionsLogAsExcel(dateFrom: Date, dateTo: Date) {
     });
   }
 
-  mergedRows.sort((actionLogLeft, actionLogRight) => {
-    return (
-      new Date(actionLogRight["Action Time"]).getTime() -
-      new Date(actionLogLeft["Action Time"]).getTime()
-    );
-  });
+  mergedRows.sort(
+    (left, right) =>
+      toTimestamp(right["Action Time"]) - toTimestamp(left["Action Time"]),
+  );
 
   const outWorkbook = new ExcelJS.Workbook();
   const outSheet = outWorkbook.addWorksheet("Action Log");

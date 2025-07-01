@@ -1,13 +1,11 @@
 import { Select, Button, Flex } from "antd";
 import type { FilterDropdownProps } from "antd/es/table/interface";
 import React from "react";
-import Row from "exceljs/index";
 
-export const makeEnumColumnFilterDropdown = (
-  options: { label: React.ReactNode; value: string }[],
-  field: string,
-  multiple = false,
-) => {
+export function makeEnumColumnFilterDropdown<
+  K extends string,
+  V extends string | number,
+>(options: { label: React.ReactNode; value: V }[], field: K, multiple = false) {
   const filterDropdown = ({
     setSelectedKeys,
     selectedKeys,
@@ -15,18 +13,26 @@ export const makeEnumColumnFilterDropdown = (
     clearFilters,
   }: FilterDropdownProps) => (
     <Flex vertical gap={8} style={{ padding: 8, width: 350 }}>
-      <Select
-        mode={multiple ? "multiple" : undefined}
-        placeholder="Select value"
-        value={multiple ? (selectedKeys as string[]) : selectedKeys[0]}
-        onChange={(val) => {
-          const keys: React.Key[] = Array.isArray(val) ? val : val ? [val] : [];
-          setSelectedKeys(keys);
-        }}
-        allowClear
-        style={{ width: "100%" }}
-        options={options}
-      />
+      {multiple ? (
+        <Select<V[]>
+          mode="multiple"
+          allowClear
+          style={{ width: "100%" }}
+          placeholder="Select value"
+          options={options}
+          value={selectedKeys as V[]}
+          onChange={(vals) => setSelectedKeys(vals as React.Key[])}
+        />
+      ) : (
+        <Select<V>
+          allowClear
+          style={{ width: "100%" }}
+          placeholder="Select value"
+          options={options}
+          value={selectedKeys[0] as V | undefined}
+          onChange={(val) => setSelectedKeys(val ? [val] : [])}
+        />
+      )}
 
       <Flex justify="end" gap={8}>
         <Button
@@ -45,8 +51,8 @@ export const makeEnumColumnFilterDropdown = (
     </Flex>
   );
 
-  const onFilter = (value: boolean | React.Key, record: Row) =>
+  const onFilter = (value: V | React.Key | number | boolean, record: Record<K, V>) =>
     record[field] === value;
 
   return { filterDropdown, onFilter };
-};
+}
