@@ -60,7 +60,7 @@ export const useDeployments = (chainId?: string) => {
 
   useEffect(() => {
     void getDeployments().then(setDeployments);
-  }, [getDeployments]);
+  }, [chainId]);
 
   const showEventNotification = useCallback(
     (data: DeploymentUpdate) => {

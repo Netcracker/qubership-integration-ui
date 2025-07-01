@@ -22,7 +22,7 @@ export const useDomains = () => {
 
   useEffect(() => {
     void getDomains();
-  }, [getDomains]);
+  }, []);
 
   return { isLoading, domains };
 };

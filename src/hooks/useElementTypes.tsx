@@ -18,7 +18,7 @@ export const useElementTypes = () => {
 
   useEffect(() => {
     void getLibraryElement();
-  }, [getLibraryElement]);
+  }, []);
 
   return { elementTypes };
 }
