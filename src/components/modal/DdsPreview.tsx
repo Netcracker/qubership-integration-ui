@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ChainDetailedDesign } from "../../api/apiTypes.ts";
-import { Button, Modal } from "antd";
+import { Button, Modal, Spin } from "antd";
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { api } from "../../api/api.ts";
@@ -11,6 +11,9 @@ import { downloadFile } from "../../misc/download-utils.ts";
 import JSZip from "jszip";
 import { exportAsMarkdown } from "../../mapper/markdown/markdown.ts";
 import { MappingDescription } from "../../mapper/model/model.ts";
+import { MermaidDiagram } from "@lightenna/react-mermaid-diagram";
+import styles from "./DdsPreview.module.css";
+import mermaid from "mermaid";
 
 export type DdsViewProps = {
   chainId: string;
@@ -85,17 +88,14 @@ export const DdsPreview: React.FC<DdsViewProps> = ({
     const zip = new JSZip();
     zip.file("doc.md", chainDetailedDesign.document);
 
-    /*
-    const imgEntry = zip.folder("img")!;
-    for (const imgHref of imageMapping.keys()) {
-      const pathParts = imgHref.split("/");
-      if (pathParts.length > 0) {
-        imgEntry.file(
-          pathParts[pathParts.length - 1],
-          imageMapping.get(imgHref),
-        );
-      }
-    }*/
+    if (chainDetailedDesign.simpleSeqDiagramMermaid) {
+      const { svg } = await mermaid.render(
+        "sequence-diagram",
+        chainDetailedDesign.simpleSeqDiagramMermaid,
+      );
+      const imgEntry = zip.folder("img")!;
+      imgEntry.file("simple-sequence-diagram-mermaid.svg", svg);
+    }
 
     const srcEntry = zip.folder("src")!;
     const diagramsEntry = srcEntry.folder("diagrams")!;
@@ -143,19 +143,14 @@ export const DdsPreview: React.FC<DdsViewProps> = ({
       onCancel={closeContainingModal}
       width={"80vw"}
       footer={[
-        <Button
-          key="cancel"
-          disabled={isLoading}
-          onClick={closeContainingModal}
-        >
+        <Button key="cancel" onClick={closeContainingModal}>
           Cancel
         </Button>,
         <Button
           key="submit"
           type="primary"
           htmlType={"submit"}
-          loading={isLoading}
-          disabled={!chainDetailedDesign}
+          disabled={isLoading || !chainDetailedDesign}
           onClick={() => {
             void buildDdsFile().then((file) => {
               if (!file) {
@@ -170,20 +165,30 @@ export const DdsPreview: React.FC<DdsViewProps> = ({
         </Button>,
       ]}
     >
-      <div style={{ height: "70vh", overflowY: "auto" }}>
-        <Markdown
-          rehypePlugins={[rehypeRaw]}
-          remarkPlugins={[remarkGfm]}
-          components={{
-            img(props) {
-              // TODO
-              console.log(props);
-              return <div />;
-            }
-          }}
-        >
-          {chainDetailedDesign?.document}
-        </Markdown>
+      <div className={styles["dds-content"]}>
+        {isLoading ? (
+          <Spin className={styles.loader} size={"large"}></Spin>
+        ) : (
+          <Markdown
+            rehypePlugins={[rehypeRaw]}
+            remarkPlugins={[remarkGfm]}
+            components={{
+              img(props) {
+                // eslint-disable-next-line react/prop-types
+                return props.src ===
+                  "./img/simple-sequence-diagram-mermaid.svg" ? (
+                  <MermaidDiagram>
+                    {chainDetailedDesign?.simpleSeqDiagramMermaid ?? ""}
+                  </MermaidDiagram>
+                ) : (
+                  <img {...props} alt="image" />
+                );
+              },
+            }}
+          >
+            {chainDetailedDesign?.document}
+          </Markdown>
+        )}
       </div>
     </Modal>
   );
