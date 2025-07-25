@@ -11,7 +11,7 @@ export type DataType =
     | OneOfType;
 
 export interface Metadata {
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface MetadataAware {

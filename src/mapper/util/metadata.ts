@@ -9,7 +9,7 @@ export class MetadataUtil {
     return { ...metadata, [key]: value };
   }
 
-  public static getValue<T extends MetadataAware>(obj: T, key: string): any {
+  public static getValue<T extends MetadataAware>(obj: T, key: string): unknown {
     return obj?.metadata?.[key];
   }
 
