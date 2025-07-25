@@ -886,6 +886,25 @@ export type ChainDeployment = {
   state: RuntimeState;
 };
 
+export type DetailedDesignTemplate = BaseEntity & {
+  content?: string;
+};
+
+export type ChainDetailedDesign = {
+  document: string;
+  simpleSeqDiagramMermaid?: string;
+  simpleSeqDiagramPlantuml?: string;
+  triggerSpecifications?: DesignSpecificationSource[];
+};
+
+export type DesignSpecificationSource = {
+  serviceName: string;
+  specificationName: string;
+  specificationId: string;
+  fileExtension: string;
+  specificationContent: string;
+}
+
 export type IntegrationSystem = {
   id: string;
   name: string;

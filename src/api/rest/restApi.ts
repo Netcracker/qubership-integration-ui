@@ -55,6 +55,8 @@ import {
   ImportSystemResult,
   ImportSpecificationResult,
   BaseEntity,
+  DetailedDesignTemplate,
+  ChainDetailedDesign,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1108,6 +1110,66 @@ export class RestApi implements Api {
   ): Promise<ImportSpecificationResult> => {
     const response = await this.instance.get<ImportSpecificationResult>(
       `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/import/${importId}`
+    );
+    return response.data;
+  };
+
+  getDetailedDesignTemplates = async (
+    includeContent: boolean,
+  ): Promise<DetailedDesignTemplate[]> => {
+    const response = await this.instance.get<DetailedDesignTemplate[]>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates`,
+      {
+        params: {
+          includeContent,
+        },
+      },
+    );
+    return response.data;
+  };
+
+  getDetailedDesignTemplate = async (
+    templateId: string,
+  ): Promise<DetailedDesignTemplate> => {
+    const response = await this.instance.get<DetailedDesignTemplate>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates/${templateId}`,
+    );
+    return response.data;
+  };
+
+  createOrUpdateDetailedDesignTemplate = async (
+    name: string,
+    content: string,
+  ): Promise<DetailedDesignTemplate> => {
+    const response = await this.instance.put<DetailedDesignTemplate>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates`,
+      { name, content },
+    );
+    return response.data;
+  };
+
+  deleteDetailedDesignTemplates = async (ids: string[]): Promise<void> => {
+    await this.instance.delete<void>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates`,
+      {
+        params: {
+          ids,
+        },
+      },
+    );
+  };
+
+  getChainDetailedDesign = async (
+    chainId: string,
+    templateId: string,
+  ): Promise<ChainDetailedDesign> => {
+    const response = await this.instance.get<ChainDetailedDesign>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/chains/${chainId}`,
+      {
+        params: {
+          templateId,
+        },
+      },
     );
     return response.data;
   };

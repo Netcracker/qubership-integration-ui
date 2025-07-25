@@ -48,6 +48,8 @@ import {
   ImportSystemResult,
   ImportSpecificationResult,
   BaseEntity,
+  DetailedDesignTemplate,
+  ChainDetailedDesign,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 
@@ -309,6 +311,26 @@ export interface Api {
   deprecateModel(modelId: string): Promise<Specification>;
 
   deleteSpecificationModel(id: string): Promise<void>;
+
+  getDetailedDesignTemplates(
+    includeContent: boolean,
+  ): Promise<DetailedDesignTemplate[]>;
+
+  getDetailedDesignTemplate(
+    templateId: string,
+  ): Promise<DetailedDesignTemplate>;
+
+  createOrUpdateDetailedDesignTemplate(
+    name: string,
+    content: string,
+  ): Promise<DetailedDesignTemplate>;
+
+  deleteDetailedDesignTemplates(ids: string[]): Promise<void>;
+
+  getChainDetailedDesign(
+    chainId: string,
+    templateId: string,
+  ): Promise<ChainDetailedDesign>;
 }
 
 export const api: Api = new RestApi();
