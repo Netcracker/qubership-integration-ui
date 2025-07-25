@@ -29,7 +29,6 @@ import {
   CatalogItemType,
   ChainCreationRequest,
   ChainItem,
-  DetailedDesignTemplate,
   FolderFilter,
   FolderItem,
   ListFolderRequest,
