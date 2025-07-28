@@ -10,7 +10,7 @@ import {
   RollbackOutlined,
 } from "@ant-design/icons";
 import { TableProps } from "antd/lib/table";
-import { EntityLabel, Snapshot } from "../api/apiTypes.ts";
+import { DiagramMode, EntityLabel, Snapshot } from "../api/apiTypes.ts";
 import { formatTimestamp } from "../misc/format-utils.ts";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
@@ -28,12 +28,12 @@ import {
   TimestampColumnFilterDropdown,
 } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { SnapshotsCompare } from "../components/modal/SnapshotsCompare.tsx";
-import { SnapshotSequenceDiagram } from "../components/modal/SnapshotSequenceDiagram.tsx";
 import { InlineEdit } from "../components/InlineEdit.tsx";
 import { TextValueEdit } from "../components/table/TextValueEdit.tsx";
 import { LabelsEdit } from "../components/table/LabelsEdit.tsx";
 import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
+import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
 
 export const Snapshots: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
@@ -142,7 +142,22 @@ export const Snapshots: React.FC = () => {
 
   const showSnapshotDiagram = (snapshot: Snapshot) => {
     showModal({
-      component: <SnapshotSequenceDiagram snapshotId={snapshot.id} />,
+      component: (
+        <SequenceDiagram
+          title="Snapshot Sequence Diagram"
+          fileNamePrefix={"snapshot"}
+          entityId={snapshot.id}
+          diagramProvider={() => {
+            if (!chainId) {
+              return Promise.reject(new Error("Chain is not specified"));
+            }
+            return api.getSnapshotSequenceDiagram(chainId, snapshot.id, [
+              DiagramMode.FULL,
+              DiagramMode.SIMPLE,
+            ]);
+          }}
+        />
+      ),
     });
   };
 
