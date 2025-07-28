@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, FloatButton, Modal, Table, Tooltip } from "antd";
+import { Button, Dropdown, FloatButton, Modal, Table } from "antd";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
 import { useParams } from "react-router";
 import {
@@ -31,7 +31,6 @@ import { SnapshotsCompare } from "../components/modal/SnapshotsCompare.tsx";
 import { InlineEdit } from "../components/InlineEdit.tsx";
 import { TextValueEdit } from "../components/table/TextValueEdit.tsx";
 import { LabelsEdit } from "../components/table/LabelsEdit.tsx";
-import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
 
@@ -260,42 +259,44 @@ export const Snapshots: React.FC = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 160,
+      width: 70,
       className: "actions-column",
       render: (_, snapshot) => (
         <>
-          <Tooltip title="Delete snapshot" placement="topRight">
-            <LongActionButton
-              size="small"
-              icon={<DeleteOutlined />}
-              type="text"
-              onSubmit={() => deleteSnapshotWithConfirmation(snapshot)}
-            />
-          </Tooltip>
-          <Tooltip title="Revert to snapshot" placement="topRight">
-            <LongActionButton
-              size="small"
-              icon={<RollbackOutlined />}
-              type="text"
-              onSubmit={() => revertToSnapshotWithConfirmation(snapshot)}
-            />
-          </Tooltip>
-          <Tooltip title="Show snapshot XML" placement="topRight">
-            <Button
-              size="small"
-              type="text"
-              icon={<FileTextOutlined />}
-              onClick={() => showSnapshotXml(snapshot)}
-            />
-          </Tooltip>
-          <Tooltip title="Show snapshot diagram" placement="topRight">
-            <Button
-              size="small"
-              type="text"
-              icon={<>⭾</>}
-              onClick={() => showSnapshotDiagram(snapshot)}
-            />
-          </Tooltip>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: "Delete",
+                  onClick: () => deleteSnapshotWithConfirmation(snapshot),
+                },
+                {
+                  key: "revert",
+                  icon: <RollbackOutlined />,
+                  label: "Revert to",
+                  onClick: () => revertToSnapshotWithConfirmation(snapshot),
+                },
+                {
+                  key: "showXml",
+                  icon: <FileTextOutlined />,
+                  label: "Show XML",
+                  onClick: () => showSnapshotXml(snapshot),
+                },
+                {
+                  key: "showDiagram",
+                  icon: <span className="anticon">⭾</span>,
+                  label: "Show diagram",
+                  onClick: () => showSnapshotDiagram(snapshot),
+                },
+              ],
+            }}
+            trigger={["click"]}
+            placement="bottomRight"
+          >
+            <Button size="small" type="text" icon={<MoreOutlined />} />
+          </Dropdown>
         </>
       ),
     },
