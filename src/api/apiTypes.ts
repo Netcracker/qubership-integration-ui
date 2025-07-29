@@ -94,7 +94,7 @@ export type ElementDescriptor = {
   descriptionFormatter: string;
   type: string;
   inputEnabled: boolean;
-  inputQuantity: "any" | number; //TODO Define type
+  inputQuantity: "any" | number;
   outputEnabled: boolean;
   container: boolean;
   ordered: boolean;
@@ -122,6 +122,18 @@ export type ElementDescriptor = {
   queryProperties: unknown[];
   referenceProperties: unknown[];
 };
+
+export type ElementWithChainName  = BaseEntity &  {
+  type: string;
+  chainId: string
+  chainName: string
+  arentElementId: string;
+  originalId: string;
+  properties?: Record<string, unknown>;
+  children: ChildElement[];
+  swimlaneId: string
+  mandatoryChecksPassed: boolean;
+}
 
 export type Element = BaseEntity & {
   chainId: string;
@@ -904,6 +916,25 @@ export type ChainDeployment = {
   state: RuntimeState;
 };
 
+export type DetailedDesignTemplate = BaseEntity & {
+  content?: string;
+};
+
+export type ChainDetailedDesign = {
+  document: string;
+  simpleSeqDiagramMermaid?: string;
+  simpleSeqDiagramPlantuml?: string;
+  triggerSpecifications?: DesignSpecificationSource[];
+};
+
+export type DesignSpecificationSource = {
+  serviceName: string;
+  specificationName: string;
+  specificationId: string;
+  fileExtension: string;
+  specificationContent: string;
+};
+
 export type IntegrationSystem = {
   id: string;
   name: string;
@@ -1034,3 +1065,35 @@ export type ImportSpecificationGroupRequest = {
   protocol?: string;
   files: File[];
 };
+
+export enum DiagramMode {
+  SIMPLE = "SIMPLE",
+  FULL = "FULL",
+}
+
+export enum DiagramLangType {
+  PLANT_UML = "PLANT_UML",
+  MERMAID = "MERMAID",
+}
+
+export type ElementsSequenceDiagrams = Record<
+  DiagramMode,
+  ElementsSequenceDiagram
+>;
+
+export type ElementsSequenceDiagram = {
+  chainId: string;
+  snapshotId?: string;
+  diagramSources: Record<DiagramLangType, string>;
+};
+
+export enum ApiSpecificationType {
+  OpenAPI = "OpenAPI",
+  AsyncAPI = "AsyncAPI",
+}
+
+export enum ApiSpecificationFormat {
+  JSON = "JSON",
+  YAML = "YAML",
+}
+

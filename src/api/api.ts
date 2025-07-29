@@ -49,6 +49,13 @@ import {
   ImportSystemResult,
   ImportSpecificationResult,
   BaseEntity,
+  DetailedDesignTemplate,
+  ChainDetailedDesign,
+  ElementsSequenceDiagrams,
+  DiagramMode,
+  ElementWithChainName,
+  ApiSpecificationType,
+  ApiSpecificationFormat,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 
@@ -81,7 +88,7 @@ export interface Api {
 
   getElementTypes(): Promise<ElementFilter[]>;
 
-  getElementsByType(chainId: string, elementType: string): Promise<Element[]>;
+  getElementsByType(chainId: string, elementType: string): Promise<ElementWithChainName[]>;
 
   createElement(
     elementRequest: CreateElementRequest,
@@ -227,6 +234,8 @@ export interface Api {
     specificationGroupId: string[],
   ): Promise<File>;
 
+  generateApiSpecification(deploymentIds: string[], snapshotIds: string[], chainIds: string[], httpTriggerIds: string[], externalRoutes: boolean, specificationType: ApiSpecificationType, format: ApiSpecificationFormat): Promise<File>;
+
   getImportPreview(file: File): Promise<ImportPreview>;
 
   commitImport(
@@ -340,6 +349,43 @@ export interface Api {
   deprecateModel(modelId: string): Promise<Specification>;
 
   deleteSpecificationModel(id: string): Promise<void>;
+
+  getDetailedDesignTemplates(
+    includeContent: boolean,
+  ): Promise<DetailedDesignTemplate[]>;
+
+  getDetailedDesignTemplate(
+    templateId: string,
+  ): Promise<DetailedDesignTemplate>;
+
+  createOrUpdateDetailedDesignTemplate(
+    name: string,
+    content: string,
+  ): Promise<DetailedDesignTemplate>;
+
+  deleteDetailedDesignTemplates(ids: string[]): Promise<void>;
+
+  getChainDetailedDesign(
+    chainId: string,
+    templateId: string,
+  ): Promise<ChainDetailedDesign>;
+
+  getChainSequenceDiagram(
+    chainId: string,
+    diagramModes: DiagramMode[],
+  ): Promise<ElementsSequenceDiagrams>;
+
+  getSnapshotSequenceDiagram(
+    chainId: string,
+    snapshotId: string,
+    diagramModes: DiagramMode[],
+  ): Promise<ElementsSequenceDiagrams>;
+
+  modifyHttpTriggerProperties(
+    chainId: string,
+    specificationGroupId: string,
+    httpTriggerIds: string[],
+  ): Promise<void>;
 }
 
 export const api: Api = new RestApi();

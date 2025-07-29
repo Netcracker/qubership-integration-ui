@@ -32,9 +32,10 @@ import { LibraryProvider } from "../components/LibraryContext.tsx";
 import { useChainGraph } from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
-import { CreateDeploymentRequest } from "../api/apiTypes.ts";
+import { CreateDeploymentRequest, DiagramMode } from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
+import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
 import { useLibraryContext } from "../components/LibraryContext.tsx";
 import {ChainGraphNodeData, nodeTypes} from "../components/graph/nodes/ChainGraphNodeTypes.ts";
 
@@ -139,6 +140,27 @@ const ChainGraphInner: React.FC = () => {
     });
   };
 
+  const openSequenceDiagram = () => {
+    showModal({
+      component: (
+        <SequenceDiagram
+          title="Chain Sequence Diagram"
+          fileNamePrefix={"chain"}
+          entityId={chainId}
+          diagramProvider={async () => {
+            if (!chainId) {
+              return Promise.reject(new Error("Chain is not specified"));
+            }
+            return api.getChainSequenceDiagram(chainId, [
+              DiagramMode.FULL,
+              DiagramMode.SIMPLE,
+            ]);
+          }}
+        />
+      ),
+    });
+  };
+
   useEffect(() => {
     if (!isPageLoaded && !isLoading && !isLibraryLoading && nodes?.length) {
       setIsPageLoaded(true);
@@ -185,6 +207,14 @@ const ChainGraphInner: React.FC = () => {
         </ElkDirectionContextProvider>
       </div>
       <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
+        <FloatButton
+          icon={<>⭾</>}
+          tooltip={{
+            title: "Show sequence diagram",
+            placement: "left",
+          }}
+          onClick={openSequenceDiagram}
+        />
         <FloatButton
           icon={<SendOutlined />}
           tooltip={{

@@ -56,9 +56,17 @@ import {
   ImportSystemResult,
   ImportSpecificationResult,
   BaseEntity,
+  DetailedDesignTemplate,
+  ChainDetailedDesign,
+  ElementsSequenceDiagrams,
+  DiagramMode,
+  ElementWithChainName,
+  ApiSpecificationType,
+  ApiSpecificationFormat,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
+import qs from "qs";
 
 export class RestApi implements Api {
   instance: AxiosInstance;
@@ -67,7 +75,7 @@ export class RestApi implements Api {
     this.instance = rateLimit(
       axios.create({
         baseURL: import.meta.env.VITE_GATEWAY,
-        timeout: 1000,
+        timeout: 2000,
         headers: { "content-type": "application/json" },
       }),
       {
@@ -219,12 +227,12 @@ export class RestApi implements Api {
   getElementsByType = async (
     chainId: string,
     elementType: string,
-  ): Promise<Element[]> => {
-    const response = await this.instance.get<Element[]>(
+  ): Promise<ElementWithChainName[]> => {
+    const response = await this.instance.get<ElementWithChainName[]>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/elements/type/${elementType}`,
     );
     return response.data;
-  };
+  }
 
   createElement = async (
     elementRequest: CreateElementRequest,
@@ -262,6 +270,26 @@ export class RestApi implements Api {
     );
     return response.data;
   };
+
+  modifyHttpTriggerProperties = async (
+    chainId: string,
+    specificationGroupId: string,
+    httpTriggerIds: string[],
+  ): Promise<void> => {
+    await this.instance.put(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/elements/properties-modification`,
+      {},
+      {
+        params:
+          {
+            specificationGroupId: specificationGroupId,
+            httpTriggerIds: httpTriggerIds
+          },
+          paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
+      },
+
+    );
+  }
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
     const response = await this.instance.get<Connection[]>(
@@ -735,6 +763,43 @@ export class RestApi implements Api {
     return getFileFromResponse(response);
   };
 
+  generateApiSpecification = async (
+    deploymentIds: string[],
+    snapshotIds: string[],
+    chainIds: string[],
+    httpTriggerIds: string[],
+    externalRoutes: boolean,
+    specificationType: ApiSpecificationType,
+    format: ApiSpecificationFormat
+  ): Promise<File> => {
+    const params: Record<string, string> = {};
+    if (deploymentIds?.length) {
+      params["deploymentIds"] = deploymentIds.join(",");
+    }
+    if (snapshotIds?.length) {
+      params["snapshotIds"] = snapshotIds.join(",");
+    }
+    if (chainIds?.length) {
+      params["chainIds"] = chainIds.join(",");
+    }
+    if (httpTriggerIds?.length) {
+      params["httpTriggerIds"] = httpTriggerIds.join(",");
+    }
+
+    const response = await this.instance.get<Blob>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/export/api-spec`,
+      {
+        params: {...params, externalRoutes, specificationType, format},
+        headers: {
+          accept: "*/*",
+        },
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
+  }
+
+
   getServices = async (
     modelType: string,
     withSpec: boolean,
@@ -1112,6 +1177,93 @@ export class RestApi implements Api {
   ): Promise<ImportSpecificationResult> => {
     const response = await this.instance.get<ImportSpecificationResult>(
       `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/import/${importId}`,
+    );
+    return response.data;
+  };
+
+  getDetailedDesignTemplates = async (
+    includeContent: boolean,
+  ): Promise<DetailedDesignTemplate[]> => {
+    const response = await this.instance.get<DetailedDesignTemplate[]>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates`,
+      {
+        params: {
+          includeContent,
+        },
+      },
+    );
+    return response.data;
+  };
+
+  getDetailedDesignTemplate = async (
+    templateId: string,
+  ): Promise<DetailedDesignTemplate> => {
+    const response = await this.instance.get<DetailedDesignTemplate>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates/${templateId}`,
+    );
+    return response.data;
+  };
+
+  createOrUpdateDetailedDesignTemplate = async (
+    name: string,
+    content: string,
+  ): Promise<DetailedDesignTemplate> => {
+    const response = await this.instance.put<DetailedDesignTemplate>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates`,
+      { name, content },
+    );
+    return response.data;
+  };
+
+  deleteDetailedDesignTemplates = async (ids: string[]): Promise<void> => {
+    await this.instance.delete<void>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/templates`,
+      {
+        params: {
+          ids,
+        },
+      },
+    );
+  };
+
+  getChainDetailedDesign = async (
+    chainId: string,
+    templateId: string,
+  ): Promise<ChainDetailedDesign> => {
+    const response = await this.instance.get<ChainDetailedDesign>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/detailed-design/chains/${chainId}`,
+      {
+        params: {
+          templateId,
+        },
+      },
+    );
+    return response.data;
+  };
+
+  getChainSequenceDiagram = async (
+    chainId: string,
+    diagramModes: DiagramMode[],
+  ): Promise<ElementsSequenceDiagrams> => {
+    const response = await this.instance.post<ElementsSequenceDiagrams>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/design-generator/chains/${chainId}`,
+      {
+        diagramModes,
+      },
+    );
+    return response.data;
+  };
+
+  getSnapshotSequenceDiagram = async (
+    chainId: string,
+    snapshotId: string,
+    diagramModes: DiagramMode[],
+  ): Promise<ElementsSequenceDiagrams> => {
+    const response = await this.instance.post<ElementsSequenceDiagrams>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/design-generator/chains/${chainId}/snapshots/${snapshotId}`,
+      {
+        diagramModes,
+      },
     );
     return response.data;
   };
