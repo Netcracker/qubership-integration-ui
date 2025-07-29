@@ -121,6 +121,18 @@ export type Element = {
   referenceProperties: unknown[];
 };
 
+export type ElementWithChainName  = BaseEntity &  {
+  type: string;
+  chainId: string
+  chainName: string
+  arentElementId: string;
+  originalId: string;
+  properties?: Record<string, unknown>;
+  children: ChildElement[];
+  swimlaneId: string
+  mandatoryChecksPassed: boolean;
+}
+
 export interface ElementFilter {
   elementTitle: string;
   elementType: string;
@@ -1056,3 +1068,14 @@ export type ElementsSequenceDiagram = {
   snapshotId?: string;
   diagramSources: Record<DiagramLangType, string>;
 };
+
+export enum ApiSpecificationType {
+  OpenAPI = "OpenAPI",
+  AsyncAPI = "AsyncAPI",
+}
+
+export enum ApiSpecificationFormat {
+  JSON = "JSON",
+  YAML = "YAML",
+}
+
