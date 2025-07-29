@@ -4,9 +4,10 @@ import {
   Chain,
   ChainCreationRequest,
   Connection,
-  ElementRequest,
+  CreateElementRequest,
   LibraryData,
   Element,
+  ElementDescriptor,
   Snapshot,
   ConnectionRequest,
   ActionDifference,
@@ -215,15 +216,18 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getElementsByType = async (chainId: string, elementType: string): Promise<Element[]> => {
+  getElementsByType = async (
+    chainId: string,
+    elementType: string,
+  ): Promise<Element[]> => {
     const response = await this.instance.get<Element[]>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/elements/type/${elementType}`,
     );
     return response.data;
-  }
+  };
 
   createElement = async (
-    elementRequest: ElementRequest,
+    elementRequest: CreateElementRequest,
     chainId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
@@ -245,14 +249,15 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  deleteElement = async (
-    elementId: string,
+  deleteElements = async (
+    elementIds: string[],
     chainId: string,
   ): Promise<ActionDifference> => {
+    const elementsIdsParam = elementIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/elements`,
       {
-        params: { elementsIds: elementId }, //TODO send array
+        params: { elementsIds: elementsIdsParam },
       },
     );
     return response.data;
@@ -277,13 +282,14 @@ export class RestApi implements Api {
   };
 
   deleteConnection = async (
-    connectionId: string,
+    connectionIds: string[],
     chainId: string,
   ): Promise<ActionDifference> => {
+    const connectionIdsParam = connectionIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/dependencies`,
       {
-        params: { dependenciesIds: connectionId }, //TODO send array
+        params: { dependenciesIds: connectionIdsParam },
       },
     );
     return response.data;
@@ -348,8 +354,10 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getLibraryElementByType = async (type: string): Promise<Element> => {
-    const response = await this.instance.get<Element>(
+  getLibraryElementByType = async (
+    type: string,
+  ): Promise<ElementDescriptor> => {
+    const response = await this.instance.get<ElementDescriptor>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/library/${type}`,
     );
     return response.data;
@@ -569,13 +577,16 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getRootFolders = async (filter: string, openedFolderId: string): Promise<FolderItem[]> => {
+  getRootFolders = async (
+    filter: string,
+    openedFolderId: string,
+  ): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/folders/`,
       {
         params: {
           filter: filter,
-          openedFolderId: openedFolderId
+          openedFolderId: openedFolderId,
         },
       },
     );
@@ -668,13 +679,12 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getChainsUsedByService = async (
-    systemId: string
-  ): Promise<BaseEntity[]> => {
+  getChainsUsedByService = async (systemId: string): Promise<BaseEntity[]> => {
     const response = await this.instance.get<BaseEntity[]>(
-      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/systems/${systemId}`)
+      `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/systems/${systemId}`,
+    );
     return response.data;
-  }
+  };
 
   exportServices = async (
     serviceIds: string[],
@@ -961,9 +971,7 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  deleteSpecificationGroup = async (
-    id: string,
-  ): Promise<void> => {
+  deleteSpecificationGroup = async (id: string): Promise<void> => {
     await this.instance.delete<SpecificationGroup>(
       `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/specificationGroups/${id}`,
     );
@@ -982,14 +990,14 @@ export class RestApi implements Api {
 
   deleteSpecificationModel = async (id: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/models/${id}`
+      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/models/${id}`,
     );
   };
 
   getSpecificationModel = async (
     systemId?: string,
-    specificationGroupId?: string
-  ) : Promise<Specification[]> => {
+    specificationGroupId?: string,
+  ): Promise<Specification[]> => {
     const response = await this.instance.get<Specification[]>(
       `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/models`,
       {
@@ -1000,29 +1008,25 @@ export class RestApi implements Api {
       },
     );
     return response.data;
-  }
+  };
 
-  deprecateModel = async (
-    modelId: string
-  ): Promise<Specification> => {
+  deprecateModel = async (modelId: string): Promise<Specification> => {
     const response = await this.instance.post<Specification>(
       `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/models/deprecated`,
       modelId,
       {
-        headers: { 'Content-Type': 'text/plain', },
-      }
+        headers: { "Content-Type": "text/plain" },
+      },
     );
     return response.data;
   };
 
-  getOperationInfo = async (
-    operationId: string
-  ) : Promise<OperationInfo> => {
+  getOperationInfo = async (operationId: string): Promise<OperationInfo> => {
     const response = await this.instance.get<OperationInfo>(
-      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/operations/${operationId}/info`
+      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/operations/${operationId}/info`,
     );
     return response.data;
-  }
+  };
 
   importSystems = async (
     file: File,
@@ -1030,7 +1034,7 @@ export class RestApi implements Api {
     deployLabel?: string,
     packageName?: string,
     packageVersion?: string,
-    packagePartOf?: string
+    packagePartOf?: string,
   ): Promise<ImportSystemResult[]> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -1054,14 +1058,14 @@ export class RestApi implements Api {
           ...headers,
           "Content-Type": "multipart/form-data",
         },
-      }
+      },
     );
     return response.data;
   };
 
   importSpecification = async (
     specificationGroupId: string,
-    files: File[]
+    files: File[],
   ): Promise<ImportSpecificationResult> => {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
@@ -1074,7 +1078,7 @@ export class RestApi implements Api {
       {
         params,
         headers: { "Content-Type": "multipart/form-data" },
-      }
+      },
     );
     return response.data;
   };
@@ -1083,7 +1087,7 @@ export class RestApi implements Api {
     systemId: string,
     name: string,
     files: File[],
-    protocol?: string
+    protocol?: string,
   ): Promise<ImportSpecificationResult> => {
     const formData: FormData = new FormData();
     files.forEach((file) => formData.append("files", file, file.name));
@@ -1098,16 +1102,16 @@ export class RestApi implements Api {
       {
         params,
         headers: { "Content-Type": "multipart/form-data" },
-      }
+      },
     );
     return response.data;
   };
 
   getImportSpecificationResult = async (
-    importId: string
+    importId: string,
   ): Promise<ImportSpecificationResult> => {
     const response = await this.instance.get<ImportSpecificationResult>(
-      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/import/${importId}`
+      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/import/${importId}`,
     );
     return response.data;
   };

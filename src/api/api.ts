@@ -2,9 +2,10 @@ import {
   Chain,
   ChainCreationRequest,
   Connection,
-  ElementRequest,
+  CreateElementRequest,
   LibraryData,
   Element,
+  ElementDescriptor,
   Snapshot,
   ConnectionRequest,
   ActionDifference,
@@ -83,7 +84,7 @@ export interface Api {
   getElementsByType(chainId: string, elementType: string): Promise<Element[]>;
 
   createElement(
-    elementRequest: ElementRequest,
+    elementRequest: CreateElementRequest,
     chainId: string,
   ): Promise<ActionDifference>;
 
@@ -93,7 +94,10 @@ export interface Api {
     elementId: string,
   ): Promise<ActionDifference>;
 
-  deleteElement(elementId: string, chainId: string): Promise<ActionDifference>;
+  deleteElements(
+    elementIds: string[],
+    chainId: string,
+  ): Promise<ActionDifference>;
 
   getConnections(chainId: string): Promise<Connection[]>;
 
@@ -103,7 +107,7 @@ export interface Api {
   ): Promise<ActionDifference>;
 
   deleteConnection(
-    connectionId: string,
+    connectionIds: string[],
     chainId: string,
   ): Promise<ActionDifference>;
 
@@ -125,7 +129,7 @@ export interface Api {
 
   revertToSnapshot(chainId: string, snapshotId: string): Promise<Snapshot>;
 
-  getLibraryElementByType(type: string): Promise<Element>;
+  getLibraryElementByType(type: string): Promise<ElementDescriptor>;
 
   getDeployments(chainId: string): Promise<Deployment[]>;
 
@@ -191,7 +195,7 @@ export interface Api {
 
   getFolder(folderId: string): Promise<FolderItem>;
 
-  getRootFolders(filter: string, openedFolderId: string): Promise<FolderItem[]>
+  getRootFolders(filter: string, openedFolderId: string): Promise<FolderItem[]>;
 
   getPathToFolder(folderId: string): Promise<FolderItem[]>;
 
@@ -218,7 +222,10 @@ export interface Api {
 
   exportServices(serviceIds: string[], modelIds: string[]): Promise<File>;
 
-  exportSpecifications(specificationIds: string[], specificationGroupId: string[]): Promise<File>;
+  exportSpecifications(
+    specificationIds: string[],
+    specificationGroupId: string[],
+  ): Promise<File>;
 
   getImportPreview(file: File): Promise<ImportPreview>;
 
@@ -253,15 +260,25 @@ export interface Api {
     params: LogExportRequestParams,
   ): Promise<Blob>;
 
-  getServices(modelType: string, withSpec: boolean): Promise<IntegrationSystem[]>;
+  getServices(
+    modelType: string,
+    withSpec: boolean,
+  ): Promise<IntegrationSystem[]>;
 
   createService(system: SystemRequest): Promise<IntegrationSystem>;
 
-  createEnvironment(systemId: string, envRequest: EnvironmentRequest): Promise<Environment>;
+  createEnvironment(
+    systemId: string,
+    envRequest: EnvironmentRequest,
+  ): Promise<Environment>;
 
-  updateEnvironment(systemId: string, environmentId: string, envRequest: EnvironmentRequest): Promise<Environment>;
+  updateEnvironment(
+    systemId: string,
+    environmentId: string,
+    envRequest: EnvironmentRequest,
+  ): Promise<Environment>;
 
-  deleteEnvironment(systemId: string, environmentId: string ): Promise<void>;
+  deleteEnvironment(systemId: string, environmentId: string): Promise<void>;
 
   deleteService(serviceId: string): Promise<void>;
 
@@ -271,38 +288,52 @@ export interface Api {
     deployLabel?: string,
     packageName?: string,
     packageVersion?: string,
-    packagePartOf?: string
+    packagePartOf?: string,
   ): Promise<ImportSystemResult[]>;
 
   importSpecification(
     specificationGroupId: string,
-    files: File[]
+    files: File[],
   ): Promise<ImportSpecificationResult>;
 
-  getImportSpecificationResult(importId: string): Promise<ImportSpecificationResult>;
+  getImportSpecificationResult(
+    importId: string,
+  ): Promise<ImportSpecificationResult>;
 
   importSpecificationGroup(
     systemId: string,
     name: string,
     files: File[],
-    protocol?: string
+    protocol?: string,
   ): Promise<ImportSpecificationResult>;
 
   deleteSpecificationGroup(id: string): Promise<void>;
 
   getService(id: string): Promise<IntegrationSystem>;
 
-  updateService(id: string, data: Partial<IntegrationSystem>): Promise<IntegrationSystem>;
+  updateService(
+    id: string,
+    data: Partial<IntegrationSystem>,
+  ): Promise<IntegrationSystem>;
 
   getEnvironments(systemId: string): Promise<Environment[]>;
 
   getApiSpecifications(systemId: string): Promise<SpecificationGroup[]>;
 
-  updateApiSpecificationGroup( id: string, data: Partial<SpecificationGroup>): Promise<SpecificationGroup>;
+  updateApiSpecificationGroup(
+    id: string,
+    data: Partial<SpecificationGroup>,
+  ): Promise<SpecificationGroup>;
 
-  getSpecificationModel(systemId?: string, specificationGroupId?: string) : Promise<Specification[]>
+  getSpecificationModel(
+    systemId?: string,
+    specificationGroupId?: string,
+  ): Promise<Specification[]>;
 
-  updateSpecificationModel( id: string, data: Partial<Specification>): Promise<Specification>
+  updateSpecificationModel(
+    id: string,
+    data: Partial<Specification>,
+  ): Promise<Specification>;
 
   getOperationInfo(operationId: string): Promise<OperationInfo>;
 
