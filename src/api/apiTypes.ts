@@ -124,19 +124,19 @@ export type ElementDescriptor = {
 };
 
 export type Element = BaseEntity & {
-    chainId: string;
-    type: string;
-    parentElementId: string;
-    originalId: string;
-    properties: {
-        [PropertyType.COMMON]: Property[];
-        [PropertyType.ADVANCED]: Property[];
-        [PropertyType.HIDDEN]: Property[];
-        [PropertyType.UNKNOWN]: Property[];
-    };
-    children?: Element[];
-    swimlaneId: string;
-    mandatoryChecksPassed: boolean;
+  chainId: string;
+  type: string;
+  parentElementId: string;
+  originalId: string;
+  properties: {
+    [PropertyType.COMMON]: Property[];
+    [PropertyType.ADVANCED]: Property[];
+    [PropertyType.HIDDEN]: Property[];
+    [PropertyType.UNKNOWN]: Property[];
+  };
+  children?: Element[];
+  swimlaneId: string;
+  mandatoryChecksPassed: boolean;
 };
 
 export interface ElementFilter {
@@ -918,7 +918,7 @@ export type IntegrationSystem = {
   createdWhen?: string;
   createdBy?: User;
   modifiedWhen?: string;
-}
+};
 
 export enum IntegrationSystemType {
   INTERNAL = "INTERNAL",
@@ -932,7 +932,7 @@ export type SystemRequest = {
   description?: string;
   activeEnvironmentId?: string;
   labels?: EntityLabel[];
-}
+};
 
 export type Environment = {
   id: string;
@@ -951,7 +951,7 @@ export type Environment = {
   sourceType?: EnvironmentSourceType;
   /** @deprecated */
   maasInstanceId?: string;
-}
+};
 
 export type EnvironmentRequest = {
   name: string;
@@ -959,7 +959,7 @@ export type EnvironmentRequest = {
   labels?: EnvironmentLabel[];
   properties?: Record<string, unknown>;
   sourceType?: EnvironmentSourceType;
-}
+};
 
 export enum EnvironmentSourceType {
   MANUAL = "MANUAL",
@@ -1000,7 +1000,7 @@ export interface Specification {
   modifiedBy?: User;
   chains?: BaseEntity[];
   labels?: EntityLabel[];
-  operations?: SystemOperation
+  operations?: SystemOperation;
 }
 
 export interface SystemOperation {

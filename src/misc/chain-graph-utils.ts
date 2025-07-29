@@ -1,7 +1,10 @@
 import { Element, ElementDescriptor } from "../api/apiTypes.ts";
 import { Node, Position, XYPosition } from "@xyflow/react";
 import { ElkDirection } from "../hooks/graph/useElkDirection.tsx";
-import {ChainGraphNode, ChainGraphNodeData} from "../components/graph/nodes/ChainGraphNodeTypes.ts";
+import {
+  ChainGraphNode,
+  ChainGraphNodeData,
+} from "../components/graph/nodes/ChainGraphNodeTypes.ts";
 
 export function getDataFromElement(
   element: Element,
