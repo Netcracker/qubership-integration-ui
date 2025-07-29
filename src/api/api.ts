@@ -4,7 +4,7 @@ import {
   Connection,
   ElementRequest,
   LibraryData,
-  Element,
+  LibraryElement,
   Snapshot,
   ConnectionRequest,
   ActionDifference,
@@ -57,6 +57,7 @@ import {
   ApiSpecificationFormat,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
+import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
 
 export interface Api {
   getChains(): Promise<Chain[]>;
@@ -132,7 +133,7 @@ export interface Api {
 
   revertToSnapshot(chainId: string, snapshotId: string): Promise<Snapshot>;
 
-  getLibraryElementByType(type: string): Promise<Element>;
+  getLibraryElementByType(type: string): Promise<LibraryElement>;
 
   getDeployments(chainId: string): Promise<Deployment[]>;
 
@@ -384,4 +385,4 @@ export interface Api {
   ): Promise<void>;
 }
 
-export const api: Api = new RestApi();
+export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();
