@@ -13,7 +13,7 @@ import {
   Deployment,
   DetailedDesignTemplate,
   ElementFilter,
-  ElementRequest,
+  CreateElementRequest,
   ElementsSequenceDiagrams,
   ElementWithChainName,
   Engine,
@@ -95,15 +95,19 @@ export class VSCodeExtensionApi implements Api {
   };
 
   getLibrary = async (): Promise<LibraryData> => {
-    return <LibraryData>(await this.sendMessageToExtension("getLibrary")).payload;
+    return <LibraryData>(
+      (await this.sendMessageToExtension("getLibrary")).payload
+    );
   };
 
   getElements = async (chainId: string): Promise<Element[]> => {
-    return <Element[]>(await this.sendMessageToExtension("getElements", chainId)).payload;
+    return <Element[]>(
+      (await this.sendMessageToExtension("getElements", chainId)).payload
+    );
   };
 
   createElement = async (
-    elementRequest: ElementRequest,
+    elementRequest: CreateElementRequest,
     chainId: string,
   ): Promise<ActionDifference> => {
     return <ActionDifference>(
@@ -133,13 +137,19 @@ export class VSCodeExtensionApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     return <ActionDifference>(
-      await this.sendMessageToExtension("deleteElement", { chainId, elementId })
-    ).payload;
+      (
+        await this.sendMessageToExtension("deleteElement", {
+          chainId,
+          elementId,
+        })
+      ).payload
+    );
   };
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
-    return <Connection[]>(await this.sendMessageToExtension("getConnections", chainId))
-      .payload;
+    return <Connection[]>(
+      (await this.sendMessageToExtension("getConnections", chainId)).payload
+    );
   };
 
   createConnection = async (
@@ -155,7 +165,7 @@ export class VSCodeExtensionApi implements Api {
   };
 
   deleteConnection = async (
-    connectionId: string,
+    connectionId: string[],
     chainId: string,
   ): Promise<ActionDifference> => {
     return <ActionDifference>(
@@ -167,8 +177,10 @@ export class VSCodeExtensionApi implements Api {
   };
 
   getLibraryElementByType = async (type: string): Promise<LibraryElement> => {
-    return <LibraryElement>(await this.sendMessageToExtension("getLibraryElementByType", type))
-      .payload;
+    return <LibraryElement>(
+      (await this.sendMessageToExtension("getLibraryElementByType", type))
+        .payload
+    );
   };
 
   getChain = async (id: string): Promise<Chain> => {
@@ -176,9 +188,15 @@ export class VSCodeExtensionApi implements Api {
   };
 
   updateChain = async (id: string, chain: Partial<Chain>): Promise<Chain> => {
-    return <Chain>(await this.sendMessageToExtension("updateChain", { id, chain }))
-      .payload;
+    return <Chain>(
+      (await this.sendMessageToExtension("updateChain", { id, chain })).payload
+    );
   };
+
+
+  deleteElements(): Promise<ActionDifference> {
+    throw new Error("Method not implemented.");
+  }
 
   getElementsByType(): Promise<ElementWithChainName[]> {
     throw new Error("Method not implemented.");
