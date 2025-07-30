@@ -2,7 +2,7 @@ import {
   Chain,
   ChainCreationRequest,
   Connection,
-  ElementRequest,
+  CreateElementRequest,
   LibraryData,
   LibraryElement,
   Snapshot,
@@ -91,7 +91,7 @@ export interface Api {
   getElementsByType(chainId: string, elementType: string): Promise<ElementWithChainName[]>;
 
   createElement(
-    elementRequest: ElementRequest,
+    elementRequest: CreateElementRequest,
     chainId: string,
   ): Promise<ActionDifference>;
 
@@ -101,7 +101,10 @@ export interface Api {
     elementId: string,
   ): Promise<ActionDifference>;
 
-  deleteElement(elementId: string, chainId: string): Promise<ActionDifference>;
+  deleteElements(
+    elementIds: string[],
+    chainId: string,
+  ): Promise<ActionDifference>;
 
   getConnections(chainId: string): Promise<Connection[]>;
 
@@ -111,7 +114,7 @@ export interface Api {
   ): Promise<ActionDifference>;
 
   deleteConnection(
-    connectionId: string,
+    connectionIds: string[],
     chainId: string,
   ): Promise<ActionDifference>;
 

@@ -37,8 +37,9 @@ export type Dependency = {
   to: string;
 };
 
-export type ElementRequest = {
+export type CreateElementRequest = {
   type: string;
+  parentElementId?: string;
 };
 
 export type PatchElementRequest = {
@@ -96,11 +97,12 @@ export type Element = BaseEntity & {
 }
 
 export type LibraryElement = {
-  id: string;
   name: string;
   title: string;
   description: string;
   folder: string;
+  colorType: string;
+  descriptionFormatter: string;
   type: string;
   inputEnabled: boolean;
   inputQuantity: "any" | number;
