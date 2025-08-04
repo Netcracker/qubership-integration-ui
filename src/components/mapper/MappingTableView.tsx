@@ -7,7 +7,7 @@ import {
   MappingDescription,
   TypeDefinition,
 } from "../../mapper/model/model.ts";
-import { Button, Dropdown, Flex, Radio, Table, TableProps } from "antd";
+import { Button, Dropdown, Flex, Modal, Radio, Table, TableProps } from "antd";
 import Search from "antd/lib/input/Search";
 import {
   ClearOutlined,
@@ -56,7 +56,10 @@ import {
   TransformationColumnFilterDropdown,
 } from "./TransformationColumnFilterDropdown.tsx";
 import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
-import { isAttributeDetail } from "../../mapper/util/schema.ts";
+import {
+  isAttributeDetail,
+  MessageSchemaUtil,
+} from "../../mapper/util/schema.ts";
 import { GENERATORS } from "../../mapper/model/generators.ts";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
@@ -104,7 +107,7 @@ type AttributeItem = {
   id: string;
   itemType: "attribute";
   kind: AttributeKind;
-  path: string[];
+  path: Attribute[];
   resolvedType: DataType;
   actions: MappingAction[];
   typeDefinitions: TypeDefinition[];
@@ -142,7 +145,7 @@ type HeaderGroup = {
   children: AttributeItem[];
 };
 
-function isHeaderGroup(obj: unknown): obj is ConstantGroup {
+function isHeaderGroup(obj: unknown): obj is HeaderGroup {
   return (
     typeof obj === "object" &&
     obj !== null &&
@@ -157,7 +160,7 @@ type PropertyGroup = {
   children: AttributeItem[];
 };
 
-function isPropertyGroup(obj: unknown): obj is ConstantGroup {
+function isPropertyGroup(obj: unknown): obj is PropertyGroup {
   return (
     typeof obj === "object" &&
     obj !== null &&
@@ -211,10 +214,11 @@ function buildAttributeItem(
   const typeDefinitions = Attributes.extractTypeDefinitions(path);
   const resolveResult = DataTypes.resolveType(attribute.type, typeDefinitions);
   const type = resolveResult.type ?? DataTypes.nullType();
+  const p = [...path, attribute];
   const children = Attributes.getChildAttributes(
     attribute,
     resolveResult.definitions,
-  ).map((a) => buildAttributeItem(a, kind, [...path, attribute], actions));
+  ).map((a) => buildAttributeItem(a, kind, p, actions));
   return {
     id: attribute.id,
     itemType: "attribute",
@@ -225,9 +229,9 @@ function buildAttributeItem(
     actions: MappingActions.findActionsByElementReference(actions, {
       type: "attribute",
       kind,
-      path: [...path, attribute].map((a) => a.id),
+      path: p.map((a) => a.id),
     }),
-    path: path.map((attribute) => attribute.id),
+    path: p,
     children: children.length > 0 ? children : undefined,
   };
 }
@@ -368,15 +372,14 @@ function getSourceSearchContexts(
 ): string[] {
   if (isAttributeItem(item)) {
     const required = item.attribute.required ? "required" : "optional";
-    const mappingActionTargets = item.actions.map(action => action.target)
+    const mappingActionTargets = item.actions
+      .map((action) => action.target)
       .map((target) =>
         MappingActions.resolveReference(target, true, mappingDescription),
       )
       .filter((reference) => !!reference)
       .filter(isAttributeDetail)
-      .map((reference) =>
-          reference.path.slice(-1)?.pop()?.name ?? ""
-      );
+      .map((reference) => reference.path.slice(-1)?.pop()?.name ?? "");
     return [
       item.attribute.name,
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -384,14 +387,14 @@ function getSourceSearchContexts(
       item.attribute.defaultValue ?? "",
       ...mappingActionTargets,
       required,
-    ].filter(i => !!i);
+    ].filter((i) => !!i);
   } else if (isConstantItem(item)) {
     return [
       item.constant.name,
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
       String(MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ?? ""),
-      ...getConstantValueSearchContexts(item.constant)
-    ]
+      ...getConstantValueSearchContexts(item.constant),
+    ];
   } else {
     return [];
   }
@@ -403,7 +406,7 @@ function getConstantValueSearchContexts(constant: Constant): string[] {
     ? [supplier.value]
     : [
         supplier.generator.name,
-        GENERATORS.find(g => g.name === supplier.generator.name)?.title ?? "",
+        GENERATORS.find((g) => g.name === supplier.generator.name)?.title ?? "",
         ...(supplier.generator.parameters ?? []),
       ];
 }
@@ -452,7 +455,7 @@ function getTargetSearchContexts(
     ...mappingActionSources,
     ...mappingActionDescriptions,
     required,
-  ].filter(value => !!value);
+  ].filter((value) => !!value);
 }
 
 export const MappingTableView: React.FC<MappingTableViewProps> = ({
@@ -543,6 +546,65 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     setSearchString(controlsStateMap.get(selectedSchema)?.searchString ?? "");
   }, [selectedSchema, controlsStateMap]);
 
+  const clearTree = useCallback(
+    (item: MappingTableItem) => {
+      setMappingDescription((mapping) => {
+        if (isConstantGroup(item)) {
+          mapping = { ...mapping, constants: [] };
+        } else {
+          const path = isAttributeItem(item) ? item.path : [];
+          const kind = isAttributeItem(item)
+            ? item.kind
+            : isHeaderGroup(item)
+              ? "header"
+              : isPropertyGroup(item)
+                ? "property"
+                : "body";
+          const messageSchema = MessageSchemaUtil.clearAttributes(
+            mapping[selectedSchema],
+            kind,
+            path,
+          );
+          mapping = {
+            ...mapping,
+            [selectedSchema]: messageSchema,
+          };
+        }
+        mapping = MappingUtil.removeDanglingActions(mapping);
+        onChange?.(mapping);
+        return mapping;
+      });
+    },
+    [onChange, selectedSchema],
+  );
+
+  const removeElement = useCallback(
+    (item: MappingTableItem) => {
+      setMappingDescription((mapping) => {
+        if (isConstantItem(item)) {
+          const constants = mapping.constants.filter(
+            (constant) => constant.id !== item.constant.id,
+          );
+          mapping = { ...mapping, constants };
+        } else if (isAttributeItem(item)) {
+          const messageSchema = MessageSchemaUtil.removeAttribute(
+            mapping[selectedSchema],
+            item.kind,
+            item.path,
+          );
+          mapping = {
+            ...mapping,
+            [selectedSchema]: messageSchema,
+          };
+        }
+        mapping = MappingUtil.removeDanglingActions(mapping);
+        onChange?.(mapping);
+        return mapping;
+      });
+    },
+    [onChange, selectedSchema],
+  );
+
   const buildColumns =
     useCallback((): TableProps<MappingTableItem>["columns"] => {
       return [
@@ -565,6 +627,12 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             ) : (
               <></>
             );
+          },
+          onCell: (item: MappingTableItem) => {
+            return (isConstantItem(item) && !item.constant.name) ||
+              (isAttributeItem(item) && !item.attribute.name)
+              ? { className: styles["invalid-value"] }
+              : {};
           },
           sorter: (
             i0: MappingTableItem,
@@ -992,6 +1060,16 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                     <></>
                   );
                 },
+                onCell: (item: MappingTableItem) => {
+                  return isAttributeItem(item) &&
+                    item.actions
+                      .filter((action) => !!action.transformation)
+                      .flatMap((action) =>
+                        verifyMappingAction(action, mappingDescription),
+                      ).length > 0
+                    ? { className: styles["invalid-value"] }
+                    : {};
+                },
                 sorter: (
                   i0: MappingTableItem,
                   i1: MappingTableItem,
@@ -1188,7 +1266,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   label: "Clear",
                   icon: <ClearOutlined />,
                   onClick: () => {
-                    /* TODO */
+                    Modal.confirm({
+                      title: "Clear tree",
+                      content: "Are you sure you want to clear the whole tree?",
+                      onOk: () => clearTree(item),
+                    });
                   },
                 },
               );
@@ -1199,7 +1281,13 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 label: "Delete",
                 icon: <DeleteOutlined />,
                 onClick: () => {
-                  /* TODO */
+                  const title = `Delete ${isConstantItem(item) ? "constant" : "attribute"}`;
+                  const content = `Are you sure you want to delete this ${isConstantItem(item) ? "constant" : "attribute"} and all related connections?`;
+                  Modal.confirm({
+                    title,
+                    content,
+                    onOk: () => removeElement(item),
+                  });
                 },
               });
             }
