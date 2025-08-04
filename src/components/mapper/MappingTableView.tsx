@@ -61,6 +61,7 @@ import {
   MessageSchemaUtil,
 } from "../../mapper/util/schema.ts";
 import { GENERATORS } from "../../mapper/model/generators.ts";
+import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   mapping?: MappingDescription;
@@ -604,6 +605,22 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     },
     [onChange, selectedSchema],
   );
+
+  const exportElement = useCallback((item: MappingTableItem) => {
+    const type = isAttributeItem(item)
+      ? item.resolvedType
+      : isBodyGroup(item)
+        ? (item.type ?? DataTypes.nullType())
+        : DataTypes.nullType();
+    const definitions = isAttributeItem(item) ? item.typeDefinitions : [];
+    const schema = exportAsJsonSchema(type, definitions);
+    const text = JSON.stringify(schema);
+    const blob = new Blob([text], { type: "application/json" });
+    const timestamp = formatDate(new Date());
+    const fileName = `schema-${timestamp}.json`;
+    const file = new File([blob], fileName, { type: "application/json" });
+    downloadFile(file);
+  }, []);
 
   const buildColumns =
     useCallback((): TableProps<MappingTableItem>["columns"] => {
@@ -1247,7 +1264,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 label: "Export",
                 icon: <CloudDownloadOutlined />,
                 onClick: () => {
-                  /* TODO */
+                  exportElement(item);
                 },
               });
             }
