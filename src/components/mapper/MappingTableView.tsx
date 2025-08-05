@@ -691,14 +691,14 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     [messageApi, onChange, selectedSchema],
   );
 
-  const updateAttributeName = useCallback(
-    (kind: AttributeKind, path: Attribute[], name: string) => {
+  const updateAttribute = useCallback(
+    (kind: AttributeKind, path: Attribute[], changes: Partial<Attribute>) => {
       setMappingDescription((mapping) => {
         if (path.length === 0) {
           return mapping;
         }
         try {
-          const attribute: Attribute = { ...path.slice(-1).pop()!, name };
+          const attribute: Attribute = { ...path.slice(-1).pop()!, ...changes };
           const messageSchema = MessageSchemaUtil.updateAttribute(
             mapping[selectedSchema],
             kind,
@@ -721,50 +721,41 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     [messageApi, onChange, selectedSchema],
   );
 
-  const updateAttributeOptionality = useCallback(
-    (kind: AttributeKind, path: Attribute[], required: boolean) => {
-      setMappingDescription((mapping) => {
-        if (path.length === 0) {
-          return mapping;
-        }
-        const attribute: Attribute = { ...path.slice(-1).pop()!, required };
-        const messageSchema = MessageSchemaUtil.updateAttribute(
-          mapping[selectedSchema],
-          kind,
-          path.slice(0, -1),
-          attribute,
-        );
-        mapping = { ...mapping, [selectedSchema]: messageSchema };
-        onChange?.(mapping);
-        return mapping;
-      });
-    },
-    [onChange, selectedSchema],
-  );
-
-  const updateConstantName = useCallback(
-    (id: string, name: string) => {
+  const updateConstant = useCallback(
+    (id: string, changes: Partial<Constant>) => {
       setMappingDescription((mapping) => {
         const constantWithSameNameExists = MappingUtil.findConstant(
           mapping,
-          (constant) => constant.id !== id && constant.name === name,
+          (constant) => constant.id !== id && constant.name === changes.name,
         );
         if (constantWithSameNameExists) {
           void messageApi.open({
             type: "error",
-            content: `Constant "${name}" already exists.`,
+            content: `Constant "${changes.name}" already exists.`,
           });
           return mapping;
         }
         mapping = MappingUtil.updateConstant(mapping, id, (constant) => ({
           ...constant,
-          name,
+          ...changes,
         }));
         onChange?.(mapping);
         return mapping;
       });
     },
     [messageApi, onChange],
+  );
+
+  const updateActions = useCallback(
+    (updateFn: (action: MappingAction) => MappingAction) => {
+      setMappingDescription((mapping) => {
+        const actions = mapping.actions.map(updateFn);
+        mapping = { ...mapping, actions };
+        onChange?.(mapping);
+        return mapping;
+      });
+    },
+    [onChange],
   );
 
   const buildColumns =
@@ -790,8 +781,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   values={{ name: item.attribute.name }}
                   editor={<TextValueEdit name={"name"} />}
                   viewer={item.attribute.name}
+                  initialActive={!item.attribute.name}
                   onSubmit={({ name }) => {
-                    updateAttributeName(item.kind, item.path, name);
+                    updateAttribute(item.kind, item.path, { name });
                   }}
                 />
               )
@@ -803,8 +795,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   values={{ name: item.constant.name }}
                   editor={<TextValueEdit name={"name"} />}
                   viewer={item.constant.name}
+                  initialActive={!item.constant.name}
                   onSubmit={({ name }) => {
-                    updateConstantName(item.constant.id, name);
+                    updateConstant(item.constant.id, { name });
                   }}
                 />
               )
@@ -959,11 +952,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   }
                   viewer={item.attribute.required ? "required" : "optional"}
                   onSubmit={({ optionality }) => {
-                    updateAttributeOptionality(
-                      item.kind,
-                      item.path,
-                      optionality === "true",
-                    );
+                    updateAttribute(item.kind, item.path, {
+                      required: optionality === "true",
+                    });
                   }}
                 />
               )
@@ -1017,11 +1008,71 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           title: "Description",
           render: (_value: never, item: MappingTableItem) => {
             return isAttributeItem(item) ? (
-              (MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ??
-                PLACEHOLDER) // TODO inline edit
+              readonly ? (
+                String(
+                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                  MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ??
+                    PLACEHOLDER,
+                )
+              ) : (
+                <InlineEdit<{ description: string }>
+                  values={{
+                    description: String(
+                      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                      MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ??
+                        "",
+                    ),
+                  }}
+                  editor={<TextValueEdit name="description" rules={[]} />}
+                  viewer={String(
+                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                    MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ??
+                      PLACEHOLDER,
+                  )}
+                  onSubmit={({ description }) => {
+                    updateAttribute(item.kind, item.path, {
+                      metadata: MetadataUtil.upsert(
+                        item.attribute.metadata,
+                        DESCRIPTION_KEY,
+                        description ? description : undefined,
+                      ),
+                    });
+                  }}
+                />
+              )
             ) : isConstantItem(item) ? (
-              (MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ??
-              PLACEHOLDER) // TODO inline edit
+              readonly ? (
+                String(
+                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                  MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ??
+                    PLACEHOLDER,
+                )
+              ) : (
+                <InlineEdit<{ description: string }>
+                  values={{
+                    description: String(
+                      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                      MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ??
+                        "",
+                    ),
+                  }}
+                  editor={<TextValueEdit name="description" rules={[]} />}
+                  viewer={String(
+                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                    MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ??
+                      PLACEHOLDER,
+                  )}
+                  onSubmit={({ description }) => {
+                    updateConstant(item.constant.id, {
+                      metadata: MetadataUtil.upsert(
+                        item.constant.metadata,
+                        DESCRIPTION_KEY,
+                        description ? description : undefined,
+                      ),
+                    });
+                  }}
+                />
+              )
             ) : (
               <></>
             );
@@ -1341,17 +1392,36 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 key: "transformationDescription",
                 title: "Transformation description",
                 render: (_value: never, item: MappingTableItem) => {
-                  // TODO inline edit
-                  return isAttributeItem(item) ? (
-                    item.actions
+                  if (isAttributeItem(item) && item.actions.length > 0) {
+                    const description = item.actions
                       .map((action) =>
                         MetadataUtil.getValue(action, DESCRIPTION_KEY),
                       )
                       .filter((description) => !!description)
-                      .join(" ") || PLACEHOLDER
-                  ) : (
-                    <></>
-                  );
+                      .join(" ");
+                    return readonly ? (
+                      description || PLACEHOLDER
+                    ) : (
+                      <InlineEdit<{ description: string }>
+                        values={{ description }}
+                        editor={<TextValueEdit name="description" rules={[]} />}
+                        viewer={description || PLACEHOLDER}
+                        onSubmit={({ description }) => {
+                          updateActions((action) => {
+                            return item.actions.some((a) => a.id === action.id)
+                              ? MetadataUtil.setValue(
+                                  action,
+                                  DESCRIPTION_KEY,
+                                  description,
+                                )
+                              : action;
+                          });
+                        }}
+                      />
+                    );
+                  } else {
+                    return <></>;
+                  }
                 },
                 sorter: (
                   i0: MappingTableItem,
@@ -1526,9 +1596,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       readonly,
       removeElement,
       selectedSchema,
-      updateAttributeName,
-      updateAttributeOptionality,
-      updateConstantName,
+      updateActions,
+      updateAttribute,
+      updateConstant,
     ]);
 
   useEffect(() => {
