@@ -73,6 +73,7 @@ import { GENERATORS } from "../../mapper/model/generators.ts";
 import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
 import { TextValueEdit } from "../table/TextValueEdit.tsx";
 import { InlineEdit } from "../InlineEdit.tsx";
+import { SelectEdit } from "../table/SelectEdit.tsx";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   mapping?: MappingDescription;
@@ -511,6 +512,14 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
   const [mappingDescription, setMappingDescription] =
     useState<MappingDescription>(MappingUtil.emptyMapping());
   const [tableItems, setTableItems] = useState<MappingTableItem[]>([]);
+  const [readonly, setReadonly] = useState<boolean>(false);
+
+  useEffect(() => {
+    setReadonly(
+      (selectedSchema === SchemaKind.SOURCE && !!readonlySource) ||
+        (selectedSchema === SchemaKind.TARGET && !!readonlyTarget),
+    );
+  }, [readonlySource, readonlyTarget, selectedSchema]);
 
   useEffect(() => {
     setMappingDescription(mapping ?? MappingUtil.emptyMapping());
@@ -712,6 +721,27 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     [messageApi, onChange, selectedSchema],
   );
 
+  const updateAttributeOptionality = useCallback(
+    (kind: AttributeKind, path: Attribute[], required: boolean) => {
+      setMappingDescription((mapping) => {
+        if (path.length === 0) {
+          return mapping;
+        }
+        const attribute: Attribute = { ...path.slice(-1).pop()!, required };
+        const messageSchema = MessageSchemaUtil.updateAttribute(
+          mapping[selectedSchema],
+          kind,
+          path.slice(0, -1),
+          attribute,
+        );
+        mapping = { ...mapping, [selectedSchema]: messageSchema };
+        onChange?.(mapping);
+        return mapping;
+      });
+    },
+    [onChange, selectedSchema],
+  );
+
   const updateConstantName = useCallback(
     (id: string, name: string) => {
       setMappingDescription((mapping) => {
@@ -753,23 +783,31 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             ) : isPropertyGroup(item) ? (
               <span className={styles["group-label"]}>properties</span>
             ) : isAttributeItem(item) ? (
-              <InlineEdit<{ name: string }>
-                values={{ name: item.attribute.name }}
-                editor={<TextValueEdit name={"name"} />}
-                viewer={item.attribute.name}
-                onSubmit={({ name }) => {
-                  updateAttributeName(item.kind, item.path, name);
-                }}
-              />
+              readonly ? (
+                item.attribute.name
+              ) : (
+                <InlineEdit<{ name: string }>
+                  values={{ name: item.attribute.name }}
+                  editor={<TextValueEdit name={"name"} />}
+                  viewer={item.attribute.name}
+                  onSubmit={({ name }) => {
+                    updateAttributeName(item.kind, item.path, name);
+                  }}
+                />
+              )
             ) : isConstantItem(item) ? (
-              <InlineEdit<{ name: string }>
-                values={{ name: item.constant.name }}
-                editor={<TextValueEdit name={"name"} />}
-                viewer={item.constant.name}
-                onSubmit={({ name }) => {
-                  updateConstantName(item.constant.id, name);
-                }}
-              />
+              readonly ? (
+                item.constant.name
+              ) : (
+                <InlineEdit<{ name: string }>
+                  values={{ name: item.constant.name }}
+                  editor={<TextValueEdit name={"name"} />}
+                  viewer={item.constant.name}
+                  onSubmit={({ name }) => {
+                    updateConstantName(item.constant.id, name);
+                  }}
+                />
+              )
             ) : (
               <></>
             );
@@ -898,10 +936,36 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           title: "Optionality",
           render: (_value: never, item: MappingTableItem) => {
             return isAttributeItem(item) ? (
-              item.attribute.required ? ( // TODO inline edit
-                "required"
+              readonly ? (
+                item.attribute.required ? (
+                  "required"
+                ) : (
+                  "optional"
+                )
               ) : (
-                "optional"
+                <InlineEdit<{ optionality: string }>
+                  values={{ optionality: String(!!item.attribute.required) }}
+                  editor={
+                    <SelectEdit
+                      name="optionality"
+                      options={[
+                        {
+                          value: "false",
+                          label: "optional",
+                        },
+                        { value: "true", label: "required" },
+                      ]}
+                    />
+                  }
+                  viewer={item.attribute.required ? "required" : "optional"}
+                  onSubmit={({ optionality }) => {
+                    updateAttributeOptionality(
+                      item.kind,
+                      item.path,
+                      optionality === "true",
+                    );
+                  }}
+                />
               )
             ) : (
               <></>
@@ -1373,9 +1437,6 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               (isBodyGroup(item) &&
                 item.type &&
                 DataTypes.isComplexType(item.type, []));
-            const readonly =
-              (selectedSchema === SchemaKind.SOURCE && readonlySource) ||
-              (selectedSchema === SchemaKind.TARGET && readonlyTarget);
             const items: ItemType[] = [];
             if (isObject && !readonly) {
               items.push({
@@ -1462,11 +1523,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       controlsStateMap,
       exportElement,
       mappingDescription,
-      readonlySource,
-      readonlyTarget,
+      readonly,
       removeElement,
       selectedSchema,
       updateAttributeName,
+      updateAttributeOptionality,
       updateConstantName,
     ]);
 
