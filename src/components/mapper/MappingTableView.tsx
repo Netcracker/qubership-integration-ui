@@ -74,6 +74,7 @@ import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
 import { TextValueEdit } from "../table/TextValueEdit.tsx";
 import { InlineEdit } from "../InlineEdit.tsx";
 import { SelectEdit } from "../table/SelectEdit.tsx";
+import { InlineTypeEdit } from "./InlineTypeEdit.tsx";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   mapping?: MappingDescription;
@@ -627,6 +628,22 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     [onChange, selectedSchema],
   );
 
+  const updateBodyType = useCallback(
+    (type: DataType | undefined | null) => {
+      setMappingDescription((mapping) => {
+        const messageSchema = { ...mapping[selectedSchema], body: type };
+        mapping = {
+          ...mapping,
+          [selectedSchema]: messageSchema,
+        };
+        mapping = MappingUtil.removeDanglingActions(mapping);
+        onChange?.(mapping);
+        return mapping;
+      });
+    },
+    [onChange, selectedSchema],
+  );
+
   const exportElement = useCallback((item: MappingTableItem) => {
     const type = isAttributeItem(item)
       ? item.resolvedType
@@ -855,19 +872,44 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           key: "type",
           title: "Type",
           render: (_value: never, item: MappingTableItem) => {
-            return isBodyGroup(item) ? (
-              item.type ? (
-                DataTypes.buildTypeName(item.type, [])
-              ) : (
-                <></>
-              ) // TODO inline edit
-            ) : isConstantItem(item) ? (
-              DataTypes.buildTypeName(item.constant.type, []) // TODO inline edit
-            ) : isAttributeItem(item) ? (
-              DataTypes.buildTypeName(item.attribute.type, item.typeDefinitions) // TODO inline edit
-            ) : (
-              <></>
-            );
+            if (isBodyGroup(item)) {
+              return (
+                <InlineTypeEdit
+                  type={item.type}
+                  definitions={
+                    item.type ? DataTypes.getTypeDefinitions(item.type) : []
+                  }
+                  readonly={readonly}
+                  onSubmit={(type) => {
+                    // TODO
+                    updateBodyType(type);
+                  }}
+                />
+              );
+            } else if (isConstantItem(item)) {
+              return (
+                <InlineTypeEdit
+                  type={item.constant.type}
+                  definitions={[]}
+                  readonly={readonly}
+                  disableArrayTypes={true}
+                  onSubmit={(type) => {
+                    // TODO
+                  }}
+                />
+              );
+            } else if (isAttributeItem(item)) {
+              return (
+                <InlineTypeEdit
+                  type={item.attribute.type}
+                  definitions={item.typeDefinitions}
+                  readonly={readonly}
+                  onSubmit={(type) => {
+                    // TODO
+                  }}
+                />
+              );
+            }
           },
           sorter: (
             i0: MappingTableItem,
@@ -1598,6 +1640,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       selectedSchema,
       updateActions,
       updateAttribute,
+      updateBodyType,
       updateConstant,
     ]);
 
