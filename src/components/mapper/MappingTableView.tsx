@@ -864,7 +864,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             ) : isConstantItem(item) ? (
               DataTypes.buildTypeName(item.constant.type, []) // TODO inline edit
             ) : isAttributeItem(item) ? (
-              DataTypes.buildTypeName(item.resolvedType, item.typeDefinitions) // TODO inline edit
+              DataTypes.buildTypeName(item.attribute.type, item.typeDefinitions) // TODO inline edit
             ) : (
               <></>
             );
@@ -876,11 +876,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           ) => {
             if (isAttributeItem(i0) || isConstantItem(i0)) {
               const name1 = isAttributeItem(i0)
-                ? DataTypes.buildTypeName(i0.resolvedType, i0.typeDefinitions)
+                ? DataTypes.buildTypeName(i0.attribute.type, i0.typeDefinitions)
                 : DataTypes.buildTypeName(i0.constant.type, []);
               const name2 = isAttributeItem(i0)
                 ? DataTypes.buildTypeName(
-                    (i1 as AttributeItem).resolvedType,
+                    (i1 as AttributeItem).attribute.type,
                     i0.typeDefinitions,
                   )
                 : DataTypes.buildTypeName(
