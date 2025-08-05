@@ -622,6 +622,46 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     downloadFile(file);
   }, []);
 
+  const addElement = useCallback(
+    (item: MappingTableItem) => {
+      setMappingDescription((mapping) => {
+        if (isConstantGroup(item)) {
+          const constant: Constant = {
+            id: MappingUtil.generateUUID(),
+            name: "",
+            type: DataTypes.stringType(),
+            valueSupplier: { kind: "given", value: "" },
+          };
+          mapping = { ...mapping, constants: [...mapping.constants, constant] };
+        } else {
+          const attribute = Attributes.buildAttribute(
+            MappingUtil.generateUUID(),
+            "",
+            DataTypes.stringType(),
+          );
+          const path = isAttributeItem(item) ? item.path : [];
+          const kind = isAttributeItem(item)
+            ? item.kind
+            : isHeaderGroup(item)
+              ? "header"
+              : isPropertyGroup(item)
+                ? "property"
+                : "body";
+          const messageSchema = MessageSchemaUtil.updateAttribute(
+            mapping[selectedSchema],
+            kind,
+            path,
+            attribute,
+          );
+          mapping = { ...mapping, [selectedSchema]: messageSchema };
+        }
+        onChange?.(mapping);
+        return mapping;
+      });
+    },
+    [onChange, selectedSchema],
+  );
+
   const buildColumns =
     useCallback((): TableProps<MappingTableItem>["columns"] => {
       return [
@@ -1275,7 +1315,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   label: "Add",
                   icon: <PlusCircleOutlined />,
                   onClick: () => {
-                    /* TODO */
+                    addElement(item);
                   },
                 },
                 {
