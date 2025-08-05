@@ -7,7 +7,16 @@ import {
   MappingDescription,
   TypeDefinition,
 } from "../../mapper/model/model.ts";
-import { Button, Dropdown, Flex, Modal, Radio, Table, TableProps } from "antd";
+import {
+  Button,
+  Dropdown,
+  Flex,
+  message,
+  Modal,
+  Radio,
+  Table,
+  TableProps,
+} from "antd";
 import Search from "antd/lib/input/Search";
 import {
   ClearOutlined,
@@ -62,6 +71,8 @@ import {
 } from "../../mapper/util/schema.ts";
 import { GENERATORS } from "../../mapper/model/generators.ts";
 import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
+import { TextValueEdit } from "../table/TextValueEdit.tsx";
+import { InlineEdit } from "../InlineEdit.tsx";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   mapping?: MappingDescription;
@@ -466,6 +477,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
   onChange,
   ...otherProps
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [selectedSchema, setSelectedSchema] = useState<SchemaKind>(
     SchemaKind.TARGET,
   );
@@ -647,20 +659,74 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               : isPropertyGroup(item)
                 ? "property"
                 : "body";
-          const messageSchema = MessageSchemaUtil.updateAttribute(
-            mapping[selectedSchema],
-            kind,
-            path,
-            attribute,
-          );
-          mapping = { ...mapping, [selectedSchema]: messageSchema };
+          try {
+            const messageSchema = MessageSchemaUtil.updateAttribute(
+              mapping[selectedSchema],
+              kind,
+              path,
+              attribute,
+            );
+            mapping = { ...mapping, [selectedSchema]: messageSchema };
+          } catch (error) {
+            const content =
+              error instanceof Error
+                ? error.message
+                : "Failed to add attribute";
+            void messageApi.open({ type: "error", content });
+          }
         }
         onChange?.(mapping);
         return mapping;
       });
     },
-    [onChange, selectedSchema],
+    [messageApi, onChange, selectedSchema],
   );
+
+  const updateAttributeName = useCallback(
+    (kind: AttributeKind, path: Attribute[], name: string) => {
+      setMappingDescription((mapping) => {
+        if (path.length === 0) {
+          return mapping;
+        }
+        try {
+          const attribute: Attribute = { ...path.slice(-1).pop()!, name };
+          const messageSchema = MessageSchemaUtil.updateAttribute(
+            mapping[selectedSchema],
+            kind,
+            path.slice(0, -1),
+            attribute,
+          );
+          mapping = { ...mapping, [selectedSchema]: messageSchema };
+          onChange?.(mapping);
+          return mapping;
+        } catch (error) {
+          const content =
+            error instanceof Error
+              ? error.message
+              : "Failed to rename attribute";
+          void messageApi.open({ type: "error", content });
+          return mapping;
+        }
+      });
+    },
+    [messageApi, onChange, selectedSchema],
+  );
+
+  const updateConstantName = useCallback((id: string, name: string) => {
+    setMappingDescription((mapping) => {
+      const constantWithSameNameExists = MappingUtil.findConstant(
+        mapping,
+        constant => constant.id !== id && constant.name === name
+      );
+      if (constantWithSameNameExists) {
+        void messageApi.open({ type: "error", content: `Constant "${name}" already exists.` });
+        return mapping;
+      }
+      mapping = MappingUtil.updateConstant(mapping, id, constant => ({ ...constant, name }));
+      onChange?.(mapping);
+      return mapping;
+    });
+  }, [messageApi, onChange]);
 
   const buildColumns =
     useCallback((): TableProps<MappingTableItem>["columns"] => {
@@ -678,9 +744,23 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             ) : isPropertyGroup(item) ? (
               <span className={styles["group-label"]}>properties</span>
             ) : isAttributeItem(item) ? (
-              item.attribute.name // TODO inline edit
+              <InlineEdit<{ name: string }>
+                values={{ name: item.attribute.name }}
+                editor={<TextValueEdit name={"name"} />}
+                viewer={item.attribute.name}
+                onSubmit={({ name }) => {
+                  updateAttributeName(item.kind, item.path, name);
+                }}
+              />
             ) : isConstantItem(item) ? (
-              item.constant.name // TODO inline edit
+              <InlineEdit<{ name: string }>
+                values={{ name: item.constant.name }}
+                editor={<TextValueEdit name={"name"} />}
+                viewer={item.constant.name}
+                onSubmit={({ name }) => {
+                  updateConstantName(item.constant.id, name);
+                }}
+              />
             ) : (
               <></>
             );
@@ -1380,119 +1460,122 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
   }, [buildColumns]);
 
   return (
-    <Flex vertical gap={16} style={{ height: "100%" }} {...otherProps}>
-      <Flex vertical={false} align={"center"} justify={"center"} gap={8}>
-        <Radio.Group
-          block
-          options={[
-            { label: "Source", value: "source" },
-            { label: "Target", value: "target" },
-          ]}
-          defaultValue={SchemaKind.TARGET}
-          optionType="button"
-          buttonStyle="solid"
-          onChange={(event) =>
-            setSelectedSchema(event.target.value as SchemaKind)
-          }
-        />
-        <Search
-          placeholder="Full text search"
-          allowClear
-          value={searchString}
-          onChange={(event) => {
-            setSearchString(event.target.value);
-          }}
-          onSearch={(value) => {
-            updateControlsState({ searchString: value });
-          }}
-        />
-        <Dropdown
-          menu={{
-            items: (columns ?? [])
-              .filter((column) => column.key !== "actions")
-              .map((column) => ({
-                key: column.key?.toString() ?? "",
-                label: column.title as string,
-                disabled: alwaysVisibleColumns.includes(
-                  column.key?.toString() ?? "",
-                ),
-              })),
-            selectable: true,
-            multiple: true,
-            selectedKeys:
-              controlsStateMap.get(selectedSchema)?.selectedColumns ?? [],
-            onSelect: ({ selectedKeys }) => {
-              updateControlsState({ selectedColumns: selectedKeys });
-            },
-            onDeselect: ({ selectedKeys }) =>
-              updateControlsState({ selectedColumns: selectedKeys }),
-          }}
-        >
-          <Button icon={<SettingOutlined />} />
-        </Dropdown>
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "saveAsMarkdown",
-                icon: <FileMarkdownOutlined />,
-                label: "Save as markdown",
-                onClick: () => {
-                  exportMappingAsMarkdown(mappingDescription);
-                },
+    <>
+      {contextHolder}
+      <Flex vertical gap={16} style={{ height: "100%" }} {...otherProps}>
+        <Flex vertical={false} align={"center"} justify={"center"} gap={8}>
+          <Radio.Group
+            block
+            options={[
+              { label: "Source", value: "source" },
+              { label: "Target", value: "target" },
+            ]}
+            defaultValue={SchemaKind.TARGET}
+            optionType="button"
+            buttonStyle="solid"
+            onChange={(event) =>
+              setSelectedSchema(event.target.value as SchemaKind)
+            }
+          />
+          <Search
+            placeholder="Full text search"
+            allowClear
+            value={searchString}
+            onChange={(event) => {
+              setSearchString(event.target.value);
+            }}
+            onSearch={(value) => {
+              updateControlsState({ searchString: value });
+            }}
+          />
+          <Dropdown
+            menu={{
+              items: (columns ?? [])
+                .filter((column) => column.key !== "actions")
+                .map((column) => ({
+                  key: column.key?.toString() ?? "",
+                  label: column.title as string,
+                  disabled: alwaysVisibleColumns.includes(
+                    column.key?.toString() ?? "",
+                  ),
+                })),
+              selectable: true,
+              multiple: true,
+              selectedKeys:
+                controlsStateMap.get(selectedSchema)?.selectedColumns ?? [],
+              onSelect: ({ selectedKeys }) => {
+                updateControlsState({ selectedColumns: selectedKeys });
               },
-              {
-                key: "clearFilters",
-                icon: <ClearOutlined />,
-                label: "Clear filters",
-                onClick: () => {
-                  updateControlsState({ filters: {} });
+              onDeselect: ({ selectedKeys }) =>
+                updateControlsState({ selectedColumns: selectedKeys }),
+            }}
+          >
+            <Button icon={<SettingOutlined />} />
+          </Dropdown>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "saveAsMarkdown",
+                  icon: <FileMarkdownOutlined />,
+                  label: "Save as markdown",
+                  onClick: () => {
+                    exportMappingAsMarkdown(mappingDescription);
+                  },
                 },
-              },
-              {
-                key: "clearSorts",
-                icon: <ClearOutlined />,
-                label: "Clear sorters",
-                onClick: () => {
-                  updateControlsState({ sorts: {} });
+                {
+                  key: "clearFilters",
+                  icon: <ClearOutlined />,
+                  label: "Clear filters",
+                  onClick: () => {
+                    updateControlsState({ filters: {} });
+                  },
                 },
-              },
+                {
+                  key: "clearSorts",
+                  icon: <ClearOutlined />,
+                  label: "Clear sorters",
+                  onClick: () => {
+                    updateControlsState({ sorts: {} });
+                  },
+                },
+              ],
+            }}
+            trigger={["click"]}
+            placement="bottomLeft"
+          >
+            <Button icon={<MoreOutlined />} />
+          </Dropdown>
+        </Flex>
+        <Table<MappingTableItem>
+          className="flex-table"
+          size="small"
+          columns={columns}
+          dataSource={tableItems}
+          rowKey="id"
+          pagination={false}
+          scroll={{ y: "" }}
+          expandable={{
+            defaultExpandedRowKeys: [
+              "constant-group",
+              "header-group",
+              "property-group",
+              "body-group",
             ],
           }}
-          trigger={["click"]}
-          placement="bottomLeft"
-        >
-          <Button icon={<MoreOutlined />} />
-        </Dropdown>
+          rowClassName={(item: MappingTableItem) => {
+            return isHeaderGroup(item) ||
+              isConstantGroup(item) ||
+              isPropertyGroup(item) ||
+              isBodyGroup(item)
+              ? styles["group-row"]
+              : "";
+          }}
+          onChange={(_pagination, filters, sorts) => {
+            updateControlsState({ filters, sorts });
+          }}
+        ></Table>
       </Flex>
-      <Table<MappingTableItem>
-        className="flex-table"
-        size="small"
-        columns={columns}
-        dataSource={tableItems}
-        rowKey="id"
-        pagination={false}
-        scroll={{ y: "" }}
-        expandable={{
-          defaultExpandedRowKeys: [
-            "constant-group",
-            "header-group",
-            "property-group",
-            "body-group",
-          ],
-        }}
-        rowClassName={(item: MappingTableItem) => {
-          return isHeaderGroup(item) ||
-            isConstantGroup(item) ||
-            isPropertyGroup(item) ||
-            isBodyGroup(item)
-            ? styles["group-row"]
-            : "";
-        }}
-        onChange={(_pagination, filters, sorts) => {
-          updateControlsState({ filters, sorts });
-        }}
-      ></Table>
-    </Flex>
+    </>
   );
 };
