@@ -712,21 +712,30 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     [messageApi, onChange, selectedSchema],
   );
 
-  const updateConstantName = useCallback((id: string, name: string) => {
-    setMappingDescription((mapping) => {
-      const constantWithSameNameExists = MappingUtil.findConstant(
-        mapping,
-        constant => constant.id !== id && constant.name === name
-      );
-      if (constantWithSameNameExists) {
-        void messageApi.open({ type: "error", content: `Constant "${name}" already exists.` });
+  const updateConstantName = useCallback(
+    (id: string, name: string) => {
+      setMappingDescription((mapping) => {
+        const constantWithSameNameExists = MappingUtil.findConstant(
+          mapping,
+          (constant) => constant.id !== id && constant.name === name,
+        );
+        if (constantWithSameNameExists) {
+          void messageApi.open({
+            type: "error",
+            content: `Constant "${name}" already exists.`,
+          });
+          return mapping;
+        }
+        mapping = MappingUtil.updateConstant(mapping, id, (constant) => ({
+          ...constant,
+          name,
+        }));
+        onChange?.(mapping);
         return mapping;
-      }
-      mapping = MappingUtil.updateConstant(mapping, id, constant => ({ ...constant, name }));
-      onChange?.(mapping);
-      return mapping;
-    });
-  }, [messageApi, onChange]);
+      });
+    },
+    [messageApi, onChange],
+  );
 
   const buildColumns =
     useCallback((): TableProps<MappingTableItem>["columns"] => {
@@ -1448,11 +1457,17 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             ?.selectedColumns?.includes(column.key),
       }));
     }, [
+      addElement,
+      clearTree,
       controlsStateMap,
+      exportElement,
       mappingDescription,
       readonlySource,
       readonlyTarget,
+      removeElement,
       selectedSchema,
+      updateAttributeName,
+      updateConstantName,
     ]);
 
   useEffect(() => {
