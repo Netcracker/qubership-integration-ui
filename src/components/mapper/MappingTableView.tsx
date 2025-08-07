@@ -223,16 +223,20 @@ function buildAttributeItem(
   attribute: Attribute,
   kind: AttributeKind,
   path: Attribute[],
+  definitions: TypeDefinition[],
   actions: MappingAction[],
 ): AttributeItem {
-  const typeDefinitions = Attributes.extractTypeDefinitions(path);
+  const typeDefinitions = [
+    ...definitions,
+    ...Attributes.extractTypeDefinitions(path),
+  ];
   const resolveResult = DataTypes.resolveType(attribute.type, typeDefinitions);
   const type = resolveResult.type ?? DataTypes.nullType();
   const p = [...path, attribute];
   const children = Attributes.getChildAttributes(
     attribute,
     resolveResult.definitions,
-  ).map((a) => buildAttributeItem(a, kind, p, actions));
+  ).map((a) => buildAttributeItem(a, kind, p, definitions, actions));
   return {
     id: attribute.id,
     itemType: "attribute",
@@ -282,7 +286,13 @@ function buildMappingTableItems(
       id: "header-group",
       itemType: "header-group",
       children: schema.headers.map((attribute) =>
-        buildAttributeItem(attribute, "header", [], mappingDescription.actions),
+        buildAttributeItem(
+          attribute,
+          "header",
+          [],
+          [],
+          mappingDescription.actions,
+        ),
       ),
     },
     {
@@ -292,6 +302,7 @@ function buildMappingTableItems(
         buildAttributeItem(
           attribute,
           "property",
+          [],
           [],
           mappingDescription.actions,
         ),
@@ -308,7 +319,13 @@ function buildMappingTableItems(
             Attributes.buildAttribute("", "", schema.body),
             DataTypes.getTypeDefinitions(schema.body),
           ).map((a) =>
-            buildAttributeItem(a, "body", [], mappingDescription.actions),
+            buildAttributeItem(
+              a,
+              "body",
+              [],
+              schema.body ? DataTypes.getTypeDefinitions(schema.body) : [],
+              mappingDescription.actions,
+            ),
           )
         : undefined,
     },
