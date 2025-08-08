@@ -1,0 +1,364 @@
+$id: http://qubership.org/schemas/product/qip/element/mapper-2.schema.yaml
+$schema: http://json-schema.org/draft-07/schema
+type: object
+allOf:
+  - type: object
+    title: Common Entity Properties
+    properties:
+      id:
+        type: string
+        title: Identifier
+      name:
+        type: string
+        title: Name
+    required:
+      - id
+      - name
+  - type: object
+    title: Entity with description
+    properties:
+      description:
+        type: string
+        title: Description
+title: Mapper
+description: Performs mapping between two entities.
+properties:
+  type:
+    type: string
+    const: mapper-2
+  properties: &ref_8
+    type: object
+    allOf:
+      - $id: >-
+          http://qubership.org/schemas/product/qip/element/properties/properties-in-external-file.schema.yaml
+        $schema: http://json-schema.org/draft-07/schema
+        type: object
+        title: Schema for element properties in external file
+        properties:
+          exportFileExtension:
+            type: string
+            description: Specifies file extension of exported properties
+          propertiesToExportInSeparateFile:
+            type: string
+            description: Specifies list of properties to be exported is separate file
+          propertiesFilename:
+            $id: >-
+              http://qubership.org/schemas/product/qip/resource-reference.schema.yaml
+            $schema: http://json-schema.org/draft-07/schema
+            type: string
+            title: Resource reference
+      - type: object
+        properties:
+          throwException:
+            type: boolean
+            title: Throw exception on transformation failure
+            description: Throw exception on transformation failure.
+            default: true
+          mappingDescription: &ref_31
+            type: object
+            allOf:
+              - &ref_0
+                type: object
+                title: Object with metadata
+                properties:
+                  metadata: &ref_9
+                    type: object
+                    title: Metadata
+                    patternProperties:
+                      ^.+$:
+                        type: string
+            properties:
+              source: &ref_5
+                type: object
+                allOf:
+                  - *ref_0
+                properties:
+                  headers:
+                    type: array
+                    title: Headers
+                    items: &ref_3
+                      type: object
+                      allOf:
+                        - &ref_6
+                          type: object
+                          allOf:
+                            - *ref_0
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            type: &ref_1
+                              type: object
+                              oneOf:
+                                - &ref_11
+                                  type: object
+                                  allOf:
+                                    - *ref_0
+                                  properties:
+                                    name:
+                                      const: null
+                                - &ref_12
+                                  type: object
+                                  allOf:
+                                    - *ref_0
+                                  properties:
+                                    name:
+                                      const: string
+                                - &ref_13
+                                  type: object
+                                  allOf:
+                                    - *ref_0
+                                  properties:
+                                    name:
+                                      const: number
+                                - &ref_14
+                                  type: object
+                                  allOf:
+                                    - *ref_0
+                                  properties:
+                                    name:
+                                      const: boolean
+                                - &ref_15
+                                  type: object
+                                  allOf:
+                                    - *ref_0
+                                    - &ref_2
+                                      type: object
+                                      properties:
+                                        definitions:
+                                          type: array
+                                          items: &ref_10
+                                            type: object
+                                            properties:
+                                              id:
+                                                type: string
+                                              name:
+                                                type: string
+                                              type: *ref_1
+                                            required:
+                                              - id
+                                              - name
+                                              - type
+                                  properties:
+                                    name:
+                                      const: array
+                                    itemType: *ref_1
+                                - &ref_16
+                                  type: object
+                                  allOf:
+                                    - *ref_0
+                                    - *ref_2
+                                  properties:
+                                    name:
+                                      const: object
+                                    schema: &ref_21
+                                      type: object
+                                      allOf:
+                                        - *ref_0
+                                      properties:
+                                        id:
+                                          type: string
+                                        attributes:
+                                          type: array
+                                          items: *ref_3
+                                - &ref_17
+                                  type: object
+                                  allOf:
+                                    - *ref_0
+                                    - *ref_2
+                                  properties:
+                                    name:
+                                      const: reference
+                                    definitionId:
+                                      type: string
+                                - &ref_18
+                                  type: object
+                                  allOf:
+                                    - &ref_4
+                                      type: object
+                                      allOf:
+                                        - *ref_0
+                                        - *ref_2
+                                      properties:
+                                        types:
+                                          type: array
+                                          items: *ref_1
+                                  properties:
+                                    name:
+                                      const: allOf
+                                - &ref_19
+                                  type: object
+                                  allOf:
+                                    - *ref_4
+                                  properties:
+                                    name:
+                                      const: anyOf
+                                - &ref_20
+                                  type: object
+                                  allOf:
+                                    - *ref_4
+                                  properties:
+                                    name:
+                                      const: oneOf
+                          required:
+                            - id
+                            - type
+                            - name
+                      properties:
+                        defaultValue:
+                          type: string
+                        required:
+                          type: boolean
+                          default: false
+                  properties:
+                    type: array
+                    title: Properties
+                    items: *ref_3
+                  body:
+                    oneOf:
+                      - *ref_1
+                      - type: 'null'
+              target: *ref_5
+              constants:
+                type: array
+                title: Constants
+                items: &ref_30
+                  type: object
+                  allOf:
+                    - *ref_6
+                  properties:
+                    valueSupplier: &ref_29
+                      type: object
+                      oneOf:
+                        - &ref_26
+                          type: object
+                          allOf:
+                            - *ref_0
+                          properties:
+                            kind:
+                              const: given
+                            value:
+                              type: string
+                          required:
+                            - kind
+                            - value
+                        - &ref_28
+                          type: object
+                          allOf:
+                            - *ref_0
+                          properties:
+                            kind:
+                              const: generated
+                            generator: &ref_27
+                              type: object
+                              allOf:
+                                - *ref_0
+                              properties:
+                                name:
+                                  type: string
+                                parameters:
+                                  type: array
+                                  items:
+                                    type: string
+                              required:
+                                - name
+                          required:
+                            - kind
+                            - generator
+              actions:
+                type: array
+                title: Actions
+                items: &ref_25
+                  type: object
+                  allOf:
+                    - *ref_0
+                  title: Mapping action
+                  properties:
+                    id:
+                      type: string
+                    sources:
+                      type: array
+                      title: Sources
+                      items: &ref_23
+                        type: object
+                        oneOf:
+                          - &ref_22
+                            type: object
+                            allOf:
+                              - *ref_0
+                            properties:
+                              type:
+                                const: constant
+                              constantId:
+                                type: string
+                          - &ref_7
+                            type: object
+                            allOf:
+                              - *ref_0
+                            properties:
+                              type:
+                                const: attribute
+                              kind:
+                                enum:
+                                  - header
+                                  - property
+                                  - body
+                              path:
+                                type: array
+                                title: Path
+                                items:
+                                  type: string
+                    target: *ref_7
+                    transformation: &ref_24
+                      type: object
+                      allOf:
+                        - *ref_0
+                      properties:
+                        name:
+                          type: string
+                          title: Name
+                        parameters:
+                          type: array
+                          title: Parameters
+                          items:
+                            type: string
+                      required:
+                        - name
+                  required:
+                    - id
+                    - sources
+                    - target
+definitions:
+  MapperParameters: *ref_8
+  Metadata: *ref_9
+  MetadataAware: *ref_0
+  DataType: *ref_1
+  TypeDefinition: *ref_10
+  TypeDefinitionsAware: *ref_2
+  NullType: *ref_11
+  StringType: *ref_12
+  IntegerType: *ref_13
+  BooleanType: *ref_14
+  ArrayType: *ref_15
+  ObjectType: *ref_16
+  ReferenceType: *ref_17
+  CompoundType: *ref_4
+  AllOfType: *ref_18
+  AnyOfType: *ref_19
+  OneOfType: *ref_20
+  ObjectSchema: *ref_21
+  ConstantReference: *ref_22
+  AttributeReference: *ref_7
+  MappingActionSource: *ref_23
+  Transformation: *ref_24
+  MappingAction: *ref_25
+  Element: *ref_6
+  Attribute: *ref_3
+  GivenValue: *ref_26
+  ValueGenerator: *ref_27
+  GeneratedValue: *ref_28
+  ValueSupplier: *ref_29
+  Constant: *ref_30
+  MessageSchema: *ref_5
+  MappingDescription: *ref_31

@@ -1,0 +1,41 @@
+$id: http://qubership.org/schemas/product/qip/element/checkpoint.schema.yaml
+$schema: http://json-schema.org/draft-07/schema
+type: object
+allOf:
+  - type: object
+    title: Common Entity Properties
+    properties:
+      id:
+        type: string
+        title: Identifier
+      name:
+        type: string
+        title: Name
+    required:
+      - id
+      - name
+  - type: object
+    title: Entity with description
+    properties:
+      description:
+        type: string
+        title: Description
+title: Checkpoint
+properties:
+  type:
+    type: string
+    const: checkpoint
+  properties:
+    type: object
+    properties:
+      checkpointElementId:
+        type: string
+      contextPath:
+        type: string
+      externalRoute:
+        type: boolean
+        const: false
+      httpMethodRestrict:
+        type: string
+        const: POST
+    additionalProperties: false

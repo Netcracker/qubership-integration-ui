@@ -1,0 +1,42 @@
+$id: http://qubership.org/schemas/product/qip/element/quartz-scheduler.schema.yaml
+$schema: http://json-schema.org/draft-07/schema
+type: object
+allOf:
+  - type: object
+    title: Common Entity Properties
+    properties:
+      id:
+        type: string
+        title: Identifier
+      name:
+        type: string
+        title: Name
+    required:
+      - id
+      - name
+  - type: object
+    title: Entity with description
+    properties:
+      description:
+        type: string
+        title: Description
+title: Scheduler
+properties:
+  type:
+    type: string
+    const: quartz-scheduler
+  properties:
+    type: object
+    properties:
+      cron:
+        type: string
+        title: Cron expression
+        description: |
+          Quartz cron expression. Example (every 5 minutes): 0 */5 * ? * *
+      deleteJob:
+        type: boolean
+        title: Delete job
+        default: false
+    required:
+      - cron
+    additionalProperties: false

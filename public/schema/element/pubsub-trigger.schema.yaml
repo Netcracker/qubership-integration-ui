@@ -1,0 +1,175 @@
+$id: http://qubership.org/schemas/product/qip/element/pubsub-trigger.schema.yaml
+$schema: http://json-schema.org/draft-07/schema
+type: object
+allOf:
+  - type: object
+    title: Common Entity Properties
+    properties:
+      id:
+        type: string
+        title: Identifier
+      name:
+        type: string
+        title: Name
+    required:
+      - id
+      - name
+  - type: object
+    title: Entity with description
+    properties:
+      description:
+        type: string
+        title: Description
+title: PubSub Trigger
+description: Read message from PubSub topic.
+properties:
+  type:
+    type: string
+    const: pubsub-trigger
+  properties:
+    type: object
+    allOf:
+      - $id: >-
+          http://qubership.org/schemas/product/qip/element/properties/idempotency.schema.yaml
+        $schema: http://json-schema.org/draft-07/schema
+        type: object
+        title: Idempotency properties
+        properties:
+          idempotency:
+            type: object
+            allOf:
+              - &ref_1
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    title: Enable idempotency
+                    default: false
+                  keyExpiry:
+                    allOf:
+                      - &ref_0
+                        oneOf:
+                          - type: integer
+                            minimum: 0
+                          - type: string
+                            pattern: ^[0-9]+$
+                          - type: string
+                            pattern: ^#\{[a-zA-Z0-9:._-]+\}$
+                    title: Key expiration time (seconds)
+                    default: 600
+                  contextExpression:
+                    type: string
+                    title: Context expression
+                  keyExpression:
+                    type: string
+                    title: Key expression
+                  actionOnDuplicate:
+                    enum:
+                      - ignore
+                      - throw-exception
+                      - execute-subchain
+                    title: Action on duplicate message
+                    default: ignore
+                if:
+                  properties:
+                    enabled:
+                      const: true
+                then:
+                  required:
+                    - contextExpression
+                    - keyExpression
+            if:
+              properties:
+                enabled:
+                  const: true
+                actionOnDuplicate:
+                  const: execute-subchain
+              required:
+                - enabled
+                - actionOnDuplicate
+            then:
+              allOf:
+                - &ref_2
+                  type: object
+                  properties:
+                    chainTriggerParameters:
+                      title: Subchain execution parameters
+                      type: object
+                      additionalProperties: false
+                      properties: &ref_3
+                        triggerElementId:
+                          type: string
+                          title: Chain trigger
+                        chainCallTimeout:
+                          allOf:
+                            - *ref_0
+                          title: Timeout (ms)
+                          default: 30000
+                      required: &ref_4
+                        - triggerElementId
+                  required:
+                    - chainTriggerParameters
+        definitions:
+          CommonIdempotencyProperties: *ref_1
+          ExecuteSubchainProperties: *ref_2
+          ChainTriggerParameters:
+            type: object
+            title: Subchain execution parameters
+            additionalProperties: false
+            properties: *ref_3
+            required: *ref_4
+    properties:
+      projectId:
+        type: string
+        title: Project id
+        description: The Google Cloud PubSub Project ID.
+      destinationName:
+        type: string
+        title: Destination name
+        description: Subscription name.
+      serviceAccountKey:
+        type: string
+        title: Service account key
+        description: >
+          The Service account key that can be used as credentials for the PubSub
+          publisher/subscriber. Must be specified as a base64 encoded
+          ServiceAccount json file.
+      maxMessagesPerPoll:
+        allOf:
+          - *ref_0
+        title: Max messages per poll
+        description: >
+          The max number of messages to receive from the server in a single API
+          call.
+        default: 1
+      synchronousPullRetryableCodes:
+        type: array
+        title: Retryable error codes
+        description: |
+          List of additional retryable error codes for synchronous pull.
+        items: &ref_6
+          enum:
+            - ABORTED
+            - CANCELLED
+            - DEADLINE_EXCEEDED
+            - INTERNAL
+            - RESOURCE_EXHAUSTED
+            - UNKNOWN
+            - UNAVAILABLE
+      ackMode:
+        title: Ack mode
+        description: >
+          AUTO = exchange gets ack/nack on completion. NONE = downstream process
+          has to ack/nack explicitly.
+        default: AUTO
+        enum: &ref_5
+          - AUTO
+          - NONE
+    required:
+      - destinationName
+      - projectId
+      - serviceAccountKey
+definitions:
+  AckMode:
+    enum: *ref_5
+  ErrorCode: *ref_6

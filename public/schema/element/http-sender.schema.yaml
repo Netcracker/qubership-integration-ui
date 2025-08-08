@@ -1,0 +1,164 @@
+$id: http://qubership.org/schemas/product/qip/element/http-sender.schema.yaml
+$schema: http://json-schema.org/draft-07/schema
+type: object
+allOf:
+  - type: object
+    title: Common Entity Properties
+    properties:
+      id:
+        type: string
+        title: Identifier
+      name:
+        type: string
+        title: Name
+    required:
+      - id
+      - name
+  - type: object
+    title: Entity with description
+    properties:
+      description:
+        type: string
+        title: Description
+title: Http Sender
+properties:
+  type:
+    type: string
+    const: http-sender
+  properties:
+    type: object
+    allOf:
+      - $id: >-
+          http://qubership.org/schemas/product/qip/element/properties/correlation-id.schema.yaml
+        $schema: http://json-schema.org/draft-07/schema
+        type: object
+        title: Correlation ID properties
+        properties:
+          receiveCorrelationId:
+            type: boolean
+            title: Receive correlation ID
+            default: false
+        if:
+          properties:
+            receiveCorrelationId:
+              const: true
+          required:
+            - receiveCorrelationId
+        then:
+          allOf:
+            - &ref_0
+              type: object
+              properties:
+                correlationIdPosition:
+                  title: Correlation ID position
+                  enum: &ref_1
+                    - header
+                    - body
+                correlationIdName:
+                  type: string
+                  title: Correlation ID name
+              required:
+                - correlationIdPosition
+                - correlationIdName
+        else:
+          if:
+            required:
+              - correlationIdPosition
+          then:
+            allOf:
+              - *ref_0
+          else:
+            if:
+              required:
+                - correlationIdName
+            then:
+              allOf:
+                - *ref_0
+        definitions:
+          CorrelationIdPosition:
+            enum: *ref_1
+          CorrelationIdProperties: *ref_0
+      - $id: >-
+          http://qubership.org/schemas/product/qip/element/properties/context-propagation.schema.yaml
+        $schema: http://json-schema.org/draft-07/schema
+        type: object
+        title: Context propagation properties
+        properties:
+          propagateContext:
+            type: boolean
+            title: Propagate context
+            description: Propagate context to headers before sending message.
+            default: true
+          overrideContextParams:
+            title: Override technical context headers
+            description: Propagate props to headers before sending message.
+            $id: >-
+              http://qubership.org/schemas/product/qip/element/properties/headers.schema.yaml
+            $schema: http://json-schema.org/draft-07/schema
+            type: object
+            patternProperties:
+              ^.+$:
+                type: string
+      - $id: >-
+          http://qubership.org/schemas/product/qip/element/properties/http-call-common.schema.yaml
+        $schema: http://json-schema.org/draft-07/schema
+        type: object
+        title: Common HTTP call properties
+        properties:
+          isExternalCall:
+            type: boolean
+            title: External call
+            description: >
+              External - http and https requests allowed (through egress
+              gateway). Internal - only http, direct call.
+            default: true
+          m2m:
+            type: boolean
+            title: Enable M2M security
+            description: |
+              Specifies whether M2M token should be used to make a call.
+            default: false
+          reuseEstablishedConnection:
+            type: boolean
+            title: Reuse established connection
+            description: >
+              If checked - HTTP client will use the connection for multiple
+              requests.
+            default: true
+          uri:
+            type: string
+            title: Server URI
+            description: 'Server URI, format: https://example.com/foo/bar'
+        required:
+          - uri
+    properties:
+      httpMethod:
+        title: HTTP Method
+        description: HTTP method
+        enum: &ref_2
+          - POST
+          - GET
+          - PUT
+          - DELETE
+          - PATCH
+          - HEAD
+          - OPTIONS
+      connectTimeout:
+        allOf:
+          - oneOf:
+              - type: integer
+                minimum: 0
+              - type: string
+                pattern: ^[0-9]+$
+              - type: string
+                pattern: ^#\{[a-zA-Z0-9:._-]+\}$
+        title: Connection timeout (ms)
+        description: >
+          Specifies connection timeout in millis (default value will be used if
+          nothing is given).
+        default: 120000
+    required:
+      - httpMethod
+definitions:
+  HttpMethod:
+    enum: *ref_2

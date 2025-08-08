@@ -1,0 +1,44 @@
+$id: http://qubership.org/schemas/product/qip/element/chain-call-2.schema.yaml
+$schema: http://json-schema.org/draft-07/schema
+type: object
+allOf:
+  - type: object
+    title: Common Entity Properties
+    properties:
+      id:
+        type: string
+        title: Identifier
+      name:
+        type: string
+        title: Name
+    required:
+      - id
+      - name
+  - type: object
+    title: Entity with description
+    properties:
+      description:
+        type: string
+        title: Description
+title: Chain Call
+properties:
+  type:
+    type: string
+    const: chain-call-2
+  properties:
+    type: object
+    properties:
+      elementId:
+        type: string
+        title: Reference to chain trigger
+      timeout:
+        allOf:
+          - oneOf:
+              - type: integer
+                minimum: 0
+              - type: string
+                pattern: ^[0-9]+$
+              - type: string
+                pattern: ^#\{[a-zA-Z0-9:._-]+\}$
+        title: Timeout (ms)
+        default: 30000

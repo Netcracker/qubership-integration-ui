@@ -1,0 +1,447 @@
+$id: http://qubership.org/schemas/product/qip/element/http-trigger.schema.yaml
+$schema: http://json-schema.org/draft-07/schema
+type: object
+#allOf:
+#  - type: object
+allOf:
+  - type: object
+    title: Common Entity Properties
+    properties:
+      id:
+        type: string
+        title: Identifier
+      name:
+        type: string
+        title: Name
+    required:
+      - id
+      - name
+  - type: object
+    title: Entity with description
+    properties:
+      description:
+        type: string
+        title: Description
+  - type: object
+    properties:
+      swimlaneId:
+        type: string
+title: Http Trigger
+description: |
+  HTTP Trigger provides an HTTP endpoint for consuming arriving HTTP requests.
+properties:
+  type:
+    type: string
+    const: http-trigger
+  properties:
+#    type: object
+    allOf:
+      - $schema: http://json-schema.org/draft-07/schema
+#        type: object
+        title: Correlation ID properties
+        properties:
+          receiveCorrelationId:
+            type: boolean
+            title: Receive correlation ID
+            default: false
+        if:
+          properties:
+            receiveCorrelationId:
+              const: true
+          required:
+            - receiveCorrelationId
+        then:
+          allOf:
+            - &ref_1
+              type: object
+              properties:
+                correlationIdPosition:
+                  title: Correlation ID position
+                  enum: &ref_0
+                    - header
+                    - body
+                correlationIdName:
+                  type: string
+                  title: Correlation ID name
+              required:
+                - correlationIdPosition
+                - correlationIdName
+        definitions:
+          CorrelationIdPosition:
+            enum: *ref_0
+          CorrelationIdProperties: *ref_1
+      - $schema: http://json-schema.org/draft-07/schema
+#        type: object
+        title: Idempotency properties
+        properties:
+          idempotency:
+            allOf:
+              - &ref_3
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    title: Enable idempotency
+                    default: false
+                  keyExpiry:
+                    allOf:
+                      - &ref_2
+                        oneOf:
+                          - type: integer
+                            minimum: 0
+                          - type: string
+                            pattern: ^[0-9]+$
+                          - type: string
+                            pattern: ^#\{[a-zA-Z0-9:._-]+\}$
+                    title: Key expiration time (seconds)
+                    default: 600
+                  contextExpression:
+                    type: string
+                    title: Context expression
+                  keyExpression:
+                    type: string
+                    title: Key expression
+                  actionOnDuplicate:
+                    enum:
+                      - ignore
+                      - throw-exception
+                      - execute-subchain
+                    title: Action on duplicate message
+                    default: ignore
+                if:
+                  properties:
+                    enabled:
+                      const: true
+                then:
+                  required:
+                    - contextExpression
+                    - keyExpression
+            if:
+              properties:
+                enabled:
+                  const: true
+                actionOnDuplicate:
+                  const: execute-subchain
+              required:
+                - enabled
+                - actionOnDuplicate
+            then:
+              allOf:
+                - &ref_4
+                  type: object
+                  properties:
+                    chainTriggerParameters:
+                      title: Subchain execution parameters
+                      type: object
+                      additionalProperties: false
+                      properties: &ref_5
+                        triggerElementId:
+                          type: string
+                          title: Chain trigger
+                        chainCallTimeout:
+                          allOf:
+                            - *ref_2
+                          title: Timeout (ms)
+                          default: 30000
+                      required: &ref_6
+                        - triggerElementId
+                  required:
+                    - chainTriggerParameters
+        definitions:
+          CommonIdempotencyProperties: *ref_3
+          ExecuteSubchainProperties: *ref_4
+          ChainTriggerParameters:
+            type: object
+            title: Subchain execution parameters
+            additionalProperties: false
+            properties: *ref_5
+            required: *ref_6
+      - &ref_9
+        type: object
+        properties:
+          accessControlType:
+            title: Access Control Type
+            default: RBAC
+            type: string
+            enum:
+              - RBAC
+              - ABAC
+        required:
+          - accessControlType
+        if:
+          properties:
+            accessControlType:
+              const: RBAC
+        then:
+          properties:
+            roles:
+              title: Roles
+              type: array
+              items:
+                type: string
+          required:
+            - roles
+        else:
+          properties:
+            abacResource:
+              type: string
+              title: Resource
+              description: ABAC resource, usually the same as the trigger URI.
+          required:
+            - abacResource
+      - oneOf:
+          - &ref_10
+            title: Custom Endpoint
+            type: object
+            properties:
+              contextPath:
+                type: string
+                title: Path
+              httpMethodRestrict:
+                type: string
+                title: HTTP Methods
+                pattern: >-
+                  ^(POST|GET|PUT|DELETE|PATCH|HEAD|OPTIONS)(,(POST|GET|PUT|DELETE|PATCH|HEAD|OPTIONS))*$
+            required:
+              - contextPath
+          - &ref_11
+            title: Implemented Service Endpoint
+            type: object
+            properties:
+              integrationOperationId:
+                type: string
+                title: Operation ID
+              integrationSpecificationGroupId:
+                type: string
+                title: Specification group ID
+              integrationSpecificationId:
+                type: string
+                title: Specification ID
+              integrationSystemId:
+                type: string
+                title: Service ID
+              systemType:
+                title: Service type
+                enum:
+                  - INTERNAL
+                  - EXTERNAL
+                  - IMPLEMENTED
+              integrationOperationMethod:
+                type: string
+                title: Operation method
+              integrationOperationPath:
+                type: string
+                title: Operation name
+            required:
+              - integrationOperationPath
+      - &ref_12
+        type: object
+        required:
+          - handleValidationAction
+        properties:
+          handleValidationAction:
+            type: string
+            enum:
+              - default
+              - script
+              - mapper-2
+            default: default
+            title: Action on validation failure
+#          handlerContainer:
+#            type: object
+        allOf:
+          - if:
+              properties:
+                handleValidationAction:
+                  const: script
+            then:
+              required:
+                - handlerContainer
+              properties:
+                handlerContainer: &ref_7
+                  type: object
+                  properties:
+                    exportFileExtension:
+                      type: string
+                      const: groovy
+                    propertiesToExportInSeparateFile:
+                      type: string
+                      const: script
+                    propertiesFilename:
+                      type: string
+                      title: Script resource reference
+                    script:
+                      type: string
+                      title: Script
+          - if:
+              properties:
+                handleValidationAction:
+                  const: mapper-2
+            then:
+              required:
+                - handlerContainer
+              properties:
+                handlerContainer: &ref_8
+                  type: object
+                  properties:
+                    exportFileExtension:
+                      type: string
+                      const: json
+                    propertiesToExportInSeparateFile:
+                      type: string
+                      const: mappingDescription
+                    propertiesFilename:
+                      type: string
+                      title: Mapper resource reference
+                    throwException:
+                      type: boolean
+                      title: Throw exception on transformation failure
+                      description: Throw exception on transformation failure.
+                      default: true
+                    mappingDescription:
+                      type: object
+          - if:
+              properties:
+                handleValidationAction:
+                  const: default
+            then:
+              properties:
+                handlerContainer:
+                  type: object
+      - &ref_13
+        type: object
+        required:
+          - handleChainFailureAction
+        properties:
+          handleChainFailureAction:
+            type: string
+            enum:
+              - default
+              - script
+              - mapper-2
+              - chain-call
+            default: default
+            title: Action on response failure
+#          chainFailureHandlerContainer:
+#            type: object
+        allOf:
+          - if:
+              properties:
+                handleChainFailureAction:
+                  const: script
+            then:
+              required:
+                - chainFailureHandlerContainer
+              properties:
+                chainFailureHandlerContainer: *ref_7
+          - if:
+              properties:
+                handleChainFailureAction:
+                  const: mapper-2
+            then:
+              required:
+                - chainFailureHandlerContainer
+              properties:
+                chainFailureHandlerContainer: *ref_8
+          - if:
+              properties:
+                handleChainFailureAction:
+                  const: chain-call
+            then:
+              required:
+                - chainFailureHandlerContainer
+              properties:
+                chainFailureHandlerContainer:
+                  type: object
+                  properties:
+                    elementId:
+                      type: string
+                  required:
+                    - elementId
+                  additionalProperties: false
+          - if:
+              properties:
+                handleChainFailureAction:
+                  const: default
+            then:
+              required:
+                - chainFailureHandlerContainer
+              properties:
+                chainFailureHandlerContainer:
+                  type: object
+    properties:
+      chunked:
+        type: boolean
+        default: true
+        title: Chunked
+        description: >
+          If this option is false the Servlet will disable the HTTP streaming
+          and set the content-length header on the response.
+      externalRoute:
+        type: boolean
+        default: true
+        title: External route
+        description: >
+          If checked, HTTP trigger will be registered as "external" on public
+          gateway. Checkbox is inactive when default route registration is
+          disabled in global environment settings.
+      privateRoute:
+        type: boolean
+        default: false
+        title: Private route
+        description: >
+          If checked, HTTP trigger will be registered as "Private" on private
+          gateway. Checkbox is inactive when default route registration is
+          disabled in global environment settings.
+      responseFilter:
+        type: boolean
+        title: Response filter
+        description: >
+          Turns on ability to handle additional query parameters "fields" and
+          "excludeFields" to include only specific fields in response or exclude
+          them from there. This is only supported for responses in JSON.
+      connectTimeout:
+        oneOf:
+          - *ref_2
+          - type: string
+            pattern: \$\{[^}]+\}
+        title: Connection timeout (ms)
+        description: >
+          Specifies connection timeout in millis (default value will be used if
+          nothing is given).
+        default: 120000
+      killSessionOnTimeout:
+        type: boolean
+        default: false
+        title: Terminate session on connection timeout
+        description: >
+          If checked, connection timeout will trigger session termination
+          process. Chain session might not be finished.
+      rejectRequestIfNonNullBodyGetDelete:
+        type: boolean
+        default: true
+        title: Reject request if body is not empty for GET, DELETE methods
+        description: >
+          Incoming request will be rejected with an error, if body is received
+          for GET and DELETE methods.
+      allowedContentTypes:
+        type: array
+        items:
+          type: string
+        title: Allowed Content Types
+        description: If no content types defined - validation disabled.
+      validationSchema:
+        type: string
+        title: Json Request Schema
+        description: Schema for input message validation.
+      httpBinding:
+        type: string
+        default: handlingHttpBinding
+definitions:
+  AccessControlProperties: *ref_9
+  CustomEndpoint: *ref_10
+  ImplementedServiceEndpoint: *ref_11
+  ValidationFailureHandler: *ref_12
+  ChainFailureHandler: *ref_13
+required:
+  - type

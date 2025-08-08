@@ -1,0 +1,11 @@
+.modal {
+    width: 50vw;
+}
+
+.description_icon {
+  margin-left: 10px;
+}
+
+:global(.ant-form-item textarea) {
+    height: 33vh;
+}
