@@ -6,6 +6,7 @@ import {
   MappingAction,
   MappingDescription,
   TypeDefinition,
+  ValueSupplier,
 } from "../../mapper/model/model.ts";
 import {
   Button,
@@ -489,6 +490,31 @@ function getTargetSearchContexts(
   ].filter((value) => !!value);
 }
 
+function updateConstantValueToMatchType(
+  valueSupplier: ValueSupplier,
+  type: DataType,
+): ValueSupplier {
+  switch (type?.name) {
+    case "boolean":
+      return {
+        kind: "given",
+        value: (
+          valueSupplier?.kind === "given" && valueSupplier?.value === "true"
+        ).toString(),
+      };
+    case "number":
+      return {
+        kind: "given",
+        value:
+          valueSupplier?.kind === "given"
+            ? parseFloat(valueSupplier?.value).toString()
+            : "0",
+      };
+    default:
+      return valueSupplier;
+  }
+}
+
 export const MappingTableView: React.FC<MappingTableViewProps> = ({
   mapping,
   readonlySource,
@@ -911,7 +937,16 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   readonly={readonly}
                   disableArrayTypes={true}
                   onSubmit={(type) => {
-                    // TODO
+                    if (type) {
+                      updateConstant(item.constant.id, {
+                        ...item.constant,
+                        type,
+                        valueSupplier: updateConstantValueToMatchType(
+                          item.constant.valueSupplier,
+                          type,
+                        ),
+                      });
+                    }
                   }}
                 />
               );
