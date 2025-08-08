@@ -924,7 +924,6 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   }
                   readonly={readonly}
                   onSubmit={(type) => {
-                    // TODO
                     updateBodyType(type);
                   }}
                 />
@@ -957,7 +956,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   definitions={item.typeDefinitions}
                   readonly={readonly}
                   onSubmit={(type) => {
-                    // TODO
+                    if (type) {
+                      updateAttribute(item.kind, item.path, { type });
+                    }
                   }}
                 />
               );
