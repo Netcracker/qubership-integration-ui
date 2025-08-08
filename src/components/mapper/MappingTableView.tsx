@@ -957,7 +957,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   readonly={readonly}
                   onSubmit={(type) => {
                     if (type) {
-                      updateAttribute(item.kind, item.path, { type });
+                      updateAttribute(item.kind, item.path, {
+                        type,
+                        defaultValue: undefined,
+                      });
                     }
                   }}
                 />
