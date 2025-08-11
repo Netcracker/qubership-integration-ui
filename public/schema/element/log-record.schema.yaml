@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: Log Record
 description: >
   Log Record element allows to configure a message that will be logged for
@@ -61,3 +67,5 @@ properties:
         title: Message
         description: A custom message to be logged
     additionalProperties: false
+required:
+  - type

@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: AsyncAPI Trigger
 description: Receives a call from a service registered in API Repository
 properties:
@@ -29,14 +35,11 @@ properties:
   properties:
     type: object
     allOf:
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/idempotency.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Idempotency properties
         properties:
           idempotency:
-            type: object
             allOf:
               - &ref_1
                 type: object
@@ -122,153 +125,13 @@ properties:
       after:
         type: array
         title: Request validation schemas
-        items: &ref_11
+        items: &ref_5
           type: object
           properties:
             code:
               type: string
             label:
               type: string
-            schema: &ref_5
-              $schema: http://json-schema.org/draft-07/schema#
-              $id: http://json-schema.org/draft-07/schema#
-              title: Core schema meta-schema
-              definitions:
-                schemaArray: &ref_8
-                  type: array
-                  minItems: 1
-                  items: *ref_5
-                nonNegativeInteger: &ref_6
-                  type: integer
-                  minimum: 0
-                nonNegativeIntegerDefault0: &ref_7
-                  allOf:
-                    - *ref_6
-                    - default: 0
-                simpleTypes: &ref_10
-                  enum:
-                    - array
-                    - boolean
-                    - integer
-                    - 'null'
-                    - number
-                    - object
-                    - string
-                stringArray: &ref_9
-                  type: array
-                  items:
-                    type: string
-                  uniqueItems: true
-                  default: []
-              type:
-                - object
-                - boolean
-              properties:
-                $id:
-                  type: string
-                  format: uri-reference
-                $schema:
-                  type: string
-                  format: uri
-                $ref:
-                  type: string
-                  format: uri-reference
-                $comment:
-                  type: string
-                title:
-                  type: string
-                description:
-                  type: string
-                default: true
-                readOnly:
-                  type: boolean
-                  default: false
-                writeOnly:
-                  type: boolean
-                  default: false
-                examples:
-                  type: array
-                  items: true
-                multipleOf:
-                  type: number
-                  exclusiveMinimum: 0
-                maximum:
-                  type: number
-                exclusiveMaximum:
-                  type: number
-                minimum:
-                  type: number
-                exclusiveMinimum:
-                  type: number
-                maxLength: *ref_6
-                minLength: *ref_7
-                pattern:
-                  type: string
-                  format: regex
-                additionalItems: *ref_5
-                items:
-                  anyOf:
-                    - *ref_5
-                    - *ref_8
-                  default: true
-                maxItems: *ref_6
-                minItems: *ref_7
-                uniqueItems:
-                  type: boolean
-                  default: false
-                contains: *ref_5
-                maxProperties: *ref_6
-                minProperties: *ref_7
-                required: *ref_9
-                additionalProperties: *ref_5
-                definitions:
-                  type: object
-                  additionalProperties: *ref_5
-                  default: {}
-                properties:
-                  type: object
-                  additionalProperties: *ref_5
-                  default: {}
-                patternProperties:
-                  type: object
-                  additionalProperties: *ref_5
-                  propertyNames:
-                    format: regex
-                  default: {}
-                dependencies:
-                  type: object
-                  additionalProperties:
-                    anyOf:
-                      - *ref_5
-                      - *ref_9
-                propertyNames: *ref_5
-                const: true
-                enum:
-                  type: array
-                  items: true
-                  minItems: 1
-                  uniqueItems: true
-                type:
-                  anyOf:
-                    - *ref_10
-                    - type: array
-                      items: *ref_10
-                      minItems: 1
-                      uniqueItems: true
-                format:
-                  type: string
-                contentMediaType:
-                  type: string
-                contentEncoding:
-                  type: string
-                if: *ref_5
-                then: *ref_5
-                else: *ref_5
-                allOf: *ref_8
-                anyOf: *ref_8
-                oneOf: *ref_8
-                not: *ref_5
-              default: true
           additionalProperties: false
           required:
             - code
@@ -279,8 +142,6 @@ properties:
         title: Response validation schema
       requestFilterHeaderAllowlist:
         title: Filtered headers list
-        $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/headers.schema.yaml
         $schema: http://json-schema.org/draft-07/schema
         type: object
         patternProperties:
@@ -306,12 +167,12 @@ properties:
           - IMPLEMENTED
       integrationOperationProtocolType:
         title: Operation protocol type
-        enum: &ref_12
+        enum: &ref_6
           - kafka
           - amqp
       integrationOperationMethod:
         title: Operation method
-        enum: &ref_13
+        enum: &ref_7
           - subscribe
           - publish
       integrationOperationPath:
@@ -328,26 +189,28 @@ properties:
             - *ref_0
           title: Reconnection delay (ms)
           default: 30000
-        integrationOperationAsyncProperties: &ref_14
+        integrationOperationAsyncProperties: &ref_8
           type: object
           additionalProperties: true
     else:
       properties:
-        integrationOperationAsyncProperties: &ref_15
+        integrationOperationAsyncProperties: &ref_9
           type: object
           properties:
-            acknowledgeMode: &ref_16
+            acknowledgeMode: &ref_10
               enum:
                 - NONE
                 - MANUAL
                 - AUTO
           additionalProperties: true
 definitions:
-  RequestValidation: *ref_11
+  RequestValidation: *ref_5
   Protocol:
-    enum: *ref_12
+    enum: *ref_6
   Method:
-    enum: *ref_13
-  KafkaProperties: *ref_14
-  AmqpProperties: *ref_15
-  AcknowledgeMode: *ref_16
+    enum: *ref_7
+  KafkaProperties: *ref_8
+  AmqpProperties: *ref_9
+  AcknowledgeMode: *ref_10
+required:
+  - type

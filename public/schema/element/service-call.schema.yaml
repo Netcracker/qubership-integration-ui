@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: Service Call
 description: Make a call to a service registered in API Repository.
 properties:
@@ -29,9 +35,7 @@ properties:
   properties:
     type: object
     allOf:
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/operation.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Operation properties
         oneOf:
@@ -201,9 +205,7 @@ properties:
             enum: *ref_2
           AsyncMethod:
             enum: *ref_0
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/correlation-id.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Correlation ID properties
         properties:
@@ -219,12 +221,12 @@ properties:
             - receiveCorrelationId
         then:
           allOf:
-            - &ref_3
+            - &ref_4
               type: object
               properties:
                 correlationIdPosition:
                   title: Correlation ID position
-                  enum: &ref_4
+                  enum: &ref_3
                     - header
                     - body
                 correlationIdName:
@@ -233,27 +235,11 @@ properties:
               required:
                 - correlationIdPosition
                 - correlationIdName
-        else:
-          if:
-            required:
-              - correlationIdPosition
-          then:
-            allOf:
-              - *ref_3
-          else:
-            if:
-              required:
-                - correlationIdName
-            then:
-              allOf:
-                - *ref_3
         definitions:
           CorrelationIdPosition:
-            enum: *ref_4
-          CorrelationIdProperties: *ref_3
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/context-propagation.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+            enum: *ref_3
+          CorrelationIdProperties: *ref_4
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Context propagation properties
         properties:
@@ -265,14 +251,12 @@ properties:
           overrideContextParams:
             title: Override technical context headers
             description: Propagate props to headers before sending message.
-            $id: >-
-              http://qubership.org/schemas/product/qip/element/properties/headers.schema.yaml
             $schema: http://json-schema.org/draft-07/schema
             type: object
             patternProperties:
               ^.+$:
                 type: string
-      - &ref_24
+      - &ref_15
         type: object
         properties:
           handleValidationAction:
@@ -290,34 +274,21 @@ properties:
             - handleValidationAction
         then:
           properties:
-            handlerContainer: &ref_17
-              allOf:
-                - &ref_5
-                  $id: >-
-                    http://qubership.org/schemas/product/qip/element/properties/properties-in-external-file.schema.yaml
-                  $schema: http://json-schema.org/draft-07/schema
-                  type: object
-                  title: Schema for element properties in external file
-                  properties:
-                    exportFileExtension:
-                      type: string
-                      description: Specifies file extension of exported properties
-                    propertiesToExportInSeparateFile:
-                      type: string
-                      description: >-
-                        Specifies list of properties to be exported is separate
-                        file
-                    propertiesFilename:
-                      $id: >-
-                        http://qubership.org/schemas/product/qip/resource-reference.schema.yaml
-                      $schema: http://json-schema.org/draft-07/schema
-                      type: string
-                      title: Resource reference
-                - type: object
-                  properties:
-                    script:
-                      type: string
-                      title: Script
+            handlerContainer: &ref_8
+              type: object
+              properties:
+                exportFileExtension:
+                  type: string
+                  const: groovy
+                propertiesToExportInSeparateFile:
+                  type: string
+                  const: script
+                propertiesFilename:
+                  type: string
+                  title: Script resource reference
+                script:
+                  type: string
+                  title: Script
           required:
             - handlerContainer
         else:
@@ -329,279 +300,25 @@ properties:
               - handleValidationAction
           then:
             properties:
-              handlerContainer: &ref_16
+              handlerContainer: &ref_7
                 type: object
-                allOf:
-                  - *ref_5
-                  - type: object
-                    properties:
-                      throwException:
-                        type: boolean
-                        title: Throw exception on transformation failure
-                        description: Throw exception on transformation failure.
-                        default: true
-                      mappingDescription:
-                        type: object
-                        allOf:
-                          - &ref_6
-                            type: object
-                            title: Object with metadata
-                            properties:
-                              metadata:
-                                type: object
-                                title: Metadata
-                                patternProperties:
-                                  ^.+$:
-                                    type: string
-                        properties:
-                          source: &ref_11
-                            type: object
-                            allOf:
-                              - *ref_6
-                            properties:
-                              headers:
-                                type: array
-                                title: Headers
-                                items: &ref_9
-                                  type: object
-                                  allOf:
-                                    - &ref_12
-                                      type: object
-                                      allOf:
-                                        - *ref_6
-                                      properties:
-                                        id:
-                                          type: string
-                                        name:
-                                          type: string
-                                        type: &ref_7
-                                          type: object
-                                          oneOf:
-                                            - type: object
-                                              allOf:
-                                                - *ref_6
-                                              properties:
-                                                name:
-                                                  const: null
-                                            - type: object
-                                              allOf:
-                                                - *ref_6
-                                              properties:
-                                                name:
-                                                  const: string
-                                            - type: object
-                                              allOf:
-                                                - *ref_6
-                                              properties:
-                                                name:
-                                                  const: number
-                                            - type: object
-                                              allOf:
-                                                - *ref_6
-                                              properties:
-                                                name:
-                                                  const: boolean
-                                            - type: object
-                                              allOf:
-                                                - *ref_6
-                                                - &ref_8
-                                                  type: object
-                                                  properties:
-                                                    definitions:
-                                                      type: array
-                                                      items:
-                                                        type: object
-                                                        properties:
-                                                          id:
-                                                            type: string
-                                                          name:
-                                                            type: string
-                                                          type: *ref_7
-                                                        required:
-                                                          - id
-                                                          - name
-                                                          - type
-                                              properties:
-                                                name:
-                                                  const: array
-                                                itemType: *ref_7
-                                            - type: object
-                                              allOf:
-                                                - *ref_6
-                                                - *ref_8
-                                              properties:
-                                                name:
-                                                  const: object
-                                                schema:
-                                                  type: object
-                                                  allOf:
-                                                    - *ref_6
-                                                  properties:
-                                                    id:
-                                                      type: string
-                                                    attributes:
-                                                      type: array
-                                                      items: *ref_9
-                                            - type: object
-                                              allOf:
-                                                - *ref_6
-                                                - *ref_8
-                                              properties:
-                                                name:
-                                                  const: reference
-                                                definitionId:
-                                                  type: string
-                                            - type: object
-                                              allOf:
-                                                - &ref_10
-                                                  type: object
-                                                  allOf:
-                                                    - *ref_6
-                                                    - *ref_8
-                                                  properties:
-                                                    types:
-                                                      type: array
-                                                      items: *ref_7
-                                              properties:
-                                                name:
-                                                  const: allOf
-                                            - type: object
-                                              allOf:
-                                                - *ref_10
-                                              properties:
-                                                name:
-                                                  const: anyOf
-                                            - type: object
-                                              allOf:
-                                                - *ref_10
-                                              properties:
-                                                name:
-                                                  const: oneOf
-                                      required:
-                                        - id
-                                        - type
-                                        - name
-                                  properties:
-                                    defaultValue:
-                                      type: string
-                                    required:
-                                      type: boolean
-                                      default: false
-                              properties:
-                                type: array
-                                title: Properties
-                                items: *ref_9
-                              body:
-                                oneOf:
-                                  - *ref_7
-                                  - type: 'null'
-                          target: *ref_11
-                          constants:
-                            type: array
-                            title: Constants
-                            items:
-                              type: object
-                              allOf:
-                                - *ref_12
-                              properties:
-                                valueSupplier:
-                                  type: object
-                                  oneOf:
-                                    - type: object
-                                      allOf:
-                                        - *ref_6
-                                      properties:
-                                        kind:
-                                          const: given
-                                        value:
-                                          type: string
-                                      required:
-                                        - kind
-                                        - value
-                                    - type: object
-                                      allOf:
-                                        - *ref_6
-                                      properties:
-                                        kind:
-                                          const: generated
-                                        generator:
-                                          type: object
-                                          allOf:
-                                            - *ref_6
-                                          properties:
-                                            name:
-                                              type: string
-                                            parameters:
-                                              type: array
-                                              items:
-                                                type: string
-                                          required:
-                                            - name
-                                      required:
-                                        - kind
-                                        - generator
-                          actions:
-                            type: array
-                            title: Actions
-                            items:
-                              type: object
-                              allOf:
-                                - *ref_6
-                              title: Mapping action
-                              properties:
-                                id:
-                                  type: string
-                                sources:
-                                  type: array
-                                  title: Sources
-                                  items:
-                                    type: object
-                                    oneOf:
-                                      - type: object
-                                        allOf:
-                                          - *ref_6
-                                        properties:
-                                          type:
-                                            const: constant
-                                          constantId:
-                                            type: string
-                                      - &ref_13
-                                        type: object
-                                        allOf:
-                                          - *ref_6
-                                        properties:
-                                          type:
-                                            const: attribute
-                                          kind:
-                                            enum:
-                                              - header
-                                              - property
-                                              - body
-                                          path:
-                                            type: array
-                                            title: Path
-                                            items:
-                                              type: string
-                                target: *ref_13
-                                transformation:
-                                  type: object
-                                  allOf:
-                                    - *ref_6
-                                  properties:
-                                    name:
-                                      type: string
-                                      title: Name
-                                    parameters:
-                                      type: array
-                                      title: Parameters
-                                      items:
-                                        type: string
-                                  required:
-                                    - name
-                              required:
-                                - id
-                                - sources
-                                - target
+                properties:
+                  exportFileExtension:
+                    type: string
+                    const: json
+                  propertiesToExportInSeparateFile:
+                    type: string
+                    const: mappingDescription
+                  propertiesFilename:
+                    type: string
+                    title: Mapper resource reference
+                  throwException:
+                    type: boolean
+                    title: Throw exception on transformation failure
+                    description: Throw exception on transformation failure.
+                    default: true
+                  mappingDescription:
+                    type: object
             required:
               - handlerContainer
     properties:
@@ -609,7 +326,7 @@ properties:
         type: boolean
       retryCount:
         oneOf:
-          - &ref_14
+          - &ref_5
             oneOf:
               - type: integer
                 minimum: 0
@@ -617,7 +334,7 @@ properties:
                 pattern: ^[0-9]+$
               - type: string
                 pattern: ^#\{[a-zA-Z0-9:._-]+\}$
-          - &ref_15
+          - &ref_6
             type: string
             pattern: \$\{[^}]+\}
         default: 0
@@ -627,16 +344,16 @@ properties:
           failed.
       retryDelay:
         oneOf:
-          - *ref_14
-          - *ref_15
+          - *ref_5
+          - *ref_6
         default: 5000
         title: Retry delay (ms)
         description: Specifies delay between retries in millis.
-      before: &ref_18
+      before: &ref_9
         oneOf:
           - type: object
             allOf:
-              - *ref_16
+              - *ref_7
             properties:
               type:
                 const: mapper-2
@@ -644,7 +361,7 @@ properties:
               - type
           - type: object
             allOf:
-              - *ref_17
+              - *ref_8
             properties:
               type:
                 const: script
@@ -652,10 +369,10 @@ properties:
               - type
       after:
         type: array
-        items: &ref_25
+        items: &ref_16
           type: object
           anyOf:
-            - *ref_18
+            - *ref_9
             - not:
                 type: object
                 properties:
@@ -676,12 +393,12 @@ properties:
               type: boolean
       authorizationConfiguration:
         oneOf:
-          - &ref_19
+          - &ref_10
             type: object
             properties:
               type:
                 const: none
-          - &ref_20
+          - &ref_11
             type: object
             properties:
               type:
@@ -696,7 +413,7 @@ properties:
                 required:
                   - username
                   - password
-          - &ref_21
+          - &ref_12
             type: object
             properties:
               type:
@@ -708,7 +425,7 @@ properties:
                     type: string
                 required:
                   - token
-          - &ref_22
+          - &ref_13
             type: object
             properties:
               type:
@@ -724,7 +441,7 @@ properties:
       properties:
         afterValidation:
           type: array
-          items: &ref_23
+          items: &ref_14
             type: object
             properties:
               code:
@@ -740,11 +457,13 @@ properties:
               type:
                 const: responseValidation
 definitions:
-  AuthorizationNone: *ref_19
-  AuthorizationBasic: *ref_20
-  AuthorizationBearerToken: *ref_21
-  AuthorizationM2MToken: *ref_22
-  ResponseValidation: *ref_23
-  ExchangeTransformation: *ref_18
-  ValidationFailureHandler: *ref_24
-  ResponseHandler: *ref_25
+  AuthorizationNone: *ref_10
+  AuthorizationBasic: *ref_11
+  AuthorizationBearerToken: *ref_12
+  AuthorizationM2MToken: *ref_13
+  ResponseValidation: *ref_14
+  ExchangeTransformation: *ref_9
+  ValidationFailureHandler: *ref_15
+  ResponseHandler: *ref_16
+required:
+  - type

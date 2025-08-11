@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: Swimlane
 description: |
   Group elements, that will be represented in UI as Swimlanes.
@@ -41,3 +47,5 @@ properties:
     additionalProperties: false
 definitions:
   Color: *ref_0
+required:
+  - type

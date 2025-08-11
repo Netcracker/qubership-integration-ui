@@ -2,10 +2,12 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Button, Modal, Tabs } from "antd";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
-import { Element } from "../../../api/apiTypes.ts";
+import { Element, PatchElementRequest } from "../../../api/apiTypes.ts";
 import { useLibraryElement } from "../../../hooks/useLibraryElement.tsx";
 import Form from "@rjsf/antd";
 import yaml from "js-yaml";
+import { useElement } from "../../../hooks/useElement.tsx";
+import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import {
   ObjectFieldTemplateProps,
   ErrorListProps,
@@ -47,6 +49,8 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     useLibraryElement(node.data.elementType);
   const [isLoading, setIsLoading] = useState(false);
   const { closeContainingModal } = useModalContext();
+  const { updateElement } = useElement();
+  const notificationService = useNotificationService();
   const constructTitle = (name: string, type?: string) => {
     return type ? `${name} (${type})` : `${name}`;
   };
@@ -75,14 +79,47 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       })
       .then((text) => {
         const parsed = yaml.load(text);
+        console.log("parsed yaml:", parsed);
         setSchema(parsed);
         console.log("Node:", node);
         formDataRef.current = node.data;
+        formDataRef.current.id = node.id;
       })
       .catch((err) => {
         console.error("ERROR:", err);
       });
   }, [node.type]);
+
+  const handleOk = async () => {
+    setIsLoading(true);
+    try {
+      console.log("formCurrent:", formRef.current);
+      const request: PatchElementRequest = {
+        name: formDataRef.current.name,
+        description: formDataRef.current.description,
+        type: node.data.elementType,
+        parentElementId: node.parentId,
+        properties: formDataRef.current.properties,
+      };
+      const changedElement: Element | undefined = await updateElement(
+        chainId,
+        elementId,
+        request,
+      );
+      if (changedElement) {
+        onSubmit?.(changedElement, node);
+      }
+    } catch (error) {
+      notificationService.errorWithDetails(
+        "Save element failed",
+        "Failed to save element",
+        error,
+      );
+    } finally {
+      setIsLoading(false);
+      handleClose();
+    }
+  };
 
   const handleClose = () => {
     closeContainingModal();
@@ -107,7 +144,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     properties,
   }: ObjectFieldTemplateProps) => {
     return (
-      <div style={{ marginBottom: "16px" }}>
+      <div>
         {properties
           // WA to hide array properties
           .filter(
@@ -177,7 +214,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           );
 
           if (
-            schema.properties[key].type === "object" ||
+            (schema.properties[key].type === "object" && isVisible) ||
             key === "properties"
           ) {
             buildHiddenUiSchema(schema.properties[key], currentPath);
@@ -308,6 +345,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           form="elementModificationForm"
           htmlType={"submit"}
           loading={isLoading}
+          onClick={handleOk}
         >
           Save
         </Button>,
@@ -330,6 +368,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             formData={formDataRef.current}
             validator={validator}
             uiSchema={uiSchema}
+            liveValidate={true}
             experimental_defaultFormStateBehavior={{
               allOf: "populateDefaults",
               mergeDefaultsIntoFormData: "useFormDataIfPresent",

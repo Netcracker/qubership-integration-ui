@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: Kafka Sender
 description: Produce message in kafka
 properties:
@@ -29,9 +35,7 @@ properties:
   properties:
     type: object
     allOf:
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/kafka-connection-parameters.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Kafka connection parameters
         properties:
@@ -174,9 +178,7 @@ properties:
         required:
           - connectionSourceType
           - sslProtocol
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/context-propagation.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Context propagation properties
         properties:
@@ -188,8 +190,6 @@ properties:
           overrideContextParams:
             title: Override technical context headers
             description: Propagate props to headers before sending message.
-            $id: >-
-              http://qubership.org/schemas/product/qip/element/properties/headers.schema.yaml
             $schema: http://json-schema.org/draft-07/schema
             type: object
             patternProperties:
@@ -241,3 +241,5 @@ properties:
     required:
       - keySerializer
       - valueSerializer
+required:
+  - type

@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: Script
 description: Executes Groovy Script
 properties:
@@ -27,29 +33,21 @@ properties:
     type: string
     const: script
   properties: &ref_0
-    allOf:
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/properties-in-external-file.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
-        type: object
-        title: Schema for element properties in external file
-        properties:
-          exportFileExtension:
-            type: string
-            description: Specifies file extension of exported properties
-          propertiesToExportInSeparateFile:
-            type: string
-            description: Specifies list of properties to be exported is separate file
-          propertiesFilename:
-            $id: >-
-              http://qubership.org/schemas/product/qip/resource-reference.schema.yaml
-            $schema: http://json-schema.org/draft-07/schema
-            type: string
-            title: Resource reference
-      - type: object
-        properties:
-          script:
-            type: string
-            title: Script
+    type: object
+    properties:
+      exportFileExtension:
+        type: string
+        const: groovy
+      propertiesToExportInSeparateFile:
+        type: string
+        const: script
+      propertiesFilename:
+        type: string
+        title: Script resource reference
+      script:
+        type: string
+        title: Script
 definitions:
   ScriptProperties: *ref_0
+required:
+  - type

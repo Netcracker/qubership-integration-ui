@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: Kafka Trigger
 description: Trigger, that start chain after receiving kafka message.
 properties:
@@ -29,9 +35,7 @@ properties:
   properties:
     type: object
     allOf:
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/kafka-connection-parameters.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Kafka connection parameters
         properties:
@@ -174,14 +178,11 @@ properties:
         required:
           - connectionSourceType
           - sslProtocol
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/idempotency.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Idempotency properties
         properties:
           idempotency:
-            type: object
             allOf:
               - &ref_1
                 type: object
@@ -349,3 +350,5 @@ properties:
       - groupId
       - keyDeserializer
       - valueDeserializer
+required:
+  - type

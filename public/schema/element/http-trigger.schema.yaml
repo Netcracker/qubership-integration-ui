@@ -1,31 +1,31 @@
 $id: http://qubership.org/schemas/product/qip/element/http-trigger.schema.yaml
 $schema: http://json-schema.org/draft-07/schema
 type: object
-#allOf:
-#  - type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
-  - type: object
-    properties:
-      swimlaneId:
-        type: string
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: Http Trigger
 description: |
   HTTP Trigger provides an HTTP endpoint for consuming arriving HTTP requests.
@@ -34,10 +34,10 @@ properties:
     type: string
     const: http-trigger
   properties:
-#    type: object
+    type: object
     allOf:
       - $schema: http://json-schema.org/draft-07/schema
-#        type: object
+        type: object
         title: Correlation ID properties
         properties:
           receiveCorrelationId:
@@ -71,7 +71,7 @@ properties:
             enum: *ref_0
           CorrelationIdProperties: *ref_1
       - $schema: http://json-schema.org/draft-07/schema
-#        type: object
+        type: object
         title: Idempotency properties
         properties:
           idempotency:
@@ -247,8 +247,8 @@ properties:
               - mapper-2
             default: default
             title: Action on validation failure
-#          handlerContainer:
-#            type: object
+          handlerContainer:
+            type: object
         allOf:
           - if:
               properties:
@@ -322,8 +322,8 @@ properties:
               - chain-call
             default: default
             title: Action on response failure
-#          chainFailureHandlerContainer:
-#            type: object
+          chainFailureHandlerContainer:
+            type: object
         allOf:
           - if:
               properties:

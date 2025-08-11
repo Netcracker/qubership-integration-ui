@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: PubSub Trigger
 description: Read message from PubSub topic.
 properties:
@@ -29,14 +35,11 @@ properties:
   properties:
     type: object
     allOf:
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/idempotency.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Idempotency properties
         properties:
           idempotency:
-            type: object
             allOf:
               - &ref_1
                 type: object
@@ -173,3 +176,5 @@ definitions:
   AckMode:
     enum: *ref_5
   ErrorCode: *ref_6
+required:
+  - type

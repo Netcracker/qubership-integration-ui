@@ -3,23 +3,29 @@ $schema: http://json-schema.org/draft-07/schema
 type: object
 allOf:
   - type: object
-    title: Common Entity Properties
-    properties:
-      id:
-        type: string
-        title: Identifier
-      name:
-        type: string
-        title: Name
-    required:
-      - id
-      - name
-  - type: object
-    title: Entity with description
-    properties:
-      description:
-        type: string
-        title: Description
+    allOf:
+      - type: object
+        title: Common Entity Properties
+        properties:
+          id:
+            type: string
+            title: Identifier
+          name:
+            type: string
+            title: Name
+        required:
+          - id
+          - name
+      - type: object
+        title: Entity with description
+        properties:
+          description:
+            type: string
+            title: Description
+      - type: object
+        properties:
+          swimlaneId:
+            type: string
 title: GraphQL Sender
 properties:
   type:
@@ -28,9 +34,7 @@ properties:
   properties:
     type: object
     allOf:
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/correlation-id.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Correlation ID properties
         properties:
@@ -46,12 +50,12 @@ properties:
             - receiveCorrelationId
         then:
           allOf:
-            - &ref_0
+            - &ref_1
               type: object
               properties:
                 correlationIdPosition:
                   title: Correlation ID position
-                  enum: &ref_1
+                  enum: &ref_0
                     - header
                     - body
                 correlationIdName:
@@ -60,27 +64,11 @@ properties:
               required:
                 - correlationIdPosition
                 - correlationIdName
-        else:
-          if:
-            required:
-              - correlationIdPosition
-          then:
-            allOf:
-              - *ref_0
-          else:
-            if:
-              required:
-                - correlationIdName
-            then:
-              allOf:
-                - *ref_0
         definitions:
           CorrelationIdPosition:
-            enum: *ref_1
-          CorrelationIdProperties: *ref_0
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/context-propagation.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+            enum: *ref_0
+          CorrelationIdProperties: *ref_1
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Context propagation properties
         properties:
@@ -92,16 +80,12 @@ properties:
           overrideContextParams:
             title: Override technical context headers
             description: Propagate props to headers before sending message.
-            $id: >-
-              http://qubership.org/schemas/product/qip/element/properties/headers.schema.yaml
             $schema: http://json-schema.org/draft-07/schema
             type: object
             patternProperties:
               ^.+$:
                 type: string
-      - $id: >-
-          http://qubership.org/schemas/product/qip/element/properties/http-call-common.schema.yaml
-        $schema: http://json-schema.org/draft-07/schema
+      - $schema: http://json-schema.org/draft-07/schema
         type: object
         title: Common HTTP call properties
         properties:
@@ -156,3 +140,5 @@ properties:
         description: Operation variables in JSON format.
     required:
       - query
+required:
+  - type
