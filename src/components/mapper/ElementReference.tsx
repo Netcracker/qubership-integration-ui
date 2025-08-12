@@ -13,6 +13,7 @@ export type ElementReferenceProps = {
   mapping: MappingDescription;
   reference: ConstantReference | AttributeReference;
   isTarget: boolean;
+  closable: boolean;
   onClose?: () => void;
 };
 
@@ -20,6 +21,7 @@ export const ElementReference: React.FC<ElementReferenceProps> = ({
   mapping,
   reference,
   isTarget,
+  closable,
   onClose,
 }) => {
   const [name, setName] = useState<string>("");
@@ -55,7 +57,7 @@ export const ElementReference: React.FC<ElementReferenceProps> = ({
     <Tooltip title={tooltipText}>
       <Tag
         className={styles["element-reference"]}
-        closable={true}
+        closable={closable}
         onClose={(e: React.MouseEvent<HTMLElement>) => {
           e.preventDefault();
           onClose?.();

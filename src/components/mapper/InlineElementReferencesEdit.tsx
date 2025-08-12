@@ -114,6 +114,7 @@ export const InlineElementReferencesEdit: React.FC<InlineElementReferencesEditPr
                 <ElementReference
                     key={index}
                     isTarget={isTarget}
+                    closable={!readonly}
                     mapping={mappingDescription}
                     reference={reference}
                     onClose={() => {
