@@ -1,7 +1,9 @@
 import {
   Attribute,
   AttributeKind,
+  AttributeReference,
   Constant,
+  ConstantReference,
   DataType,
   MappingAction,
   MappingDescription,
@@ -44,7 +46,6 @@ import { DataTypes } from "../../mapper/util/types.ts";
 import styles from "./MappingTableView.module.css";
 import { ItemType } from "antd/es/menu/interface";
 import { MappingActions } from "../../mapper/util/actions.ts";
-import { ElementReference } from "./ElementReference.tsx";
 import { ConstantValue } from "./ConstantValue.tsx";
 import { TransformationValue } from "./TransformationValue.tsx";
 import { verifyMappingAction } from "../../mapper/verification/actions.ts";
@@ -77,6 +78,7 @@ import { InlineEdit } from "../InlineEdit.tsx";
 import { SelectEdit } from "../table/SelectEdit.tsx";
 import { InlineTypeEdit } from "./InlineTypeEdit.tsx";
 import { DefaultValueEdit } from "./DefaultValueEdit.tsx";
+import { InlineElementReferencesEdit } from "./InlineElementReferencesEdit.tsx";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   mapping?: MappingDescription;
@@ -819,6 +821,76 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     [onChange],
   );
 
+  const createOrUpdateMappingActionForTarget = useCallback((
+    affectedActions: MappingAction[],
+    target: AttributeReference,
+    sources: (ConstantReference | AttributeReference)[]
+  ) => {
+    setMappingDescription((mapping) => {
+      const affectedActionIds = new Set(affectedActions.map(a => a.id));
+      const actions: MappingAction[] = [];
+      if (affectedActionIds.size !== 0) {
+        if (sources.length > 0) {
+          actions.push(...mapping.actions.map(a => (affectedActionIds.has(a.id) ? { ...a, sources } : a)));
+        } else {
+          actions.push(...mapping.actions.filter(a => !affectedActionIds.has(a.id)));
+        }
+      } else {
+        const action: MappingAction = {
+          id: MappingUtil.generateUUID(),
+          sources,
+          target,
+          transformation: undefined,
+        };
+        actions.push(...mapping.actions, action);
+      }
+      mapping = { ...mapping, actions };
+      onChange?.(mapping);
+      return mapping;
+    });
+
+  }, [onChange]);
+
+  const createOrUpdateMappingActionsForSource = useCallback((
+    affectedActions: MappingAction[],
+    source: ConstantReference | AttributeReference,
+    targets: AttributeReference[]
+  ) => {
+    setMappingDescription((mapping) => {
+      const actions =
+        mapping.actions
+          .map(action => {
+            const targetMatches = targets.some(t => MappingActions.referencesAreEqual(t, action.target));
+            const hasSource = action.sources?.some(s => MappingActions.referencesAreEqual(s, source));
+            if (hasSource) {
+              return targetMatches
+                ? action
+                : action.sources.length === 1
+                  ? null
+                  : {
+                    ...action,
+                    sources: action.sources?.filter(s => !MappingActions.referencesAreEqual(s, source)),
+                  };
+            } else {
+              return targetMatches ? { ...action, sources: [...action.sources, source] } : action;
+            }
+          })
+          .filter(a => !!a) ?? [];
+      const targetsToAddActions = targets.filter(
+        target => !mapping.actions.some(a => MappingActions.referencesAreEqual(a.target, target))
+      );
+      const newActions = targetsToAddActions.map((target) => ({
+        id: MappingUtil.generateUUID(),
+        sources: [source],
+        target,
+        transformation: undefined,
+      }));
+      mapping = { ...mapping, actions: [...actions, ...newActions] };
+      onChange?.(mapping);
+      return mapping;
+    });
+  }, [onChange]);
+
   const buildColumns =
     useCallback((): TableProps<MappingTableItem>["columns"] => {
       return [
@@ -1332,20 +1404,20 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               key: "targets",
               title: "Targets",
               render: (_value: never, item: MappingTableItem) => {
-                // TODO inline edit
                 return isAttributeItem(item) || isConstantItem(item) ? (
-                  <Flex wrap gap={"small"}>
-                    {item.actions
-                      .map((a) => a.target)
-                      .map((reference, index) => (
-                        <ElementReference
-                          key={index}
-                          isTarget={true}
-                          mapping={mappingDescription}
-                          reference={reference}
-                        />
-                      ))}
-                  </Flex>
+                  <InlineElementReferencesEdit
+                    readonly={readonly}
+                    mappingDescription={mappingDescription}
+                    isTarget={true}
+                    values={item.actions.map((a) => a.target)}
+                    onSubmit={(values) => {
+                      const source = isConstantItem(item)
+                        ? { type: "constant" as const, constantId: item.constant.id }
+                        : { type: "attribute" as const, kind: item.kind, path: item.path.map(i => i.id) };
+                      const targets = values.filter(reference => MappingUtil.isAttributeReference(reference));
+                      createOrUpdateMappingActionsForSource(item.actions, source, targets);
+                    }}
+                  />
                 ) : (
                   <></>
                 );
@@ -1380,20 +1452,17 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               key: "sources",
               title: "Sources",
               render: (_value: never, item: MappingTableItem) => {
-                // TODO inline edit
-                return isAttributeItem(item) || isConstantItem(item) ? (
-                  <Flex wrap gap={"small"}>
-                    {item.actions
-                      .flatMap((a) => a.sources)
-                      .map((reference, index) => (
-                        <ElementReference
-                          key={index}
-                          isTarget={false}
-                          mapping={mappingDescription}
-                          reference={reference}
-                        />
-                      ))}
-                  </Flex>
+                return isAttributeItem(item) ? (
+                  <InlineElementReferencesEdit
+                    readonly={readonly}
+                    mappingDescription={mappingDescription}
+                    isTarget={false}
+                    values={item.actions.flatMap((a) => a.sources)}
+                    onSubmit={(values) => {
+                      const target = { type: "attribute" as const, kind: item.kind, path: item.path.map(i => i.id) };
+                      createOrUpdateMappingActionForTarget(item.actions, target, values);
+                    }}
+                  />
                 ) : (
                   <></>
                 );

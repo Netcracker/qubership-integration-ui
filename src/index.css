@@ -193,3 +193,17 @@ button:focus-visible {
         overflow: auto;
     }
 }
+
+.mapper-element-reference-select {
+  .ant-select-selection-item {
+    padding-left: 0 !important;
+    border: 1px solid #d9d9d9 !important;
+  }
+
+  .ant-select-selection-item-content {
+    font-size: 12px;
+    display: flex !important;
+    background-color: #ECEDEF !important;
+    min-width: 0;
+  }
+}

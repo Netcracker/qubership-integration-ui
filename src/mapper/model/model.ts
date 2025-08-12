@@ -153,7 +153,7 @@ export interface MappingAction extends MetadataAware {
     id: string;
     sources: (ConstantReference | AttributeReference)[];
     target: AttributeReference;
-    transformation: Transformation;
+    transformation?: Transformation;
 }
 
 export interface MappingDescription extends MetadataAware {
