@@ -61,7 +61,7 @@ const ChainPage = () => {
     void navigate(`${event.target.value}`); // Update the URL with the selected tab key
   };
 
-  if (isLoading) {
+  if (isLoading && !chain) {
     return (
       <Flex className={styles.stretched} gap={"middle"} vertical>
         <Row className={styles.stretched}>
