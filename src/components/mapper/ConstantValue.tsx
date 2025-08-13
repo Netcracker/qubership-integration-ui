@@ -6,12 +6,13 @@ import { GENERATORS } from "../../mapper/model/generators.ts";
 import { TransformationInfo } from "../../mapper/model/transformations.ts";
 import { TransformationInfoCard } from "./TransformationInfo.tsx";
 
-export type ConstantValueProps = {
+export type ConstantValueProps = React.HTMLAttributes<HTMLDivElement> & {
   valueSupplier: ValueSupplier;
 };
 
 export const ConstantValue: React.FC<ConstantValueProps> = ({
   valueSupplier,
+  ...props
 }) => {
   const [transformationInfo, setTransformationInfo] = useState<
     TransformationInfo | undefined
@@ -26,7 +27,7 @@ export const ConstantValue: React.FC<ConstantValueProps> = ({
   }, [valueSupplier]);
 
   return (
-    <div className={styles["constant-value-content"]}>
+    <div className={styles["constant-value-content"]} {...props}>
       {valueSupplier.kind === "given" ? (
         <div className={styles["constant-value"]}>{valueSupplier.value}</div>
       ) : (

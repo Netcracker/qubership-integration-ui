@@ -44,6 +44,7 @@ import { MetadataUtil } from "../../mapper/util/metadata.ts";
 import { Attributes } from "../../mapper/util/attributes.ts";
 import { DataTypes } from "../../mapper/util/types.ts";
 import styles from "./MappingTableView.module.css";
+import inlineEditStyles from "../InlineEdit.module.css";
 import { ItemType } from "antd/es/menu/interface";
 import { MappingActions } from "../../mapper/util/actions.ts";
 import { ConstantValue } from "./ConstantValue.tsx";
@@ -79,6 +80,8 @@ import { SelectEdit } from "../table/SelectEdit.tsx";
 import { InlineTypeEdit } from "./InlineTypeEdit.tsx";
 import { DefaultValueEdit } from "./DefaultValueEdit.tsx";
 import { InlineElementReferencesEdit } from "./InlineElementReferencesEdit.tsx";
+import { useModalsContext } from "../../Modals.tsx";
+import { ConstantValueEditDialog } from "./ConstantValueEditDialog.tsx";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   mapping?: MappingDescription;
@@ -525,6 +528,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
   onChange,
   ...otherProps
 }) => {
+  const { showModal } = useModalsContext();
   const [messageApi, contextHolder] = message.useMessage();
   const [selectedSchema, setSelectedSchema] = useState<SchemaKind>(
     SchemaKind.TARGET,
@@ -1007,6 +1011,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   type={item.constant.type}
                   definitions={[]}
                   readonly={readonly}
+                  disableObjectType={true}
                   disableArrayTypes={true}
                   onSubmit={(type) => {
                     if (type) {
@@ -1345,10 +1350,24 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 <></>
               )
             ) : isConstantItem(item) ? (
-              <ConstantValue valueSupplier={item.constant.valueSupplier} />
+              <ConstantValue
+                className={inlineEditStyles["inlineEditValueWrap"]}
+                valueSupplier={item.constant.valueSupplier}
+                onClick={() => {
+                  showModal({
+                    component: <ConstantValueEditDialog
+                      type={item.constant.type}
+                      valueSupplier={item.constant.valueSupplier}
+                      onSubmit={(valueSupplier) => {
+                        updateConstant(item.constant.id, { valueSupplier });
+                      }}
+                    />,
+                  });
+                }}
+              />
             ) : (
               <></>
-            ); // TODO inline edit
+            );
           },
           sorter: (
             i0: MappingTableItem,
@@ -1502,7 +1521,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                     .map((action, index) => (
                       <TransformationValue
                         key={index}
-                        transformation={action.transformation}
+                        transformation={action.transformation!}
                         errors={verifyMappingAction(
                           action,
                           mappingDescription,
@@ -1792,6 +1811,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       updateAttribute,
       updateBodyType,
       updateConstant,
+      createOrUpdateMappingActionForTarget,
+      createOrUpdateMappingActionsForSource,
+      showModal,
     ]);
 
   useEffect(() => {

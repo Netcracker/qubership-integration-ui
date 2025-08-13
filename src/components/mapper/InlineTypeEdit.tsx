@@ -9,6 +9,7 @@ import { MappingUtil } from "../../mapper/util/mapping.ts";
 type InlineTypeEditProps = {
   type?: DataType | null | undefined;
   disableArrayTypes?: boolean;
+  disableObjectType?: boolean;
   definitions?: TypeDefinition[];
   readonly?: boolean;
   onSubmit?: (dataType: DataType | null | undefined) => void;
@@ -18,12 +19,13 @@ function buildTypeOptions(
   type: DataType | null | undefined,
   typeDefinitions: TypeDefinition[],
   enableArrayTypes: boolean,
+  enableObjectType: boolean,
 ): (NonNullable<SelectProps["options"]>[0] & { type: DataType })[] {
   const baseTypes = [
     DataTypes.stringType(),
     DataTypes.integerType(),
     DataTypes.booleanType(),
-    DataTypes.objectType({ id: MappingUtil.generateUUID(), attributes: [] }),
+    ...(enableObjectType ? [DataTypes.objectType({ id: MappingUtil.generateUUID(), attributes: [] })] : []),
   ];
   const arrayTypes = enableArrayTypes
     ? baseTypes.map((type) => DataTypes.arrayType(type))
@@ -50,6 +52,7 @@ export const InlineTypeEdit: React.FC<InlineTypeEditProps> = ({
   type,
   definitions,
   disableArrayTypes,
+  disableObjectType,
   readonly,
   onSubmit,
 }) => {
@@ -65,8 +68,8 @@ export const InlineTypeEdit: React.FC<InlineTypeEditProps> = ({
   }, [type, definitions]);
 
   useEffect(() => {
-    setOptions(buildTypeOptions(type, definitions ?? [], !disableArrayTypes));
-  }, [type, definitions, disableArrayTypes]);
+    setOptions(buildTypeOptions(type, definitions ?? [], !disableArrayTypes, !disableObjectType));
+  }, [type, definitions, disableArrayTypes, disableObjectType]);
 
   return readonly ? (
     typeName
