@@ -24,11 +24,14 @@ type ShowModalProps = {
 const useModals = () => {
   const [modals, setModals] = useState<Modal[]>([]);
 
-  const showModal = ({
-    component,
-    id = crypto.randomUUID(),
-  }: ShowModalProps) => {
-    setModals((components) => [...components, { component, id }]);
+  const showModal = ({ component, id = crypto.randomUUID() }: ShowModalProps) => {
+    setModals((components) => {
+      const existingIndex = components.findIndex((m) => m.id === id);
+      if (existingIndex >= 0) {
+        return components;
+      }
+      return [...components, { component, id }];
+    });
     return id;
   };
 
