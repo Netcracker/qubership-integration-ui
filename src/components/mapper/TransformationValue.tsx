@@ -9,9 +9,10 @@ import {
 import styles from "./TransformationValue.module.css";
 import { VerificationError } from "../../mapper/verification/model.ts";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
+import { PLACEHOLDER } from "../../misc/format-utils.ts";
 
 export type TransformationValueProps = {
-  transformation: Transformation;
+  transformation?: Transformation;
   errors: VerificationError[];
 };
 
@@ -25,40 +26,44 @@ export const TransformationValue: React.FC<TransformationValueProps> = ({
 
   useEffect(() => {
     setTransformationInfo(
-      TRANSFORMATIONS.find((g) => g.name === transformation.name),
+      TRANSFORMATIONS.find((g) => g.name === transformation?.name),
     );
   }, [transformation]);
 
   return (
     <div className={styles["transformation-content"]}>
-      <Tooltip
-        title={
-          transformationInfo ? (
-            <TransformationInfoCard
-              transformationInfo={transformationInfo}
-              parameters={transformation.parameters}
-            />
-          ) : (
-            ""
-          )
-        }
-      >
-        <div className={styles["transformation-details"]}>
-          <span className={styles["transformation-title"]}>
-            {transformationInfo?.title ?? transformation.name}
-          </span>
-          <div className={styles["transformation-parameters"]}>
-            {transformation.parameters.map((parameter, index) => (
-              <span
-                className={styles["transformation-parameter-value"]}
-                key={index}
-              >
-                {parameter}
-              </span>
-            ))}
+      {transformation ? (
+        <Tooltip
+          title={
+            transformationInfo ? (
+              <TransformationInfoCard
+                transformationInfo={transformationInfo}
+                parameters={transformation.parameters}
+              />
+            ) : (
+              ""
+            )
+          }
+        >
+          <div className={styles["transformation-details"]}>
+            <span className={styles["transformation-title"]}>
+              {transformationInfo?.title ?? transformation.name}
+            </span>
+            <div className={styles["transformation-parameters"]}>
+              {transformation.parameters.map((parameter, index) => (
+                <span
+                  className={styles["transformation-parameter-value"]}
+                  key={index}
+                >
+                  {parameter}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      </Tooltip>
+        </Tooltip>
+      ) : (
+        PLACEHOLDER
+      )}
       {errors.length > 0 ? (
         <Tooltip
           title={
