@@ -7,13 +7,18 @@ export type ExpressionEditorProps = {
 };
 
 export const ExpressionEditor: React.FC<ExpressionEditorProps> = ({
-    value,
-    onChange,
+  value,
+  onChange,
 }) => {
   return (
     // TODO expression grammar, annotations, completion, etc.
-    <TextArea value={value} onChange={(event) => {
+    <TextArea
+      style={{ height: "100%", resize: "none" }}
+      value={value}
+      autoSize={false}
+      onChange={(event) => {
         onChange?.(event.target.value);
-    }}/>
+      }}
+    />
   );
-}
+};

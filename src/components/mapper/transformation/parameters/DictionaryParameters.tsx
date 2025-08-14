@@ -12,6 +12,7 @@ const DictionaryEditor: React.FC<DictionaryEditorProps> = ({
 }) => {
   return (
     <Tabs
+      style={{ height: "100%" }}
       className={"flex-tabs"}
       tabPosition="bottom"
       size="small"
@@ -38,7 +39,7 @@ export const DictionaryParameters: React.FC = () => {
       <Form.Item name={["parameters", 0]} label="Default">
         <Input />
       </Form.Item>
-      <Form.Item name={["parameters", 1]}>
+      <Form.Item className={"flex-form-item"} name={["parameters", 1]}>
         <DictionaryEditor />
       </Form.Item>
     </>

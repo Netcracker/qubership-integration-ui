@@ -207,3 +207,18 @@ button:focus-visible {
     min-width: 0;
   }
 }
+
+.flex-form-item {
+  flex-grow: 1;
+  .ant-form-item-row {
+    height: 100%;
+  }
+
+  .ant-form-item-control-input {
+    height: 100%;
+  }
+
+  .ant-form-item-control-input-content {
+    height: 100%;
+  }
+}

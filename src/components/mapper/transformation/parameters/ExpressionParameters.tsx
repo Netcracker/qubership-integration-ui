@@ -12,10 +12,11 @@ export const ExpressionParameters: React.FC<ExpressionParametersProps> = ({
 }) => {
   return (
     <Form.Item
+      className={"flex-form-item"}
       name={["parameters", offset]}
       label={label}
       layout="vertical"
-      labelCol={{ flex: "0" }}
+      labelCol={{ flex: "0 0 auto" }}
       // TODO expression validation
       rules={[{ required: true, message: "Expression is required" }]}
     >
