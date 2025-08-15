@@ -1661,7 +1661,6 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 onCell: (item: MappingTableItem) => {
                   return isAttributeItem(item) &&
                     item.actions
-                      .filter((action) => !!action.transformation)
                       .flatMap((action) =>
                         verifyMappingAction(action, mappingDescription),
                       ).length > 0
