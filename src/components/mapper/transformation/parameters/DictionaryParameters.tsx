@@ -20,6 +20,18 @@ export type DictionaryEditorProps = {
   onChange?: (value: string) => void;
 };
 
+function removeDuplicateKeys(data: KeyValuePair[]): KeyValuePair[] {
+  const seenKeys = new Set<string>();
+  return data.filter((item) => {
+    if (seenKeys.has(item.key)) {
+      return false;
+    } else {
+      seenKeys.add(item.key);
+      return true;
+    }
+  });
+}
+
 const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
   onChange,
   value,
@@ -31,7 +43,7 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
 
   useEffect(() => {
     try {
-      setTableData(parse(value ?? ""));
+      setTableData(removeDuplicateKeys(parse(value ?? "")));
     } catch (error) {
       messageApi.error(`Invalid dictionary: ${error}`);
       setTableData([]);
@@ -103,7 +115,6 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
           className="flex-table"
           size="small"
           scroll={{ y: "" }}
-          virtual={true}
           columns={[
             {
               key: "key",
