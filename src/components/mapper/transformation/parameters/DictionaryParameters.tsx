@@ -102,7 +102,6 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
         <Table
           className="flex-table"
           size="small"
-          style={{ height: "100%" }}
           scroll={{ y: "" }}
           virtual={true}
           columns={[
@@ -110,7 +109,14 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
               key: "key",
               title: "Input",
               dataIndex: "key",
-              sorter: true,
+              sorter: (a, b, sortOrder) => {
+                if (sortOrder === "ascend") {
+                  return a.key.localeCompare(b.key);
+                } else if (sortOrder === "descend") {
+                  return b.key.localeCompare(a.key);
+                }
+                return 0;
+              },
               render: (value: string, _record: KeyValuePair, index: number) => {
                 return (
                   <InlineEdit<{ value: string }>
@@ -133,7 +139,14 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
               key: "value",
               title: "Result",
               dataIndex: "value",
-              sorter: true,
+              sorter: (a, b, sortOrder) => {
+                if (sortOrder === "ascend") {
+                  return a.value.localeCompare(b.value);
+                } else if (sortOrder === "descend") {
+                  return b.value.localeCompare(a.value);
+                }
+                return 0;
+              },
               render: (value: string, _record: KeyValuePair, index: number) => {
                 return (
                   <InlineEdit<{ value: string }>

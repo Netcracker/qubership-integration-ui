@@ -76,7 +76,6 @@ export const TransformationEditDialog: React.FC<
         wrapperCol={{ flex: "auto" }}
         labelWrap
         onValuesChange={(changes, values) => {
-          console.log({ changes, values });
           if (changes.name !== undefined) {
             form.setFieldValue("parameters", []);
             setParametersComponent(parametersComponentMap[changes.name] || "");
