@@ -91,8 +91,12 @@ const ChainGraphInner: React.FC = () => {
   const openElementModal = useCallback(
     (node?: Node<ChainGraphNodeData>) => {
       if (!node?.data.elementType) return;
-      setElementPath(node.id);
+      const modalId = `chain-element-${node.id}`;
+      if (elementId !== node.id) {
+        setElementPath(node.id);
+      }
       showModal({
+        id: modalId,
         component: (
           <ChainElementModification
             node={node}
@@ -104,7 +108,7 @@ const ChainGraphInner: React.FC = () => {
         ),
       });
     },
-    [chainId, clearElementPath, setElementPath, showModal, updateNodeData],
+    [chainId, elementId, clearElementPath, setElementPath, showModal, updateNodeData],
   );
 
   const saveAndDeploy = async (domain: string) => {
@@ -165,7 +169,8 @@ const ChainGraphInner: React.FC = () => {
     if (!isPageLoaded && !isLoading && !isLibraryLoading && nodes?.length) {
       setIsPageLoaded(true);
       if (elementId) {
-        openElementModal(nodes.find((node) => node.id === elementId));
+        const targetNode = nodes.find((node) => node.id === elementId);
+        if (targetNode) openElementModal(targetNode);
       }
     }
   }, [
