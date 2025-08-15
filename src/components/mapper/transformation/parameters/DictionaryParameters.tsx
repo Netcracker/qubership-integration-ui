@@ -176,7 +176,7 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
               className: "actions-column",
               width: 40,
               align: "right",
-              render: (_, record: KeyValuePair, index: number) => {
+              render: (_, _record, index: number) => {
                 return (
                   <Button
                     type="text"

@@ -44,7 +44,9 @@ import { formatDate, PLACEHOLDER } from "../../misc/format-utils.ts";
 import {
   DESCRIPTION_KEY,
   METADATA_DATA_FORMAT_KEY,
+  METADATA_SOURCE_XML_NAMESPACES_KEY,
   SourceFormat,
+  XmlNamespace,
 } from "../../mapper/model/metadata.ts";
 import { MetadataUtil } from "../../mapper/util/metadata.ts";
 import { Attributes } from "../../mapper/util/attributes.ts";
@@ -90,6 +92,7 @@ import { useModalsContext } from "../../Modals.tsx";
 import { ConstantValueEditDialog } from "./ConstantValueEditDialog.tsx";
 import { LoadSchemaDialog } from "./LoadSchemaDialog.tsx";
 import { TransformationEditDialog } from "./TransformationEditDialog.tsx";
+import { NamespacesEditDialog } from "./NamespacesEditDialog.tsx";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   mapping?: MappingDescription;
@@ -529,6 +532,31 @@ function updateConstantValueToMatchType(
   }
 }
 
+function getXmlNamespaces(
+  type: DataType,
+  definitions: TypeDefinition[],
+): XmlNamespace[] {
+  let resolveResult = DataTypes.resolveType(type, definitions);
+  if (!resolveResult.type) {
+    return [];
+  }
+  resolveResult = DataTypes.resolveArrayItemType(
+    resolveResult.type,
+    resolveResult.definitions,
+  );
+  if (!resolveResult.type) {
+    return [];
+  }
+  const xmlNamespaces = MetadataUtil.getValue(
+    resolveResult.type,
+    METADATA_SOURCE_XML_NAMESPACES_KEY,
+  );
+  if (Array.isArray(xmlNamespaces)) {
+    return xmlNamespaces;
+  }
+  return [];
+}
+
 export const MappingTableView: React.FC<MappingTableViewProps> = ({
   mapping,
   readonlySource,
@@ -936,6 +964,25 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       });
     },
     [onChange],
+  );
+
+  const updateXmlNamespaces = useCallback(
+    (path: Attribute[], namespaces: XmlNamespace[]) => {
+      setMappingDescription((mapping) => {
+        const messageSchema = MessageSchemaUtil.updateXmlNamespaces(
+          mapping[selectedSchema],
+          path,
+          namespaces,
+        );
+        mapping = {
+          ...mapping,
+          [selectedSchema]: messageSchema,
+        };
+        onChange?.(mapping);
+        return mapping;
+      });
+    },
+    [onChange, selectedSchema],
   );
 
   const buildColumns =
@@ -1660,10 +1707,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 },
                 onCell: (item: MappingTableItem) => {
                   return isAttributeItem(item) &&
-                    item.actions
-                      .flatMap((action) =>
-                        verifyMappingAction(action, mappingDescription),
-                      ).length > 0
+                    item.actions.flatMap((action) =>
+                      verifyMappingAction(action, mappingDescription),
+                    ).length > 0
                     ? { className: styles["invalid-value"] }
                     : {};
                 },
@@ -1867,13 +1913,30 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 },
               });
             }
-            if (isObject && bodyFormat === SourceFormat.XML) {
+            if (
+              isObject &&
+              !isBodyGroup(item) &&
+              bodyFormat === SourceFormat.XML &&
+              !readonly
+            ) {
               items.push({
                 key: "namespaces",
                 label: "Namespaces",
                 icon: <span style={{ fontSize: "9px" }}>{"</>"}</span>,
                 onClick: () => {
-                  // TODO
+                  showModal({
+                    component: (
+                      <NamespacesEditDialog
+                        namespaces={getXmlNamespaces(
+                          item.resolvedType,
+                          item.typeDefinitions,
+                        )}
+                        onSubmit={(namespaces) => {
+                          updateXmlNamespaces(item.path, namespaces);
+                        }}
+                      />
+                    ),
+                  });
                 },
               });
             }
