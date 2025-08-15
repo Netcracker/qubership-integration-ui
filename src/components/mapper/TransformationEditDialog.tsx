@@ -60,7 +60,9 @@ export const TransformationEditDialog: React.FC<
           key="submit"
           type="primary"
           form="transformationEditForm"
-          htmlType={"submit"}
+          onClick={() => {
+            form.submit();
+          }}
         >
           Save
         </Button>,
