@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Transformation } from "../../mapper/model/model";
 import { Button, Flex, Form, Modal, Select } from "antd";
 import { useModalContext } from "../../ModalContextProvider";
@@ -24,28 +24,31 @@ export const TransformationEditDialog: React.FC<
   const [parametersComponent, setParametersComponent] =
     useState<React.ReactNode>("");
 
+  const parametersComponentMap: Record<string, React.ReactNode> = useMemo(
+    () => ({
+      conditional: <ConditionalParameters />,
+      defaultValue: <DefaultValueParameters />,
+      dictionary: <DictionaryParameters />,
+      expression: <ExpressionParameters />,
+      formatDateTime: <FormatDateTimeParameters />,
+      trim: <TrimParameters />,
+      replaceAll: <ReplaceAllParameters />,
+    }),
+    [],
+  );
+
   useEffect(() => {
     setParametersComponent(
-      parametersComponentMap[transformation?.name ?? ""] || ""
+      parametersComponentMap[transformation?.name ?? ""] || "",
     );
-  }, [transformation]);
+  }, [parametersComponentMap, transformation]);
 
   useEffect(() => {
     form.setFieldsValue({
       name: transformation?.name ?? "",
       parameters: transformation?.parameters ?? [],
     });
-  }, [transformation]);
-
-  const parametersComponentMap: Record<string, React.ReactNode> = {
-    conditional: <ConditionalParameters />,
-    defaultValue: <DefaultValueParameters />,
-    dictionary: <DictionaryParameters />,
-    expression: <ExpressionParameters />,
-    formatDateTime: <FormatDateTimeParameters />,
-    trim: <TrimParameters />,
-    replaceAll: <ReplaceAllParameters />,
-  };
+  }, [form, transformation]);
 
   return (
     <Modal
@@ -75,7 +78,7 @@ export const TransformationEditDialog: React.FC<
         labelCol={{ flex: "150px" }}
         wrapperCol={{ flex: "auto" }}
         labelWrap
-        onValuesChange={(changes, values) => {
+        onValuesChange={(changes: Partial<Transformation>) => {
           if (changes.name !== undefined) {
             form.setFieldValue("parameters", []);
             setParametersComponent(parametersComponentMap[changes.name] || "");

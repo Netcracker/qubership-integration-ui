@@ -9,7 +9,7 @@ import {
   Transformation,
   MetadataAware,
 } from "../model/model.ts";
-import { parse } from "./parser.ts";
+import { isParseError, parse } from "./parser.ts";
 import { MessageSchemaUtil } from "../util/schema.ts";
 import {
   ConstantReference as ConstantReferenceText,
@@ -48,7 +48,7 @@ export class MappingActions {
               const [r1, id] = this.resolveSource(source, r);
               return [r1, [...ids, id]];
             },
-            [result, [] as AttributeReference[]],
+            [result, [] as (AttributeReference | ConstantReference)[]],
           );
           const [res1, target] = this.resolveTarget(
             actionDescription.target,
@@ -64,7 +64,7 @@ export class MappingActions {
           };
           return { ...res1, actions: [...res1.actions, action] };
         } catch (exception) {
-          if (exception?.location) {
+          if (isParseError(exception)) {
             errors.push({
               location: exception.location,
               message: exception.message,
@@ -228,7 +228,7 @@ export class MappingActions {
       type: DataTypes.stringType(),
       metadata: { location: reference.location },
     };
-    const key = MessageSchemaUtil.getMessageSchemaKey(reference.kind);
+    const key = MessageSchemaUtil.getMessageSchemaKey(reference.kind)!;
     const attributes = MessageSchemaUtil.getMessageSchemaAttributes(
       schema,
       reference.kind,
@@ -273,7 +273,7 @@ export class MappingActions {
           MappingUtil.findConstantById(
             mapping,
             (source as ConstantReference).constantId,
-          ).name ?? "",
+          )?.name ?? "",
           " \t\n\r\\",
         )}`
       : this.buildAttributeText(source, messageSchema);

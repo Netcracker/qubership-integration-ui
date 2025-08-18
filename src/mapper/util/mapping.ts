@@ -181,7 +181,7 @@ export class MappingUtil {
       "kind" in obj &&
       "path" in obj &&
       obj.type === "attribute" &&
-      (["header", "property", "body"] as any[]).includes(obj.kind) &&
+      (["header", "property", "body"] as unknown[]).includes(obj.kind) &&
       Array.isArray(obj.path)
     );
   }

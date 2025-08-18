@@ -177,7 +177,7 @@ function buildTypeDefinitionsAsPartOfSchema(
 
 function buildMetadata(obj: MetadataAware): Partial<JSONSchema7> {
   const result: Partial<JSONSchema7> = {};
-  const description = MetadataUtil.getValue(obj, DESCRIPTION_KEY) as string;
+  const description = MetadataUtil.getString(obj, DESCRIPTION_KEY);
   if (description) {
     result.description = description;
   }

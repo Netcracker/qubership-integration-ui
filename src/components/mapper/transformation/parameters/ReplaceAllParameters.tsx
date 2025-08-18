@@ -5,7 +5,7 @@ function isRegex(value: string): boolean {
   try {
     new RegExp(value);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -23,7 +23,7 @@ export const ReplaceAllParameters: React.FC = () => {
         rules={[
           { required: true, message: "Regular expression is required" },
           () => ({
-            validator(_, value) {
+            validator(_, value: string) {
               return isRegex(value)
                 ? Promise.resolve()
                 : Promise.reject(
@@ -40,7 +40,7 @@ export const ReplaceAllParameters: React.FC = () => {
         label="Replacement"
         rules={[
           () => ({
-            validator(_, value) {
+            validator(_, value: string) {
               return isValidReplacementString(value)
                 ? Promise.resolve()
                 : Promise.reject(

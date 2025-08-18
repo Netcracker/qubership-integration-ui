@@ -9,6 +9,7 @@ import {
 } from "./model.ts";
 import { MappingActions } from "../actions-text/util.ts";
 import { processReferences } from "./references.ts";
+import { isParseError } from "../actions-text/parser.ts";
 
 export type TransformationValidationCallback = (
   location: LocationRange,
@@ -63,6 +64,8 @@ export function validateExpression(
       validateReference(node, attributes, constants, callback),
     );
   } catch (exception) {
-    callback(exception.location, exception.message);
+    if (isParseError(exception)) {
+      callback(exception.location, exception.message);
+    }
   }
 }

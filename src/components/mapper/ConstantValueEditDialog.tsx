@@ -6,9 +6,10 @@ import {
   ValueSupplier,
 } from "../../mapper/model/model";
 import Checkbox from "antd/lib/checkbox";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { getGeneratorsForType } from "../../mapper/model/generators";
 import { TransformationInfo } from "../../mapper/model/transformations";
+import { CheckboxChangeEvent } from "antd/lib/checkbox/Checkbox";
 
 export type ConstantValueEditDialogProps = {
   type: DataType;
@@ -138,7 +139,7 @@ export const ConstantValueEditDialog: React.FC<
                   style={{ marginLeft: 150 }}
                   name={["generator", "parameters", 0]}
                   getValueProps={(value) => ({ checked: value === "true" })}
-                  normalize={(value) => value.target.checked.toString()}
+                  normalize={(value: CheckboxChangeEvent) => value.target.checked.toString()}
                 >
                   <Checkbox>Unix epoch</Checkbox>
                 </Form.Item>

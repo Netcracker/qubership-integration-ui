@@ -38,11 +38,10 @@ export const NamespacesEditDialog: React.FC<NamespacesEditDialogProps> = ({
 
   const addRecord = useCallback(() => {
     setTableData((data) => {
-      if (tableData?.some((r) => r.alias === "")) {
+      if (data?.some((r) => r.alias === "")) {
         return data;
       }
-      const result = [...(data ?? []), { alias: "", uri: "" }];
-      return result;
+      return [...(data ?? []), { alias: "", uri: "" }];
     });
   }, []);
 

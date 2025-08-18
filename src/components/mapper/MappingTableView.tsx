@@ -106,7 +106,7 @@ enum SchemaKind {
   TARGET = "target",
 }
 
-type OnChange = NonNullable<TableProps<DataType>["onChange"]>;
+type OnChange = NonNullable<TableProps<MappingTableItem>["onChange"]>;
 type Filters = Parameters<OnChange>[1];
 
 type GetSingle<T> = T extends (infer U)[] ? U : never;
@@ -431,8 +431,7 @@ function getSourceSearchContexts(
       .map((reference) => reference.path.slice(-1)?.pop()?.name ?? "");
     return [
       item.attribute.name,
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      String(MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ?? ""),
+      MetadataUtil.getString(item.attribute, DESCRIPTION_KEY) ?? "",
       item.attribute.defaultValue ?? "",
       ...mappingActionTargets,
       required,
@@ -440,8 +439,7 @@ function getSourceSearchContexts(
   } else if (isConstantItem(item)) {
     return [
       item.constant.name,
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      String(MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ?? ""),
+      MetadataUtil.getString(item.constant, DESCRIPTION_KEY) ?? "",
       ...getConstantValueSearchContexts(item.constant),
     ];
   } else {
@@ -490,14 +488,12 @@ function getTargetSearchContexts(
         ? (reference.path.slice(-1)?.pop()?.name ?? "")
         : reference.name,
     );
-  const mappingActionDescriptions = item.actions.map((action) =>
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    String(MetadataUtil.getValue(action, DESCRIPTION_KEY) ?? ""),
+  const mappingActionDescriptions = item.actions.map(
+    (action) => MetadataUtil.getString(action, DESCRIPTION_KEY) ?? "",
   );
   return [
     item.attribute.name,
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    String(MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ?? ""),
+    MetadataUtil.getString(item.attribute, DESCRIPTION_KEY) ?? "",
     ...transformationNames,
     ...transformationTitles,
     ...transformationParameters,
@@ -532,6 +528,22 @@ function updateConstantValueToMatchType(
   }
 }
 
+function isXmlNamespace(obj: unknown): obj is XmlNamespace {
+  return (
+    obj !== undefined &&
+    obj !== null &&
+    typeof obj === "object" &&
+    "alias" in obj &&
+    "uri" in obj &&
+    typeof obj.alias === "string" &&
+    typeof obj.uri === "string"
+  );
+}
+
+function isXmlNamespaces(obj: unknown): obj is XmlNamespace[] {
+  return Array.isArray(obj) && (obj.length === 0 || obj.every(isXmlNamespace));
+}
+
 function getXmlNamespaces(
   type: DataType,
   definitions: TypeDefinition[],
@@ -547,14 +559,13 @@ function getXmlNamespaces(
   if (!resolveResult.type) {
     return [];
   }
-  const xmlNamespaces = MetadataUtil.getValue(
+  const xmlNamespaces = MetadataUtil.getTypedValue(
     resolveResult.type,
     METADATA_SOURCE_XML_NAMESPACES_KEY,
+    isXmlNamespaces,
+    () => [],
   );
-  if (Array.isArray(xmlNamespaces)) {
-    return xmlNamespaces;
-  }
-  return [];
+  return xmlNamespaces ?? [];
 }
 
 export const MappingTableView: React.FC<MappingTableViewProps> = ({
@@ -626,12 +637,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
 
   useEffect(() => {
     const format = mappingDescription[selectedSchema].body
-      ? String(
-          MetadataUtil.getValue(
-            mappingDescription[selectedSchema].body,
-            METADATA_DATA_FORMAT_KEY,
-          ) ?? "",
-        )
+      ? (MetadataUtil.getString(
+          mappingDescription[selectedSchema].body,
+          METADATA_DATA_FORMAT_KEY,
+        ) ?? "")
       : SourceFormat.JSON;
     setBodyFormat(format);
   }, [mappingDescription, selectedSchema]);
@@ -914,7 +923,6 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
 
   const createOrUpdateMappingActionsForSource = useCallback(
     (
-      affectedActions: MappingAction[],
       source: ConstantReference | AttributeReference,
       targets: AttributeReference[],
     ) => {
@@ -991,7 +999,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
         {
           key: "name",
           title: "Name",
-          render: (_value: never, item: MappingTableItem) => {
+          render: (_value: unknown, item: MappingTableItem) => {
             return isBodyGroup(item) ? (
               <Space>
                 <span className={styles["group-label"]}>body</span>
@@ -1066,7 +1074,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           sorter: (
             i0: MappingTableItem,
             i1: MappingTableItem,
-            sortOrder: SortOrder,
+            sortOrder: SortOrder | undefined,
           ) => {
             if (isAttributeItem(i0) || isConstantItem(i0)) {
               const name1 = isAttributeItem(i0)
@@ -1077,10 +1085,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 : (i1 as ConstantItem).constant.name;
               return name1.localeCompare(name2);
             } else {
-              return compareGroupItems(i0, i1, sortOrder);
+              return compareGroupItems(i0, i1, sortOrder ?? null);
             }
           },
-          sortDirections: ["ascend", "descend", null],
+          sortDirections: ["ascend" as const, "descend" as const, null],
           sortOrder:
             controlsStateMap.get(selectedSchema)?.sorts.columnKey === "name"
               ? controlsStateMap.get(selectedSchema)?.sorts.order
@@ -1106,7 +1114,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
         {
           key: "type",
           title: "Type",
-          render: (_value: never, item: MappingTableItem) => {
+          render: (_value: unknown, item: MappingTableItem) => {
             if (isBodyGroup(item)) {
               return (
                 <InlineTypeEdit
@@ -1163,7 +1171,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           sorter: (
             i0: MappingTableItem,
             i1: MappingTableItem,
-            sortOrder: SortOrder,
+            sortOrder: SortOrder | undefined,
           ) => {
             if (isAttributeItem(i0) || isConstantItem(i0)) {
               const name1 = isAttributeItem(i0)
@@ -1180,10 +1188,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   );
               return name1.localeCompare(name2);
             } else {
-              return compareGroupItems(i0, i1, sortOrder);
+              return compareGroupItems(i0, i1, sortOrder ?? null);
             }
           },
-          sortDirections: ["ascend", "descend", null],
+          sortDirections: ["ascend" as const, "descend" as const, null],
           sortOrder:
             controlsStateMap.get(selectedSchema)?.sorts.columnKey === "type"
               ? controlsStateMap.get(selectedSchema)?.sorts.order
@@ -1200,7 +1208,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               {...props}
             />
           ),
-          onFilter: (value: string, item: MappingTableItem) => {
+          onFilter: (value: boolean | React.Key, item: MappingTableItem) => {
             return (
               !(isAttributeItem(item) || isConstantItem(item)) ||
               getEnumColumnFilterFn((i) =>
@@ -1218,7 +1226,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
         {
           key: "optionality",
           title: "Optionality",
-          render: (_value: never, item: MappingTableItem) => {
+          render: (_value: unknown, item: MappingTableItem) => {
             return isAttributeItem(item) ? (
               readonly ? (
                 item.attribute.required ? (
@@ -1256,7 +1264,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           sorter: (
             i0: MappingTableItem,
             i1: MappingTableItem,
-            sortOrder: SortOrder,
+            sortOrder: SortOrder | undefined,
           ) => {
             if (isAttributeItem(i0)) {
               const s1 = i0.attribute.required ? "required" : "optional";
@@ -1265,10 +1273,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 : "optional";
               return s1.localeCompare(s2);
             } else {
-              return compareGroupItems(i0, i1, sortOrder);
+              return compareGroupItems(i0, i1, sortOrder ?? null);
             }
           },
-          sortDirections: ["ascend", "descend", null],
+          sortDirections: ["ascend" as const, "descend" as const, null],
           sortOrder:
             controlsStateMap.get(selectedSchema)?.sorts.columnKey ===
             "optionality"
@@ -1283,7 +1291,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               {...props}
             />
           ),
-          onFilter: (value: string, item: MappingTableItem) => {
+          onFilter: (value: boolean | React.Key, item: MappingTableItem) => {
             return (
               !isAttributeItem(item) ||
               getEnumColumnFilterFn((i: AttributeItem) =>
@@ -1297,29 +1305,23 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
         {
           key: "description",
           title: "Description",
-          render: (_value: never, item: MappingTableItem) => {
+          render: (_value: unknown, item: MappingTableItem) => {
             return isAttributeItem(item) ? (
               readonly ? (
-                String(
-                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                  MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ??
-                    PLACEHOLDER,
-                )
+                (MetadataUtil.getString(item.attribute, DESCRIPTION_KEY) ??
+                PLACEHOLDER)
               ) : (
                 <InlineEdit<{ description: string }>
                   values={{
-                    description: String(
-                      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                      MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ??
-                        "",
-                    ),
+                    description:
+                      MetadataUtil.getString(item.attribute, DESCRIPTION_KEY) ??
+                      "",
                   }}
                   editor={<TextValueEdit name="description" rules={[]} />}
-                  viewer={String(
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                    MetadataUtil.getValue(item.attribute, DESCRIPTION_KEY) ??
-                      PLACEHOLDER,
-                  )}
+                  viewer={
+                    MetadataUtil.getString(item.attribute, DESCRIPTION_KEY) ??
+                    PLACEHOLDER
+                  }
                   onSubmit={({ description }) => {
                     updateAttribute(item.kind, item.path, {
                       metadata: MetadataUtil.upsert(
@@ -1333,26 +1335,20 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               )
             ) : isConstantItem(item) ? (
               readonly ? (
-                String(
-                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                  MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ??
-                    PLACEHOLDER,
-                )
+                (MetadataUtil.getString(item.constant, DESCRIPTION_KEY) ??
+                PLACEHOLDER)
               ) : (
                 <InlineEdit<{ description: string }>
                   values={{
-                    description: String(
-                      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                      MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ??
-                        "",
-                    ),
+                    description:
+                      MetadataUtil.getString(item.constant, DESCRIPTION_KEY) ??
+                      "",
                   }}
                   editor={<TextValueEdit name="description" rules={[]} />}
-                  viewer={String(
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                    MetadataUtil.getValue(item.constant, DESCRIPTION_KEY) ??
-                      PLACEHOLDER,
-                  )}
+                  viewer={
+                    MetadataUtil.getString(item.constant, DESCRIPTION_KEY) ??
+                    PLACEHOLDER
+                  }
                   onSubmit={({ description }) => {
                     updateConstant(item.constant.id, {
                       metadata: MetadataUtil.upsert(
@@ -1371,39 +1367,27 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           sorter: (
             i0: MappingTableItem,
             i1: MappingTableItem,
-            sortOrder: SortOrder,
+            sortOrder: SortOrder | undefined,
           ) => {
             if (isAttributeItem(i0) || isConstantItem(i0)) {
               const description1 = isAttributeItem(i0)
-                ? String(
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                    MetadataUtil.getValue(i0.attribute, DESCRIPTION_KEY) || "",
-                  )
-                : String(
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                    MetadataUtil.getValue(i0.constant, DESCRIPTION_KEY) || "",
-                  );
+                ? MetadataUtil.getString(i0.attribute, DESCRIPTION_KEY) || ""
+                : MetadataUtil.getString(i0.constant, DESCRIPTION_KEY) || "";
               const description2 = isAttributeItem(i0)
-                ? String(
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                    MetadataUtil.getValue(
-                      (i1 as AttributeItem).attribute,
-                      DESCRIPTION_KEY,
-                    ) || "",
-                  )
-                : String(
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                    MetadataUtil.getValue(
-                      (i1 as ConstantItem).constant,
-                      DESCRIPTION_KEY,
-                    ) || "",
-                  );
+                ? MetadataUtil.getString(
+                    (i1 as AttributeItem).attribute,
+                    DESCRIPTION_KEY,
+                  ) || ""
+                : MetadataUtil.getString(
+                    (i1 as ConstantItem).constant,
+                    DESCRIPTION_KEY,
+                  ) || "";
               return description1.localeCompare(description2);
             } else {
-              return compareGroupItems(i0, i1, sortOrder);
+              return compareGroupItems(i0, i1, sortOrder ?? null);
             }
           },
-          sortDirections: ["ascend", "descend", null],
+          sortDirections: ["ascend" as const, "descend" as const, null],
           sortOrder:
             controlsStateMap.get(selectedSchema)?.sorts.columnKey ===
             "description"
@@ -1417,16 +1401,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               (!isAttributeItem(item) && !isConstantItem(item)) ||
               getTextColumnFilterFn((i: MappingTableItem) =>
                 isAttributeItem(i)
-                  ? String(
-                      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                      MetadataUtil.getValue(i.attribute, DESCRIPTION_KEY) ?? "",
-                    )
+                  ? (MetadataUtil.getString(i.attribute, DESCRIPTION_KEY) ?? "")
                   : isConstantItem(i)
-                    ? String(
-                        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                        MetadataUtil.getValue(i.constant, DESCRIPTION_KEY) ??
-                          "",
-                      )
+                    ? (MetadataUtil.getString(i.constant, DESCRIPTION_KEY) ??
+                      "")
                     : "",
               )(value, item)
             );
@@ -1437,7 +1415,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
         {
           key: "defaultValue",
           title: "Default value",
-          render: (_value: never, item: MappingTableItem) => {
+          render: (_value: unknown, item: MappingTableItem) => {
             return isAttributeItem(item) ? (
               item.resolvedType.name === "string" ||
               item.resolvedType.name === "boolean" ||
@@ -1501,7 +1479,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           sorter: (
             i0: MappingTableItem,
             i1: MappingTableItem,
-            sortOrder: SortOrder,
+            sortOrder: SortOrder | undefined,
           ) => {
             if (isAttributeItem(i0)) {
               const value1 = i0.attribute.defaultValue ?? "";
@@ -1523,10 +1501,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                     c1.constant.valueSupplier.generator.parameters.join(" ");
               return value1.localeCompare(value2);
             } else {
-              return compareGroupItems(i0, i1, sortOrder);
+              return compareGroupItems(i0, i1, sortOrder ?? null);
             }
           },
-          sortDirections: ["ascend", "descend", null],
+          sortDirections: ["ascend" as const, "descend" as const, null],
           sortOrder:
             controlsStateMap.get(selectedSchema)?.sorts.columnKey ===
             "defaultValue"
@@ -1551,7 +1529,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               {
                 key: "targets",
                 title: "Targets",
-                render: (_value: never, item: MappingTableItem) => {
+                render: (_value: unknown, item: MappingTableItem) => {
                   return isAttributeItem(item) || isConstantItem(item) ? (
                     <InlineElementReferencesEdit
                       readonly={readonly}
@@ -1572,11 +1550,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                         const targets = values.filter((reference) =>
                           MappingUtil.isAttributeReference(reference),
                         );
-                        createOrUpdateMappingActionsForSource(
-                          item.actions,
-                          source,
-                          targets,
-                        );
+                        createOrUpdateMappingActionsForSource(source, targets);
                       }}
                     />
                   ) : (
@@ -1612,7 +1586,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               {
                 key: "sources",
                 title: "Sources",
-                render: (_value: never, item: MappingTableItem) => {
+                render: (_value: unknown, item: MappingTableItem) => {
                   return isAttributeItem(item) ? (
                     <InlineElementReferencesEdit
                       readonly={readonly}
@@ -1663,10 +1637,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               {
                 key: "transformation",
                 title: "Transformation",
-                render: (_value: never, item: MappingTableItem) => {
+                render: (_value: unknown, item: MappingTableItem) => {
                   return isAttributeItem(item) ? (
                     item.actions.map((action, index) => (
                       <div
+                        key={index}
                         className={inlineEditStyles["inlineEditValueWrap"]}
                         onClick={() => {
                           if (readonly) {
@@ -1716,7 +1691,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 sorter: (
                   i0: MappingTableItem,
                   i1: MappingTableItem,
-                  sortOrder: SortOrder,
+                  sortOrder: SortOrder | undefined,
                 ) => {
                   if (isAttributeItem(i0)) {
                     const value1 = i0.actions
@@ -1743,10 +1718,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                   } else if (isConstantItem(i0)) {
                     return 0;
                   } else {
-                    return compareGroupItems(i0, i1, sortOrder);
+                    return compareGroupItems(i0, i1, sortOrder ?? null);
                   }
                 },
-                sortDirections: ["ascend", "descend", null],
+                sortDirections: ["ascend" as const, "descend" as const, null],
                 sortOrder:
                   controlsStateMap.get(selectedSchema)?.sorts.columnKey ===
                   "transformation"
@@ -1773,11 +1748,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               {
                 key: "transformationDescription",
                 title: "Transformation description",
-                render: (_value: never, item: MappingTableItem) => {
+                render: (_value: unknown, item: MappingTableItem) => {
                   if (isAttributeItem(item) && item.actions.length > 0) {
                     const description = item.actions
                       .map((action) =>
-                        MetadataUtil.getValue(action, DESCRIPTION_KEY),
+                        MetadataUtil.getString(action, DESCRIPTION_KEY),
                       )
                       .filter((description) => !!description)
                       .join(" ");
@@ -1808,31 +1783,29 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 sorter: (
                   i0: MappingTableItem,
                   i1: MappingTableItem,
-                  sortOrder: SortOrder,
+                  sortOrder: SortOrder | undefined,
                 ) => {
                   if (isAttributeItem(i0)) {
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
                     const value1 = i0.actions
                       .map(
                         (action) =>
-                          MetadataUtil.getValue(action, DESCRIPTION_KEY) ?? "",
+                          MetadataUtil.getString(action, DESCRIPTION_KEY) ?? "",
                       )
                       .join();
-                    // eslint-disable-next-line @typescript-eslint/no-base-to-string
                     const value2 = (i1 as AttributeItem).actions
                       .map(
                         (action) =>
-                          MetadataUtil.getValue(action, DESCRIPTION_KEY) ?? "",
+                          MetadataUtil.getString(action, DESCRIPTION_KEY) ?? "",
                       )
                       .join();
                     return value1.localeCompare(value2);
                   } else if (isConstantItem(i0)) {
                     return 0;
                   } else {
-                    return compareGroupItems(i0, i1, sortOrder);
+                    return compareGroupItems(i0, i1, sortOrder ?? null);
                   }
                 },
-                sortDirections: ["ascend", "descend", null],
+                sortDirections: ["ascend" as const, "descend" as const, null],
                 sortOrder:
                   controlsStateMap.get(selectedSchema)?.sorts.columnKey ===
                   "transformationDescription"
@@ -1849,11 +1822,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                     !isAttributeItem(item) ||
                     getTextColumnFilterFn((i: MappingTableItem) =>
                       isAttributeItem(i)
-                        ? // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                          i.actions
+                        ? i.actions
                             .map(
                               (action) =>
-                                MetadataUtil.getValue(
+                                MetadataUtil.getString(
                                   action,
                                   DESCRIPTION_KEY,
                                 ) ?? "",
@@ -1872,9 +1844,9 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           key: "actions",
           title: "",
           width: 40,
-          align: "right",
+          align: "right" as const,
           className: "actions-column",
-          render: (_value: never, item: MappingTableItem) => {
+          render: (_value: unknown, item: MappingTableItem) => {
             const isGroup =
               isConstantGroup(item) ||
               isHeaderGroup(item) ||
@@ -1916,7 +1888,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             if (
               isObject &&
               !isBodyGroup(item) &&
-              bodyFormat === SourceFormat.XML &&
+              bodyFormat === SourceFormat.XML.toString() &&
               !readonly
             ) {
               items.push({
@@ -2000,22 +1972,23 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             ?.selectedColumns?.includes(column.key),
       }));
     }, [
+      controlsStateMap,
+      selectedSchema,
+      mappingDescription,
+      bodyFormat,
+      readonly,
+      updateBodyType,
+      updateAttribute,
+      updateConstant,
+      showModal,
+      createOrUpdateMappingActionsForSource,
+      createOrUpdateMappingActionForTarget,
+      updateActions,
+      exportElement,
+      updateXmlNamespaces,
       addElement,
       clearTree,
-      controlsStateMap,
-      exportElement,
-      mappingDescription,
-      readonly,
       removeElement,
-      selectedSchema,
-      updateActions,
-      updateAttribute,
-      updateBodyType,
-      updateConstant,
-      createOrUpdateMappingActionForTarget,
-      createOrUpdateMappingActionsForSource,
-      showModal,
-      bodyFormat,
     ]);
 
   useEffect(() => {
@@ -2135,7 +2108,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               : "";
           }}
           onChange={(_pagination, filters, sorts) => {
-            updateControlsState({ filters, sorts });
+            updateControlsState({ filters, sorts: Array.isArray(sorts) ? undefined : sorts });
           }}
         ></Table>
       </Flex>

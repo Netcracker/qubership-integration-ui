@@ -45,10 +45,10 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
     try {
       setTableData(removeDuplicateKeys(parse(value ?? "")));
     } catch (error) {
-      messageApi.error(`Invalid dictionary: ${error}`);
+      void messageApi.error(`Invalid dictionary: ${String(error)}`);
       setTableData([]);
     }
-  }, [value]);
+  }, [messageApi, value]);
 
   const updateRecord = useCallback(
     (index: number, changes: Partial<KeyValuePair>) => {
@@ -65,7 +65,7 @@ const DictionaryTableEditor: React.FC<DictionaryEditorProps> = ({
 
   const addRecord = useCallback(() => {
     setTableData((data) => {
-      if (tableData?.some((r) => r.key === "")) {
+      if (data?.some((r) => r.key === "")) {
         return data;
       }
       const result = [...(data ?? []), { key: "", value: "" }];
@@ -217,7 +217,9 @@ const DictionaryTextEditor: React.FC<DictionaryEditorProps> = ({
         try {
           parse(v);
           onChange?.(v);
-        } catch (_) {}
+        } catch {
+          // Do nothing
+        }
       }}
     />
   );

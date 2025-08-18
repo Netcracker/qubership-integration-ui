@@ -1,5 +1,6 @@
 import { Form } from "antd";
 import { ExpressionEditor } from "./ExpressionEditor";
+import React from "react";
 
 export type ExpressionParametersProps = {
     label?: string;

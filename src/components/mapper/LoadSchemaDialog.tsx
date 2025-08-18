@@ -24,7 +24,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({}) => {
         items={[
           {
             key: "1",
-            label: "Shema",
+            label: "Schema",
             children: <></>, // TODO
           },
           {

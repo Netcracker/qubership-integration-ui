@@ -14,10 +14,9 @@ export const TimestampFormatParameters: React.FC<
   const form = Form.useFormInstance();
 
   useEffect(() => {
-    console.log({ field: form.getFieldValue(["parameters", offset]) });
-    const value = form.getFieldValue(["parameters", offset]);
+    const value = form.getFieldValue(["parameters", offset]) as string;
     setIsUnixEpoch(!!value && value === "true");
-  }, [form]);
+  }, [form, offset]);
 
   return (
     <>
@@ -26,7 +25,7 @@ export const TimestampFormatParameters: React.FC<
         name={["parameters", offset]}
         valuePropName="checked"
         getValueProps={(value) => ({ checked: value === "true" })}
-        normalize={(value) => value.toString()}
+        normalize={(value) => String(value)}
       >
         <Checkbox
           onChange={(event) => {

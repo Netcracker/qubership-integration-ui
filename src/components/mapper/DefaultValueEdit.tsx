@@ -1,6 +1,6 @@
 import { TextValueEdit } from "../table/TextValueEdit.tsx";
 import { DeleteOutlined } from "@ant-design/icons";
-import { Button, Form } from "antd";
+import { Form } from "antd";
 import { SelectEdit } from "../table/SelectEdit.tsx";
 import { PLACEHOLDER } from "../../misc/format-utils.ts";
 import { NumberValueEdit } from "../table/NumberValueEdit.tsx";
