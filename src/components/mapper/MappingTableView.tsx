@@ -33,7 +33,7 @@ import {
   PlusCircleOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
   exportAsMarkdown,
   MarkdownMappingExportOptions,
@@ -93,8 +93,10 @@ import { ConstantValueEditDialog } from "./ConstantValueEditDialog.tsx";
 import { LoadSchemaDialog } from "./LoadSchemaDialog.tsx";
 import { TransformationEditDialog } from "./TransformationEditDialog.tsx";
 import { NamespacesEditDialog } from "./NamespacesEditDialog.tsx";
+import { ChainContext } from "../../pages/ChainPage.tsx";
 
 export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
+  elementId: string;
   mapping?: MappingDescription;
   readonlySource?: boolean;
   readonlyTarget?: boolean;
@@ -254,9 +256,11 @@ function buildAttributeItem(
   const children = Attributes.getChildAttributes(
     attribute,
     resolveResult.definitions,
-  ).map((a) => buildAttributeItem(a, kind, p, definitions, actions));
+  )
+    .filter((a) => !p.some((a1) => a1.id === a.id))
+    .map((a) => buildAttributeItem(a, kind, p, definitions, actions));
   return {
-    id: attribute.id,
+    id: `${attribute.id}-${p.length}`,
     itemType: "attribute",
     kind,
     attribute,
@@ -569,12 +573,14 @@ function getXmlNamespaces(
 }
 
 export const MappingTableView: React.FC<MappingTableViewProps> = ({
+  elementId,
   mapping,
   readonlySource,
   readonlyTarget,
   onChange,
   ...otherProps
 }) => {
+  const chainContext = useContext(ChainContext);
   const { showModal } = useModalsContext();
   const [messageApi, contextHolder] = message.useMessage();
   const [selectedSchema, setSelectedSchema] = useState<SchemaKind>(
@@ -1869,8 +1875,21 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 icon: <CloudUploadOutlined />,
                 onClick: () => {
                   showModal({
-                    // TODO
-                    component: <LoadSchemaDialog />,
+                    component: (
+                      <ChainContext.Provider value={chainContext}>
+                        <LoadSchemaDialog
+                          elementId={elementId}
+                          onSubmit={(type) => {
+                            console.log({ type });
+                            if (isBodyGroup(item)) {
+                              updateBodyType(type);
+                            } else if (isAttributeItem(item)) {
+                              updateAttribute(item.kind, item.path, { type });
+                            }
+                          }}
+                        />
+                      </ChainContext.Provider>
+                    ),
                   });
                 },
               });
@@ -1984,6 +2003,8 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       createOrUpdateMappingActionsForSource,
       createOrUpdateMappingActionForTarget,
       updateActions,
+      chainContext,
+      elementId,
       exportElement,
       updateXmlNamespaces,
       addElement,
@@ -2108,7 +2129,10 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               : "";
           }}
           onChange={(_pagination, filters, sorts) => {
-            updateControlsState({ filters, sorts: Array.isArray(sorts) ? undefined : sorts });
+            updateControlsState({
+              filters,
+              sorts: Array.isArray(sorts) ? undefined : sorts,
+            });
           }}
         ></Table>
       </Flex>

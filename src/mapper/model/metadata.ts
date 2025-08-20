@@ -5,12 +5,6 @@ export enum SourceFormat {
   UNSPECIFIED = 'unspecified',
 }
 
-export enum SourceType {
-  SCHEMA = 'schema',
-  SAMPLE = 'sample',
-  UNSPECIFIED = 'unspecified',
-}
-
 export interface XmlNamespace {
   alias: string;
   uri: string;
