@@ -9,6 +9,7 @@ import {
   MappingDescription,
   TypeDefinition,
   ValueSupplier,
+  SchemaKind,
 } from "../../mapper/model/model.ts";
 import {
   Button,
@@ -102,11 +103,6 @@ export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
   readonlyTarget?: boolean;
   onChange?: (mapping: MappingDescription) => void;
 };
-
-enum SchemaKind {
-  SOURCE = "source",
-  TARGET = "target",
-}
 
 type OnChange = NonNullable<TableProps<MappingTableItem>["onChange"]>;
 type Filters = Parameters<OnChange>[1];
@@ -1880,7 +1876,6 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                         <LoadSchemaDialog
                           elementId={elementId}
                           onSubmit={(type) => {
-                            console.log({ type });
                             if (isBodyGroup(item)) {
                               updateBodyType(type);
                             } else if (isAttributeItem(item)) {

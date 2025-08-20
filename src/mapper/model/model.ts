@@ -162,3 +162,8 @@ export interface MappingDescription extends MetadataAware {
     constants: Constant[];
     actions: MappingAction[];
 }
+
+export enum SchemaKind {
+  SOURCE = "source",
+  TARGET = "target",
+}

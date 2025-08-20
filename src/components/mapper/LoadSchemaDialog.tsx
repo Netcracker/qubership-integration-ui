@@ -21,7 +21,11 @@ import {
 } from "../../mapper/util/graphql.ts";
 import { buildSchema } from "graphql/utilities";
 import { UploadChangeParam, UploadFile } from "antd/lib/upload/interface";
-import { DataType } from "../../mapper/model/model.ts";
+import {
+  DataType,
+  MappingDescription,
+  SchemaKind,
+} from "../../mapper/model/model.ts";
 import { ChainContext } from "../../pages/ChainPage.tsx";
 import { Chain, Dependency, Element } from "../../api/apiTypes.ts";
 import { editor, MarkerSeverity } from "monaco-editor";
@@ -31,6 +35,9 @@ import {
   SourceType,
 } from "../../mapper/util/attribute-import.ts";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
+import { capitalize } from "../../misc/format-utils.ts";
+import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
+import { api } from "../../api/api.ts";
 
 function buildGraphQLOperations(schemaText: string, queryText: string) {
   const operations: GraphQLOperationInfo[] = [];
@@ -90,9 +97,7 @@ type CodeSample = {
 };
 
 type FormData = {
-  schema: GraphQLSample & {
-    element: string;
-  };
+  schema: CodeSample & { element: string; operation: string };
   file: File;
   sample: CodeSample;
 };
@@ -158,11 +163,10 @@ function importDataType(
   onSuccess: (type: DataType) => void,
   onError: (error: unknown) => void,
 ): void {
-  console.log({ formData });
   switch (activeTab) {
     case "schema": {
-      // FIXME
-      throw new Error("!!!");
+      importCode(formData.schema, onSuccess, onError);
+      break;
     }
     case "file": {
       importFile(formData.file, onSuccess, onError);
@@ -222,6 +226,9 @@ type ElementOption = NonNullable<SelectProps["options"]>["0"] & {
   element: Element;
 };
 
+type OperationOption = NonNullable<SelectProps["options"]>["0"] &
+  Partial<GraphQLSample>;
+
 function buildElementOptions(elementId: string, chain: Chain): ElementOption[] {
   return chain.elements
     .filter(
@@ -246,6 +253,97 @@ function buildElementOptions(elementId: string, chain: Chain): ElementOption[] {
     }));
 }
 
+async function buildGraphQLOperationOptions(
+  element: Element,
+): Promise<OperationOption[]> {
+  const specificationId = element.properties?.[
+    "integrationSpecificationId"
+  ] as string;
+  const query = element.properties?.["integrationGqlQuery"] as string;
+  const operationName = (
+    element.properties?.["integrationGqlOperationName"] as string
+  )?.trim();
+  const schema = await api.getSpecificationModelSource(specificationId);
+  const operation = GraphQLUtil.getOperationInfoFromQuery(query).find(
+    (op) => !operationName || op.name === operationName,
+  );
+  if (!operation) {
+    if (operationName) {
+      throw new Error(`operation "${operationName}" not found`);
+    }
+  }
+  return operation
+    ? buildOperationSelectOptions([operation]).map((item) => ({
+        ...item,
+        schema,
+        operation: operation.name,
+        query,
+      }))
+    : [];
+}
+
+function buildMapperOperationOptions(element: Element): OperationOption[] {
+  const mappingDescription = element.properties?.[
+    "mappingDescription"
+  ] as MappingDescription;
+  if (!mappingDescription) {
+    return [];
+  }
+  return [SchemaKind.SOURCE, SchemaKind.TARGET]
+    .map(
+      (schemaKind) =>
+        [schemaKind, mappingDescription[schemaKind].body] as [
+          SchemaKind,
+          DataType | null,
+        ],
+    )
+    .filter(([, type]) => !!type)
+    .map(([schemaKind, type]) => ({
+      value: schemaKind.toString(),
+      label: capitalize(schemaKind.toLowerCase()),
+      schema: JSON.stringify(exportAsJsonSchema(type!, []), undefined, 2),
+    }));
+}
+
+async function buildServiceOperationOptions(
+  element: Element,
+): Promise<OperationOption[]> {
+  const operationId = element.properties?.["integrationOperationId"] as string;
+  const operationInfo = await api.getOperationInfo(operationId);
+  return [
+    ...Object.entries(operationInfo.requestSchema ?? {})
+      .slice(0, 1)
+      .map(([mediaType, schema]) => ({
+        value: `request-${mediaType}`,
+        label: "Request",
+        schema: JSON.stringify(schema, undefined, 2),
+      })),
+    ...Object.entries(operationInfo.responseSchemas ?? {}).map(
+      ([name, schema]) => ({
+        value: name,
+        label: name,
+        schema: JSON.stringify(schema, undefined, 2),
+      }),
+    ),
+  ];
+}
+
+async function buildOperationOptions(
+  element: Element | undefined,
+): Promise<OperationOption[]> {
+  if (!element) {
+    return [];
+  }
+  if (isConfiguredGraphQLServiceCallElement(element)) {
+    return buildGraphQLOperationOptions(element);
+  } else if (isMapperElement(element)) {
+    return buildMapperOperationOptions(element);
+  } else if (isOperationSet(element)) {
+    return buildServiceOperationOptions(element);
+  }
+  return [];
+}
+
 export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   elementId,
   onSubmit,
@@ -254,14 +352,17 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   const { closeContainingModal } = useModalContext();
   const notificationService = useNotificationService();
   const [form] = Form.useForm<FormData>();
+  const [isOperationsLoading, setIsOperationsLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string>("json");
   const [graphqlOperationOptions, setGraphqlOperationOptions] = useState<
     SelectProps["options"]
   >([]);
   const [activeTab, setActiveTab] = useState<string>("schema");
   const [elementOptions, setElementOptions] = useState<ElementOption[]>([]);
-  const [selectedElement, setSelectedElement] = useState<Element | undefined>(undefined);
-  const [operationOptions, setOperationOptions] = useState<SelectProps["options"]>(
+  const [selectedElement, setSelectedElement] = useState<Element | undefined>(
+    undefined,
+  );
+  const [operationOptions, setOperationOptions] = useState<OperationOption[]>(
     [],
   );
   const [sampleErrors, setSampleErrors] = useState<editor.IMarker[]>([]);
@@ -272,22 +373,18 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
     editor.IMarker[]
   >([]);
 
-  const buildOperationOptions = useCallback((element: Element): SelectProps["options"] => {
-    // TODO
-    if (isMapperElement(element)) {
-      // TODO
-    } else {
-      return [];
-    }
-  }, []);
+  useEffect(() => {
+    setIsOperationsLoading(true);
+    void buildOperationOptions(selectedElement)
+      .then((options) => setOperationOptions(options))
+      .catch((error) => {
+        notificationService.requestFailed("Failed to get schemas", error);
+        setOperationOptions([]);
+      })
+      .finally(() => setIsOperationsLoading(false));
+  }, [notificationService, selectedElement]);
 
   useEffect(() => {
-    console.log({ selectedElement });
-    setOperationOptions(selectedElement ? buildOperationOptions(selectedElement) : []);
-  }, [buildOperationOptions, selectedElement]);
-
-  useEffect(() => {
-    console.log({ elementId, chainContext });
     const options = chainContext?.chain
       ? buildElementOptions(elementId, chainContext.chain)
       : [];
@@ -300,6 +397,38 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
       setSelectedElement(elementOptions[0].element);
     }
   }, [form, elementOptions]);
+
+  const onOperationChange = useCallback(
+    (option: OperationOption | undefined) => {
+      if (
+        selectedElement &&
+        isConfiguredGraphQLServiceCallElement(selectedElement)
+      ) {
+        form.setFieldValue(["schema", "graphql", "schema"], option?.schema);
+        form.setFieldValue(["schema", "graphql", "query"], option?.query);
+      } else {
+        form.setFieldValue(["schema", "text"], option?.schema);
+      }
+    },
+    [form, selectedElement],
+  );
+
+  useEffect(() => {
+    if (form) {
+      if (!!operationOptions && operationOptions.length > 0) {
+        form.setFieldValue(["schema", "operation"], operationOptions[0].value);
+      } else {
+        form.setFieldValue(["schema", "operation"], undefined);
+      }
+      onOperationChange(operationOptions[0]);
+    }
+    form.setFieldValue(
+      ["schema", "language"],
+      selectedElement && isConfiguredGraphQLServiceCallElement(selectedElement)
+        ? "graphql"
+        : "json",
+    );
+  }, [form, onOperationChange, operationOptions, selectedElement]);
 
   const languageOptions: SelectProps["options"] = [
     { value: "json", label: "JSON" },
@@ -329,12 +458,11 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
         initialValues={{
           sample: {
             language: selectedLanguage,
-          }
+          },
         }}
         style={{ height: "60vh", display: "flex", flexDirection: "column" }}
         labelWrap
         onValuesChange={(changes: Partial<FormData>, values) => {
-          console.log({ changes, values });
           if (changes.sample?.language) {
             setSelectedLanguage(changes.sample?.language);
           }
@@ -352,10 +480,6 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
             const options = buildOperationSelectOptions(operations);
             setGraphqlOperationOptions(options);
           }
-          // if (changes.name !== undefined) {
-          //   form.setFieldValue("parameters", []);
-          //   setParametersComponent(parametersComponentMap[changes.name] || "");
-          // }
         }}
         onFinish={(data) => {
           importDataType(
@@ -402,19 +526,82 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         <Select<string, ElementOption>
                           options={elementOptions}
                           onChange={(_value, option) => {
-                            console.log({ option });
-                            setSelectedElement(Array.isArray(option) ? undefined : option?.element);
+                            const element = Array.isArray(option)
+                              ? undefined
+                              : option?.element;
+                            setSelectedElement(element);
                           }}
                         />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name={["schema", "operation"]} label={"" /*TODO*/}>
-                        <Select<string> options={operationOptions} />
+                      <Form.Item
+                        name={["schema", "operation"]}
+                        label={
+                          selectedElement &&
+                          isConfiguredGraphQLServiceCallElement(selectedElement)
+                            ? "Operation"
+                            : "Schema"
+                        }
+                      >
+                        <Select<string, OperationOption>
+                          loading={isOperationsLoading}
+                          options={operationOptions}
+                          onChange={(_value, option) => {
+                            const opt = Array.isArray(option)
+                              ? undefined
+                              : option;
+                            onOperationChange(opt);
+                          }}
+                        />
                       </Form.Item>
                     </Col>
                   </Row>
-                  {/*TODO*/}
+                  <Form.Item name={["schema", "language"]} hidden={true}>
+                    <Select<string> options={languageOptions} />
+                  </Form.Item>
+                  {selectedElement &&
+                  isConfiguredGraphQLServiceCallElement(selectedElement) ? (
+                    <>
+                      <Form.Item
+                        className={"flex-form-item"}
+                        name={["schema", "graphql", "schema"]}
+                        label={"Schema"}
+                        layout={"vertical"}
+                      >
+                        <Editor
+                          className="qip-editor"
+                          language={"graphql"}
+                          options={{ readOnly: true }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        className={"flex-form-item"}
+                        name={["schema", "graphql", "query"]}
+                        label={"Query"}
+                        layout={"vertical"}
+                      >
+                        <Editor
+                          className="qip-editor"
+                          language={"graphql"}
+                          options={{ readOnly: true }}
+                        />
+                      </Form.Item>
+                    </>
+                  ) : (
+                    <Form.Item
+                      className={"flex-form-item"}
+                      name={["schema", "text"]}
+                      label={"Schema"}
+                      layout={"vertical"}
+                    >
+                      <Editor
+                        className="qip-editor"
+                        options={{ readOnly: true }}
+                        language={"json"}
+                      />
+                    </Form.Item>
+                  )}
                 </Flex>
               ),
             },
@@ -469,7 +656,10 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         name={["sample", "language"]}
                         label={"Language"}
                         rules={[
-                          { required: activeTab === "sample", message: "Language is required" },
+                          {
+                            required: activeTab === "sample",
+                            message: "Language is required",
+                          },
                         ]}
                       >
                         <Select<string> options={languageOptions} />
@@ -580,7 +770,10 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                       className={"flex-form-item"}
                       name={["sample", "text"]}
                       rules={[
-                        { required: activeTab === "sample", message: "Code sample is required" },
+                        {
+                          required: activeTab === "sample",
+                          message: "Code sample is required",
+                        },
                         () => ({
                           validator() {
                             return sampleErrors.length === 0
