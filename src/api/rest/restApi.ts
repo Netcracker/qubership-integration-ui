@@ -6,8 +6,7 @@ import {
   Connection,
   CreateElementRequest,
   LibraryData,
-  Element,
-  ElementDescriptor,
+  LibraryElement,
   Snapshot,
   ConnectionRequest,
   ActionDifference,
@@ -63,6 +62,7 @@ import {
   ElementWithChainName,
   ApiSpecificationType,
   ApiSpecificationFormat,
+  Element,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -309,7 +309,7 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  deleteConnection = async (
+  deleteConnections = async (
     connectionIds: string[],
     chainId: string,
   ): Promise<ActionDifference> => {
@@ -384,8 +384,8 @@ export class RestApi implements Api {
 
   getLibraryElementByType = async (
     type: string,
-  ): Promise<ElementDescriptor> => {
-    const response = await this.instance.get<ElementDescriptor>(
+  ): Promise<LibraryElement> => {
+    const response = await this.instance.get<LibraryElement>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/library/${type}`,
     );
     return response.data;
@@ -855,7 +855,7 @@ export class RestApi implements Api {
 
   deleteService = async (serviceId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/cip/systems-catalog/systems/${serviceId}`,
+      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/systems/${serviceId}`,
     );
   };
 
