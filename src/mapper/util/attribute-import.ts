@@ -4,6 +4,7 @@ import {
   MetadataAware,
   TypeDefinition,
 } from "../model/model.ts";
+// @ts-expect-error There is no @types/xsdlibrary package exists
 import { detectXmlSchema, validateXml, xsd2jsonSchema } from "xsdlibrary";
 import toJsonSchema from "to-json-schema";
 import { XMLParser } from "fast-xml-parser";
@@ -46,6 +47,8 @@ export interface XmlNamespace {
 }
 
 type JsonSchema = (JSONSchema4 | JSONSchema6 | JSONSchema7) & MetadataAware;
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+type JsonSchemaKey = KeysOfUnion<JsonSchema>;
 
 export class AttributeImporter {
   public static importDataType(
@@ -240,14 +243,17 @@ export class AttributeImporter {
                       metadata: {
                         title: propertySchema.title,
                         description: propertySchema.description,
-                        examples:
-                          "example" in propertySchema
-                            ? [propertySchema.example]
-                            : propertySchema.examples,
+                        examples: ("example" in propertySchema
+                          ? [propertySchema.example]
+                          : propertySchema.examples) as unknown[] | undefined,
                       },
                     }
                   : {}),
-                defaultValue: propertySchema.default?.toString(),
+                defaultValue:
+                  typeof propertySchema.default === "object" ||
+                  Array.isArray(propertySchema.default)
+                    ? JSON.stringify(propertySchema.default)
+                    : propertySchema.default?.toString(),
                 required:
                   propertySchema.required === true ||
                   (Array.isArray(schema.required) &&
@@ -452,9 +458,10 @@ export class AttributeImporter {
 
   public static resolveSchema(path: string, root: JsonSchema): JsonSchema {
     return path
-      .substr(2)
+      .substring(2)
       .split("/")
-      .reduce((schema, key) => schema[key] as JsonSchema, root);
+      // @ts-expect-error Didn't find a way to get value by key from schema without triggering a type checker
+      .reduce((schema, key) => schema[key as JsonSchemaKey] as JsonSchema, root);
   }
 
   public static buildAttributeMetadata(
@@ -481,8 +488,7 @@ export class AttributeImporter {
       ignoreDeclaration: true,
     };
     const parser = new XMLParser(options);
-    const obj = parser.parse(text) as unknown;
-    return obj;
+    return parser.parse(text) as unknown;
   }
 
   public static buildJsonSchemaForXml(text: string): JsonSchema {
@@ -491,9 +497,13 @@ export class AttributeImporter {
     const newDefSchema = (
       schema: toJsonSchema.JSONSchema3or4,
       type: JSONSchema4TypeName,
-      value,
+      value: unknown,
     ) => {
       schema.type = type;
+
+      if (!value || typeof value !== "object") {
+        return schema;
+      }
 
       const keys = Object.keys(value);
 
@@ -506,9 +516,14 @@ export class AttributeImporter {
       const nsKeys = keys.filter((key) => key.startsWith("@xmlns:"));
       const namespaces: XmlNamespace[] = nsKeys.map((key) => ({
         alias: key.substring(7),
-        uri: value[key]?.toString(),
+        // @ts-expect-error Can't figure out how to get rid of error
+        uri: String(value[key] ?? ""),
       }));
-      nsKeys.forEach((key) => delete schema.properties[key]);
+      nsKeys.forEach((key) => {
+        if (schema.properties) {
+          delete schema.properties[key];
+        }
+      });
       if (namespaces.length > 0) {
         schema.metadata = { [METADATA_SOURCE_XML_NAMESPACES_KEY]: namespaces };
       }
@@ -580,6 +595,7 @@ export class AttributeImporter {
   }
 
   public static convertXmlSchemaToJsonSchema(text: string): JsonSchema {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-call
     const schema = JSON.parse(xsd2jsonSchema(text)) as JsonSchema;
     return this.postprocessSchema(schema);
   }
@@ -588,7 +604,7 @@ export class AttributeImporter {
     if (!schema) {
       return schema;
     }
-    const schemaMembers = new Set([
+    const schemaMembers = new Set<JsonSchemaKey>([
       "$id",
       "$ref",
       "$schema",
@@ -638,7 +654,7 @@ export class AttributeImporter {
       "examples",
     ]);
 
-    const changes = {};
+    const changes: Partial<JsonSchema> = {};
 
     for (const key of [
       "$defs",
@@ -646,18 +662,20 @@ export class AttributeImporter {
       "patternProperties",
       "dependencies",
       "definitions",
-    ]) {
-      const value = schema[key] as Record<string, any>;
+    ] as JsonSchemaKey[]) {
+      // @ts-expect-error Didn't find a way to get value by key from schema without triggering a type checker
+      const value = schema[key] as Record<string, unknown>;
       if (!value) {
         continue;
       }
-      const modifiedValue = {};
+      const modifiedValue: Record<string, unknown> = {};
       for (const [name, sch] of Object.entries(value)) {
         modifiedValue[name] =
           typeof sch === "object"
             ? this.postprocessSchema(sch as JsonSchema)
             : (sch as JsonSchema);
       }
+      // @ts-expect-error Didn't find a way to set value by key to schema without triggering a type checker
       changes[key] = modifiedValue;
     }
 
@@ -671,30 +689,43 @@ export class AttributeImporter {
       "not",
       "contains",
       "items",
-    ]) {
-      const value = schema[key];
+    ] as JsonSchemaKey[]) {
+      // @ts-expect-error Didn't find a way to get value by key from schema without triggering a type checker
+      const value = schema[key] as unknown;
       if (!value || typeof value !== "object") {
         continue;
       }
+      // @ts-expect-error Didn't find a way to set value by key to schema without triggering a type checker
       changes[key] = this.postprocessSchema(value as JsonSchema);
     }
 
-    for (const key of ["items", "prefixItems", "allOf", "anyOf", "oneOf"]) {
-      const value = schema[key];
+    for (const key of [
+      "items",
+      "prefixItems",
+      "allOf",
+      "anyOf",
+      "oneOf",
+    ] as JsonSchemaKey[]) {
+      // @ts-expect-error Didn't find a way to get value by key from schema without triggering a type checker
+      const value = schema[key] as unknown;
       if (value && Array.isArray(value)) {
+        // @ts-expect-error Didn't find a way to set value by key to schema without triggering a type checker
         changes[key] = value.map((i) =>
-          typeof i === "object" ? this.postprocessSchema(i as JsonSchema) : i,
+          typeof i === "object"
+            ? this.postprocessSchema(i as JsonSchema)
+            : (i as unknown),
         );
       }
     }
 
-    const properties = {};
+    const properties: JsonSchema["properties"] = {};
     for (const [key] of Object.entries(schema)) {
       if (!schemaMembers.has(key)) {
         properties[key.startsWith("@") ? key : `@${key}`] = { type: "string" };
       }
     }
-    changes["properties"] = { ...(changes["properties"] ?? {}), ...properties };
+    // @ts-expect-error Didn't find a way to set value to schema without triggering a type checker
+    changes.properties = { ...changes.properties, ...properties };
 
     // Special case: attribute with name 'type'
     if (
@@ -721,7 +752,7 @@ export class AttributeImporter {
       };
     }
 
-    return { ...schema, ...changes };
+    return { ...schema, ...changes } as JsonSchema;
   }
 
   public static collectXmlNamespaces(text: string): XmlNamespace[] {
@@ -746,7 +777,7 @@ export class AttributeImporter {
     }
     for (const [key, value] of Object.entries(obj)) {
       if (key === "@") {
-        for (const [k, v] of Object.entries(value)) {
+        for (const [k, v] of Object.entries(value as object)) {
           if (k.startsWith("xmlns:")) {
             namespaceMap.set(k.substring(6), v as string);
           }
@@ -820,7 +851,8 @@ export class AttributeImporter {
     options: Record<string, unknown>,
   ): JSONSchema6Definition {
     const operationTypes = ["Query", "Mutation"]
-      .map((name) => (schema.properties[name] as JSONSchema6).properties)
+      .map((name) => (schema.properties?.[name] as JSONSchema6)?.properties)
+      .filter((properties) => !!properties)
       .reduce((p1, p2) => ({ ...p1, ...p2 }), {});
     if (options.query) {
       const operationNames = GraphQLUtil.getRootFields(
@@ -846,12 +878,15 @@ export class AttributeImporter {
       return definitions;
     }
     return Object.entries(definitions)
-      .map(([key, definition]) => [
-        key,
-        this.postprocessGraphQLDefinition(definition),
-      ])
+      .map(
+        ([key, definition]) =>
+          [key, this.postprocessGraphQLDefinition(definition)] as [
+            string,
+            JSONSchema6Definition,
+          ],
+      )
       .reduce(
-        (res, entry: [string, JSONSchema6Definition]) => ({
+        (res, entry) => ({
           ...res,
           [entry[0]]: entry[1],
         }),
@@ -871,22 +906,22 @@ export class AttributeImporter {
       definition?.properties?.arguments;
     definition = isParametrizedField
       ? {
-          ...(definition.properties.return as JSONSchema6),
+          ...(definition.properties?.return as JSONSchema6),
           description: definition.description,
         }
       : { ...definition };
 
     for (const key of [
-      "$defs",
       "properties",
       "patternProperties",
       "dependencies",
       "definitions",
-    ]) {
+    ] as (keyof JSONSchema6)[]) {
       const value = definition[key] as Record<string, JSONSchema6Definition>;
       if (!value) {
         continue;
       }
+      // @ts-expect-error Didn't find a way to set value by key to schema without triggering a type checker
       definition[key] = this.postprocessGraphQLDefinitions(value);
     }
 
@@ -900,19 +935,21 @@ export class AttributeImporter {
       "not",
       "contains",
       "items",
-    ]) {
+    ] as (keyof JSONSchema6)[]) {
       const value = definition[key];
       if (!value || typeof value !== "object") {
         continue;
       }
+      // @ts-expect-error Didn't find a way to set value by key to schema without triggering a type checker
       definition[key] = this.postprocessGraphQLDefinition(
         value as JSONSchema6Definition,
       );
     }
 
-    for (const key of ["items", "prefixItems", "allOf", "anyOf", "oneOf"]) {
+    for (const key of ["items", "prefixItems", "allOf", "anyOf", "oneOf"] as (keyof JSONSchema6)[]) {
       const value = definition[key];
       if (value && Array.isArray(value)) {
+        // @ts-expect-error Didn't find a way to set value by key to schema without triggering a type checker
         definition[key] = value.map((i) =>
           this.postprocessGraphQLDefinition(i as JSONSchema6Definition),
         );
@@ -932,7 +969,7 @@ export class AttributeImporter {
     ) {
       definition = definition.anyOf.find(
         (i) => !(typeof i === "object" && i.type === "null"),
-      );
+      )!;
     }
     return definition;
   }
