@@ -20,7 +20,6 @@ const OneOfAsSingleInputField: React.FC<FieldProps<string>> = ({
   const requiredStyle: React.CSSProperties = {
     color: "#ff4d4f",
     marginRight: 4,
-    fontFamily: "SimSun, sans-serif",
   };
 
   return (

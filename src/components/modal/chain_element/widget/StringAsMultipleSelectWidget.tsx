@@ -1,23 +1,14 @@
 import React from "react";
 import { Select } from "antd";
 import { WidgetProps } from "@rjsf/utils";
+import { methodValues } from "../../../../hooks/useChainFilter.ts";
 
 const StringAsMultipleSelectWidget: React.FC<WidgetProps> = ({
   value,
   name,
   onChange,
 }) => {
-  const options =
-    name === "httpMethodRestrict"
-      ? [
-          { value: "GET" },
-          { value: "POST" },
-          { value: "PUT" },
-          { value: "PATCH" },
-          { value: "DELETE" },
-          { value: "OPTIONS" },
-        ]
-      : [];
+  const options = name === "httpMethodRestrict" ? methodValues : [];
 
   const handleChange = (selected: string[]) => {
     onChange(selected.join(","));
