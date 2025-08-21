@@ -542,6 +542,10 @@ export class VSCodeExtensionApi implements Api {
   moveFolder(): Promise<FolderItem> {
     throw new Error("Method not implemented.");
   }
+
+  transferElement(): Promise<ActionDifference> {
+    throw new Error("Method not implemented.");
+  }
 }
 
 interface VSCodeApi<T> {
