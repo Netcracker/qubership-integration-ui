@@ -457,11 +457,16 @@ export class AttributeImporter {
   }
 
   public static resolveSchema(path: string, root: JsonSchema): JsonSchema {
-    return path
-      .substring(2)
-      .split("/")
-      // @ts-expect-error Didn't find a way to get value by key from schema without triggering a type checker
-      .reduce((schema, key) => schema[key as JsonSchemaKey] as JsonSchema, root);
+    return (
+      path
+        .substring(2)
+        .split("/")
+        .reduce(
+          // @ts-expect-error Didn't find a way to get value by key from schema without triggering a type checker
+          (schema, key) => schema[key as JsonSchemaKey] as JsonSchema,
+          root,
+        )
+    );
   }
 
   public static buildAttributeMetadata(
@@ -946,7 +951,13 @@ export class AttributeImporter {
       );
     }
 
-    for (const key of ["items", "prefixItems", "allOf", "anyOf", "oneOf"] as (keyof JSONSchema6)[]) {
+    for (const key of [
+      "items",
+      "prefixItems",
+      "allOf",
+      "anyOf",
+      "oneOf",
+    ] as (keyof JSONSchema6)[]) {
       const value = definition[key];
       if (value && Array.isArray(value)) {
         // @ts-expect-error Didn't find a way to set value by key to schema without triggering a type checker
