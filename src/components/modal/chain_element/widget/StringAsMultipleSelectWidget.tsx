@@ -1,9 +1,12 @@
-import { Select, Space } from "antd";
+import React from "react";
+import { Select } from "antd";
 import { WidgetProps } from "@rjsf/utils";
 
-function StringAsMultipleSelectWidget(props: WidgetProps) {
-  const { value, name, onChange } = props;
-
+const StringAsMultipleSelectWidget: React.FC<WidgetProps> = ({
+  value,
+  name,
+  onChange,
+}) => {
   const options =
     name === "httpMethodRestrict"
       ? [
@@ -17,24 +20,20 @@ function StringAsMultipleSelectWidget(props: WidgetProps) {
       : [];
 
   const handleChange = (selected: string[]) => {
-    onChange(Array.isArray(selected) ? selected.join(",") : "");
+    onChange(selected.join(","));
   };
 
   return (
-    <Space style={{ width: "100%" }} direction="vertical">
-      <Select
-        mode="multiple"
-        allowClear
-        style={{ width: "100%" }}
-        placeholder="Please select"
-        options={options}
-        onChange={handleChange}
-        value={
-          typeof value === "string" ? value.split(",").filter(Boolean) : []
-        }
-      />
-    </Space>
+    <Select
+      mode="multiple"
+      allowClear
+      style={{ width: "100%" }}
+      placeholder="Please select"
+      options={options}
+      onChange={handleChange}
+      value={typeof value === "string" ? value.split(",").filter(Boolean) : []}
+    />
   );
-}
+};
 
 export default StringAsMultipleSelectWidget;

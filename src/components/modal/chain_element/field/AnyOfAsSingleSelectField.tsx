@@ -10,7 +10,6 @@ const AnyOfAsSingleSelectField: React.FC<FieldProps<string>> = ({
   uiSchema,
   required,
 }) => {
-
   const title = uiSchema?.["ui:title"] ?? schema?.title ?? "";
 
   const labelStyle: React.CSSProperties = {
@@ -39,7 +38,7 @@ const AnyOfAsSingleSelectField: React.FC<FieldProps<string>> = ({
   ];
 
   const handleChange = (selected: string[]) => {
-    onChange(Array.isArray(selected) ? selected[0] : "");
+    onChange(selected[0] ?? "");
   };
 
   return (

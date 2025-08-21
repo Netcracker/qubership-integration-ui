@@ -1,11 +1,12 @@
+import React from "react";
 import { Select } from "antd";
 import { WidgetProps } from "@rjsf/utils";
 
-function CustomSelectWidget(props: WidgetProps) {
-  const { value, name, onChange } = props;
-
-  console.log("11WIDGET -> val to onChange:", value, "type:", typeof value);
-
+const CustomSelectWidget: React.FC<WidgetProps> = ({
+  value,
+  name,
+  onChange,
+}) => {
   const optionsMap: Record<string, { value: string }[]> = {
     synchronousPullRetryableCodes: [
       { value: "ABORTED" },
@@ -26,8 +27,7 @@ function CustomSelectWidget(props: WidgetProps) {
   const mode = modeMap[name] ?? "tags";
 
   const handleChange = (selected: string[]) => {
-    console.log("isArray", Array.isArray(selected));
-    onChange(Array.isArray(selected) ? selected : []);
+    onChange(selected);
   };
 
   return (
@@ -36,14 +36,11 @@ function CustomSelectWidget(props: WidgetProps) {
       allowClear
       style={{ width: "100%" }}
       placeholder="Please input"
-      onChange={(val: string[]) => {
-        console.log("WIDGET -> val to onChange:", val, "type:", typeof val);
-        handleChange(val);
-      }}
-      value={value}
+      onChange={handleChange}
+      value={Array.isArray(value) ? value : []}
       options={options}
     />
   );
-}
+};
 
 export default CustomSelectWidget;

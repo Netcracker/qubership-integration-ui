@@ -8,7 +8,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 
-const PatternPropertiesField: React.FC<FieldProps<any>> = ({
+const PatternPropertiesField: React.FC<FieldProps<Record<string, string>>> = ({
   formData = {},
   onChange,
   schema,
@@ -24,6 +24,7 @@ const PatternPropertiesField: React.FC<FieldProps<any>> = ({
     const newData = { ...formData, [newKey]: "" };
     onChange(newData);
   };
+
   const handleKeyChange = (oldKey: string, newKey: string) => {
     if (oldKey === newKey) return;
     const updated = { ...formData };
@@ -32,14 +33,17 @@ const PatternPropertiesField: React.FC<FieldProps<any>> = ({
     updated[newKey] = value;
     onChange(updated);
   };
+
   const handleValueChange = (key: string, value: string) => {
     onChange({ ...formData, [key]: value });
   };
+
   const handleDelete = (key: string) => {
     const updated = { ...formData };
     delete updated[key];
     onChange(updated);
   };
+
   const headerStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -99,57 +103,54 @@ const PatternPropertiesField: React.FC<FieldProps<any>> = ({
           />
         </div>
       </div>
-      {!collapsed ? (
-        <>
-          {rowCount === 0 ? (
-            <div style={{ fontWeight: 600 }}>
-              No entries. Click <b>+</b> to add.
-            </div>
-          ) : (
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Name</th>
-                  <th style={thStyle}>Value</th>
-                  <th style={thStyle}></th>
+      {!collapsed &&
+        (rowCount === 0 ? (
+          <div style={{ fontWeight: 600 }}>
+            No entries. Click <b>+</b> to add.
+          </div>
+        ) : (
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Name</th>
+                <th style={thStyle}>Value</th>
+                <th style={thStyle}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(formData).map(([key, value], idx) => (
+                <tr key={idx}>
+                  <td style={tdStyle}>
+                    <Input
+                      value={key}
+                      onChange={(e) => handleKeyChange(key, e.target.value)}
+                      disabled={disabled || readonly}
+                      placeholder="Name"
+                    />
+                  </td>
+                  <td style={tdStyle}>
+                    <Input
+                      value={value}
+                      onChange={(e) => handleValueChange(key, e.target.value)}
+                      disabled={disabled || readonly}
+                      placeholder="Value"
+                    />
+                  </td>
+                  <td style={tdStyle}>
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDelete(key)}
+                      disabled={disabled || readonly}
+                      style={{ fontSize: 16, height: "32px", width: "32px" }}
+                    />
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {Object.entries(formData).map(([key, value], idx) => (
-                  <tr key={idx}>
-                    <td style={tdStyle}>
-                      <Input
-                        value={key}
-                        onChange={(e) => handleKeyChange(key, e.target.value)}
-                        disabled={disabled || readonly}
-                        placeholder="Name"
-                      />
-                    </td>
-                    <td style={tdStyle}>
-                      <Input
-                        value={value}
-                        onChange={(e) => handleValueChange(key, e.target.value)}
-                        disabled={disabled || readonly}
-                        placeholder="Value"
-                      />
-                    </td>
-                    <td style={tdStyle}>
-                      <Button
-                        size="small"
-                        type="text"
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDelete(key)}
-                        disabled={disabled || readonly}
-                        style={{ fontSize: 16, height: "32px", width: "32px" }}
-                      />
-                    </td>
-                  </tr>
-                ))}{" "}
-              </tbody>
-            </table>
-          )}
-        </>
-      ) : null}
+              ))}{" "}
+            </tbody>
+          </table>
+        ))}
     </div>
   );
 };

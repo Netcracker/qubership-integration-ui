@@ -1,4 +1,5 @@
-import { UiSchema } from '@rjsf/utils';
+import { UiSchema } from "@rjsf/utils";
+import styles from "./ChainElementModification.module.css";
 
 export const INITIAL_UI_SCHEMA: UiSchema = {
   "ui:submitButtonOptions": {
@@ -34,6 +35,7 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       },
       script: {
         "ui:widget": "textarea",
+        "ui:classNames": styles["custom-textarea"],
       },
     },
     invalidURI: {
@@ -60,6 +62,7 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       },
       script: {
         "ui:widget": "textarea",
+        "ui:classNames": styles["custom-textarea"],
       },
     },
     exportFileExtension: {
@@ -73,12 +76,14 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     },
     validationSchema: {
       "ui:widget": "textarea",
+      "ui:classNames": styles["custom-textarea"],
     },
     roles: {
       "ui:widget": "customSelectWidget",
     },
     script: {
       "ui:widget": "textarea",
+      "ui:classNames": styles["custom-textarea"],
     },
     allowedContentTypes: {
       "ui:widget": "customSelectWidget",

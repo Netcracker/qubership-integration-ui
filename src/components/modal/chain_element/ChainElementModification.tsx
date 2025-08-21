@@ -28,6 +28,7 @@ import {
 } from "./ChainElementModificationConstants.ts";
 import { ChainGraphNode } from "../../graph/nodes/ChainGraphNodeTypes.ts";
 import AnyOfAsSingleSelectField from "./field/AnyOfAsSingleSelectField.tsx";
+import FormMethods from "@rjsf/core";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -71,7 +72,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const notificationService = useNotificationService();
   const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
   const [schema, setSchema] = useState<JSONSchema7>({});
-  const formRef = useRef<any>(null);
+  const formRef = useRef<FormMethods<JSONSchema7>>(null);
   const formDataRef = useRef({});
 
   const [activeKey, setActiveKey] = useState<string>();
@@ -121,11 +122,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     setIsLoading(true);
     try {
       const request: PatchElementRequest = {
-        name: formDataRef.current.name,
-        description: formDataRef.current.description,
+        name: formDataRef.current.name as string,
+        description: formDataRef.current.description as string,
         type: node.data.elementType,
         parentElementId: node.parentId,
-        properties: formDataRef.current.properties,
+        properties: formDataRef.current.properties as Record<string, unknown>,
       };
       const changedElement: Element | undefined = await updateElement(
         chainId,
@@ -176,11 +177,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   ): UiSchema {
     const hiddenUiSchema: UiSchema = {};
 
-    function setPath(obj: UiSchema, path: string[], value: any) {
+    function setPath(obj: UiSchema, path: string[], value: object) {
       let curr = obj;
       for (let i = 0; i < path.length - 1; i++) {
-        curr[path[i]] = curr[path[i]] || {};
-        curr = curr[path[i]];
+        curr[path[i]] = (curr[path[i]] as UiSchema) || {};
+        curr = (curr[path[i]] as UiSchema) || {};
       }
       curr[path[path.length - 1]] = value;
     }
@@ -203,10 +204,10 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
       if (schema.if) {
         if (schema.then) {
-          buildHiddenUiSchema(schema.then, path);
+          buildHiddenUiSchema(schema.then as JSONSchema7, path);
         }
         if (schema.else) {
-          buildHiddenUiSchema(schema.else, path);
+          buildHiddenUiSchema(schema.else as JSONSchema7, path);
         }
       }
 
@@ -309,9 +310,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         !Array.isArray(hidden[key])
       ) {
         if (!target[key]) target[key] = {};
-        applyHiddenUiSchema(target[key], hidden[key]);
+        applyHiddenUiSchema(target[key] as UiSchema, hidden[key] as UiSchema);
       } else {
-        target[key] = hidden[key];
+        target[key] = hidden[key] as UiSchema;
       }
     }
   }
@@ -323,17 +324,23 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       ui.properties = {};
     }
 
+    const props = ui.properties as Record<string, unknown>;
+
     if (node.data.elementType === "checkpoint") {
-      ui.properties["httpMethodRestrict"] = { "ui:widget": "hidden" };
+      props["httpMethodRestrict"] = { "ui:widget": "hidden" };
     }
 
     if (activeKey && activeKey !== "Endpoint") {
-      ui.properties["ui:fieldReplacesAnyOrOneOf"] = true;
-      ui.properties["ui:field"] = "hidden";
+      props["ui:fieldReplacesAnyOrOneOf"] = true;
+      props["ui:field"] = "hidden";
     } else {
-      delete ui.properties["ui:fieldReplacesAnyOrOneOf"];
-      delete ui.properties["ui:field"];
+      // eslint-disable-next-line react/prop-types
+      delete props["ui:fieldReplacesAnyOrOneOf"];
+      // eslint-disable-next-line react/prop-types
+      delete props["ui:field"];
     }
+
+    ui.properties = props;
 
     return ui;
   }
@@ -367,7 +374,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           form="elementModificationForm"
           htmlType={"submit"}
           loading={isLoading}
-          onClick={handleOk}
+          onClick={() => void handleOk()}
         >
           Save
         </Button>,
@@ -407,8 +414,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             }}
             widgets={widgets}
             onChange={(e) => {
-              console.log("onChange", e);
-              formDataRef.current = e.formData;
+              formDataRef.current = e.formData as Record<string, object>;
             }}
           />
         </>
