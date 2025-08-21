@@ -171,9 +171,7 @@ export class MappingUtil {
     );
   }
 
-  public static isAttributeReference(
-    obj: unknown
-  ): obj is AttributeReference {
+  public static isAttributeReference(obj: unknown): obj is AttributeReference {
     return (
       typeof obj === "object" &&
       obj !== null &&

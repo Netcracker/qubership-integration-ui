@@ -7,9 +7,9 @@ import { DESCRIPTION_KEY, EXAMPLES_KEY } from "../model/metadata.ts";
 import { MetadataUtil } from "../util/metadata.ts";
 import { MessageSchemaUtil } from "../util/schema.ts";
 import {
-    bindParameterValues,
-    TransformationInfo,
-    TRANSFORMATIONS,
+  bindParameterValues,
+  TransformationInfo,
+  TRANSFORMATIONS,
 } from "../model/transformations.ts";
 import { GENERATORS } from "../model/generators.ts";
 
@@ -225,10 +225,7 @@ function buildMarkdownTableRowsForAttribute(
     mapping.constants,
   );
   const optionality = attribute.required ? "required" : "optional";
-  const description = MetadataUtil.getString(
-    attribute,
-    DESCRIPTION_KEY,
-  ) ?? "";
+  const description = MetadataUtil.getString(attribute, DESCRIPTION_KEY) ?? "";
 
   const examples = buildExamples(
     MetadataUtil.getValue(attribute, EXAMPLES_KEY),
@@ -306,12 +303,10 @@ function buildElementPathString(
   constants: Constant[],
 ): string {
   return MappingUtil.isConstantReference(reference)
-    ? (constants.find(
-        (c) => c.id === reference.constantId,
-      )?.name ?? "")
-    : MessageSchemaUtil.restorePath(messageSchema, reference)
+    ? (constants.find((c) => c.id === reference.constantId)?.name ?? "")
+    : (MessageSchemaUtil.restorePath(messageSchema, reference)
         ?.map((a) => a.name ?? "")
-        .join(".") ?? "";
+        .join(".") ?? "");
 }
 
 function buildTransformationDetails(

@@ -94,7 +94,9 @@ export class GraphQLUtil {
         ) {
           node.selectionSet.selections.forEach((n) => {
             if (n.kind !== Kind.FIELD) {
-              throw new GraphQLError("Fragments in query not supported", { nodes: n });
+              throw new GraphQLError("Fragments in query not supported", {
+                nodes: n,
+              });
             }
             result.push(n.name.value);
           });
