@@ -20,7 +20,7 @@
   margin-bottom: 10px;
 }
 
-.title:first-letter {
+.title::first-letter {
   text-transform: uppercase;
 }
 

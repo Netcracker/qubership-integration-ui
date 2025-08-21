@@ -7,7 +7,7 @@
   text-overflow: ellipsis;
 }
 
-.constant-generator-title:first-letter {
+.constant-generator-title::first-letter {
   text-transform: uppercase;
 }
 

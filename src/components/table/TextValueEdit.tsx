@@ -23,7 +23,7 @@ export const TextValueEdit: React.FC<TextValueEditorProps> = ({
       name={name}
       rules={rules ?? [{ required: true, message: "Value is required." }]}
       style={{ marginBottom: 0 }}
-    > 
+    >
       <Input
         ref={ref}
         autoFocus

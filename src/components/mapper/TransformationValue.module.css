@@ -1,4 +1,4 @@
-.transformation-title:first-letter {
+.transformation-title::first-letter {
   text-transform: uppercase;
 }
 
