@@ -1,9 +1,8 @@
 [class~="react-flow__node"] {
-    transition:
-            border-width 120ms ease,
-            box-shadow 120ms ease,
-            background-color 120ms ease,
-            filter 120ms ease;
+    transition: border-width 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease,
+    filter 120ms ease;
 }
 
 [class~="react-flow__node"]:not(.highlight) > div {
