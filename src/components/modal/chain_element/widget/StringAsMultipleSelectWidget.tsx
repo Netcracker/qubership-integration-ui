@@ -1,22 +1,22 @@
 import { Select, Space } from "antd";
 import { WidgetProps } from "@rjsf/utils";
 
-function MultipleSelectWidget(props: WidgetProps) {
+function StringAsMultipleSelectWidget(props: WidgetProps) {
   const { value, name, onChange } = props;
 
   const options =
     name === "httpMethodRestrict"
       ? [
-          { label: "GET", value: "GET" },
-          { label: "POST", value: "POST" },
-          { label: "PUT", value: "PUT" },
-          { label: "PATCH", value: "PATCH" },
-          { label: "DELETE", value: "DELETE" },
-          { label: "OPTIONS", value: "OPTIONS" },
+          { value: "GET" },
+          { value: "POST" },
+          { value: "PUT" },
+          { value: "PATCH" },
+          { value: "DELETE" },
+          { value: "OPTIONS" },
         ]
       : [];
 
-  const handleChange = (selected: any[]) => {
+  const handleChange = (selected: string[]) => {
     onChange(Array.isArray(selected) ? selected.join(",") : "");
   };
 
@@ -37,4 +37,4 @@ function MultipleSelectWidget(props: WidgetProps) {
   );
 }
 
-export default MultipleSelectWidget;
+export default StringAsMultipleSelectWidget;

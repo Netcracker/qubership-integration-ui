@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Button, Modal, Tabs } from "antd";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
@@ -10,14 +11,15 @@ import { useElement } from "../../../hooks/useElement.tsx";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import {
   ObjectFieldTemplateProps,
-  ErrorListProps,
   RegistryWidgetsType,
+  UiSchema,
 } from "@rjsf/utils";
 import type { JSONSchema7 } from "json-schema";
 import validator from "@rjsf/validator-ajv8";
-import MultipleSelectWidget from "./widget/MultipleSelectWidget.tsx";
-import TagsWidget from "./widget/TagsWidget.tsx";
-import OneOfExpressionInputWidget from "./widget/OneOfExpressionInputWidget.tsx";
+import StringAsMultipleSelectWidget from "./widget/StringAsMultipleSelectWidget.tsx";
+import CustomSelectWidget from "./widget/CustomSelectWidget.tsx";
+import OneOfAsSingleInputField from "./field/OneOfAsSingleInputField.tsx";
+import PatternPropertiesField from "./field/PatternPropertiesField.tsx";
 
 import {
   INITIAL_UI_SCHEMA,
@@ -25,6 +27,7 @@ import {
   desiredTabOrder,
 } from "./ChainElementModificationConstants.ts";
 import { ChainGraphNode } from "../../graph/nodes/ChainGraphNodeTypes.ts";
+import AnyOfAsSingleSelectField from "./field/AnyOfAsSingleSelectField.tsx";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -34,8 +37,23 @@ type ElementModificationProps = {
   onClose?: () => void;
 };
 
+type TabField = {
+  tab: string;
+  path: string[];
+  schema: JSONSchema7;
+};
+
 function constructTitle(name: string, type?: string): string {
   return type ? `${name} (${type})` : `${name}`;
+}
+
+function ErrorListTemplate() {
+  return <div></div>;
+}
+
+// WA to hide array properties
+function CustomObjectFieldTemplate({ properties }: ObjectFieldTemplateProps) {
+  return <div>{properties.filter((p) => !p.hidden).map((p) => p.content)}</div>;
 }
 
 export const ChainElementModification: React.FC<ElementModificationProps> = ({
@@ -51,49 +69,57 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const { closeContainingModal } = useModalContext();
   const { updateElement } = useElement();
   const notificationService = useNotificationService();
-  const constructTitle = (name: string, type?: string) => {
-    return type ? `${name} (${type})` : `${name}`;
-  };
   const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
-  const [schema, setSchema] = useState<any>(null);
+  const [schema, setSchema] = useState<JSONSchema7>({});
   const formRef = useRef<any>(null);
+  const formDataRef = useRef({});
 
-  const { TabPane } = Tabs;
-
-  function ErrorListTemplate(props: ErrorListProps) {
-    return <div></div>;
-  }
+  const [activeKey, setActiveKey] = useState<string>();
 
   useEffect(() => {
     setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
   }, [libraryElement, node]);
 
-  //old way to fetch schema from public/schema/element
+  const schemaModules = import.meta.glob(
+    "/node_modules/@netcracker/qip-schemas/assets/*.schema.yaml",
+    { as: "raw", eager: true },
+  );
+
   useEffect(() => {
-    fetch("/schema/element/" + node.data.elementType + ".schema.yaml")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return res.text();
-      })
-      .then((text) => {
-        const parsed = yaml.load(text);
-        console.log("parsed yaml:", parsed);
-        setSchema(parsed);
-        console.log("Node:", node);
-        formDataRef.current = node.data;
-        formDataRef.current.id = node.id;
-      })
-      .catch((err) => {
-        console.error("ERROR:", err);
-      });
-  }, [node.type]);
+    const path = `/node_modules/@netcracker/qip-schemas/assets/${node.data.elementType}.schema.yaml`;
+    const raw = schemaModules[path];
+
+    if (!raw) {
+      notificationService.errorWithDetails(
+        "Schema not found",
+        `Schema for elementType "${node.data.elementType}" was not found.`,
+        undefined,
+      );
+      return;
+    }
+
+    try {
+      const parsed = yaml.load(raw) as JSONSchema7;
+      setSchema(parsed);
+
+      formDataRef.current = {
+        ...node.data,
+        name: node.data.label,
+        id: node.id,
+      };
+    } catch (err) {
+      console.error("Failed to parse schema:", err);
+      notificationService.errorWithDetails(
+        "Failed to load schema",
+        `Error while parsing schema for "${node.data.elementType}"`,
+        err,
+      );
+    }
+  }, [node.data.elementType]);
 
   const handleOk = async () => {
     setIsLoading(true);
     try {
-      console.log("formCurrent:", formRef.current);
       const request: PatchElementRequest = {
         name: formDataRef.current.name,
         description: formDataRef.current.description,
@@ -126,10 +152,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     onClose?.();
   };
 
-  const [activeKey, setActiveKey] = useState<string>();
-
-  const formDataRef = useRef({});
-
   const tabFields = useMemo(() => {
     if (!schema) return [];
     return collectTabFields(schema);
@@ -139,22 +161,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     const rawTabs = new Set(tabFields.map((f) => f.tab));
     return desiredTabOrder.filter(rawTabs.has.bind(rawTabs));
   }, [tabFields]);
-
-  const CustomObjectFieldTemplate = ({
-    properties,
-  }: ObjectFieldTemplateProps) => {
-    return (
-      <div>
-        {properties
-          // WA to hide array properties
-          .filter(
-            (prop) =>
-              !prop.content.props?.uiSchema?.["ui:widget"]?.includes("hidden"),
-          )
-          .map((prop) => prop.content)}
-      </div>
-    );
-  };
 
   useEffect(() => {
     if (uniqueTabs.length > 0 && !activeKey) {
@@ -166,11 +172,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     tabFields: TabField[],
     tab: string,
     schema: JSONSchema7,
-    initialUiSchema: any,
-  ): any {
-    const hiddenUiSchema: any = {};
+    initialUiSchema: UiSchema,
+  ): UiSchema {
+    const hiddenUiSchema: UiSchema = {};
 
-    function setPath(obj: any, path: string[], value: any) {
+    function setPath(obj: UiSchema, path: string[], value: any) {
       let curr = obj;
       for (let i = 0; i < path.length - 1; i++) {
         curr[path[i]] = curr[path[i]] || {};
@@ -183,7 +189,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       .filter((f) => f.tab === tab)
       .map((f) => f.path.map((p) => ["properties", p]).flat());
 
-    function buildHiddenUiSchema(schema: any, path: string[] = []) {
+    function buildHiddenUiSchema(schema: JSONSchema7, path: string[] = []) {
       const combinators = ["allOf", "anyOf", "oneOf"] as const;
       for (const keyword of combinators) {
         if (Array.isArray(schema[keyword])) {
@@ -217,7 +223,10 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             (schema.properties[key].type === "object" && isVisible) ||
             key === "properties"
           ) {
-            buildHiddenUiSchema(schema.properties[key], currentPath);
+            buildHiddenUiSchema(
+              schema.properties[key] as JSONSchema7,
+              currentPath,
+            );
           } else if (!isVisible) {
             setPath(hiddenUiSchema, currentPath, { "ui:widget": "hidden" });
           }
@@ -227,21 +236,14 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
     buildHiddenUiSchema(schema);
 
-    const finalUiSchema = structuredClone(initialUiSchema || {});
+    const finalUiSchema: UiSchema = structuredClone(initialUiSchema || {});
     applyHiddenUiSchema(finalUiSchema, hiddenUiSchema);
     return finalUiSchema;
   }
 
   const widgets: RegistryWidgetsType = {
-    multipleSelectWidget: MultipleSelectWidget,
-    tagsWidget: TagsWidget,
-    oneOfExpressionInputWidget: OneOfExpressionInputWidget,
-  };
-
-  type TabField = {
-    tab: string;
-    path: string[];
-    schema: JSONSchema7;
+    stringAsMultipleSelectWidget: StringAsMultipleSelectWidget,
+    customSelectWidget: CustomSelectWidget,
   };
 
   function collectTabFields(
@@ -299,7 +301,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     return acc;
   }
 
-  function applyHiddenUiSchema(target: any, hidden: any) {
+  function applyHiddenUiSchema(target: UiSchema, hidden: UiSchema) {
     for (const key in hidden) {
       if (
         hidden[key] &&
@@ -314,14 +316,34 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     }
   }
 
+  function uiSchemaForTab(initialUiSchema: UiSchema, activeKey?: string) {
+    const ui = structuredClone(initialUiSchema || {});
+
+    if (!ui.properties || typeof ui.properties !== "object") {
+      ui.properties = {};
+    }
+
+    if (node.data.elementType === "checkpoint") {
+      ui.properties["httpMethodRestrict"] = { "ui:widget": "hidden" };
+    }
+
+    if (activeKey && activeKey !== "Endpoint") {
+      ui.properties["ui:fieldReplacesAnyOrOneOf"] = true;
+      ui.properties["ui:field"] = "hidden";
+    } else {
+      delete ui.properties["ui:fieldReplacesAnyOrOneOf"];
+      delete ui.properties["ui:field"];
+    }
+
+    return ui;
+  }
+
   const uiSchema = useMemo(() => {
     if (!schema) return [];
-    return buildUiSchemaForTab(
-      tabFields,
-      activeKey ?? "",
-      schema,
-      INITIAL_UI_SCHEMA,
-    );
+
+    const baseUi: UiSchema = uiSchemaForTab(INITIAL_UI_SCHEMA, activeKey);
+
+    return buildUiSchemaForTab(tabFields, activeKey ?? "", schema, baseUi);
   }, [tabFields, activeKey, schema, INITIAL_UI_SCHEMA]);
 
   const handleTabChange = (newTab: string) => {
@@ -356,11 +378,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     >
       {schema && activeKey && (
         <>
-          <Tabs activeKey={activeKey} onChange={handleTabChange} type="card">
-            {uniqueTabs.map((tab) => (
-              <TabPane tab={tab} key={tab} />
-            ))}
-          </Tabs>
+          <Tabs
+            activeKey={activeKey}
+            onChange={handleTabChange}
+            type="card"
+            items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
+          />
           <Form
             id="elementModificationForm"
             ref={formRef}
@@ -377,8 +400,14 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               ObjectFieldTemplate: CustomObjectFieldTemplate,
               ErrorListTemplate,
             }}
+            fields={{
+              oneOfAsSingleInputField: OneOfAsSingleInputField,
+              anyOfAsSingleSelectField: AnyOfAsSingleSelectField,
+              patternPropertiesField: PatternPropertiesField,
+            }}
             widgets={widgets}
             onChange={(e) => {
+              console.log("onChange", e);
               formDataRef.current = e.formData;
             }}
           />

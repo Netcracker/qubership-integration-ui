@@ -1,9 +1,13 @@
-export const INITIAL_UI_SCHEMA = {
+import { UiSchema } from '@rjsf/utils';
+
+export const INITIAL_UI_SCHEMA: UiSchema = {
   "ui:submitButtonOptions": {
     norender: true,
   },
   "ui:order": ["*", "name", "description"],
   properties: {
+    "ui:fieldReplacesAnyOrOneOf": true,
+    "ui:field": "hidden",
     "ui:order": [
       "contextPath",
       "httpBinding",
@@ -16,6 +20,7 @@ export const INITIAL_UI_SCHEMA = {
     contextPath: {
       "ui:widget": "uri",
       "ui:placeholder": "e.g. /api/v1/resource",
+      "ui:fieldReplacesAnyOrOneOf": true,
     },
     handlerContainer: {
       exportFileExtension: {
@@ -35,6 +40,12 @@ export const INITIAL_UI_SCHEMA = {
       "ui:widget": "hidden",
     },
     httpBinding: {
+      "ui:widget": "hidden",
+    },
+    externalRoute: {
+      "ui:widget": "hidden",
+    },
+    checkpointElementId: {
       "ui:widget": "hidden",
     },
     chainFailureHandlerContainer: {
@@ -64,39 +75,96 @@ export const INITIAL_UI_SCHEMA = {
       "ui:widget": "textarea",
     },
     roles: {
-      "ui:widget": "tagsWidget",
+      "ui:widget": "customSelectWidget",
     },
     script: {
       "ui:widget": "textarea",
     },
     allowedContentTypes: {
-      "ui:widget": "tagsWidget",
+      "ui:widget": "customSelectWidget",
     },
     httpMethodRestrict: {
-      "ui:widget": "multipleSelectWidget",
+      "ui:widget": "stringAsMultipleSelectWidget",
     },
     abacResource: {
       "ui:tab": "Access Control",
     },
     replyTo: {
-      "ui:widget": "tagsWidget",
+      "ui:widget": "customSelectWidget",
     },
     cc: {
-      "ui:widget": "tagsWidget",
+      "ui:widget": "customSelectWidget",
     },
     bcc: {
-      "ui:widget": "tagsWidget",
+      "ui:widget": "customSelectWidget",
     },
     to: {
-      "ui:widget": "tagsWidget",
+      "ui:widget": "customSelectWidget",
+    },
+    headerModificationToRemove: {
+      "ui:widget": "customSelectWidget",
+    },
+    synchronousPullRetryableCodes: {
+      "ui:widget": "customSelectWidget",
+    },
+    overrideContextParams: {
+      "ui:field": "patternPropertiesField",
+    },
+    headerModificationToAdd: {
+      "ui:field": "patternPropertiesField",
+    },
+    businessIdentifiers: {
+      "ui:field": "patternPropertiesField",
     },
     idempotency: {
       keyExpiry: {
-        "ui:widget": "oneOfExpressionInputWidget",
+        "ui:fieldReplacesAnyOrOneOf": true,
+        "ui:field": "oneOfAsSingleInputField",
       },
     },
     connectTimeout: {
-      "ui:widget": "oneOfExpressionInputWidget",
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    reconnectBackoffMaxMs: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    consumersCount: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    maxPollIntervalMs: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    maxPollRecords: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    timeout: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    maxMessagesPerPoll: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    keySerializer: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "anyOfAsSingleSelectField",
+    },
+    valueSerializer: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "anyOfAsSingleSelectField",
+    },
+    keyDeserializer: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "anyOfAsSingleSelectField",
+    },
+    valueDeserializer: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "anyOfAsSingleSelectField",
     },
   },
   id: { "ui:widget": "hidden" },
@@ -107,7 +175,7 @@ export const INITIAL_UI_SCHEMA = {
   swimlaneId: { "ui:widget": "hidden" },
 };
 
-export const pathToTabMap = {
+export const pathToTabMap: Record<string, string> = {
   "properties.contextPath": "Endpoint",
   "properties.oneOf_select": "Endpoint",
   "properties.integrationOperationId": "Endpoint",
@@ -150,6 +218,6 @@ export const desiredTabOrder = [
   "Handle Validation Failure",
   "Failure Response Mapping",
   "Access Control",
-  "Idempotency",
   "Parameters",
+  "Idempotency",
 ];
