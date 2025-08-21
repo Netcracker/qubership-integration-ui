@@ -1,0 +1,29 @@
+.react-flow__node {
+    transition:
+            border-width 120ms ease,
+            box-shadow 120ms ease,
+            background-color 120ms ease,
+            filter 120ms ease;
+}
+
+.react-flow__node.highlight > div {
+    border-width: 3px !important;
+    background: #e0e0e0 !important;
+    box-shadow: none !important;
+}
+
+.react-flow__node.highlight > div > div:first-child {
+    background: #d6d6d6 !important;
+    border-bottom-color: #c9c9c9 !important;
+}
+
+.react-flow__node.highlight .react-flow__handle {
+    box-shadow: none !important;
+    border-width: 2px !important;
+}
+
+.react-flow__node:not(.highlight) > div {
+    background: unset;
+    border-width: unset;
+    box-shadow: none;
+}
