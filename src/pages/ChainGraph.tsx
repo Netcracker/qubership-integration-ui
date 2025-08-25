@@ -11,6 +11,7 @@ import "@xyflow/react/dist/style.css";
 import React, {
   MouseEvent,
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -36,6 +37,7 @@ import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
 import { useLibraryContext } from "../components/LibraryContext.tsx";
+import { ChainContext } from "./ChainPage.tsx";
 import {
   ChainGraphNodeData,
   nodeTypes,
@@ -43,6 +45,7 @@ import {
 
 const ChainGraphInner: React.FC = () => {
   const { chainId, elementId } = useParams<string>();
+  const chainContext = useContext(ChainContext);
   const { showModal } = useModalsContext();
   const reactFlowWrapper = useRef(null);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
@@ -92,17 +95,26 @@ const ChainGraphInner: React.FC = () => {
       setElementPath(node.id);
       showModal({
         component: (
-          <ChainElementModification
-            node={node}
-            chainId={chainId!}
-            elementId={node.id}
-            onSubmit={updateNodeData}
-            onClose={clearElementPath}
-          />
+          <ChainContext.Provider value={chainContext}>
+            <ChainElementModification
+              node={node}
+              chainId={chainId!}
+              elementId={node.id}
+              onSubmit={updateNodeData}
+              onClose={clearElementPath}
+            />
+          </ChainContext.Provider>
         ),
       });
     },
-    [chainId, clearElementPath, setElementPath, showModal, updateNodeData],
+    [
+      chainContext,
+      chainId,
+      clearElementPath,
+      setElementPath,
+      showModal,
+      updateNodeData,
+    ],
   );
 
   const saveAndDeploy = async (domain: string) => {

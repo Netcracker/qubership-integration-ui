@@ -87,15 +87,29 @@ export class RestApi implements Api {
 
     this.instance.interceptors.response.use(
       (response) => response,
-      (error) => {
+      async (error) => {
         let message = "";
         let responseCode = 500;
         let responseBody: ErrorResponse | undefined = undefined;
         if (axios.isAxiosError(error)) {
           responseCode = error.response?.status ?? 500;
-          if (isErrorResponse(error?.response?.data)) {
-            responseBody = error.response?.data;
+          const data: unknown = error.response?.data;
+          if (isErrorResponse(data)) {
+            responseBody = data;
             message = responseBody?.errorMessage;
+          } else if (typeof Blob !== 'undefined' && data instanceof Blob) {
+            try {
+              const text = await data.text();
+              const parsed: unknown = JSON.parse(text);
+              if (isErrorResponse(parsed)) {
+                responseBody = parsed;
+                message = parsed.errorMessage;
+              }
+            } catch {
+              if (!message) {
+                message = error.response?.statusText || `HTTP ${responseCode}`;
+              }
+            }
           }
         }
         return Promise.reject(
@@ -233,7 +247,7 @@ export class RestApi implements Api {
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/elements/type/${elementType}`,
     );
     return response.data;
-  }
+  };
 
   createElement = async (
     elementRequest: CreateElementRequest,
@@ -292,16 +306,15 @@ export class RestApi implements Api {
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/chains/${chainId}/elements/properties-modification`,
       {},
       {
-        params:
-          {
-            specificationGroupId: specificationGroupId,
-            httpTriggerIds: httpTriggerIds
-          },
-          paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
+        params: {
+          specificationGroupId: specificationGroupId,
+          httpTriggerIds: httpTriggerIds,
+        },
+        paramsSerializer: (params) =>
+          qs.stringify(params, { arrayFormat: "repeat" }),
       },
-
     );
-  }
+  };
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
     const response = await this.instance.get<Connection[]>(
@@ -394,9 +407,7 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getLibraryElementByType = async (
-    type: string,
-  ): Promise<LibraryElement> => {
+  getLibraryElementByType = async (type: string): Promise<LibraryElement> => {
     const response = await this.instance.get<LibraryElement>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/library/${type}`,
     );
@@ -782,7 +793,7 @@ export class RestApi implements Api {
     httpTriggerIds: string[],
     externalRoutes: boolean,
     specificationType: ApiSpecificationType,
-    format: ApiSpecificationFormat
+    format: ApiSpecificationFormat,
   ): Promise<File> => {
     const params: Record<string, string> = {};
     if (deploymentIds?.length) {
@@ -801,16 +812,28 @@ export class RestApi implements Api {
     const response = await this.instance.get<Blob>(
       `/api/v1/${import.meta.env.VITE_API_APP}/catalog/export/api-spec`,
       {
-        params: {...params, externalRoutes, specificationType, format},
+        params: { ...params, externalRoutes, specificationType, format },
         headers: {
           accept: "*/*",
         },
         responseType: "blob",
       },
     );
+    const contentType = (response.headers?.["content-type"] as string | undefined)?.toLowerCase() ?? "";
+    if (contentType.includes("application/json")) {
+      try {
+        const text = await response.data.text();
+        const parsed = JSON.parse(text) as unknown;
+        if (isErrorResponse(parsed)) {
+          throw new RestApiError(parsed.errorMessage, response.status, parsed);
+        }
+      } catch (e) {
+        if (e instanceof RestApiError) throw e;
+        throw new RestApiError("Failed to generate API specification", response.status);
+      }
+    }
     return getFileFromResponse(response);
-  }
-
+  };
 
   getServices = async (
     modelType: string,
@@ -1061,6 +1084,13 @@ export class RestApi implements Api {
     const response = await this.instance.patch<Specification>(
       `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/models/${id}`,
       data,
+    );
+    return response.data;
+  };
+
+  getSpecificationModelSource = async (id: string): Promise<string> => {
+    const response = await this.instance.get<string>(
+      `/api/v1/${import.meta.env.VITE_API_APP}/systems-catalog/models/${id}/source`,
     );
     return response.data;
   };
