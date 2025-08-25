@@ -18,13 +18,13 @@ export const TransformationInfoCard: React.FC<TransformationInfoCardProps> = ({
 }) => {
   return (
     <div className={styles["content"]} {...props}>
-      <div className={styles["title"]}>{transformationInfo.title}</div>
-      <div className={styles["parameters"]}>
+      <div key={"title"} className={styles["title"]}>{transformationInfo.title}</div>
+      <div key={"parameters"} className={styles["parameters"]}>
         {bindParameterValues(transformationInfo.parameters, parameters).map(
-          ([info, values]) => (
+          ([info, values], idx) => (
             <>
-              <div className={styles["parameter-name"]}>{info.name}</div>
-              <div className={styles["parameter-values"]}>
+              <div key={`parameter-name-${idx}`} className={styles["parameter-name"]}>{info.name}</div>
+              <div key={`parameter-values-${idx}`} className={styles["parameter-values"]}>
                 {values.map((value, index) => (
                   <div className={styles["parameter-value"]} key={index}>
                     {formatOptional(value)}
