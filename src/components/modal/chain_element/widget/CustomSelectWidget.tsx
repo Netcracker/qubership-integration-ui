@@ -9,7 +9,6 @@ const CustomSelectWidget: React.FC<WidgetProps> = ({
   onChange,
   schema,
 }) => {
-  console.log("value", value);
   function collectOptions(schema: JSONSchema7): { value: string }[] {
     const values: string[] = [];
 
@@ -31,7 +30,8 @@ const CustomSelectWidget: React.FC<WidgetProps> = ({
 
   const mode = modeMap[name] ?? "tags";
 
-  const handleChange = (selected: string[]) => {
+  const handleChange = (selected: []) => {
+    console.log("Custom widget onChange values: ", selected);
     onChange(selected);
   };
 
@@ -42,7 +42,7 @@ const CustomSelectWidget: React.FC<WidgetProps> = ({
       style={{ width: "100%" }}
       placeholder="Please input"
       onChange={handleChange}
-      value={Array.isArray(value) ? value : []}
+      value={value as []}
       options={collectOptions(schema)}
     />
   );

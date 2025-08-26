@@ -28,7 +28,6 @@ import {
 } from "./ChainElementModificationConstants.ts";
 import { ChainGraphNode } from "../../graph/nodes/ChainGraphNodeTypes.ts";
 import AnyOfAsSingleSelectField from "./field/AnyOfAsSingleSelectField.tsx";
-import FormMethods from "@rjsf/core";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -72,7 +71,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const notificationService = useNotificationService();
   const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
   const [schema, setSchema] = useState<JSONSchema7>({});
-  const formRef = useRef<FormMethods<JSONSchema7>>(null);
   const formDataRef = useRef({});
 
   const [activeKey, setActiveKey] = useState<string>();
@@ -392,8 +390,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
           />
           <Form
-            id="elementModificationForm"
-            ref={formRef}
             schema={schema}
             formData={formDataRef.current}
             validator={validator}

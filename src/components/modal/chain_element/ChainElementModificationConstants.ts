@@ -21,7 +21,6 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     contextPath: {
       "ui:widget": "uri",
       "ui:placeholder": "e.g. /api/v1/resource",
-      "ui:fieldReplacesAnyOrOneOf": true,
     },
     handlerContainer: {
       exportFileExtension: {
@@ -182,7 +181,6 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
 
 export const pathToTabMap: Record<string, string> = {
   "properties.contextPath": "Endpoint",
-  "properties.oneOf_select": "Endpoint",
   "properties.integrationOperationId": "Endpoint",
   "properties.integrationSpecificationGroupId": "Endpoint",
   "properties.integrationSpecificationId": "Endpoint",
@@ -190,6 +188,8 @@ export const pathToTabMap: Record<string, string> = {
   "properties.integrationOperationMethod": "Endpoint",
   "properties.integrationOperationPath": "Endpoint",
   "properties.httpMethodRestrict": "Endpoint",
+  "properties.systemType": "Endpoint",
+  "properties.integrationOperationProtocolType": "Endpoint",
   "properties.handleValidationAction": "Handle Validation Failure",
   "properties.handlerContainer": "Handle Validation Failure",
   "properties.handlerContainer.script": "Handle Validation Failure",
@@ -204,6 +204,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.accessControlType": "Access Control",
   "properties.allowedContentTypes": "Validate Request",
   "properties.rejectRequestIfNonNullBodyGetDelete": "Validate Request",
+  "properties.authorizationConfiguration": "Authorization",
   "properties.idempotency": "Idempotency",
   "properties.idempotency.enabled": "Idempotency",
   "properties.idempotency.keyExpiry": "Idempotency",
@@ -219,6 +220,7 @@ export const pathToTabMap: Record<string, string> = {
 
 export const desiredTabOrder = [
   "Endpoint",
+  "Authorization",
   "Validate Request",
   "Handle Validation Failure",
   "Failure Response Mapping",

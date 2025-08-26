@@ -34,7 +34,10 @@ const OneOfAsSingleInputField: React.FC<FieldProps<string>> = ({
       <Input
         id={id}
         value={formData ?? ""}
-        onChange={(e) => onChange(e.target.value || undefined)}
+        onChange={(e) => {
+          const val = e.target.value;
+          onChange(val);
+        }}
         placeholder={schema.default as string | undefined}
       />
     </div>
