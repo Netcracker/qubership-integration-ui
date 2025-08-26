@@ -29,7 +29,6 @@ export const Mapping: React.FC<MappingProps> = ({
 
   const onValueChange = useCallback(
     (newValue: MappingDescription) => {
-      console.log("onValueChange", newValue);
       setValue(newValue);
       onChange?.(newValue);
     },
