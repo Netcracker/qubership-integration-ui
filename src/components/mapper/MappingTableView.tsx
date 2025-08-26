@@ -92,7 +92,10 @@ import { InlineElementReferencesEdit } from "./InlineElementReferencesEdit.tsx";
 import { useModalsContext } from "../../Modals.tsx";
 import { ConstantValueEditDialog } from "./ConstantValueEditDialog.tsx";
 import { LoadSchemaDialog } from "./LoadSchemaDialog.tsx";
-import { TransformationEditDialog } from "./TransformationEditDialog.tsx";
+import {
+  TransformationContext,
+  TransformationEditDialog,
+} from "./TransformationEditDialog.tsx";
 import { NamespacesEditDialog } from "./NamespacesEditDialog.tsx";
 import { ChainContext } from "../../pages/ChainPage.tsx";
 
@@ -1651,19 +1654,26 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                           }
                           showModal({
                             component: (
-                              <TransformationEditDialog
-                                transformation={action.transformation}
-                                onSubmit={(transformation) => {
-                                  updateActions((a) => {
-                                    return a.id === action.id
-                                      ? {
-                                          ...a,
-                                          transformation,
-                                        }
-                                      : a;
-                                  });
+                              <TransformationContext.Provider
+                                value={{
+                                  mappingDescription: mappingDescription,
+                                  action,
                                 }}
-                              />
+                              >
+                                <TransformationEditDialog
+                                  transformation={action.transformation}
+                                  onSubmit={(transformation) => {
+                                    updateActions((a) => {
+                                      return a.id === action.id
+                                        ? {
+                                            ...a,
+                                            transformation,
+                                          }
+                                        : a;
+                                    });
+                                  }}
+                                />
+                              </TransformationContext.Provider>
                             ),
                           });
                         }}
