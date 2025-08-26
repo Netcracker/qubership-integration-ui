@@ -55,6 +55,8 @@ import {
   ElementWithChainName,
   ApiSpecificationType,
   ApiSpecificationFormat,
+  TransferElementRequest,
+  Element,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -88,7 +90,10 @@ export interface Api {
 
   getElementTypes(): Promise<ElementFilter[]>;
 
-  getElementsByType(chainId: string, elementType: string): Promise<ElementWithChainName[]>;
+  getElementsByType(
+    chainId: string,
+    elementType: string,
+  ): Promise<ElementWithChainName[]>;
 
   createElement(
     elementRequest: CreateElementRequest,
@@ -99,6 +104,11 @@ export interface Api {
     elementRequest: PatchElementRequest,
     chainId: string,
     elementId: string,
+  ): Promise<ActionDifference>;
+
+  transferElement(
+    transferElementRequest: TransferElementRequest,
+    chainId: string,
   ): Promise<ActionDifference>;
 
   deleteElements(
@@ -113,7 +123,7 @@ export interface Api {
     chainId: string,
   ): Promise<ActionDifference>;
 
-  deleteConnection(
+  deleteConnections(
     connectionIds: string[],
     chainId: string,
   ): Promise<ActionDifference>;
@@ -234,7 +244,17 @@ export interface Api {
     specificationGroupId: string[],
   ): Promise<File>;
 
-  generateApiSpecification(deploymentIds: string[], snapshotIds: string[], chainIds: string[], httpTriggerIds: string[], externalRoutes: boolean, specificationType: ApiSpecificationType, format: ApiSpecificationFormat): Promise<File>;
+  getSpecificationModelSource(id: string): Promise<string>;
+
+  generateApiSpecification(
+    deploymentIds: string[],
+    snapshotIds: string[],
+    chainIds: string[],
+    httpTriggerIds: string[],
+    externalRoutes: boolean,
+    specificationType: ApiSpecificationType,
+    format: ApiSpecificationFormat,
+  ): Promise<File>;
 
   getImportPreview(file: File): Promise<ImportPreview>;
 

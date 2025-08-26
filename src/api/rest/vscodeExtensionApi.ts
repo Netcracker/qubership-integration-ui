@@ -39,6 +39,7 @@ import {
   Specification,
   SpecificationGroup,
   UsedService,
+  Element,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 
@@ -132,18 +133,16 @@ export class VSCodeExtensionApi implements Api {
     ).payload;
   };
 
-  deleteElement = async (
-    elementId: string,
+  deleteElements = async (
+    elementIds: string[],
     chainId: string,
   ): Promise<ActionDifference> => {
     return <ActionDifference>(
-      (
-        await this.sendMessageToExtension("deleteElement", {
-          chainId,
-          elementId,
-        })
-      ).payload
-    );
+      await this.sendMessageToExtension("deleteElements", {
+        chainId,
+        elementIds,
+      })
+    ).payload;
   };
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
@@ -164,14 +163,14 @@ export class VSCodeExtensionApi implements Api {
     ).payload;
   };
 
-  deleteConnection = async (
-    connectionId: string[],
+  deleteConnections = async (
+    connectionIds: string[],
     chainId: string,
   ): Promise<ActionDifference> => {
     return <ActionDifference>(
-      await this.sendMessageToExtension("deleteConnection", {
+      await this.sendMessageToExtension("deleteConnections", {
         chainId,
-        connectionId,
+        connectionIds,
       })
     ).payload;
   };
@@ -192,11 +191,6 @@ export class VSCodeExtensionApi implements Api {
       (await this.sendMessageToExtension("updateChain", { id, chain })).payload
     );
   };
-
-
-  deleteElements(): Promise<ActionDifference> {
-    throw new Error("Method not implemented.");
-  }
 
   getElementsByType(): Promise<ElementWithChainName[]> {
     throw new Error("Method not implemented.");
@@ -283,6 +277,10 @@ export class VSCodeExtensionApi implements Api {
   }
 
   getSpecificationModel(): Promise<Specification[]> {
+    throw new Error("Method not implemented.");
+  }
+
+  getSpecificationModelSource(): Promise<string> {
     throw new Error("Method not implemented.");
   }
 
@@ -543,6 +541,10 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method not implemented.");
   }
   moveFolder(): Promise<FolderItem> {
+    throw new Error("Method not implemented.");
+  }
+
+  transferElement(): Promise<ActionDifference> {
     throw new Error("Method not implemented.");
   }
 }
