@@ -88,10 +88,13 @@
             VERSION=${{ steps.get_version.outputs.package_version }}
             if [[ "$VERSION" == *"-dev" ]]; then
               TIMESTAMP=$(date +'%Y%m%d%H%M%S')
-              NEW_VERSION="${VERSION}.${TIMES_STAMP}"
+              NEW_VERSION="${VERSION}.${TIMESTAMP}"
+              echo "Final publish version: $NEW_VERSION"
               echo "publish_version=$NEW_VERSION" >> $GITHUB_OUTPUT
             else
+              echo "Final publish version: $VERSION"
               echo "publish_version=$VERSION" >> $GITHUB_OUTPUT
+            fi
 
 #    npm-publish:
 #      uses: Netcracker/qubership-workflow-hub/.github/workflows/re-npm-publish.yml@main
