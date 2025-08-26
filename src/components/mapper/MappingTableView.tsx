@@ -99,7 +99,10 @@ import {
 import { NamespacesEditDialog } from "./NamespacesEditDialog.tsx";
 import { ChainContext } from "../../pages/ChainPage.tsx";
 
-export type MappingTableViewProps = React.HTMLAttributes<HTMLElement> & {
+export type MappingTableViewProps = Omit<
+  React.HTMLAttributes<HTMLElement>,
+  "onChange"
+> & {
   elementId: string;
   mapping?: MappingDescription;
   readonlySource?: boolean;
