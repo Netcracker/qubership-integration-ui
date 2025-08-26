@@ -509,7 +509,7 @@ export const MappingActionsTextView: React.FC<MappingActionsTextViewProps> = ({
       value={value}
       language={MAPPER_ACTIONS_LANGUAGE_ID}
       onMount={(editor, monaco) => onEditorMount(editor, monaco)}
-      options={{}}
+      options={{ fixedOverflowWidgets: true }}
     />
   );
 };
