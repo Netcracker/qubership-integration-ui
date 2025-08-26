@@ -147,7 +147,7 @@ const PatternPropertiesField: React.FC<FieldProps<Record<string, string>>> = ({
                     />
                   </td>
                 </tr>
-              ))}{" "}
+              ))}
             </tbody>
           </table>
         ))}
