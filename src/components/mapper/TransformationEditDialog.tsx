@@ -1,5 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Transformation } from "../../mapper/model/model";
+import React, { createContext, useEffect, useMemo, useState } from "react";
+import {
+  MappingAction,
+  MappingDescription,
+  Transformation,
+} from "../../mapper/model/model";
 import { Button, Flex, Form, Modal, Select } from "antd";
 import { useModalContext } from "../../ModalContextProvider";
 import { TRANSFORMATIONS } from "../../mapper/model/transformations";
@@ -11,6 +15,21 @@ import { FormatDateTimeParameters } from "./transformation/parameters/FormatDate
 import { ExpressionParameters } from "./transformation/parameters/ExpressionParameters";
 import { ConditionalParameters } from "./transformation/parameters/ConditionalParameters";
 import { DictionaryParameters } from "./transformation/parameters/DictionaryParameters";
+import { MappingUtil } from "../../mapper/util/mapping.ts";
+
+export type TransformationContextProps = {
+  mappingDescription: MappingDescription;
+  action: MappingAction;
+};
+
+export const TransformationContext = createContext<TransformationContextProps>({
+  mappingDescription: MappingUtil.emptyMapping(),
+  action: {
+    id: "",
+    sources: [],
+    target: { type: "attribute", kind: "body", path: [] },
+  },
+});
 
 export type TransformationEditDialogProps = {
   transformation?: Transformation;
