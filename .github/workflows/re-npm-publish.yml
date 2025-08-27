@@ -38,8 +38,8 @@ on:
         default: "main"
       is_dev:
         required: false
-        type: string
-        default: "false"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
