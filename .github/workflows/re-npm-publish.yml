@@ -84,9 +84,23 @@ jobs:
         run: |
           npm ls --json | jq -r '.dependencies | keys[]' | grep "@netcracker" | xargs --no-run-if-empty npm update
 
-      - name: Update npm version for dev
+      - name: Update npm version for dev version
         if: ${{ inputs.is_dev }}
-        run: npm version "${{ inputs.version }}" --no-git-tag-version
+        run: |
+          REQUESTED_VERSION="${{ inputs.version }}"
+
+          if [ "$IS_LERNA" == "true" ]; then
+            CURRENT_VERSION=$(lerna list --json | jq -r '.[0].version')
+          else
+            CURRENT_VERSION=$(jq -r '.version' package.json)
+          fi
+
+          if [ "$CURRENT_VERSION" != "$REQUESTED_VERSION" ]; then
+            echo "Updating version from $CURRENT_VERSION to $REQUESTED_VERSION"
+            npm version "$REQUESTED_VERSION" --no-git-tag-version
+          else
+            echo "Version already $CURRENT_VERSION, skipping"
+          fi
 
       - name: Check current version
         id: current_version
