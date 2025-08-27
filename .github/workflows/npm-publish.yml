@@ -99,7 +99,7 @@
 
     npm-publish:
       needs: prepare-version
-      uses: Netcracker/qubership-workflow-hub/.github/workflows/re-npm-publish.yml@main
+      uses: ./.github/workflows/re-npm-publish.yml
       with:
         version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || needs.prepare-version.outputs.publish_version }}
         scope: ${{ github.event_name == 'workflow_dispatch' && inputs.scope || '@netcracker' }}
@@ -107,6 +107,7 @@
         registry-url: ${{ github.event_name == 'workflow_dispatch' && inputs.registry-url || 'https://npm.pkg.github.com' }}
         update-nc-dependency: ${{ github.event_name == 'workflow_dispatch' && inputs.update-nc-dependency || false }}
         dry-run: ${{ (github.event_name == 'push' && needs.prepare-version.outputs.is_dev != 'true') || (github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
-        dist-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag || (github.event_name == 'push' && needs.prepare-version.outputs.is_dev == 'true' && needs.prepare-version.outputs.publish_version) || 'latest' }}
+        dist-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag || 'latest' }}
         ref: ${{ github.ref_name }}
+        is_dev: ${{ needs.prepare-version.outputs.is_dev == 'true' }}
       secrets: inherit
