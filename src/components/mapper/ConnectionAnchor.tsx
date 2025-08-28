@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import styles from "./ConnectionAnchor.module.css";
 
 export type ConnectionAnchorProps = React.HTMLAttributes<HTMLElement> & {
@@ -7,18 +7,16 @@ export type ConnectionAnchorProps = React.HTMLAttributes<HTMLElement> & {
   onClick?: (connected: boolean) => void;
 };
 
-export const ConnectionAnchor: React.FC<ConnectionAnchorProps> = ({
-  invalid,
-  connected,
-  onClick,
-  ...props
-}): React.ReactNode => {
+export const ConnectionAnchor = forwardRef<
+  HTMLDivElement,
+  ConnectionAnchorProps
+>(({ invalid, connected, onClick, ...props }, ref) => {
   const [className, setClassName] = useState<string>(
     `${styles["connection-anchor"]} ${styles["disconnected"]}`,
   );
 
   useEffect(() => {
-    const classNames = [
+    const classNames: (keyof typeof styles)[] = [
       styles["connection-anchor"],
       styles[connected ? "connected" : "disconnected"],
     ];
@@ -29,8 +27,15 @@ export const ConnectionAnchor: React.FC<ConnectionAnchorProps> = ({
   }, [invalid, connected]);
 
   return (
-    <div className={className} {...props} onClick={() => onClick?.(connected)}>
+    <div
+      ref={ref}
+      className={className}
+      {...props}
+      onClick={() => onClick?.(connected)}
+    >
       <div className={styles["inner-circle"]}></div>
     </div>
   );
-};
+});
+
+ConnectionAnchor.displayName = "ConnectionAnchor";
