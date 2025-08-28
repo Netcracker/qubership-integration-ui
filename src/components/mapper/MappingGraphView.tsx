@@ -121,7 +121,9 @@ const SchemaTreeItemView: React.FC<SchemaTreeItemViewProps> = ({
     <span className={styles["group-label"]}>properties</span>
   ) : isAttributeItem(item) ? (
     <Flex vertical={false} justify="space-between" align="center" gap={8}>
-      <span className={graphViewStyles["attribute-name"]}>{item.attribute.name}</span>
+      <span className={graphViewStyles["attribute-name"]}>
+        {item.attribute.name}
+      </span>
       <Flex className={graphViewStyles["attribute-type"]}>
         <span className={graphViewStyles["type-bracket"]}>[</span>
         <span className={graphViewStyles["type-name"]}>
@@ -513,7 +515,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       },
     ];
   }, [
+    clearTreeForItem,
     elementId,
+    exportElement,
     mappingDescription,
     readonlySource,
     removeAttribute,
