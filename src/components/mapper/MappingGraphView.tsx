@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Attribute,
   AttributeKind,
+  AttributeReference,
   DataType,
   MappingDescription,
   SchemaKind,
@@ -18,8 +19,10 @@ import {
   Tag,
 } from "antd";
 import {
+  AttributeItem,
   buildMappingTableItemPredicate,
   buildMappingTableItems,
+  ConstantItem,
   filterMappingTableItems,
   isAttributeItem,
   isBodyGroup,
@@ -46,6 +49,11 @@ import { MappingTableItemActionButton } from "./MappingTableItemActionButton.tsx
 import { TransformationInfoTooltip } from "./TransformationInfoTooltip.tsx";
 import { GENERATORS } from "../../mapper/model/generators.ts";
 import { DataTypes } from "../../mapper/util/types.ts";
+import {
+  ArcherContainer,
+  ArcherContainerRef,
+  ArcherElement,
+} from "react-archer";
 
 function buildTableItems(
   mappingDescription: MappingDescription,
@@ -71,6 +79,17 @@ function getBodyFormat(
         METADATA_DATA_FORMAT_KEY,
       ) ?? "")
     : SourceFormat.JSON;
+}
+
+function buildArcherElementId(
+  schemaKind: SchemaKind,
+  item: ConstantItem | AttributeItem | AttributeReference,
+): string {
+  return isAttributeItem(item)
+    ? `${schemaKind}-${item.kind}-${item.path.map((i) => i.id).join("-")}`
+    : isConstantItem(item)
+      ? `constant-${item.constant.id}`
+      : `${schemaKind}-${item.kind}-${item.path.join("-")}`;
 }
 
 type SchemaTreeItemViewProps = {
@@ -236,6 +255,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   >([]);
   const [sourceItems, setSourceItems] = useState<MappingTableItem[]>([]);
   const [targetItems, setTargetItems] = useState<MappingTableItem[]>([]);
+  const archerContainerRef = useRef<ArcherContainerRef>(null);
 
   useEffect(() => {
     setSourceItems(
@@ -313,6 +333,10 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     },
     [clearConstants, clearTree],
   );
+
+  const refreshConnectionLines = useCallback(() => {
+    archerContainerRef.current?.refreshScreen?.();
+  }, []);
 
   const buildSourceColumns = useCallback(() => {
     return [
@@ -398,12 +422,25 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
         render: (_value: unknown, item: MappingTableItem) => {
           if (isAttributeItem(item) || isConstantItem(item)) {
             return (
-              <ConnectionAnchor
-                connected={item.actions.length > 0}
-                onClick={() => {
-                  // TODO
-                }}
-              />
+              <ArcherElement
+                id={buildArcherElementId(SchemaKind.SOURCE, item)}
+                relations={item.actions
+                  .map((action) => action.target)
+                  .map((target) => ({
+                    targetId: buildArcherElementId(SchemaKind.TARGET, target),
+                    targetAnchor: "left",
+                    sourceAnchor: "right",
+                    domAttributes: {},
+                    cursor: "pointer",
+                  }))}
+              >
+                <ConnectionAnchor
+                  connected={item.actions.length > 0}
+                  onClick={() => {
+                    // TODO
+                  }}
+                />
+              </ArcherElement>
             );
           }
         },
@@ -430,22 +467,25 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
         render: (_value: unknown, item: MappingTableItem) => {
           if (isAttributeItem(item)) {
             return (
-              <ConnectionAnchor
-                invalid={
-                  item.actions.flatMap((action) =>
-                    verifyMappingAction(action, mappingDescription),
-                  ).length > 0
-                }
-                connected={item.actions.length > 0}
-                onClick={() => {
-                  // TODO
-                }}
-              />
+              <ArcherElement
+                id={`${SchemaKind.TARGET}-${item.kind}-${item.path.map((i) => i.id).join("-")}`}
+              >
+                <ConnectionAnchor
+                  invalid={
+                    item.actions.flatMap((action) =>
+                      verifyMappingAction(action, mappingDescription),
+                    ).length > 0
+                  }
+                  connected={item.actions.length > 0}
+                  onClick={() => {
+                    // TODO
+                  }}
+                />
+              </ArcherElement>
             );
           }
         },
       },
-      Table.EXPAND_COLUMN,
       {
         key: "data",
         title: "Data",
@@ -536,7 +576,15 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   }, [buildTargetColumns]);
 
   return (
-    <>
+    <ArcherContainer
+      ref={archerContainerRef}
+      style={{ height: "100%" }}
+      strokeWidth={3}
+      strokeColor={"#FFB02E"}
+      endShape={{ arrow: { arrowLength: 3, arrowThickness: 3 } }}
+      svgContainerStyle={{ zIndex: 10000 }}
+      offset={8}
+    >
       <Row gutter={[16, 16]} style={{ height: "100%" }}>
         <Col span={9} className={graphViewStyles["mapping-table-column"]}>
           <Table<MappingTableItem>
@@ -564,6 +612,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 isBodyGroup(item)
                 ? styles["group-row"]
                 : "";
+            }}
+            onScroll={() => {
+              refreshConnectionLines();
             }}
           />
         </Col>
@@ -595,9 +646,12 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 ? styles["group-row"]
                 : "";
             }}
+            onScroll={() => {
+              refreshConnectionLines();
+            }}
           />
         </Col>
       </Row>
-    </>
+    </ArcherContainer>
   );
 };
