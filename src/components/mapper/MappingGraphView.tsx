@@ -54,6 +54,9 @@ import {
   ArcherContainerRef,
   ArcherElement,
 } from "react-archer";
+import { EditAttributeDialog } from "./EdtAttributeDialog.tsx";
+import { MappingUtil } from "../../mapper/util/mapping.ts";
+import { Attributes } from "../../mapper/util/attributes.ts";
 
 function buildTableItems(
   mappingDescription: MappingDescription,
@@ -140,9 +143,18 @@ const SchemaTreeItemView: React.FC<SchemaTreeItemViewProps> = ({
     <span className={styles["group-label"]}>properties</span>
   ) : isAttributeItem(item) ? (
     <Flex vertical={false} justify="space-between" align="center" gap={8}>
-      <span className={graphViewStyles["attribute-name"]}>
-        {item.attribute.name}
-      </span>
+      <Space>
+        <span className={graphViewStyles["attribute-name"]}>
+          {item.attribute.name}
+        </span>
+        {item.attribute.defaultValue ? (
+          <span className={graphViewStyles["attribute-default-value"]}>
+            {item.attribute.defaultValue}
+          </span>
+        ) : (
+          <></>
+        )}
+      </Space>
       <Flex className={graphViewStyles["attribute-type"]}>
         <span className={graphViewStyles["type-bracket"]}>[</span>
         <span className={graphViewStyles["type-name"]}>
@@ -304,13 +316,11 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       path: Attribute[],
       changes: Partial<Attribute>,
     ) => {
-      try {
-        updateAttribute(schemaKind, kind, path, changes);
-      } catch (error) {
+      updateAttribute(schemaKind, kind, path, changes, (error: unknown) => {
         const content =
           error instanceof Error ? error.message : "Failed to update attribute";
         void messageApi.open({ type: "error", content });
-      }
+      });
     },
     [messageApi, updateAttribute],
   );
@@ -332,6 +342,22 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       }
     },
     [clearConstants, clearTree],
+  );
+
+  const tryAddElement = useCallback(
+    (
+      schemaKind: SchemaKind,
+      kind: AttributeKind,
+      path: Attribute[],
+      data: Omit<Partial<Attribute>, "id">,
+    ) => {
+      addAttribute(schemaKind, kind, path, data, (error: unknown) => {
+        const content =
+          error instanceof Error ? error.message : "Failed to add attribute";
+        void messageApi.open({ type: "error", content });
+      });
+    },
+    [addAttribute, messageApi],
   );
 
   const refreshConnectionLines = useCallback(() => {
@@ -380,7 +406,28 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 SourceFormat.XML.toString()
               }
               onEdit={() => {
-                // TODO
+                if (isAttributeItem(item)) {
+                  showModal({
+                    component: (
+                      <EditAttributeDialog
+                        title={`Edit ${item.kind === "body" ? "attribute" : item.kind}`}
+                        kind={item.kind}
+                        attribute={item.attribute}
+                        typeDefinitions={item.typeDefinitions}
+                        onSubmit={(changes) => {
+                          tryUpdateAttribute(
+                            SchemaKind.SOURCE,
+                            item.kind,
+                            item.path,
+                            changes,
+                          );
+                        }}
+                      />
+                    ),
+                  });
+                } else if (isConstantItem(item)) {
+                  // TODO
+                }
               }}
               onLoad={(type) => {
                 if (isBodyGroup(item)) {
@@ -399,8 +446,45 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   namespaces,
                 )
               }
-              // TODO
-              // onAdd={() => addElement(item)}
+              onAdd={() => {
+                if (isConstantItem(item)) {
+                  // TODO
+                } else {
+                  const entityTypeName: string = isHeaderGroup(item)
+                    ? "header"
+                    : isPropertyGroup(item)
+                      ? "property"
+                      : "attribute";
+                  const kind: AttributeKind = isHeaderGroup(item)
+                    ? "header"
+                    : isPropertyGroup(item)
+                      ? "property"
+                      : isAttributeItem(item)
+                        ? item.kind
+                        : "body";
+                  const typeDefinitions = isAttributeItem(item)
+                    ? item.typeDefinitions
+                    : [];
+                  const path = isAttributeItem(item) ? item.path : [];
+                  showModal({
+                    component: (
+                      <EditAttributeDialog
+                        title={`Add ${entityTypeName}`}
+                        kind={kind}
+                        attribute={Attributes.buildAttribute(
+                          MappingUtil.generateUUID(),
+                          "",
+                          DataTypes.stringType(),
+                        )}
+                        typeDefinitions={typeDefinitions}
+                        onSubmit={(data) => {
+                          tryAddElement(SchemaKind.SOURCE, kind, path, data);
+                        }}
+                      />
+                    ),
+                  });
+                }
+              }}
               onClear={() => clearTreeForItem(SchemaKind.SOURCE, item)}
               onDelete={() => {
                 if (isConstantItem(item)) {
@@ -520,7 +604,28 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 SourceFormat.XML.toString()
               }
               onEdit={() => {
-                // TODO
+                if (isAttributeItem(item)) {
+                  showModal({
+                    component: (
+                      <EditAttributeDialog
+                        title={`Edit ${item.kind === "body" ? "attribute" : item.kind}`}
+                        kind={item.kind}
+                        attribute={item.attribute}
+                        typeDefinitions={item.typeDefinitions}
+                        onSubmit={(changes) => {
+                          tryUpdateAttribute(
+                            SchemaKind.TARGET,
+                            item.kind,
+                            item.path,
+                            changes,
+                          );
+                        }}
+                      />
+                    ),
+                  });
+                } else if (isConstantItem(item)) {
+                  // TODO
+                }
               }}
               onLoad={(type) => {
                 if (isBodyGroup(item)) {
@@ -540,7 +645,41 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 )
               }
               // TODO
-              // onAdd={() => addElement(item)}
+              onAdd={() => {
+                const entityTypeName: string = isHeaderGroup(item)
+                  ? "header"
+                  : isPropertyGroup(item)
+                    ? "property"
+                    : "attribute";
+                const kind: AttributeKind = isHeaderGroup(item)
+                  ? "header"
+                  : isPropertyGroup(item)
+                    ? "property"
+                    : isAttributeItem(item)
+                      ? item.kind
+                      : "body";
+                const typeDefinitions = isAttributeItem(item)
+                  ? item.typeDefinitions
+                  : [];
+                const path = isAttributeItem(item) ? item.path : [];
+                showModal({
+                  component: (
+                    <EditAttributeDialog
+                      title={`Add ${entityTypeName}`}
+                      kind={kind}
+                      attribute={Attributes.buildAttribute(
+                        MappingUtil.generateUUID(),
+                        "",
+                        DataTypes.stringType(),
+                      )}
+                      typeDefinitions={typeDefinitions}
+                      onSubmit={(data) => {
+                        tryAddElement(SchemaKind.TARGET, kind, path, data);
+                      }}
+                    />
+                  ),
+                });
+              }}
               onClear={() => clearTreeForItem(SchemaKind.TARGET, item)}
               onDelete={() => {
                 if (isConstantItem(item)) {
@@ -555,6 +694,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       },
     ];
   }, [
+    addAttribute,
     clearTreeForItem,
     elementId,
     exportElement,
@@ -562,6 +702,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     readonlySource,
     removeAttribute,
     removeConstant,
+    showModal,
     tryUpdateAttribute,
     updateBodyType,
     updateXmlNamespaces,
@@ -584,7 +725,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       endShape={{ arrow: { arrowLength: 3, arrowThickness: 3 } }}
       svgContainerStyle={{ zIndex: 10000 }}
       offset={8}
+      {...props}
     >
+      {contextHolder}
       <Row gutter={[16, 16]} style={{ height: "100%" }}>
         <Col span={9} className={graphViewStyles["mapping-table-column"]}>
           <Table<MappingTableItem>
