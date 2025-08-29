@@ -1,8 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  DragEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Attribute,
   AttributeKind,
   AttributeReference,
+  Constant,
+  ConstantReference,
   DataType,
   MappingDescription,
   SchemaKind,
@@ -57,6 +65,12 @@ import {
 import { EditAttributeDialog } from "./EdtAttributeDialog.tsx";
 import { MappingUtil } from "../../mapper/util/mapping.ts";
 import { Attributes } from "../../mapper/util/attributes.ts";
+import { EditConstantDialog } from "./EditConstantDialog.tsx";
+import { parseJson } from "../../misc/json-helper.ts";
+import { MappingActions } from "../../mapper/util/actions.ts";
+
+const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
+const DRAG_POINT_ID = "drag-point";
 
 function buildTableItems(
   mappingDescription: MappingDescription,
@@ -216,6 +230,16 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
 }): React.ReactNode => {
   const { showModal } = useModalsContext();
   const [messageApi, contextHolder] = message.useMessage();
+
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [draggedItemId, setDraggedItemId] = useState<string | undefined>(
+    undefined,
+  );
+  const [dragPosition, setDragPosition] = useState<
+    { x: number; y: number } | undefined
+  >();
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const [controlsStateMap, setControlsStateMap] = useState<
     Map<SchemaKind, TableControlsState>
   >(
@@ -325,6 +349,28 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     [messageApi, updateAttribute],
   );
 
+  const tryUpdateConstant = useCallback(
+    (id: string, changes: Omit<Partial<Constant>, "id">) => {
+      updateConstant(id, changes, (error: unknown) => {
+        const content =
+          error instanceof Error ? error.message : "Failed to update constant";
+        void messageApi.open({ type: "error", content });
+      });
+    },
+    [messageApi, updateConstant],
+  );
+
+  const tryAddConstant = useCallback(
+    (changes: Partial<Constant>) => {
+      addConstant(changes, (error: unknown) => {
+        const content =
+          error instanceof Error ? error.message : "Failed to update constant";
+        void messageApi.open({ type: "error", content });
+      });
+    },
+    [messageApi, addConstant],
+  );
+
   const clearTreeForItem = useCallback(
     (schemaKind: SchemaKind, item: MappingTableItem) => {
       if (isConstantGroup(item)) {
@@ -426,7 +472,17 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     ),
                   });
                 } else if (isConstantItem(item)) {
-                  // TODO
+                  showModal({
+                    component: (
+                      <EditConstantDialog
+                        title={"Edit constant"}
+                        constant={item.constant}
+                        onSubmit={(changes) => {
+                          tryUpdateConstant(item.constant.id, changes);
+                        }}
+                      />
+                    ),
+                  });
                 }
               }}
               onLoad={(type) => {
@@ -448,7 +504,22 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
               }
               onAdd={() => {
                 if (isConstantItem(item)) {
-                  // TODO
+                  showModal({
+                    component: (
+                      <EditConstantDialog
+                        title={"Add constant"}
+                        constant={{
+                          id: MappingUtil.generateUUID(),
+                          name: "",
+                          type: DataTypes.stringType(),
+                          valueSupplier: { kind: "given", value: "" },
+                        }}
+                        onSubmit={(changes) => {
+                          tryAddConstant(changes);
+                        }}
+                      />
+                    ),
+                  });
                 } else {
                   const entityTypeName: string = isHeaderGroup(item)
                     ? "header"
@@ -508,18 +579,64 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             return (
               <ArcherElement
                 id={buildArcherElementId(SchemaKind.SOURCE, item)}
-                relations={item.actions
-                  .map((action) => action.target)
-                  .map((target) => ({
-                    targetId: buildArcherElementId(SchemaKind.TARGET, target),
-                    targetAnchor: "left",
-                    sourceAnchor: "right",
-                    domAttributes: {},
-                    cursor: "pointer",
-                  }))}
+                relations={[
+                  ...item.actions
+                    .map((action) => action.target)
+                    .map((target) => ({
+                      targetId: buildArcherElementId(SchemaKind.TARGET, target),
+                      targetAnchor: "left" as const,
+                      sourceAnchor: "right" as const,
+                      domAttributes: {},
+                      cursor: "pointer",
+                    })),
+                  ...(isDragging && item.id === draggedItemId
+                    ? [
+                        {
+                          targetId: DRAG_POINT_ID,
+                          targetAnchor: "left" as const,
+                          sourceAnchor: "right" as const,
+                        },
+                      ]
+                    : []),
+                ]}
               >
                 <ConnectionAnchor
                   connected={item.actions.length > 0}
+                  draggable
+                  onDrag={(event: DragEvent<HTMLElement>) => {
+                    const bb = containerRef.current?.getBoundingClientRect();
+                    const x = event.clientX - (bb?.left ?? 0);
+                    const y = event.clientY - (bb?.top ?? 0);
+                    if (x !== dragPosition?.x || y !== dragPosition?.y) {
+                      setDragPosition({ x, y });
+                      refreshConnectionLines();
+                    }
+                  }}
+                  onDragEnd={() => {
+                    setIsDragging(false);
+                    setDraggedItemId(undefined);
+                    setDragPosition(undefined);
+                  }}
+                  onDragStart={(event) => {
+                    const bb = containerRef.current?.getBoundingClientRect();
+                    const x = event.clientX - (bb?.left ?? 0);
+                    const y = event.clientY - (bb?.top ?? 0);
+                    setDragPosition({ x, y });
+                    setDraggedItemId(item.id);
+                    setIsDragging(true);
+                    const reference: ConstantReference | AttributeReference =
+                      isConstantItem(item)
+                        ? { type: "constant", constantId: item.constant.id }
+                        : {
+                            type: "attribute",
+                            kind: item.kind,
+                            path: item.path.map((a) => a.id),
+                          };
+                    event.dataTransfer.setData(
+                      MAPPER_DND_REFERENCE_MEDIA_TYPE,
+                      JSON.stringify(reference),
+                    );
+                  }}
                   onClick={() => {
                     // TODO
                   }}
@@ -531,11 +648,23 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       },
     ];
   }, [
+    clearTreeForItem,
+    dragPosition?.x,
+    dragPosition?.y,
+    draggedItemId,
     elementId,
+    exportElement,
+    isDragging,
     mappingDescription,
     readonlySource,
+    refreshConnectionLines,
     removeAttribute,
     removeConstant,
+    showModal,
+    tryAddConstant,
+    tryAddElement,
+    tryUpdateAttribute,
+    tryUpdateConstant,
     updateBodyType,
     updateXmlNamespaces,
   ]);
@@ -561,6 +690,58 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     ).length > 0
                   }
                   connected={item.actions.length > 0}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragStart={(event) => {
+                    const reference: AttributeReference = {
+                      type: "attribute",
+                      kind: item.kind,
+                      path: item.path.map((a) => a.id),
+                    };
+                    event.dataTransfer.setData(
+                      MAPPER_DND_REFERENCE_MEDIA_TYPE,
+                      JSON.stringify(reference),
+                    );
+                  }}
+                  onDrop={(event) => {
+                    const dataText = event.dataTransfer.getData(
+                      MAPPER_DND_REFERENCE_MEDIA_TYPE,
+                    );
+                    if (!dataText) {
+                      return;
+                    }
+                    try {
+                      const source = parseJson<
+                        AttributeReference | ConstantReference
+                      >(
+                        dataText,
+                        (obj) =>
+                          MappingUtil.isAttributeReference(obj) ||
+                          MappingUtil.isObjConstantReference(obj),
+                      );
+                      const target: AttributeReference = {
+                        type: "attribute",
+                        kind: item.kind,
+                        path: item.path.map((a) => a.id),
+                      };
+                      const sources = item.actions
+                        .flatMap((action) => action.sources)
+                        .filter(
+                          (s) => !MappingActions.referencesAreEqual(s, source),
+                        );
+                      sources.push(source);
+                      createOrUpdateMappingActionForTarget(
+                        item.actions,
+                        target,
+                        sources,
+                      );
+                    } catch (error) {
+                      const content =
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to get reference to element";
+                      void messageApi.open({ type: "error", content });
+                    }
+                  }}
                   onClick={() => {
                     // TODO
                   }}
@@ -597,7 +778,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             <MappingTableItemActionButton
               elementId={elementId}
               item={item}
-              readonly={!!readonlySource}
+              readonly={!!readonlyTarget}
               enableEdit={true}
               enableXmlNamespaces={
                 getBodyFormat(mappingDescription, SchemaKind.TARGET) ===
@@ -623,8 +804,6 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                       />
                     ),
                   });
-                } else if (isConstantItem(item)) {
-                  // TODO
                 }
               }}
               onLoad={(type) => {
@@ -644,7 +823,6 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   namespaces,
                 )
               }
-              // TODO
               onAdd={() => {
                 const entityTypeName: string = isHeaderGroup(item)
                   ? "header"
@@ -694,15 +872,17 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       },
     ];
   }, [
-    addAttribute,
     clearTreeForItem,
+    createOrUpdateMappingActionForTarget,
     elementId,
     exportElement,
     mappingDescription,
-    readonlySource,
+    messageApi,
+    readonlyTarget,
     removeAttribute,
     removeConstant,
     showModal,
+    tryAddElement,
     tryUpdateAttribute,
     updateBodyType,
     updateXmlNamespaces,
@@ -728,10 +908,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       {...props}
     >
       {contextHolder}
-      <Row gutter={[16, 16]} style={{ height: "100%" }}>
+      <Row ref={containerRef} gutter={[16, 16]} style={{ height: "100%" }}>
         <Col span={9} className={graphViewStyles["mapping-table-column"]}>
           <Table<MappingTableItem>
-            // style={{ direction: "rtl" }}
             className="flex-table"
             size="small"
             showHeader={false}
@@ -795,6 +974,19 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
           />
         </Col>
       </Row>
+      {isDragging && dragPosition ? (
+        <ArcherElement id={DRAG_POINT_ID}>
+          <div
+            style={{
+              position: "absolute",
+              top: dragPosition.y,
+              left: dragPosition.x,
+            }}
+          />
+        </ArcherElement>
+      ) : (
+        <></>
+      )}
     </ArcherContainer>
   );
 };

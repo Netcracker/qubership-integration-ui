@@ -100,29 +100,27 @@ export const EditAttributeDialog: React.FC<EditAttributeDialogProps> = ({
         <Form.Item label={"Name"} name={"name"} rules={[{ required: true }]}>
           <Input />
         </Form.Item>
-        <Flex vertical={false}>
-          <Form.Item
-            style={{ width: "100%" }}
-            label={"Type"}
-            name={"type"}
-            rules={[{ required: true }]}
-            getValueProps={(type: DataType) => {
-              return {
-                value: options.find((option) =>
-                  DataTypes.same(option.type, type, typeDefinitions),
-                )?.value,
-              };
-            }}
-            normalize={(value) => {
-              return (
-                options.find((option) => option.value === value)?.type ??
-                attribute.type
-              );
-            }}
-          >
-            <Select options={options} />
-          </Form.Item>
-        </Flex>
+        <Form.Item
+          style={{ width: "100%" }}
+          label={"Type"}
+          name={"type"}
+          rules={[{ required: true }]}
+          getValueProps={(type: DataType) => {
+            return {
+              value: options.find((option) =>
+                DataTypes.same(option.type, type, typeDefinitions),
+              )?.value,
+            };
+          }}
+          normalize={(value) => {
+            return (
+              options.find((option) => option.value === value)?.type ??
+              attribute.type
+            );
+          }}
+        >
+          <Select options={options} />
+        </Form.Item>
         <Flex vertical={false} style={{ marginLeft: 70 }}>
           <Form.Item
             label={null}
