@@ -127,6 +127,7 @@ const SchemaTreeItemView: React.FC<SchemaTreeItemViewProps> = ({
       <span className={styles["group-label"]}>body</span>
       {mappingDescription[schemaKind].body ? (
         <Select<string>
+          size={"small"}
           value={getBodyFormat(mappingDescription, schemaKind)}
           variant="borderless"
           options={[
@@ -309,16 +310,6 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       ),
     );
   }, [mappingDescription, controlsStateMap]);
-
-  // useEffect(() => {
-  //   const format = mappingDescription[selectedSchema].body
-  //     ? (MetadataUtil.getString(
-  //         mappingDescription[selectedSchema].body,
-  //         METADATA_DATA_FORMAT_KEY,
-  //       ) ?? "")
-  //     : SourceFormat.JSON;
-  //   setBodyFormat(format);
-  // }, [mappingDescription, selectedSchema]);
 
   const exportElement = useCallback(
     (item: MappingTableItem) => {

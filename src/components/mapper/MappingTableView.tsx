@@ -761,6 +761,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 <span className={styles["group-label"]}>body</span>
                 {mappingDescription[selectedSchema].body ? (
                   <Select<string>
+                    size={"small"}
                     value={bodyFormat}
                     variant="borderless"
                     options={[
