@@ -68,6 +68,13 @@ import { Attributes } from "../../mapper/util/attributes.ts";
 import { EditConstantDialog } from "./EditConstantDialog.tsx";
 import { parseJson } from "../../misc/json-helper.ts";
 import { MappingActions } from "../../mapper/util/actions.ts";
+import {
+  TransformationContext,
+  TransformationEditDialog,
+} from "./TransformationEditDialog.tsx";
+import { TransformationInfoCard } from "./TransformationInfo.tsx";
+import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
+import { ElementReferencesList } from "./ElementReferencesList.tsx";
 
 const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
 const DRAG_POINT_ID = "drag-point";
@@ -593,6 +600,18 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
               >
                 <ConnectionAnchor
                   connected={item.actions.length > 0}
+                  tooltipTitle={
+                    item.actions.length > 0 ? (
+                      <ElementReferencesList
+                        isTarget={true}
+                        mappingDescription={mappingDescription}
+                        references={item.actions.map((action) => action.target)}
+                      />
+                    ) : (
+                      ""
+                    )
+                  }
+                  tooltipPlacement={"right"}
                   draggable
                   onDrag={(event: DragEvent<HTMLElement>) => {
                     const bb = containerRef.current?.getBoundingClientRect();
@@ -670,16 +689,52 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
         className: graphViewStyles["target-anchor-column"],
         render: (_value: unknown, item: MappingTableItem) => {
           if (isAttributeItem(item)) {
+            const errors = item.actions.flatMap((action) =>
+              verifyMappingAction(action, mappingDescription),
+            );
             return (
               <ArcherElement
                 id={`${SchemaKind.TARGET}-${item.kind}-${item.path.map((i) => i.id).join("-")}`}
               >
                 <ConnectionAnchor
-                  invalid={
-                    item.actions.flatMap((action) =>
-                      verifyMappingAction(action, mappingDescription),
-                    ).length > 0
+                  style={item.actions.length > 0 ? { cursor: "pointer" } : {}}
+                  tooltipTitle={
+                    errors.length > 0 ? (
+                      errors.map((error) => error.message).join(" ")
+                    ) : item.actions ? (
+                      item.actions.some((action) => !!action.transformation) ? (
+                        item.actions
+                          .map((action) => action.transformation)
+                          .filter((transformation) => !!transformation)
+                          .map((transformation, index) => {
+                            const transformationInfo = TRANSFORMATIONS.find(
+                              (info) => info.name === transformation?.name,
+                            );
+                            return transformationInfo ? (
+                              <TransformationInfoCard
+                                key={index}
+                                transformationInfo={transformationInfo}
+                                parameters={transformation.parameters ?? []}
+                              />
+                            ) : (
+                              <></>
+                            );
+                          })
+                      ) : (
+                        <ElementReferencesList
+                          isTarget={false}
+                          mappingDescription={mappingDescription}
+                          references={item.actions.flatMap(
+                            (action) => action.sources,
+                          )}
+                        />
+                      )
+                    ) : (
+                      ""
+                    )
                   }
+                  tooltipPlacement={"left"}
+                  invalid={errors.length > 0}
                   connected={item.actions.length > 0}
                   onDragOver={(e) => e.preventDefault()}
                   onDragStart={(event) => {
@@ -734,7 +789,34 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     }
                   }}
                   onClick={() => {
-                    // TODO
+                    if (!isAttributeItem(item) || item.actions.length === 0) {
+                      return;
+                    }
+                    const action = item.actions[0];
+                    showModal({
+                      component: (
+                        <TransformationContext.Provider
+                          value={{
+                            mappingDescription: mappingDescription,
+                            action,
+                          }}
+                        >
+                          <TransformationEditDialog
+                            transformation={action.transformation}
+                            onSubmit={(transformation) => {
+                              updateActions((a) => {
+                                return a.id === action.id
+                                  ? {
+                                      ...a,
+                                      transformation,
+                                    }
+                                  : a;
+                              });
+                            }}
+                          />
+                        </TransformationContext.Provider>
+                      ),
+                    });
                   }}
                 />
               </ArcherElement>
@@ -875,6 +957,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     showModal,
     tryAddElement,
     tryUpdateAttribute,
+    updateActions,
     updateBodyType,
     updateXmlNamespaces,
   ]);
