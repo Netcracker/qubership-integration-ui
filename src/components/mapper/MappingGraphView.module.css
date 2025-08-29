@@ -17,11 +17,16 @@
   color: gray;
 }
 
-.attribute-name, .attribute-type {
+.attribute-name, .attribute-type, .attribute-default-value {
   min-width: 0;
   text-overflow: ellipsis;
   text-wrap: nowrap;
   overflow: hidden;
+}
+
+.attribute-default-value {
+  font-style: italic;
+  color: gray;
 }
 
 .type-bracket {

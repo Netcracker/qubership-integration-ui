@@ -700,10 +700,14 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     [exportDataType],
   );
 
-  const addElement = useCallback(
+  const tryAddElement = useCallback(
     (item: MappingTableItem) => {
       if (isConstantGroup(item)) {
-        addConstant({});
+        addConstant({}, (error: unknown) => {
+          const content =
+            error instanceof Error ? error.message : "Failed to add constant";
+          void messageApi.open({ type: "error", content });
+        });
       } else {
         const path = isAttributeItem(item) ? item.path : [];
         const kind = isAttributeItem(item)
@@ -713,13 +717,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             : isPropertyGroup(item)
               ? "property"
               : "body";
-        try {
-          addAttribute(selectedSchema, kind, path, {});
-        } catch (error) {
+        addAttribute(selectedSchema, kind, path, {}, (error: unknown) => {
           const content =
             error instanceof Error ? error.message : "Failed to add attribute";
           void messageApi.open({ type: "error", content });
-        }
+        });
       }
     },
     [addAttribute, addConstant, messageApi, selectedSchema],
@@ -727,26 +729,22 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
 
   const tryUpdateAttribute = useCallback(
     (kind: AttributeKind, path: Attribute[], changes: Partial<Attribute>) => {
-      try {
-        updateAttribute(selectedSchema, kind, path, changes);
-      } catch (error) {
+      updateAttribute(selectedSchema, kind, path, changes, (error: unknown) => {
         const content =
           error instanceof Error ? error.message : "Failed to update attribute";
         void messageApi.open({ type: "error", content });
-      }
+      });
     },
     [messageApi, selectedSchema, updateAttribute],
   );
 
   const tryUpdateConstant = useCallback(
     (id: string, changes: Partial<Constant>) => {
-      try {
-        updateConstant(id, changes);
-      } catch (error) {
+      updateConstant(id, changes, (error: unknown) => {
         const content =
           error instanceof Error ? error.message : "Failed to update constant";
         void messageApi.open({ type: "error", content });
-      }
+      });
     },
     [messageApi, updateConstant],
   );
@@ -1638,7 +1636,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                     namespaces,
                   )
                 }
-                onAdd={() => addElement(item)}
+                onAdd={() => tryAddElement(item)}
                 onClear={() => clearTreeForItem(item)}
                 onDelete={() => {
                   if (isConstantItem(item)) {
@@ -1675,7 +1673,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       elementId,
       exportElement,
       updateXmlNamespaces,
-      addElement,
+      tryAddElement,
       clearTreeForItem,
       removeConstant,
       removeAttribute,

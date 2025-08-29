@@ -26,6 +26,8 @@ export type UseMappingDescriptionProps = {
   onChange?: (mappingDescription: MappingDescription) => void;
 };
 
+export type ErrorHandler = (error: unknown) => void;
+
 export const useMappingDescription = ({
   mapping,
   onChange,
@@ -43,14 +45,19 @@ export const useMappingDescription = ({
         mappingDescription: MappingDescription,
       ) => Partial<MappingDescription>,
       removeDanglingActions: boolean,
+      onError: ErrorHandler,
     ) => {
       setMappingDescription((mapping) => {
-        const changes = updateFn(mapping);
-        mapping = { ...mapping, ...changes };
-        if (removeDanglingActions) {
-          mapping = MappingUtil.removeDanglingActions(mapping);
+        try {
+          const changes = updateFn(mapping);
+          mapping = { ...mapping, ...changes };
+          if (removeDanglingActions) {
+            mapping = MappingUtil.removeDanglingActions(mapping);
+          }
+          onChange?.(mapping);
+        } catch (error) {
+          onError(error);
         }
-        onChange?.(mapping);
         return mapping;
       });
     },
@@ -58,7 +65,11 @@ export const useMappingDescription = ({
   );
 
   const clearConstants = useCallback(() => {
-    updateMapping(() => ({ constants: [] }), true);
+    updateMapping(
+      () => ({ constants: [] }),
+      true,
+      () => {},
+    );
   }, [updateMapping]);
 
   const clearTree = useCallback(
@@ -72,6 +83,7 @@ export const useMappingDescription = ({
           ),
         }),
         true,
+        () => {},
       );
     },
     [updateMapping],
@@ -86,6 +98,7 @@ export const useMappingDescription = ({
           ),
         }),
         true,
+        () => {},
       );
     },
     [updateMapping],
@@ -102,6 +115,7 @@ export const useMappingDescription = ({
           ),
         }),
         true,
+        () => {},
       );
     },
     [updateMapping],
@@ -114,6 +128,7 @@ export const useMappingDescription = ({
           [schemaKind]: { ...mapping[schemaKind], body: type },
         }),
         true,
+        () => {},
       );
     },
     [updateMapping],
@@ -133,21 +148,31 @@ export const useMappingDescription = ({
   );
 
   const addConstant = useCallback(
-    (data: Omit<Partial<Constant>, "id">) => {
+    (data: Omit<Partial<Constant>, "id">, onError: ErrorHandler) => {
       updateMapping(
-        (mapping) => ({
-          constants: [
-            ...mapping.constants,
-            {
-              id: MappingUtil.generateUUID(),
-              name: "",
-              type: DataTypes.stringType(),
-              valueSupplier: { kind: "given", value: "" },
-              ...data,
-            },
-          ],
-        }),
+        (mapping) => {
+          const constantWithSameNameExists = MappingUtil.findConstant(
+            mapping,
+            (constant) => constant.name === (data.name ?? ""),
+          );
+          if (constantWithSameNameExists) {
+            throw new Error(`Constant "${data.name ?? ""}" already exists.`);
+          }
+          return {
+            constants: [
+              ...mapping.constants,
+              {
+                id: MappingUtil.generateUUID(),
+                name: "",
+                type: DataTypes.stringType(),
+                valueSupplier: { kind: "given", value: "" },
+                ...data,
+              },
+            ],
+          };
+        },
         false,
+        onError,
       );
     },
     [updateMapping],
@@ -159,6 +184,7 @@ export const useMappingDescription = ({
       kind: AttributeKind,
       path: Attribute[],
       data: Omit<Partial<Attribute>, "id">,
+      onError: ErrorHandler,
     ) => {
       updateMapping(
         (mapping) => ({
@@ -177,6 +203,7 @@ export const useMappingDescription = ({
           ),
         }),
         false,
+        onError,
       );
     },
     [updateMapping],
@@ -188,6 +215,7 @@ export const useMappingDescription = ({
       kind: AttributeKind,
       path: Attribute[],
       changes: Omit<Partial<Attribute>, "id">,
+      onError: ErrorHandler,
     ) => {
       updateMapping(
         (mapping) =>
@@ -202,27 +230,36 @@ export const useMappingDescription = ({
                 ),
               },
         false,
+        onError,
       );
     },
     [updateMapping],
   );
 
   const updateConstant = useCallback(
-    (id: string, changes: Omit<Partial<Constant>, "id">) => {
-      updateMapping((mapping) => {
-        const constantWithSameNameExists = MappingUtil.findConstant(
-          mapping,
-          (constant) => constant.id !== id && constant.name === changes.name,
-        );
-        if (constantWithSameNameExists) {
-          throw new Error(`Constant "${changes.name}" already exists.`);
-        }
-        return {
-          constants: mapping.constants.map((constant) =>
-            constant.id === id ? { ...constant, ...changes } : constant,
-          ),
-        };
-      }, false);
+    (
+      id: string,
+      changes: Omit<Partial<Constant>, "id">,
+      onError: ErrorHandler,
+    ) => {
+      updateMapping(
+        (mapping) => {
+          const constantWithSameNameExists = MappingUtil.findConstant(
+            mapping,
+            (constant) => constant.id !== id && constant.name === changes.name,
+          );
+          if (constantWithSameNameExists) {
+            throw new Error(`Constant "${changes.name}" already exists.`);
+          }
+          return {
+            constants: mapping.constants.map((constant) =>
+              constant.id === id ? { ...constant, ...changes } : constant,
+            ),
+          };
+        },
+        false,
+        onError,
+      );
     },
     [updateMapping],
   );
@@ -232,6 +269,7 @@ export const useMappingDescription = ({
       updateMapping(
         (mapping) => ({ actions: mapping.actions.map(updateFn) }),
         false,
+        () => {},
       );
     },
     [updateMapping],
@@ -243,32 +281,36 @@ export const useMappingDescription = ({
       target: AttributeReference,
       sources: (ConstantReference | AttributeReference)[],
     ) => {
-      updateMapping((mapping) => {
-        const affectedActionIds = new Set(affectedActions.map((a) => a.id));
-        const actions: MappingAction[] = [];
-        if (affectedActionIds.size !== 0) {
-          if (sources.length > 0) {
-            actions.push(
-              ...mapping.actions.map((a) =>
-                affectedActionIds.has(a.id) ? { ...a, sources } : a,
-              ),
-            );
+      updateMapping(
+        (mapping) => {
+          const affectedActionIds = new Set(affectedActions.map((a) => a.id));
+          const actions: MappingAction[] = [];
+          if (affectedActionIds.size !== 0) {
+            if (sources.length > 0) {
+              actions.push(
+                ...mapping.actions.map((a) =>
+                  affectedActionIds.has(a.id) ? { ...a, sources } : a,
+                ),
+              );
+            } else {
+              actions.push(
+                ...mapping.actions.filter((a) => !affectedActionIds.has(a.id)),
+              );
+            }
           } else {
-            actions.push(
-              ...mapping.actions.filter((a) => !affectedActionIds.has(a.id)),
-            );
+            const action: MappingAction = {
+              id: MappingUtil.generateUUID(),
+              sources,
+              target,
+              transformation: undefined,
+            };
+            actions.push(...mapping.actions, action);
           }
-        } else {
-          const action: MappingAction = {
-            id: MappingUtil.generateUUID(),
-            sources,
-            target,
-            transformation: undefined,
-          };
-          actions.push(...mapping.actions, action);
-        }
-        return { actions };
-      }, false);
+          return { actions };
+        },
+        false,
+        () => {},
+      );
     },
     [updateMapping],
   );
@@ -278,48 +320,53 @@ export const useMappingDescription = ({
       source: ConstantReference | AttributeReference,
       targets: AttributeReference[],
     ) => {
-      updateMapping((mapping) => {
-        const actions =
-          mapping.actions
-            .map((action) => {
-              const targetMatches = targets.some((t) =>
-                MappingActions.referencesAreEqual(t, action.target),
-              );
-              const hasSource = action.sources?.some((s) =>
-                MappingActions.referencesAreEqual(s, source),
-              );
-              if (hasSource) {
-                return targetMatches
-                  ? action
-                  : action.sources.length === 1
-                    ? null
-                    : {
-                        ...action,
-                        sources: action.sources?.filter(
-                          (s) => !MappingActions.referencesAreEqual(s, source),
-                        ),
-                      };
-              } else {
-                return targetMatches
-                  ? { ...action, sources: [...action.sources, source] }
-                  : action;
-              }
-            })
-            .filter((a) => !!a) ?? [];
-        const targetsToAddActions = targets.filter(
-          (target) =>
-            !mapping.actions.some((a) =>
-              MappingActions.referencesAreEqual(a.target, target),
-            ),
-        );
-        const newActions = targetsToAddActions.map((target) => ({
-          id: MappingUtil.generateUUID(),
-          sources: [source],
-          target,
-          transformation: undefined,
-        }));
-        return { actions: [...actions, ...newActions] };
-      }, false);
+      updateMapping(
+        (mapping) => {
+          const actions =
+            mapping.actions
+              .map((action) => {
+                const targetMatches = targets.some((t) =>
+                  MappingActions.referencesAreEqual(t, action.target),
+                );
+                const hasSource = action.sources?.some((s) =>
+                  MappingActions.referencesAreEqual(s, source),
+                );
+                if (hasSource) {
+                  return targetMatches
+                    ? action
+                    : action.sources.length === 1
+                      ? null
+                      : {
+                          ...action,
+                          sources: action.sources?.filter(
+                            (s) =>
+                              !MappingActions.referencesAreEqual(s, source),
+                          ),
+                        };
+                } else {
+                  return targetMatches
+                    ? { ...action, sources: [...action.sources, source] }
+                    : action;
+                }
+              })
+              .filter((a) => !!a) ?? [];
+          const targetsToAddActions = targets.filter(
+            (target) =>
+              !mapping.actions.some((a) =>
+                MappingActions.referencesAreEqual(a.target, target),
+              ),
+          );
+          const newActions = targetsToAddActions.map((target) => ({
+            id: MappingUtil.generateUUID(),
+            sources: [source],
+            target,
+            transformation: undefined,
+          }));
+          return { actions: [...actions, ...newActions] };
+        },
+        false,
+        () => {},
+      );
     },
     [updateMapping],
   );
@@ -335,6 +382,7 @@ export const useMappingDescription = ({
           ),
         }),
         false,
+        () => {},
       );
     },
     [updateMapping],
