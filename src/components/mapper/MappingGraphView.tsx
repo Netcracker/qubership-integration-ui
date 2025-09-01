@@ -46,6 +46,7 @@ import graphViewStyles from "./MappingGraphView.module.css";
 import constantValueStyles from "./ConstantValue.module.css";
 import { useModalsContext } from "../../Modals.tsx";
 import {
+  DESCRIPTION_KEY,
   METADATA_DATA_FORMAT_KEY,
   SourceFormat,
 } from "../../mapper/model/metadata.ts";
@@ -808,13 +809,22 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                         >
                           <TransformationEditDialog
                             transformation={action.transformation}
-                            onSubmit={(transformation) => {
+                            enableDescription={true}
+                            description={MetadataUtil.getString(
+                              action,
+                              DESCRIPTION_KEY,
+                            )}
+                            onSubmit={(transformation, description) => {
                               updateActions((a) => {
                                 return a.id === action.id
-                                  ? {
-                                      ...a,
-                                      transformation,
-                                    }
+                                  ? MetadataUtil.setValue(
+                                      {
+                                        ...a,
+                                        transformation,
+                                      },
+                                      DESCRIPTION_KEY,
+                                      description,
+                                    )
                                   : a;
                               });
                             }}

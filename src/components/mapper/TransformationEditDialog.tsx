@@ -16,6 +16,7 @@ import { ExpressionParameters } from "./transformation/parameters/ExpressionPara
 import { ConditionalParameters } from "./transformation/parameters/ConditionalParameters";
 import { DictionaryParameters } from "./transformation/parameters/DictionaryParameters";
 import { MappingUtil } from "../../mapper/util/mapping.ts";
+import TextArea from "antd/lib/input/TextArea";
 
 export type TransformationContextProps = {
   mappingDescription: MappingDescription;
@@ -33,15 +34,21 @@ export const TransformationContext = createContext<TransformationContextProps>({
 
 export type TransformationEditDialogProps = {
   transformation?: Transformation;
-  onSubmit?: (transformation: Transformation | undefined) => void;
+  description?: string;
+  enableDescription?: boolean;
+  onSubmit?: (
+    transformation: Transformation | undefined,
+    description: string,
+  ) => void;
 };
 export const TransformationEditDialog: React.FC<
   TransformationEditDialogProps
-> = ({ transformation, onSubmit }) => {
+> = ({ transformation, description, enableDescription, onSubmit }) => {
   const { closeContainingModal } = useModalContext();
   const [form] = Form.useForm<Transformation>();
   const [parametersComponent, setParametersComponent] =
     useState<React.ReactNode>("");
+  const [descriptionValue, setDescriptionValue] = useState<string>("");
 
   const parametersComponentMap: Record<string, React.ReactNode> = useMemo(
     () => ({
@@ -104,7 +111,7 @@ export const TransformationEditDialog: React.FC<
           }
         }}
         onFinish={(values) => {
-          onSubmit?.(values.name ? values : undefined);
+          onSubmit?.(values.name ? values : undefined, descriptionValue);
           closeContainingModal();
         }}
       >
@@ -126,6 +133,16 @@ export const TransformationEditDialog: React.FC<
           {parametersComponent}
         </Flex>
       </Form>
+      {enableDescription ? (
+        <TextArea
+          placeholder={"Description"}
+          defaultValue={description}
+          autoSize={{ minRows: 2, maxRows: 2 }}
+          onChange={(event) => setDescriptionValue(event.target.value)}
+        />
+      ) : (
+        <></>
+      )}
     </Modal>
   );
 };
