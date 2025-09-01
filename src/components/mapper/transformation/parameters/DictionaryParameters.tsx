@@ -231,7 +231,7 @@ const DictionaryEditor: React.FC<DictionaryEditorProps> = ({
 }) => {
   return (
     <Tabs
-      style={{ height: "100%" }}
+      style={{ height: "100%", width: "100%" }}
       className={"flex-tabs"}
       tabPosition="bottom"
       size="small"
