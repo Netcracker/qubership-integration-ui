@@ -1,12 +1,14 @@
 import React, { forwardRef, useEffect, useState } from "react";
 import styles from "./ConnectionAnchor.module.css";
 import { Tooltip, TooltipProps } from "antd";
+import { SettingOutlined } from "@ant-design/icons";
 
 export type ConnectionAnchorProps = React.HTMLAttributes<HTMLElement> & {
   tooltipTitle?: TooltipProps["title"];
   tooltipPlacement?: TooltipProps["placement"];
   invalid?: boolean;
   connected: boolean;
+  showSettingIcon?: boolean;
   onClick?: (connected: boolean) => void;
 };
 
@@ -15,7 +17,15 @@ export const ConnectionAnchor = forwardRef<
   ConnectionAnchorProps
 >(
   (
-    { invalid, connected, onClick, tooltipPlacement, tooltipTitle, ...props },
+    {
+      invalid,
+      connected,
+      onClick,
+      tooltipPlacement,
+      tooltipTitle,
+      showSettingIcon,
+      ...props
+    },
     ref,
   ) => {
     const [className, setClassName] = useState<string>(
@@ -41,7 +51,11 @@ export const ConnectionAnchor = forwardRef<
           {...props}
           onClick={() => onClick?.(connected)}
         >
-          <div className={styles["inner-circle"]}></div>
+          {showSettingIcon ? (
+            <SettingOutlined />
+          ) : (
+            <div className={styles["inner-circle"]}></div>
+          )}
         </div>
       </Tooltip>
     );

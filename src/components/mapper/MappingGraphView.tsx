@@ -698,6 +698,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
               >
                 <ConnectionAnchor
                   style={item.actions.length > 0 ? { cursor: "pointer" } : {}}
+                  showSettingIcon={item.actions.some(
+                    (action) => !!action.transformation,
+                  )}
                   tooltipTitle={
                     errors.length > 0 ? (
                       errors.map((error) => error.message).join(" ")
@@ -717,10 +720,10 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                                 parameters={transformation.parameters ?? []}
                               />
                             ) : (
-                              <></>
+                              ""
                             );
                           })
-                      ) : (
+                      ) : item.actions.length > 0 ? (
                         <ElementReferencesList
                           isTarget={false}
                           mappingDescription={mappingDescription}
@@ -728,6 +731,8 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                             (action) => action.sources,
                           )}
                         />
+                      ) : (
+                        ""
                       )
                     ) : (
                       ""
