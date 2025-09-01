@@ -21,12 +21,36 @@ import { Attributes } from "../../mapper/util/attributes.ts";
 import { MappingActions } from "../../mapper/util/actions.ts";
 import { XmlNamespace } from "../../mapper/model/metadata.ts";
 
+function removeConnectionForActions(
+  actions: MappingAction[],
+  source: ConstantReference | AttributeReference,
+  target: AttributeReference,
+): MappingAction[] {
+  return actions
+    .map((action) =>
+      MappingActions.referencesAreEqual(action.target, target)
+        ? {
+            ...action,
+            sources: action.sources.filter(
+              (src) => !MappingActions.referencesAreEqual(src, source),
+            ),
+          }
+        : action,
+    )
+    .filter((action) => action.sources.length);
+}
+
 export type UseMappingDescriptionProps = {
   mapping?: MappingDescription;
   onChange?: (mappingDescription: MappingDescription) => void;
 };
 
 export type ErrorHandler = (error: unknown) => void;
+
+export type Connection = {
+  source: ConstantReference | AttributeReference;
+  target: AttributeReference;
+};
 
 export const useMappingDescription = ({
   mapping,
@@ -388,6 +412,43 @@ export const useMappingDescription = ({
     [updateMapping],
   );
 
+  const removeConnection = useCallback(
+    (
+      source: ConstantReference | AttributeReference,
+      target: AttributeReference,
+    ) => {
+      updateMapping(
+        (mapping) => ({
+          actions: removeConnectionForActions(mapping.actions, source, target),
+        }),
+        false,
+        () => {},
+      );
+    },
+    [updateMapping],
+  );
+
+  const removeConnections = useCallback(
+    (connections: Connection[]) => {
+      updateMapping(
+        (mapping) => ({
+          actions: connections.reduce(
+            (actions, connection) =>
+              removeConnectionForActions(
+                actions,
+                connection.source,
+                connection.target,
+              ),
+            mapping.actions,
+          ),
+        }),
+        false,
+        () => {},
+      );
+    },
+    [updateMapping],
+  );
+
   return {
     mappingDescription,
     clearConstants,
@@ -404,5 +465,7 @@ export const useMappingDescription = ({
     createOrUpdateMappingActionForTarget,
     createOrUpdateMappingActionsForSource,
     updateXmlNamespaces,
+    removeConnection,
+    removeConnections,
   };
 };

@@ -8,6 +8,8 @@ import {
   TypeDefinition,
   ValueSupplier,
   SchemaKind,
+  ConstantReference,
+  AttributeReference,
 } from "../../mapper/model/model.ts";
 import {
   Button,
@@ -229,7 +231,20 @@ function exportMappingAsMarkdown(mapping: MappingDescription): void {
   downloadFile(file);
 }
 
+export function buildAttributeItemId(
+  schemaKind: SchemaKind,
+  kind: AttributeKind,
+  path: string[],
+): string {
+  return `${schemaKind}-${kind}-${path.join("-")}`;
+}
+
+export function buildConstantId(constantId: string): string {
+  return `constant-${constantId}`;
+}
+
 function buildAttributeItem(
+  schemaKind: SchemaKind,
   attribute: Attribute,
   kind: AttributeKind,
   path: Attribute[],
@@ -248,9 +263,15 @@ function buildAttributeItem(
     resolveResult.definitions,
   )
     .filter((a) => !p.some((a1) => a1.id === a.id))
-    .map((a) => buildAttributeItem(a, kind, p, definitions, actions));
+    .map((a) =>
+      buildAttributeItem(schemaKind, a, kind, p, definitions, actions),
+    );
   return {
-    id: `${attribute.id}-${p.length}`,
+    id: buildAttributeItemId(
+      schemaKind,
+      kind,
+      p.map((i) => i.id),
+    ),
     itemType: "attribute",
     kind,
     attribute,
@@ -276,7 +297,7 @@ export function buildMappingTableItems(
       id: "constant-group",
       itemType: "constant-group",
       children: mappingDescription.constants.map((constant) => ({
-        id: constant.id,
+        id: buildConstantId(constant.id),
         itemType: "constant",
         constant,
         actions: MappingActions.findActionsByElementReference(
@@ -299,6 +320,7 @@ export function buildMappingTableItems(
       itemType: "header-group",
       children: schema.headers.map((attribute) =>
         buildAttributeItem(
+          schemaKind,
           attribute,
           "header",
           [],
@@ -312,6 +334,7 @@ export function buildMappingTableItems(
       itemType: "property-group",
       children: schema.properties.map((attribute) =>
         buildAttributeItem(
+          schemaKind,
           attribute,
           "property",
           [],
@@ -332,6 +355,7 @@ export function buildMappingTableItems(
             DataTypes.getTypeDefinitions(schema.body),
           ).map((a) =>
             buildAttributeItem(
+              schemaKind,
               a,
               "body",
               [],
@@ -544,6 +568,21 @@ export function getXmlNamespaces(
     () => [],
   );
   return xmlNamespaces ?? [];
+}
+
+export function buildElementReference(
+  item: ConstantItem | AttributeItem,
+): ConstantReference | AttributeReference {
+  return isConstantItem(item)
+    ? {
+        type: "constant" as const,
+        constantId: item.constant.id,
+      }
+    : {
+        type: "attribute" as const,
+        kind: item.kind,
+        path: item.path.map((i) => i.id),
+      };
 }
 
 export const MappingTableView: React.FC<MappingTableViewProps> = ({
@@ -1296,16 +1335,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                       isTarget={true}
                       values={item.actions.map((a) => a.target)}
                       onSubmit={(values) => {
-                        const source = isConstantItem(item)
-                          ? {
-                              type: "constant" as const,
-                              constantId: item.constant.id,
-                            }
-                          : {
-                              type: "attribute" as const,
-                              kind: item.kind,
-                              path: item.path.map((i) => i.id),
-                            };
+                        const source = buildElementReference(item);
                         const targets = values.filter((reference) =>
                           MappingUtil.isAttributeReference(reference),
                         );

@@ -28,6 +28,9 @@ import {
 } from "antd";
 import {
   AttributeItem,
+  buildAttributeItemId,
+  buildConstantId,
+  buildElementReference,
   buildMappingTableItemPredicate,
   buildMappingTableItems,
   ConstantItem,
@@ -53,7 +56,7 @@ import {
 import { MetadataUtil } from "../../mapper/util/metadata.ts";
 import { ConnectionAnchor } from "./ConnectionAnchor.tsx";
 import { verifyMappingAction } from "../../mapper/verification/actions.ts";
-import { useMappingDescription } from "./useMappingDescription.tsx";
+import { Connection, useMappingDescription } from "./useMappingDescription.tsx";
 import { MappingTableItemActionButton } from "./MappingTableItemActionButton.tsx";
 import { TransformationInfoTooltip } from "./TransformationInfoTooltip.tsx";
 import { GENERATORS } from "../../mapper/model/generators.ts";
@@ -106,15 +109,28 @@ function getBodyFormat(
     : SourceFormat.JSON;
 }
 
+function buildTableItemId(
+  schemaKind: SchemaKind,
+  reference: ConstantReference | AttributeReference,
+): string {
+  return MappingUtil.isConstantReference(reference)
+    ? buildConstantId(reference.constantId)
+    : buildAttributeItemId(schemaKind, reference.kind, reference.path);
+}
+
 function buildArcherElementId(
   schemaKind: SchemaKind,
   item: ConstantItem | AttributeItem | AttributeReference,
 ): string {
   return isAttributeItem(item)
-    ? `${schemaKind}-${item.kind}-${item.path.map((i) => i.id).join("-")}`
+    ? buildAttributeItemId(
+        schemaKind,
+        item.kind,
+        item.path.map((i) => i.id),
+      )
     : isConstantItem(item)
-      ? `constant-${item.constant.id}`
-      : `${schemaKind}-${item.kind}-${item.path.join("-")}`;
+      ? buildConstantId(item.constant.id)
+      : buildAttributeItemId(schemaKind, item.kind, item.path);
 }
 
 type SchemaTreeItemViewProps = {
@@ -249,6 +265,12 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   >();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [selectedSourceKeys, setSelectedSourceKeys] = useState<React.Key[]>([]);
+  const [selectedTargetKeys, setSelectedTargetKeys] = useState<React.Key[]>([]);
+  const [selectedConnections, setSelectedConnections] = useState<Connection[]>(
+    [],
+  );
+
   const [controlsStateMap, setControlsStateMap] = useState<
     Map<SchemaKind, TableControlsState>
   >(
@@ -290,6 +312,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     createOrUpdateMappingActionForTarget,
     createOrUpdateMappingActionsForSource,
     updateXmlNamespaces,
+    removeConnections,
   } = useMappingDescription({ mapping, onChange });
 
   const [sourceColumns, setSourceColumns] = useState<
@@ -408,6 +431,92 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   const refreshConnectionLines = useCallback(() => {
     archerContainerRef.current?.refreshScreen?.();
   }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedConnections([]);
+    setSelectedSourceKeys([]);
+    setSelectedTargetKeys([]);
+  }, []);
+
+  const selectItem = useCallback(
+    (item: MappingTableItem, isTarget: boolean) => {
+      if (isAttributeItem(item) || isConstantItem(item)) {
+        if (isTarget) {
+          const targets = item.actions.map((action) => action.target);
+          const sources = item.actions.flatMap((action) => action.sources);
+          setSelectedConnections(
+            sources.flatMap((source) =>
+              targets.map((target) => ({ source, target })),
+            ),
+          );
+          setSelectedSourceKeys(
+            sources.map((source) =>
+              buildTableItemId(SchemaKind.SOURCE, source),
+            ),
+          );
+          setSelectedTargetKeys([item.id]);
+        } else {
+          const source = buildElementReference(item);
+          const targets = item.actions.map((action) => action.target);
+          setSelectedConnections(targets.map((target) => ({ source, target })));
+          setSelectedSourceKeys([item.id]);
+          setSelectedTargetKeys(
+            targets.map((target) =>
+              buildTableItemId(SchemaKind.TARGET, target),
+            ),
+          );
+        }
+      } else {
+        clearSelection();
+      }
+    },
+    [clearSelection],
+  );
+
+  const deleteSelectedConnections = useCallback(() => {
+    removeConnections(selectedConnections);
+    clearSelection();
+  }, [removeConnections, selectedConnections, clearSelection]);
+
+  const toggleSelection = useCallback(
+    (item: ConstantItem | AttributeItem, target: AttributeReference) => {
+      const source = buildElementReference(item);
+      setSelectedConnections((connections) => {
+        const index = connections.findIndex(
+          (connection) =>
+            MappingActions.referencesAreEqual(connection.source, source) &&
+            MappingActions.referencesAreEqual(connection.target, target),
+        );
+        const result = [...connections];
+        if (index < 0) {
+          result.push({ source, target });
+        } else {
+          result.splice(index, 1);
+        }
+        setSelectedSourceKeys(
+          result.map((connection) =>
+            buildTableItemId(SchemaKind.SOURCE, connection.source),
+          ),
+        );
+        setSelectedTargetKeys(
+          result.map((connection) =>
+            buildTableItemId(SchemaKind.TARGET, connection.target),
+          ),
+        );
+        return result;
+      });
+    },
+    [],
+  );
+
+  const selectConnection = useCallback(
+    (item: ConstantItem | AttributeItem, target: AttributeReference) => {
+      setSelectedSourceKeys([item.id]);
+      setSelectedTargetKeys([buildTableItemId(SchemaKind.TARGET, target)]);
+      setSelectedConnections([{ source: buildElementReference(item), target }]);
+    },
+    [],
+  );
 
   const buildSourceColumns = useCallback(() => {
     return [
@@ -585,7 +694,46 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                       targetId: buildArcherElementId(SchemaKind.TARGET, target),
                       targetAnchor: "left" as const,
                       sourceAnchor: "right" as const,
-                      domAttributes: {},
+                      style:
+                        selectedConnections.findIndex(
+                          (connection) =>
+                            MappingActions.referencesAreEqual(
+                              connection.source,
+                              buildElementReference(item),
+                            ) &&
+                            MappingActions.referencesAreEqual(
+                              connection.target,
+                              target,
+                            ),
+                        ) >= 0
+                          ? {
+                              strokeColor: "#ff772e",
+                              strokeWidth: 4,
+                            }
+                          : undefined,
+                      domAttributes: {
+                        onContextMenu: (
+                          event: React.MouseEvent<SVGElement, MouseEvent>,
+                        ) => {
+                          event.preventDefault();
+                          // TODO
+                        },
+                        onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
+                          if (event.key === "Delete") {
+                            deleteSelectedConnections();
+                            clearSelection();
+                          }
+                        },
+                        onClick: (
+                          event: React.MouseEvent<SVGElement, MouseEvent>,
+                        ) => {
+                          if (event.ctrlKey) {
+                            toggleSelection(item, target);
+                          } else {
+                            selectConnection(item, target);
+                          }
+                        },
+                      },
                       cursor: "pointer",
                     })),
                   ...(isDragging && item.id === draggedItemId
@@ -635,14 +783,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     setDragPosition({ x, y });
                     setDraggedItemId(item.id);
                     setIsDragging(true);
-                    const reference: ConstantReference | AttributeReference =
-                      isConstantItem(item)
-                        ? { type: "constant", constantId: item.constant.id }
-                        : {
-                            type: "attribute",
-                            kind: item.kind,
-                            path: item.path.map((a) => a.id),
-                          };
+                    const reference = buildElementReference(item);
                     event.dataTransfer.setData(
                       MAPPER_DND_REFERENCE_MEDIA_TYPE,
                       JSON.stringify(reference),
@@ -659,7 +800,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       },
     ];
   }, [
+    clearSelection,
     clearTreeForItem,
+    deleteSelectedConnections,
     dragPosition?.x,
     dragPosition?.y,
     draggedItemId,
@@ -671,7 +814,11 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     refreshConnectionLines,
     removeAttribute,
     removeConstant,
+    selectConnection,
+    selectedSourceKeys,
+    selectedTargetKeys,
     showModal,
+    toggleSelection,
     tryAddConstant,
     tryAddElement,
     tryUpdateAttribute,
@@ -1008,6 +1155,19 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             rowKey="id"
             pagination={false}
             scroll={{ y: "" }}
+            rowSelection={{
+              selectedRowKeys: selectedSourceKeys,
+              columnWidth: 0,
+              renderCell: () => <></>,
+              onChange: (keys) => {
+                setSelectedSourceKeys(keys);
+              },
+            }}
+            onRow={(item) => ({
+              onClick: () => {
+                selectItem(item, false);
+              },
+            })}
             expandable={{
               defaultExpandedRowKeys: [
                 "constant-group",
@@ -1040,6 +1200,19 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             rowKey="id"
             pagination={false}
             scroll={{ y: "" }}
+            rowSelection={{
+              selectedRowKeys: selectedTargetKeys,
+              columnWidth: 0,
+              renderCell: () => <></>,
+              onChange: (keys) => {
+                setSelectedTargetKeys(keys);
+              },
+            }}
+            onRow={(item) => ({
+              onClick: () => {
+                selectItem(item, true);
+              },
+            })}
             expandable={{
               defaultExpandedRowKeys: [
                 "constant-group",
