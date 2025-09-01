@@ -501,7 +501,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 )
               }
               onAdd={() => {
-                if (isConstantItem(item)) {
+                if (isConstantGroup(item)) {
                   showModal({
                     component: (
                       <EditConstantDialog
