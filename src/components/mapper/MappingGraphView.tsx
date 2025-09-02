@@ -266,6 +266,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     { x: number; y: number } | undefined
   >();
   const containerRef = useRef<HTMLDivElement>(null);
+  const middlePanelRef = useRef<HTMLDivElement>(null);
 
   const [selectedSourceKeys, setSelectedSourceKeys] = useState<React.Key[]>([]);
   const [selectedTargetKeys, setSelectedTargetKeys] = useState<React.Key[]>([]);
@@ -721,8 +722,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                           event: React.MouseEvent<SVGElement, MouseEvent>,
                         ) => {
                           event.preventDefault();
-                          const x = event.clientX;
-                          const y = event.clientY;
+                          const bb = middlePanelRef.current?.getBoundingClientRect();
+                          const x = event.clientX - (bb?.left ?? 0);
+                          const y = event.clientY - (bb?.top ?? 0);
                           setContextMenuPosition({ x, y });
                           setContextMenuOpened(true);
                         },
@@ -1196,11 +1198,11 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             }}
           />
         </Col>
-        <Col span={6}>
+        <Col span={6} ref={middlePanelRef}>
           <Dropdown
+            disabled={selectedConnections.length === 0}
             menu={{
               style: {
-                position: "fixed",
                 left: contextMenuPosition?.x,
                 top: contextMenuPosition?.y,
               },
@@ -1209,15 +1211,13 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   label: "Delete",
                   key: "delete",
                   icon: <DeleteOutlined />,
-                  disabled: selectedConnections.length === 0,
                   onClick: () => {
                     deleteSelectedConnections();
                   },
                 },
               ],
             }}
-            placement="bottom"
-            arrow={true}
+            arrow={false}
             open={contextMenuOpened}
             onOpenChange={setContextMenuOpened}
           ></Dropdown>
