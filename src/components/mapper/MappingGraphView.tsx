@@ -17,6 +17,7 @@ import {
 } from "../../mapper/model/model.ts";
 import {
   Col,
+  Dropdown,
   Flex,
   message,
   Row,
@@ -79,6 +80,7 @@ import {
 import { TransformationInfoCard } from "./TransformationInfo.tsx";
 import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
 import { ElementReferencesList } from "./ElementReferencesList.tsx";
+import { DeleteOutlined } from "@ant-design/icons";
 
 const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
 const DRAG_POINT_ID = "drag-point";
@@ -324,6 +326,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   const [sourceItems, setSourceItems] = useState<MappingTableItem[]>([]);
   const [targetItems, setTargetItems] = useState<MappingTableItem[]>([]);
   const archerContainerRef = useRef<ArcherContainerRef>(null);
+
+  const [contextMenuOpened, setContextMenuOpened] = useState<boolean>(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | undefined>();
 
   useEffect(() => {
     setSourceItems(
@@ -716,7 +721,10 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                           event: React.MouseEvent<SVGElement, MouseEvent>,
                         ) => {
                           event.preventDefault();
-                          // TODO
+                          const x = event.clientX;
+                          const y = event.clientY;
+                          setContextMenuPosition({ x, y });
+                          setContextMenuOpened(true);
                         },
                         onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
                           if (event.key === "Delete") {
@@ -1188,7 +1196,32 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             }}
           />
         </Col>
-        <Col span={6}></Col>
+        <Col span={6}>
+          <Dropdown
+            menu={{
+              style: {
+                position: "fixed",
+                left: contextMenuPosition?.x,
+                top: contextMenuPosition?.y,
+              },
+              items: [
+                {
+                  label: "Delete",
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  disabled: selectedConnections.length === 0,
+                  onClick: () => {
+                    deleteSelectedConnections();
+                  },
+                },
+              ],
+            }}
+            placement="bottom"
+            arrow={true}
+            open={contextMenuOpened}
+            onOpenChange={setContextMenuOpened}
+          ></Dropdown>
+        </Col>
         <Col span={9} className={graphViewStyles["mapping-table-column"]}>
           <Table<MappingTableItem>
             className="flex-table"
