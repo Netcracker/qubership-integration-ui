@@ -1138,7 +1138,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       strokeWidth={3}
       strokeColor={"#FFB02E"}
       endShape={{ arrow: { arrowLength: 3, arrowThickness: 3 } }}
-      svgContainerStyle={{ zIndex: 10000 }}
+      svgContainerStyle={{ zIndex: 500 }}
       offset={8}
       {...props}
     >
