@@ -737,6 +737,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                         onClick: (
                           event: React.MouseEvent<SVGElement, MouseEvent>,
                         ) => {
+                          setContextMenuOpened(false);
                           if (event.ctrlKey) {
                             toggleSelection(item, target);
                           } else {
