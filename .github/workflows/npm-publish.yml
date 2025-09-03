@@ -107,7 +107,7 @@
         registry-url: ${{ github.event_name == 'workflow_dispatch' && inputs.registry-url || 'https://npm.pkg.github.com' }}
         update-nc-dependency: ${{ github.event_name == 'workflow_dispatch' && inputs.update-nc-dependency || false }}
         dry-run: ${{ (github.event_name == 'push' && needs.prepare-version.outputs.is_dev != 'true') || (github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
-        dist-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag || 'latest' }}
+        dist-tag: ${{ github.event_name == 'push' && needs.prepare-version.outputs.is_dev == 'true' && 'dev' || (github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag != '' && inputs.npm-dist-tag) || 'latest' }}
         ref: ${{ github.ref_name }}
         is_dev: ${{ needs.prepare-version.outputs.is_dev == 'true' }}
       secrets: inherit

@@ -172,7 +172,7 @@ jobs:
           if npm run | grep -q "prepublishOnly"; then
             npm run prepublishOnly
           elif npm run | grep -q "build"; then
-            npm run build
+            npm run build:lib
           else
             echo "No 'prepublishOnly' or 'build' script found. Skipping build step."
           fi
