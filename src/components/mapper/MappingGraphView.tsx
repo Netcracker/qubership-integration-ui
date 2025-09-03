@@ -1254,6 +1254,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 "body-group",
               ],
               expandIconColumnIndex: 1,
+              expandIconColumnIndex: 2,
             }}
             rowClassName={(item: MappingTableItem) => {
               return isHeaderGroup(item) ||
