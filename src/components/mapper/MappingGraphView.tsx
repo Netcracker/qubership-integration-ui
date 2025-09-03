@@ -12,6 +12,7 @@ import {
   Constant,
   ConstantReference,
   DataType,
+  MappingAction,
   MappingDescription,
   SchemaKind,
 } from "../../mapper/model/model.ts";
@@ -28,13 +29,11 @@ import {
   Tag,
 } from "antd";
 import {
-  AttributeItem,
   buildAttributeItemId,
   buildConstantId,
   buildElementReference,
   buildMappingTableItemPredicate,
   buildMappingTableItems,
-  ConstantItem,
   filterMappingTableItems,
   isAttributeItem,
   isBodyGroup,
@@ -81,9 +80,11 @@ import { TransformationInfoCard } from "./TransformationInfo.tsx";
 import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
 import { ElementReferencesList } from "./ElementReferencesList.tsx";
 import { DeleteOutlined } from "@ant-design/icons";
+import { traverseElementsDepthFirst } from "../../misc/tree-utils.ts";
 
 const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
 const DRAG_POINT_ID = "drag-point";
+const ARROWS_Z_INDEX = 500;
 
 function buildTableItems(
   mappingDescription: MappingDescription,
@@ -122,7 +123,7 @@ function buildTableItemId(
 
 function buildArcherElementId(
   schemaKind: SchemaKind,
-  item: ConstantItem | AttributeItem | AttributeReference,
+  item: MappingTableItem | AttributeReference,
 ): string {
   return isAttributeItem(item)
     ? buildAttributeItemId(
@@ -132,7 +133,9 @@ function buildArcherElementId(
       )
     : isConstantItem(item)
       ? buildConstantId(item.constant.id)
-      : buildAttributeItemId(schemaKind, item.kind, item.path);
+      : MappingUtil.isAttributeReference(item)
+        ? buildAttributeItemId(schemaKind, item.kind, item.path)
+        : `${schemaKind}-${item.id}`;
 }
 
 type SchemaTreeItemViewProps = {
@@ -141,6 +144,52 @@ type SchemaTreeItemViewProps = {
   item: MappingTableItem;
   onBodyFormatChange?: (type: DataType) => void;
 };
+
+function getActionsInTree(item: MappingTableItem): MappingAction[] {
+  if (isConstantItem(item)) {
+    return item.actions;
+  } else if (isConstantGroup(item)) {
+    return item.children.flatMap((i) => getActionsInTree(i));
+  } else {
+    const m: Map<string, MappingAction> = new Map<string, MappingAction>();
+    const items = isAttributeItem(item) ? [item] : (item.children ?? []);
+    traverseElementsDepthFirst(items, (i) =>
+      i.actions.map((a) => m.set(a.id, a)),
+    );
+    return Array.from(m.values());
+  }
+}
+
+function referencePathHasPrefix(
+  reference: ConstantReference | AttributeReference,
+  prefix: string[],
+): boolean {
+  return MappingUtil.isConstantReference(reference)
+    ? prefix.length === 0
+    : prefix.length <= reference.path.length &&
+        prefix.every((s, i) => s === reference.path[i]);
+}
+
+function referenceIsUnderTree(
+  reference: ConstantReference | AttributeReference,
+  item: MappingTableItem,
+): boolean {
+  return (
+    (MappingUtil.isConstantReference(reference) &&
+      (isConstantGroup(item) ||
+        (isConstantItem(item) && reference.constantId === item.constant.id))) ||
+    ((isAttributeItem(item) ||
+      isBodyGroup(item) ||
+      isHeaderGroup(item) ||
+      isPropertyGroup(item)) &&
+      MappingUtil.isAttributeReference(reference) &&
+      item.kind === reference.kind &&
+      referencePathHasPrefix(
+        reference,
+        isAttributeItem(item) ? item.path.map((a) => a.id) : [],
+      ))
+  );
+}
 
 const SchemaTreeItemView: React.FC<SchemaTreeItemViewProps> = ({
   item,
@@ -326,7 +375,6 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     updateConstant,
     updateActions,
     createOrUpdateMappingActionForTarget,
-    createOrUpdateMappingActionsForSource,
     updateXmlNamespaces,
     removeConnections,
   } = useMappingDescription({ mapping, onChange });
@@ -342,7 +390,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   const archerContainerRef = useRef<ArcherContainerRef>(null);
 
   const [contextMenuOpened, setContextMenuOpened] = useState<boolean>(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | undefined>();
+  const [contextMenuPosition, setContextMenuPosition] = useState<
+    { x: number; y: number } | undefined
+  >();
 
   useEffect(() => {
     setSourceItems(
@@ -416,16 +466,11 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     (schemaKind: SchemaKind, item: MappingTableItem) => {
       if (isConstantGroup(item)) {
         clearConstants();
+      } else if (isConstantItem(item)) {
+        // Do nothing
       } else {
         const path = isAttributeItem(item) ? item.path : [];
-        const kind = isAttributeItem(item)
-          ? item.kind
-          : isHeaderGroup(item)
-            ? "header"
-            : isPropertyGroup(item)
-              ? "property"
-              : "body";
-        clearTree(schemaKind, kind, path);
+        clearTree(schemaKind, item.kind, path);
       }
     },
     [clearConstants, clearTree],
@@ -498,8 +543,10 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   }, [removeConnections, selectedConnections, clearSelection]);
 
   const toggleSelection = useCallback(
-    (item: ConstantItem | AttributeItem, target: AttributeReference) => {
-      const source = buildElementReference(item);
+    (
+      source: ConstantReference | AttributeReference,
+      target: AttributeReference,
+    ) => {
       setSelectedConnections((connections) => {
         const index = connections.findIndex(
           (connection) =>
@@ -522,20 +569,22 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             buildTableItemId(SchemaKind.TARGET, connection.target),
           ),
         );
+        console.log({ selectedConnections });
         return result;
       });
     },
     [],
   );
 
-  const selectConnection = useCallback(
-    (item: ConstantItem | AttributeItem, target: AttributeReference) => {
-      setSelectedSourceKeys([item.id]);
-      setSelectedTargetKeys([buildTableItemId(SchemaKind.TARGET, target)]);
-      setSelectedConnections([{ source: buildElementReference(item), target }]);
-    },
-    [],
-  );
+  const selectConnections = useCallback((connections: Connection[]) => {
+    setSelectedSourceKeys(
+      connections.map((c) => buildTableItemId(SchemaKind.SOURCE, c.source)),
+    );
+    setSelectedTargetKeys(
+      connections.map((c) => buildTableItemId(SchemaKind.TARGET, c.target)),
+    );
+    setSelectedConnections(connections);
+  }, []);
 
   const buildSourceColumns = useCallback(() => {
     return [
@@ -653,13 +702,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     : isPropertyGroup(item)
                       ? "property"
                       : "attribute";
-                  const kind: AttributeKind = isHeaderGroup(item)
-                    ? "header"
-                    : isPropertyGroup(item)
-                      ? "property"
-                      : isAttributeItem(item)
-                        ? item.kind
-                        : "body";
+                  const kind: AttributeKind = isConstantItem(item)
+                    ? /* It can't be a constant item here, so this branch is not reachable. */ "body"
+                    : item.kind;
                   const typeDefinitions = isAttributeItem(item)
                     ? item.typeDefinitions
                     : [];
@@ -702,75 +747,115 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
         align: "right" as const,
         className: graphViewStyles["source-anchor-column"],
         render: (_value: unknown, item: MappingTableItem) => {
-          if (isAttributeItem(item) || isConstantItem(item)) {
-            return (
-              <ArcherElement
-                id={buildArcherElementId(SchemaKind.SOURCE, item)}
-                relations={[
-                  ...item.actions
-                    .map((action) => action.target)
-                    .map((target) => ({
-                      targetId: buildArcherElementId(SchemaKind.TARGET, target),
-                      targetAnchor: "left" as const,
-                      sourceAnchor: "right" as const,
-                      style:
-                        selectedConnections.findIndex(
-                          (connection) =>
+          const isExpanded = sourceExpandedKeys.includes(item.id);
+          const actions = isExpanded
+            ? isConstantItem(item) || isAttributeItem(item)
+              ? item.actions
+              : []
+            : getActionsInTree(item);
+          return (
+            <ArcherElement
+              id={buildArcherElementId(SchemaKind.SOURCE, item)}
+              relations={[
+                ...actions
+                  .map(({ sources, target }) => ({
+                    sources: sources.filter((source) =>
+                      referenceIsUnderTree(source, item),
+                    ),
+                    target,
+                  }))
+                  // Grouping sources by targets
+                  .reduce<
+                    {
+                      sources: (ConstantReference | AttributeReference)[];
+                      target: AttributeReference;
+                    }[]
+                  >((res, { sources, target }) => {
+                    const index = res.findIndex((i) =>
+                      MappingActions.referencesAreEqual(i.target, target),
+                    );
+                    return index < 0
+                      ? [...res, { sources, target }]
+                      : [
+                          ...res.slice(0, index),
+                          {
+                            target,
+                            sources: [...res[index].sources, ...sources],
+                          },
+                          ...res.slice(index + 1),
+                        ];
+                  }, [])
+                  .map(({ sources, target }) => ({
+                    targetId: buildArcherElementId(SchemaKind.TARGET, target),
+                    targetAnchor: "left" as const,
+                    sourceAnchor: "right" as const,
+                    style:
+                      selectedConnections.findIndex(
+                        (connection) =>
+                          sources.some((source) =>
                             MappingActions.referencesAreEqual(
                               connection.source,
-                              buildElementReference(item),
-                            ) &&
-                            MappingActions.referencesAreEqual(
-                              connection.target,
-                              target,
+                              source,
                             ),
-                        ) >= 0
-                          ? {
-                              strokeColor: "#ff772e",
-                              strokeWidth: 4,
-                            }
-                          : undefined,
-                      domAttributes: {
-                        onContextMenu: (
-                          event: React.MouseEvent<SVGElement, MouseEvent>,
-                        ) => {
-                          event.preventDefault();
-                          const bb = middlePanelRef.current?.getBoundingClientRect();
-                          const x = event.clientX - (bb?.left ?? 0);
-                          const y = event.clientY - (bb?.top ?? 0);
-                          setContextMenuPosition({ x, y });
-                          setContextMenuOpened(true);
-                        },
-                        onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
-                          if (event.key === "Delete") {
-                            deleteSelectedConnections();
-                            clearSelection();
+                          ) &&
+                          MappingActions.referencesAreEqual(
+                            connection.target,
+                            target,
+                          ),
+                      ) >= 0
+                        ? {
+                            strokeColor: "#ff772e",
+                            strokeWidth: 4,
                           }
-                        },
-                        onClick: (
-                          event: React.MouseEvent<SVGElement, MouseEvent>,
-                        ) => {
-                          setContextMenuOpened(false);
-                          if (event.ctrlKey) {
-                            toggleSelection(item, target);
-                          } else {
-                            selectConnection(item, target);
-                          }
-                        },
+                        : undefined,
+                    domAttributes: {
+                      onContextMenu: (
+                        event: React.MouseEvent<SVGElement, MouseEvent>,
+                      ) => {
+                        event.preventDefault();
+                        const bb =
+                          middlePanelRef.current?.getBoundingClientRect();
+                        const x = event.clientX - (bb?.left ?? 0);
+                        const y = event.clientY - (bb?.top ?? 0);
+                        setContextMenuPosition({ x, y });
+                        setContextMenuOpened(true);
                       },
-                      cursor: "pointer",
-                    })),
-                  ...(isDragging && item.id === draggedItemId
-                    ? [
-                        {
-                          targetId: DRAG_POINT_ID,
-                          targetAnchor: "left" as const,
-                          sourceAnchor: "right" as const,
-                        },
-                      ]
-                    : []),
-                ]}
-              >
+                      onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
+                        if (event.key === "Delete") {
+                          deleteSelectedConnections();
+                          clearSelection();
+                        }
+                      },
+                      onClick: (
+                        event: React.MouseEvent<SVGElement, MouseEvent>,
+                      ) => {
+                        setContextMenuOpened(false);
+                        if (event.ctrlKey) {
+                          // FIXME
+                          sources.map((source) =>
+                            toggleSelection(source, target),
+                          );
+                        } else {
+                          selectConnections(
+                            sources.map((source) => ({ source, target })),
+                          );
+                        }
+                      },
+                    },
+                    cursor: "pointer",
+                  })),
+                ...(isDragging && item.id === draggedItemId
+                  ? [
+                      {
+                        targetId: DRAG_POINT_ID,
+                        targetAnchor: "left" as const,
+                        sourceAnchor: "right" as const,
+                      },
+                    ]
+                  : []),
+              ]}
+            >
+              {isAttributeItem(item) || isConstantItem(item) ? (
                 <ConnectionAnchor
                   connected={item.actions.length > 0}
                   tooltipTitle={
@@ -817,9 +902,11 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     // TODO
                   }}
                 />
-              </ArcherElement>
-            );
-          }
+              ) : (
+                <div />
+              )}
+            </ArcherElement>
+          );
         },
       },
     ];
@@ -838,9 +925,10 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     refreshConnectionLines,
     removeAttribute,
     removeConstant,
-    selectConnection,
+    selectConnections,
     selectedConnections,
     showModal,
+    sourceExpandedKeys,
     toggleSelection,
     tryAddConstant,
     tryAddElement,
@@ -864,9 +952,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
               verifyMappingAction(action, mappingDescription),
             );
             return (
-              <ArcherElement
-                id={`${SchemaKind.TARGET}-${item.kind}-${item.path.map((i) => i.id).join("-")}`}
-              >
+              <ArcherElement id={buildArcherElementId(SchemaKind.TARGET, item)}>
                 <ConnectionAnchor
                   style={item.actions.length > 0 ? { cursor: "pointer" } : {}}
                   showSettingIcon={item.actions.some(
@@ -1087,13 +1173,10 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   : isPropertyGroup(item)
                     ? "property"
                     : "attribute";
-                const kind: AttributeKind = isHeaderGroup(item)
-                  ? "header"
-                  : isPropertyGroup(item)
-                    ? "property"
-                    : isAttributeItem(item)
-                      ? item.kind
-                      : "body";
+                const kind: AttributeKind =
+                  isConstantItem(item) || isConstantGroup(item)
+                    ? /* It can't be a constant-related item here, so this branch is not reachable. */ "body"
+                    : item.kind;
                 const typeDefinitions = isAttributeItem(item)
                   ? item.typeDefinitions
                   : [];
@@ -1162,7 +1245,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       strokeWidth={3}
       strokeColor={"#FFB02E"}
       endShape={{ arrow: { arrowLength: 3, arrowThickness: 3 } }}
-      svgContainerStyle={{ zIndex: 500 }}
+      svgContainerStyle={{ zIndex: ARROWS_Z_INDEX }}
       offset={8}
       {...props}
     >
@@ -1200,6 +1283,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
               ],
               expandedRowKeys: sourceExpandedKeys,
               onExpandedRowsChange: (keys) => {
+                selectConnections([]);
                 setSourceExpandedKeys([...keys]);
               },
             }}
@@ -1273,6 +1357,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
               expandIconColumnIndex: 2,
               expandedRowKeys: targetExpandedKeys,
               onExpandedRowsChange: (keys) => {
+                selectConnections([]);
                 setTargetExpandedKeys([...keys]);
               },
             }}
