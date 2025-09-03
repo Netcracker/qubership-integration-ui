@@ -839,24 +839,40 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   targetId: archerElementId,
                   targetAnchor: "left" as const,
                   sourceAnchor: "right" as const,
-                  style: selectedConnections.some((connection) =>
-                    connections.some(
-                      (c) =>
-                        MappingActions.referencesAreEqual(
-                          c.source,
-                          connection.source,
-                        ) &&
-                        MappingActions.referencesAreEqual(
-                          c.target,
-                          connection.target,
-                        ),
-                    ),
-                  )
-                    ? {
-                        strokeColor: "#ff772e",
-                        strokeWidth: 4,
-                      }
-                    : undefined,
+                  style: {
+                    endMarker: connections
+                      .map((connection) => connection.target)
+                      .some(
+                        (target) =>
+                          archerElementId ===
+                          buildArcherElementId(SchemaKind.TARGET, target),
+                      ),
+                    ...(selectedConnections.some((connection) =>
+                      connections.some(
+                        (c) =>
+                          MappingActions.referencesAreEqual(
+                            c.source,
+                            connection.source,
+                          ) &&
+                          MappingActions.referencesAreEqual(
+                            c.target,
+                            connection.target,
+                          ),
+                      ),
+                    )
+                      ? {
+                          strokeColor: "#ff772e",
+                          strokeWidth: 4,
+                          endMarker: connections
+                            .map((connection) => connection.target)
+                            .some(
+                              (target) =>
+                                archerElementId ===
+                                buildArcherElementId(SchemaKind.TARGET, target),
+                            ),
+                        }
+                      : undefined),
+                  },
                   domAttributes: {
                     onContextMenu: (
                       event: React.MouseEvent<SVGElement, MouseEvent>,
