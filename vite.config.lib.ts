@@ -2,18 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import sassDts from 'vite-plugin-sass-dts';
 import dts from "vite-plugin-dts";
-
-const external = [
-    'react',
-    'react-dom',
-    'react/jsx-runtime',
-    'react/jsx-dev-runtime',
-    'antd',
-    'tailwindcss',
-    '@tanstack/react-query',
-    '@tanstack/router-devtools',
-    '@tanstack/router-plugin'
-];
+import peerDepsExternal from "rollup-plugin-peer-deps-external";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -25,6 +14,10 @@ export default defineConfig({
             outDir: 'dist-lib/types',
             insertTypesEntry: true
         }),
+        {
+            ...peerDepsExternal(),
+            enforce: "pre",
+        },
     ],
     build: {
         outDir: 'dist-lib',
@@ -34,9 +27,6 @@ export default defineConfig({
             name: 'QIP-UI',
             formats: ['es', 'cjs'],
             fileName: (format) => `index.${format}.js`,
-        },
-        rollupOptions: {
-            external
         },
     },
 });
