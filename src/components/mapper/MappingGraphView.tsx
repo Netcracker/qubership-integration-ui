@@ -191,6 +191,29 @@ function referenceIsUnderTree(
   );
 }
 
+function getItemToMakeTargetConnectionTo(
+  target: AttributeReference,
+  items: MappingTableItem[],
+  expandedItemKeys: React.Key[],
+): MappingTableItem | undefined {
+  const flatItemList: MappingTableItem[] = [];
+  // @ts-expect-error { children?: T[] } is OK with {}.
+  traverseElementsDepthFirst(items, (i) => flatItemList.push(i));
+  return (
+    flatItemList
+      .filter((item) => referenceIsUnderTree(target, item))
+      .filter((item) => !expandedItemKeys.includes(item.id))
+      .sort((i0, i1) => {
+        const p0 = isAttributeItem(i0) ? i0.path : [];
+        const p1 = isAttributeItem(i1) ? i1.path : [];
+        return p0.length - p1.length;
+      })[0] ??
+    flatItemList.find(
+      (i) => i.id === buildTableItemId(SchemaKind.TARGET, target),
+    )
+  );
+}
+
 const SchemaTreeItemView: React.FC<SchemaTreeItemViewProps> = ({
   item,
   mappingDescription,
@@ -757,93 +780,116 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             <ArcherElement
               id={buildArcherElementId(SchemaKind.SOURCE, item)}
               relations={[
-                ...actions
-                  .map(({ sources, target }) => ({
-                    sources: sources.filter((source) =>
-                      referenceIsUnderTree(source, item),
+                ...Array.from(
+                  actions
+                    .map(({ sources, target }) => ({
+                      sources: sources.filter((source) =>
+                        referenceIsUnderTree(source, item),
+                      ),
+                      target,
+                    }))
+                    // Grouping sources by targets
+                    .reduce<
+                      {
+                        sources: (ConstantReference | AttributeReference)[];
+                        target: AttributeReference;
+                      }[]
+                    >((res, { sources, target }) => {
+                      const index = res.findIndex((i) =>
+                        MappingActions.referencesAreEqual(i.target, target),
+                      );
+                      return index < 0
+                        ? [...res, { sources, target }]
+                        : [
+                            ...res.slice(0, index),
+                            {
+                              target,
+                              sources: [...res[index].sources, ...sources],
+                            },
+                            ...res.slice(index + 1),
+                          ];
+                    }, [])
+                    // Grouping connections by item to attach to
+                    .reduce((m, { sources, target }) => {
+                      const item = getItemToMakeTargetConnectionTo(
+                        target,
+                        targetItems,
+                        targetExpandedKeys,
+                      );
+                      if (!item) {
+                        return m;
+                      }
+                      const archerElementId = buildArcherElementId(
+                        SchemaKind.TARGET,
+                        item,
+                      );
+                      const connections = sources.map((source) => ({
+                        source,
+                        target,
+                      }));
+                      const result = new Map<string, Connection[]>(m);
+                      result.set(archerElementId, [
+                        ...connections,
+                        ...(m.get(archerElementId) ?? []),
+                      ]);
+                      return result;
+                    }, new Map<string, Connection[]>())
+                    .entries(),
+                ).map(([archerElementId, connections]) => ({
+                  targetId: archerElementId,
+                  targetAnchor: "left" as const,
+                  sourceAnchor: "right" as const,
+                  style: selectedConnections.some((connection) =>
+                    connections.some(
+                      (c) =>
+                        MappingActions.referencesAreEqual(
+                          c.source,
+                          connection.source,
+                        ) &&
+                        MappingActions.referencesAreEqual(
+                          c.target,
+                          connection.target,
+                        ),
                     ),
-                    target,
-                  }))
-                  // Grouping sources by targets
-                  .reduce<
-                    {
-                      sources: (ConstantReference | AttributeReference)[];
-                      target: AttributeReference;
-                    }[]
-                  >((res, { sources, target }) => {
-                    const index = res.findIndex((i) =>
-                      MappingActions.referencesAreEqual(i.target, target),
-                    );
-                    return index < 0
-                      ? [...res, { sources, target }]
-                      : [
-                          ...res.slice(0, index),
-                          {
-                            target,
-                            sources: [...res[index].sources, ...sources],
-                          },
-                          ...res.slice(index + 1),
-                        ];
-                  }, [])
-                  .map(({ sources, target }) => ({
-                    targetId: buildArcherElementId(SchemaKind.TARGET, target),
-                    targetAnchor: "left" as const,
-                    sourceAnchor: "right" as const,
-                    style:
-                      selectedConnections.findIndex(
-                        (connection) =>
-                          sources.some((source) =>
-                            MappingActions.referencesAreEqual(
-                              connection.source,
-                              source,
-                            ),
-                          ) &&
-                          MappingActions.referencesAreEqual(
-                            connection.target,
-                            target,
-                          ),
-                      ) >= 0
-                        ? {
-                            strokeColor: "#ff772e",
-                            strokeWidth: 4,
-                          }
-                        : undefined,
-                    domAttributes: {
-                      onContextMenu: (
-                        event: React.MouseEvent<SVGElement, MouseEvent>,
-                      ) => {
-                        event.preventDefault();
-                        const bb =
-                          middlePanelRef.current?.getBoundingClientRect();
-                        const x = event.clientX - (bb?.left ?? 0);
-                        const y = event.clientY - (bb?.top ?? 0);
-                        setContextMenuPosition({ x, y });
-                        setContextMenuOpened(true);
-                      },
-                      onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
-                        if (event.key === "Delete") {
-                          deleteSelectedConnections();
-                          clearSelection();
-                        }
-                      },
-                      onClick: (
-                        event: React.MouseEvent<SVGElement, MouseEvent>,
-                      ) => {
-                        setContextMenuOpened(false);
-                        if (event.ctrlKey) {
-                          // FIXME
-                          sources.map((source) =>
-                            toggleSelection(source, target),
-                          );
-                        } else {
-                          selectConnections(
-                            sources.map((source) => ({ source, target })),
-                          );
-                        }
-                      },
+                  )
+                    ? {
+                        strokeColor: "#ff772e",
+                        strokeWidth: 4,
+                      }
+                    : undefined,
+                  domAttributes: {
+                    onContextMenu: (
+                      event: React.MouseEvent<SVGElement, MouseEvent>,
+                    ) => {
+                      event.preventDefault();
+                      const bb =
+                        middlePanelRef.current?.getBoundingClientRect();
+                      const x = event.clientX - (bb?.left ?? 0);
+                      const y = event.clientY - (bb?.top ?? 0);
+                      setContextMenuPosition({ x, y });
+                      setContextMenuOpened(true);
                     },
-                    cursor: "pointer",
-                  })),
+                    onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
+                      if (event.key === "Delete") {
+                        deleteSelectedConnections();
+                        clearSelection();
+                      }
+                    },
+                    onClick: (
+                      event: React.MouseEvent<SVGElement, MouseEvent>,
+                    ) => {
+                      setContextMenuOpened(false);
+                      if (event.ctrlKey) {
+                        connections.map(({ source, target }) =>
+                          toggleSelection(source, target),
+                        );
+                      } else {
+                        selectConnections(connections);
+                      }
+                    },
+                  },
+                  cursor: "pointer",
+                })),
                 ...(isDragging && item.id === draggedItemId
                   ? [
                       {
@@ -929,6 +975,8 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     selectedConnections,
     showModal,
     sourceExpandedKeys,
+    targetExpandedKeys,
+    targetItems,
     toggleSelection,
     tryAddConstant,
     tryAddElement,
@@ -947,12 +995,14 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
         align: "right" as const,
         className: graphViewStyles["target-anchor-column"],
         render: (_value: unknown, item: MappingTableItem) => {
-          if (isAttributeItem(item)) {
-            const errors = item.actions.flatMap((action) =>
-              verifyMappingAction(action, mappingDescription),
-            );
-            return (
-              <ArcherElement id={buildArcherElementId(SchemaKind.TARGET, item)}>
+          const errors = isAttributeItem(item)
+            ? item.actions.flatMap((action) =>
+                verifyMappingAction(action, mappingDescription),
+              )
+            : [];
+          return (
+            <ArcherElement id={buildArcherElementId(SchemaKind.TARGET, item)}>
+              {isAttributeItem(item) ? (
                 <ConnectionAnchor
                   style={item.actions.length > 0 ? { cursor: "pointer" } : {}}
                   showSettingIcon={item.actions.some(
@@ -1090,9 +1140,11 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     });
                   }}
                 />
-              </ArcherElement>
-            );
-          }
+              ) : (
+                <div></div>
+              )}
+            </ArcherElement>
+          );
         },
       },
       {
@@ -1354,7 +1406,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 "property-group",
                 "body-group",
               ],
-              expandIconColumnIndex: 2,
+              expandIconColumnIndex: 3,
               expandedRowKeys: targetExpandedKeys,
               onExpandedRowsChange: (keys) => {
                 selectConnections([]);
