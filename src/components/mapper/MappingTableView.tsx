@@ -168,6 +168,7 @@ export function isConstantGroup(obj: unknown): obj is ConstantGroup {
 export type HeaderGroup = {
   id: string;
   itemType: "header-group";
+  kind: "header";
   children: AttributeItem[];
 };
 
@@ -183,6 +184,7 @@ export function isHeaderGroup(obj: unknown): obj is HeaderGroup {
 export type PropertyGroup = {
   id: string;
   itemType: "property-group";
+  kind: "property";
   children: AttributeItem[];
 };
 
@@ -198,6 +200,7 @@ export function isPropertyGroup(obj: unknown): obj is PropertyGroup {
 export type BodyGroup = {
   id: string;
   itemType: "body-group";
+  kind: "body";
   type: DataType | null | undefined;
   children?: AttributeItem[];
 };
@@ -318,6 +321,7 @@ export function buildMappingTableItems(
     {
       id: "header-group",
       itemType: "header-group",
+      kind: "header",
       children: schema.headers.map((attribute) =>
         buildAttributeItem(
           schemaKind,
@@ -332,6 +336,7 @@ export function buildMappingTableItems(
     {
       id: "property-group",
       itemType: "property-group",
+      kind: "property",
       children: schema.properties.map((attribute) =>
         buildAttributeItem(
           schemaKind,
@@ -346,6 +351,7 @@ export function buildMappingTableItems(
     {
       id: "body-group",
       itemType: "body-group",
+      kind: "body",
       type: schema.body
         ? DataTypes.resolveType(schema.body, []).type
         : undefined,
@@ -711,16 +717,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
     (item: MappingTableItem) => {
       if (isConstantGroup(item)) {
         clearConstants();
+      } else if (isConstantItem(item)) {
+        // Do nothing
       } else {
         const path = isAttributeItem(item) ? item.path : [];
-        const kind = isAttributeItem(item)
-          ? item.kind
-          : isHeaderGroup(item)
-            ? "header"
-            : isPropertyGroup(item)
-              ? "property"
-              : "body";
-        clearTree(selectedSchema, kind, path);
+        clearTree(selectedSchema, item.kind, path);
       }
     },
     [clearConstants, clearTree, selectedSchema],
@@ -747,16 +748,11 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             error instanceof Error ? error.message : "Failed to add constant";
           void messageApi.open({ type: "error", content });
         });
+      } else if (isConstantItem(item)) {
+        // Do nothing
       } else {
         const path = isAttributeItem(item) ? item.path : [];
-        const kind = isAttributeItem(item)
-          ? item.kind
-          : isHeaderGroup(item)
-            ? "header"
-            : isPropertyGroup(item)
-              ? "property"
-              : "body";
-        addAttribute(selectedSchema, kind, path, {}, (error: unknown) => {
+        addAttribute(selectedSchema, item.kind, path, {}, (error: unknown) => {
           const content =
             error instanceof Error ? error.message : "Failed to add attribute";
           void messageApi.open({ type: "error", content });
