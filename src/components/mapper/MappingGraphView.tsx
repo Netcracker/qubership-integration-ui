@@ -592,7 +592,6 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
             buildTableItemId(SchemaKind.TARGET, connection.target),
           ),
         );
-        console.log({ selectedConnections });
         return result;
       });
     },
