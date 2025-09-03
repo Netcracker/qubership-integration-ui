@@ -521,44 +521,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
 
   const clearSelection = useCallback(() => {
     setSelectedConnections([]);
-    setSelectedSourceKeys([]);
-    setSelectedTargetKeys([]);
   }, []);
-
-  const selectItem = useCallback(
-    (item: MappingTableItem, isTarget: boolean) => {
-      if (isAttributeItem(item) || isConstantItem(item)) {
-        if (isTarget) {
-          const targets = item.actions.map((action) => action.target);
-          const sources = item.actions.flatMap((action) => action.sources);
-          setSelectedConnections(
-            sources.flatMap((source) =>
-              targets.map((target) => ({ source, target })),
-            ),
-          );
-          setSelectedSourceKeys(
-            sources.map((source) =>
-              buildTableItemId(SchemaKind.SOURCE, source),
-            ),
-          );
-          setSelectedTargetKeys([item.id]);
-        } else {
-          const source = buildElementReference(item);
-          const targets = item.actions.map((action) => action.target);
-          setSelectedConnections(targets.map((target) => ({ source, target })));
-          setSelectedSourceKeys([item.id]);
-          setSelectedTargetKeys(
-            targets.map((target) =>
-              buildTableItemId(SchemaKind.TARGET, target),
-            ),
-          );
-        }
-      } else {
-        clearSelection();
-      }
-    },
-    [clearSelection],
-  );
 
   const deleteSelectedConnections = useCallback(() => {
     removeConnections(selectedConnections);
@@ -582,16 +545,6 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
         } else {
           result.splice(index, 1);
         }
-        setSelectedSourceKeys(
-          result.map((connection) =>
-            buildTableItemId(SchemaKind.SOURCE, connection.source),
-          ),
-        );
-        setSelectedTargetKeys(
-          result.map((connection) =>
-            buildTableItemId(SchemaKind.TARGET, connection.target),
-          ),
-        );
         return result;
       });
     },
@@ -599,14 +552,30 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   );
 
   const selectConnections = useCallback((connections: Connection[]) => {
-    setSelectedSourceKeys(
-      connections.map((c) => buildTableItemId(SchemaKind.SOURCE, c.source)),
-    );
-    setSelectedTargetKeys(
-      connections.map((c) => buildTableItemId(SchemaKind.TARGET, c.target)),
-    );
     setSelectedConnections(connections);
   }, []);
+
+  const selectItem = useCallback(
+    (item: MappingTableItem, isTarget: boolean) => {
+      const expandedKeys = isTarget ? targetExpandedKeys : sourceExpandedKeys;
+      const isExpanded = expandedKeys.includes(item.id);
+      const actions = isExpanded
+        ? isConstantItem(item) || isAttributeItem(item)
+          ? item.actions
+          : []
+        : getActionsInTree(item);
+      const actionConnections = actions.flatMap((action) =>
+        action.sources.map((source) => ({ source, target: action.target })),
+      );
+      const connections: Connection[] = isTarget
+        ? actionConnections
+        : actionConnections.filter((connection) =>
+            referenceIsUnderTree(connection.source, item),
+          );
+      setSelectedConnections(connections);
+    },
+    [sourceExpandedKeys, targetExpandedKeys],
+  );
 
   const buildSourceColumns = useCallback(() => {
     return [
