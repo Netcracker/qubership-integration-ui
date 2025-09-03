@@ -6,6 +6,8 @@ import dts from "vite-plugin-dts";
 const external = [
     'react',
     'react-dom',
+    'react/jsx-runtime',
+    'react/jsx-dev-runtime',
     'antd',
     'tailwindcss',
     '@tanstack/react-query',
