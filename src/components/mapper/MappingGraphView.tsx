@@ -191,8 +191,9 @@ function referenceIsUnderTree(
   );
 }
 
-function getItemToMakeTargetConnectionTo(
-  target: AttributeReference,
+function getItemToMakeConnectionTo(
+  schemaKind: SchemaKind,
+  reference: AttributeReference | ConstantReference,
   items: MappingTableItem[],
   expandedItemKeys: React.Key[],
 ): MappingTableItem | undefined {
@@ -201,16 +202,14 @@ function getItemToMakeTargetConnectionTo(
   traverseElementsDepthFirst(items, (i) => flatItemList.push(i));
   return (
     flatItemList
-      .filter((item) => referenceIsUnderTree(target, item))
+      .filter((item) => referenceIsUnderTree(reference, item))
       .filter((item) => !expandedItemKeys.includes(item.id))
       .sort((i0, i1) => {
         const p0 = isAttributeItem(i0) ? i0.path : [];
         const p1 = isAttributeItem(i1) ? i1.path : [];
         return p0.length - p1.length;
       })[0] ??
-    flatItemList.find(
-      (i) => i.id === buildTableItemId(SchemaKind.TARGET, target),
-    )
+    flatItemList.find((i) => i.id === buildTableItemId(schemaKind, reference))
   );
 }
 
@@ -359,7 +358,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     "body-group",
   ]);
 
-  const [controlsStateMap, setControlsStateMap] = useState<
+  const [controlsStateMap, /* setControlsStateMap */] = useState<
     Map<SchemaKind, TableControlsState>
   >(
     new Map<SchemaKind, TableControlsState>([
@@ -577,6 +576,41 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     [sourceExpandedKeys, targetExpandedKeys],
   );
 
+  useEffect(() => {
+    const sourceKeys = selectedConnections
+      .map((connection) => connection.source)
+      .map((source) =>
+        getItemToMakeConnectionTo(
+          SchemaKind.SOURCE,
+          source,
+          sourceItems,
+          sourceExpandedKeys,
+        ),
+      )
+      .filter((item) => !!item)
+      .map((item) => item.id);
+    setSelectedSourceKeys(sourceKeys);
+    const targetKeys = selectedConnections
+      .map((connection) => connection.target)
+      .map((target) =>
+        getItemToMakeConnectionTo(
+          SchemaKind.TARGET,
+          target,
+          targetItems,
+          targetExpandedKeys,
+        ),
+      )
+      .filter((item) => !!item)
+      .map((item) => item.id);
+    setSelectedTargetKeys(targetKeys);
+  }, [
+    selectedConnections,
+    sourceExpandedKeys,
+    sourceItems,
+    targetExpandedKeys,
+    targetItems,
+  ]);
+
   const buildSourceColumns = useCallback(() => {
     return [
       {
@@ -779,7 +813,8 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     }, [])
                     // Grouping connections by item to attach to
                     .reduce((m, { sources, target }) => {
-                      const item = getItemToMakeTargetConnectionTo(
+                      const item = getItemToMakeConnectionTo(
+                        SchemaKind.TARGET,
                         target,
                         targetItems,
                         targetExpandedKeys,
@@ -929,7 +964,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     );
                   }}
                   onClick={() => {
-                    // TODO
+                    // Do nothing
                   }}
                 />
               ) : (
