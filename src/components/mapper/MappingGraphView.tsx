@@ -274,6 +274,19 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     [],
   );
 
+  const [sourceExpandedKeys, setSourceExpandedKeys] = useState<React.Key[]>([
+    "constant-group",
+    "header-group",
+    "property-group",
+    "body-group",
+  ]);
+  const [targetExpandedKeys, setTargetExpandedKeys] = useState<React.Key[]>([
+    "constant-group",
+    "header-group",
+    "property-group",
+    "body-group",
+  ]);
+
   const [controlsStateMap, setControlsStateMap] = useState<
     Map<SchemaKind, TableControlsState>
   >(
@@ -1185,6 +1198,10 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 "property-group",
                 "body-group",
               ],
+              expandedRowKeys: sourceExpandedKeys,
+              onExpandedRowsChange: (keys) => {
+                setSourceExpandedKeys([...keys]);
+              },
             }}
             rowClassName={(item: MappingTableItem) => {
               return isHeaderGroup(item) ||
@@ -1253,8 +1270,11 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 "property-group",
                 "body-group",
               ],
-              expandIconColumnIndex: 1,
               expandIconColumnIndex: 2,
+              expandedRowKeys: targetExpandedKeys,
+              onExpandedRowsChange: (keys) => {
+                setTargetExpandedKeys([...keys]);
+              },
             }}
             rowClassName={(item: MappingTableItem) => {
               return isHeaderGroup(item) ||
