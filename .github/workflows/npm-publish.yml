@@ -1,40 +1,13 @@
 ---
 
-  # This GitHub Actions workflow can be triggered in two ways:
+  # This GitHub Actions workflow can be triggered in three ways:
   # 1. Automatically on push to any branch (runs in dry-run mode for safety)
-  # 2. Manually via workflow_dispatch with configurable parameters
-  #
-  # The workflow delegates the actual NPM publishing process to the re-npm-publish.yml workflow
-  # from the qubership-workflow-hub repository, which performs the following tasks:
-  # 1. Checks out the repository.
-  # 2. Sets up Node.js environment.
-  # 3. Installs dependencies.
-  # 4. Detects if the project is a Lerna monorepo.
-  # 5. Updates dependencies if required.
-  # 6. Updates package version in package.json or lerna.json.
-  # 7. Builds the project.
-  # 8. Runs tests.
-  # 9. Commits and pushes changes.
-  # 10. Publishes the package to NPM registry.
-
-  # To make it work for your project, you need to adjust the package.json and add configuration file for GitHub release.
-  # Please find detailed instructions:
-  # https://github.com/netcracker/qubership-workflow-hub?tab=readme-ov-file#npm-project-release-workflow
-  #
-  # Note: When triggered by push, the workflow automatically runs in dry-run mode to prevent
-  # accidental publishing. Use workflow_dispatch for actual releases.
+  # 2. Automatically publish npm on push if package.json version contains -dev (publishing for testing purposes)
+  # 3. Manually via workflow_dispatch with configurable parameters
 
   name: Publish NPM package
 
-  run-name: >
-    NPM Package${{
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run))
-      && (contains(fromJson(file('package.json')).version, '-dev') && ' - Dev' || ' - Test')
-      || ' - Publish'
-    }}${{
-      (github.event_name == 'workflow_dispatch' && !inputs.dry-run && inputs.version)
-      && format(' {0}', inputs.version) || ''
-    }}
+  run-name: NPM Package${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run)) && ' - Test' || ' - Publish' }}${{ (github.event_name == 'workflow_dispatch' && !inputs.dry-run && inputs.version) && format(' {0}', inputs.version) || '' }}
 
   on:
     push:
