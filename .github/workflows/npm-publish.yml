@@ -29,7 +29,7 @@
   run-name: >
     NPM Package${{
       (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run))
-      && (fromJson(file('package.json')).version =~ '.*-dev$' && ' - Dev' || ' - Test')
+      && (contains(fromJson(file('package.json')).version, '-dev') && ' - Dev' || ' - Test')
       || ' - Publish'
     }}${{
       (github.event_name == 'workflow_dispatch' && !inputs.dry-run && inputs.version)
