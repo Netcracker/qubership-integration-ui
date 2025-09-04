@@ -50,6 +50,12 @@ export type PatchElementRequest = {
   properties: Record<string, unknown>;
 };
 
+export type TransferElementRequest = {
+    parentId: string | null;
+    elements: string[];
+    swimlaneId: string | null;
+}
+
 export type ConnectionRequest = {
   from: string;
   to: string;
@@ -105,7 +111,7 @@ export type LibraryElement = {
   descriptionFormatter: string;
   type: string;
   inputEnabled: boolean;
-  inputQuantity: "any" | number;
+  inputQuantity: LibraryInputQuantity;
   outputEnabled: boolean;
   container: boolean;
   ordered: boolean;
@@ -138,6 +144,11 @@ export enum LibraryElementQuantity {
   ONE = "one",
   ONE_OR_ZERO = "one-or-zero",
   ONE_OR_MANY = "one-or-many",
+}
+
+export enum LibraryInputQuantity {
+  ONE = "one",
+  ANY = "any",
 }
 
 export type ElementWithChainName  = BaseEntity &  {

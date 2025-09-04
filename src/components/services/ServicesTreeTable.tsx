@@ -162,7 +162,10 @@ const NameCell: React.FC<{ record: ServiceEntity }> = ({ record }) => {
 
   return (
     <>
-      <span style={clickableStyle} onClick={handleClick}>
+      <span
+        style={clickableStyle}
+        onClick={() => void handleClick()}
+      >
         {getIcon(record)}
         {record.name}
       </span>
@@ -539,6 +542,7 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
           allColumns={allColumnKeys}
           defaultColumns={initialKeys}
           storageKey={storageKey}
+          labelsByKey={Object.fromEntries(allServicesTreeTableColumns.map(c => [c.key, c.title]))}
           onChange={handleColumnsChange}
         />
       )}

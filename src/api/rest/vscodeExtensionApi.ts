@@ -54,8 +54,8 @@ export class VSCodeExtensionApi implements Api {
     this.vscode = acquireVsCodeApi();
 
     // Listener for messages FROM extension
-    window.addEventListener("message", (event) => {
-      const message: VSCodeResponse<never> = <VSCodeResponse<never>>event.data;
+    window.addEventListener("message", (event: MessageEvent<VSCodeResponse<never>>) => {
+      const message: VSCodeResponse<never> = event.data;
       const { requestId, error } = message;
 
       if (requestId && this.responseResolvers[requestId]) {
@@ -87,8 +87,11 @@ export class VSCodeExtensionApi implements Api {
     const requestId = crypto.randomUUID();
     const message: VSCodeMessage<V> = { type, requestId, payload };
 
-    // @ts-expect-error since any type is prohibited
-    this.vscode.postMessage(message);
+    this.vscode.postMessage({
+      command: import.meta.env.VITE_API_APP,
+      // @ts-expect-error since any type is prohibited
+      data: message
+    });
 
     return new Promise((resolve, reject) => {
       this.responseResolvers[requestId] = { resolve, reject };
@@ -138,13 +141,11 @@ export class VSCodeExtensionApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     return <ActionDifference>(
-      (
-        await this.sendMessageToExtension("deleteElements", {
-          chainId,
-          elementIds,
-        })
-      ).payload
-    );
+      await this.sendMessageToExtension("deleteElements", {
+        chainId,
+        elementIds,
+      })
+    ).payload;
   };
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
@@ -193,7 +194,6 @@ export class VSCodeExtensionApi implements Api {
       (await this.sendMessageToExtension("updateChain", { id, chain })).payload
     );
   };
-
 
   getElementsByType(): Promise<ElementWithChainName[]> {
     throw new Error("Method not implemented.");
@@ -280,6 +280,10 @@ export class VSCodeExtensionApi implements Api {
   }
 
   getSpecificationModel(): Promise<Specification[]> {
+    throw new Error("Method not implemented.");
+  }
+
+  getSpecificationModelSource(): Promise<string> {
     throw new Error("Method not implemented.");
   }
 
@@ -542,13 +546,22 @@ export class VSCodeExtensionApi implements Api {
   moveFolder(): Promise<FolderItem> {
     throw new Error("Method not implemented.");
   }
+
+  transferElement(): Promise<ActionDifference> {
+    throw new Error("Method not implemented.");
+  }
 }
 
 interface VSCodeApi<T> {
-  postMessage: (message: VSCodeMessage<T>) => void;
+  postMessage: (message: VSCodeMessageWrapper<T>) => void;
   getState?: () => never;
   setState?: (newState: never) => void;
 }
+
+export type VSCodeMessageWrapper<T> = {
+  command: string;
+  data: VSCodeMessage<T>;
+};
 
 export type VSCodeMessage<T> = {
   type: string;
