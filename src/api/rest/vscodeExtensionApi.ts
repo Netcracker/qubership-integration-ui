@@ -42,6 +42,7 @@ import {
   Element,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
+import { getCommand } from "../../config.ts";
 
 export const STARTUP_EVENT = "navigate";
 export const isVsCode = window.location.protocol === "vscode-webview:";
@@ -88,7 +89,7 @@ export class VSCodeExtensionApi implements Api {
     const message: VSCodeMessage<V> = { type, requestId, payload };
 
     this.vscode.postMessage({
-      command: import.meta.env.VITE_API_APP,
+      command: getCommand(),
       // @ts-expect-error since any type is prohibited
       data: message
     });
