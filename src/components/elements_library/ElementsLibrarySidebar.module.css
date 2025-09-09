@@ -1,4 +1,10 @@
 .sideMenu {
-    overflow: scroll;
-    border-radius: 15px 0 0 15px;
+  overflow: auto;
+  scrollbar-gutter: auto;
+  border-radius: 15px 0 0 15px;
+}
+
+.libraryElements {
+  position: absolute;
+  border: none !important;
 }

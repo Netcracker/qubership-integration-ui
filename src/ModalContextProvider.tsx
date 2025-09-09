@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, useContext } from "react";
+import React, { memo, PropsWithChildren, useContext } from "react";
 import { useModalsContext } from "./Modals.tsx";
 
 const ModalContext = React.createContext<ModalContextFunctions | null>(null);
@@ -7,9 +7,11 @@ type ModalContextFunctions = {
   closeContainingModal: () => void;
 };
 
-type Props = React.FC<PropsWithChildren<{ modalId: string }>>;
+type ModalContextProviderProps = PropsWithChildren<{ modalId: string }>;
 
-export const useModalContext = () => {
+type ModalContextProviderComponent = React.FC<ModalContextProviderProps>;
+
+export const useModalContext = (): ModalContextFunctions => {
   const context = useContext(ModalContext);
   if (!context) {
     throw new Error(
@@ -19,7 +21,10 @@ export const useModalContext = () => {
   return context;
 };
 
-export const ModalContextProvider: Props = ({ children, modalId }) => {
+export const ModalContextProvider: ModalContextProviderComponent = memo(({
+  children,
+  modalId,
+}: ModalContextProviderProps) => {
   const { closeModal } = useModalsContext();
 
   const closeContainingModal = () => {
@@ -31,4 +36,6 @@ export const ModalContextProvider: Props = ({ children, modalId }) => {
       {children}
     </ModalContext.Provider>
   );
-};
+});
+
+ModalContextProvider.displayName = "ModalContextProvider";
