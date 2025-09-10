@@ -329,7 +329,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
   }, [groupId, specId]);
 
 
-  const goToTable = async (type: TableType, options?: { groupId?: string; modelId?: string }) => {
+  const goToTable = async (type: TableType, options?: { groupId?: string; specId?: string }) => {
     switch (type) {
       case "groups":
         if (!systemId) return;
@@ -343,8 +343,8 @@ export const ServiceApiSpecsTab: React.FC = () => {
         }
         break;
       case "operations":
-        if (options?.groupId && options?.modelId && systemId) {
-          void navigate(`/services/systems/${systemId}/specificationGroups/${options.groupId}/specifications/${options.modelId}`);
+        if (options?.groupId && options?.specId && systemId) {
+          void navigate(`/services/systems/${systemId}/specificationGroups/${options.groupId}/specifications/${options.specId}`);
         }
         break;
       default:
