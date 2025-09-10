@@ -248,13 +248,17 @@ export class VSCodeExtensionApi implements Api {
     ).payload;
   };
 
-  getElementsByType(): Promise<ElementWithChainName[]> {
-    throw new Error("Method not implemented.");
+  getElementsByType = async (): Promise<ElementWithChainName[]> => {
+    return <ElementWithChainName[]>(
+      (await this.sendMessageToExtension("getElementsByType")).payload
+    );
   }
 
-  getRootFolders(): Promise<FolderItem[]> {
-    throw new Error("Method not implemented.");
-  }
+  getRootFolders = async (): Promise<FolderItem[]> => {
+    return <FolderItem[]>(
+      (await this.sendMessageToExtension("getRootFolders")).payload
+    );
+  };
 
   getChainsUsedByService(): Promise<BaseEntity[]> {
     return Promise.resolve([]);
@@ -321,7 +325,7 @@ export class VSCodeExtensionApi implements Api {
     return response.payload as ImportSystemResult[];
   };
 
-  importSpecification = async (specificationGroupId: string, files: File[]): Promise<ImportSpecificationResult> => {
+  importSpecification = async (specificationGroupId: string, files: File[], systemId: string): Promise<ImportSpecificationResult> => {
     const serializedFiles: SerializedFile[] = await Promise.all(files.map(async (file) => ({
       name: file.name,
       size: file.size,
@@ -331,7 +335,7 @@ export class VSCodeExtensionApi implements Api {
     })));
 
     return <ImportSpecificationResult>(
-      (await this.sendMessageToExtension("importSpecification", { specificationGroupId, files: serializedFiles })).payload
+      (await this.sendMessageToExtension("importSpecification", { specificationGroupId, files: serializedFiles, systemId })).payload
     );
   };
 
@@ -429,9 +433,11 @@ export class VSCodeExtensionApi implements Api {
     );
   };
 
-  deprecateModel(): Promise<Specification> {
-    throw new Error("Method deprecateModel not implemented.");
-  }
+  deprecateModel = async (modelId: string): Promise<Specification> => {
+    return <Specification>(
+      (await this.sendMessageToExtension("deprecateModel", modelId)).payload
+    );
+  };
 
   deleteSpecificationModel = async (modelId: string): Promise<void> => {
     await this.sendMessageToExtension("deleteSpecificationModel", modelId);
@@ -662,7 +668,7 @@ export class VSCodeExtensionApi implements Api {
   }
 
   transferElement(): Promise<ActionDifference> {
-    throw new Error("Method not implemented.");
+    throw new Error("Method transferElement not implemented.");
   }
 }
 
