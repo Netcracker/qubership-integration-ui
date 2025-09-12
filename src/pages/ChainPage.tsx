@@ -7,6 +7,7 @@ import { createContext, useEffect, useState } from "react";
 import { Chain } from "../api/apiTypes.ts";
 import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { HomeOutlined } from "@ant-design/icons";
+import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 
 export type ChainContextData = {
   chain: Chain | undefined;
@@ -101,7 +102,7 @@ const ChainPage = () => {
     <Flex className={styles.stretched} gap={"middle"} vertical>
       <Row justify="space-between" align="middle">
         <Col>
-          <Breadcrumb items={pathItems} />
+          {!isVsCode && <Breadcrumb items={pathItems} />}
         </Col>
         <Col>
           <Radio.Group
@@ -112,15 +113,15 @@ const ChainPage = () => {
             buttonStyle="solid"
           >
             <Radio.Button value="graph">Graph</Radio.Button>
-            <Radio.Button value="snapshots">Snapshots</Radio.Button>
-            <Radio.Button value="deployments">Deployments</Radio.Button>
-            <Radio.Button value="sessions">Sessions</Radio.Button>
-            <Radio.Button value="logging-settings">
-              Logging
-            </Radio.Button>
-            <Radio.Button value="masking">
-              Masking
-            </Radio.Button>
+            {!isVsCode && (
+              <>
+                <Radio.Button value="snapshots">Snapshots</Radio.Button>
+                <Radio.Button value="deployments">Deployments</Radio.Button>
+                <Radio.Button value="sessions">Sessions</Radio.Button>
+                <Radio.Button value="logging-settings">Logging</Radio.Button>
+              </>
+            )}
+            <Radio.Button value="masking">Masking</Radio.Button>
             <Radio.Button value="properties">Properties</Radio.Button>
           </Radio.Group>
         </Col>

@@ -16,6 +16,7 @@ import {  message } from "antd";
 import {  DeleteOutlined, PlusOutlined, ExportOutlined, StopOutlined, DownOutlined, UpOutlined, CloudDownloadOutlined, CloudUploadOutlined,
   MoreOutlined
 } from "@ant-design/icons";
+import { isVsCode } from "../../api/rest/vscodeExtensionApi.ts";
 import { downloadFile } from '../../misc/download-utils';
 import { prepareFile } from "./utils.tsx";
 import { ImportSpecificationsModal } from "./ImportSpecificationsModal";
@@ -57,7 +58,12 @@ const getGroupActions = (
   expandedRowKeys: string[],
   setExpandedRowKeys: (keys: string[]) => void,
   refreshGroups: () => Promise<void>,
-  notify: ReturnType<typeof useNotificationService>
+  notify: ReturnType<typeof useNotificationService>,
+  showModal: (modal: { component: React.ReactNode }) => void,
+  systemId: string,
+  isImplementedService: boolean,
+  loadModels: (systemId: string, groupId: string) => Promise<void>,
+  loadGroups: (systemId: string) => Promise<void>
 ) => (record: ServiceEntity) => {
   if (isSpecification(record)) return [];
   const group = record as SpecificationGroup;
@@ -78,7 +84,21 @@ const getGroupActions = (
       key: 'add',
       label: 'Add Specification',
       icon: <PlusOutlined />,
-      onClick: () => message.info('Add Specification (stub)'),
+      onClick: () => {
+        showModal({
+          component: (
+            <ImportSpecificationsModal
+              systemId={systemId}
+              specificationGroupId={group.id}
+              isImplementedService={isImplementedService}
+              onSuccess={() => {
+                void loadGroups(systemId);
+                void loadModels(systemId, group.id);
+              }}
+            />
+          ),
+        });
+      },
     },
     {
       key: 'delete',
@@ -271,7 +291,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
       childrenColumnName: "children",
     },
     actionsColumn: getActionsColumn<ServiceEntity>(
-      getGroupActions(expandedGroups, setExpandedGroups, async () => { await loadGroups(systemId!); }, notify)
+      getGroupActions(expandedGroups, setExpandedGroups, async () => { await loadGroups(systemId!); }, notify, showModal, systemId!, isImplementedService, async (systemId: string, groupId: string) => { await loadModels(systemId, groupId); }, async (systemId: string) => { await loadGroups(systemId); })
     ),
     onUpdateLabels: async (record, labels) => {
       if (!systemId) return;
@@ -329,7 +349,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
   }, [groupId, specId]);
 
 
-  const goToTable = async (type: TableType, options?: { groupId?: string; modelId?: string }) => {
+  const goToTable = async (type: TableType, options?: { groupId?: string; specId?: string }) => {
     switch (type) {
       case "groups":
         if (!systemId) return;
@@ -343,8 +363,8 @@ export const ServiceApiSpecsTab: React.FC = () => {
         }
         break;
       case "operations":
-        if (options?.groupId && options?.modelId && systemId) {
-          void navigate(`/services/systems/${systemId}/specificationGroups/${options.groupId}/specifications/${options.modelId}`);
+        if (options?.groupId && options?.specId && systemId) {
+          void navigate(`/services/systems/${systemId}/specificationGroups/${options.groupId}/specifications/${options.specId}`);
         }
         break;
       default:
@@ -406,25 +426,27 @@ export const ServiceApiSpecsTab: React.FC = () => {
                 });
               }}
             />
-            <FloatButton
-              tooltip={{ title: "Export all groups", placement: "left" }}
-              icon={<CloudDownloadOutlined />}
-              onClick={() => {
-                void (async () => {
-                  if (!(serviceSpecData ?? []).length) {
-                    message.info('No groups to export');
-                    return;
-                  }
-                  const groupIds = (serviceSpecData ?? []).map(g => g.id);
-                  try {
-                    const file = await api.exportServices([], groupIds);
-                    downloadFile(prepareFile(file));
-                  } catch (e) {
-                    notify.requestFailed('Export error', e);
-                  }
-                })();
-              }}
-            />
+            {!isVsCode && (
+              <FloatButton
+                tooltip={{ title: "Export all groups", placement: "left" }}
+                icon={<CloudDownloadOutlined />}
+                onClick={() => {
+                  void (async () => {
+                    if (!(serviceSpecData ?? []).length) {
+                      message.info('No groups to export');
+                      return;
+                    }
+                    const groupIds = (serviceSpecData ?? []).map(g => g.id);
+                    try {
+                      const file = await api.exportServices([], groupIds);
+                      downloadFile(prepareFile(file));
+                    } catch (e) {
+                      notify.requestFailed('Export error', e);
+                    }
+                  })();
+                }}
+              />
+            )}
           </FloatButtonGroup>
         </>
       )}
@@ -433,30 +455,18 @@ export const ServiceApiSpecsTab: React.FC = () => {
           <modelsTable.Table />
           <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
             <FloatButton
-              tooltip={{ title: "Export selected specifications", placement: "left" }}
-              icon={<CloudDownloadOutlined />}
-              onClick={() => {
-                void (async () => {
-                  if (selectedSpecRowKeys.length === 0) {
-                    message.info('There are no selected specifications yet');
-                    return;
-                  }
-                  const selected = (models ?? []).filter(m => selectedSpecRowKeys.includes(m.id));
-                  await handleExportSpecifications(selected, notify);
-                })();
-              }}
-            />
-            <FloatButton
               tooltip={{ title: "Import Specification", placement: "left" }}
               icon={<CloudUploadOutlined />}
               onClick={() => {
                 showModal({
                   component: (
                     <ImportSpecificationsModal
+                      systemId={systemId}
                       specificationGroupId={groupId}
                       isImplementedService={isImplementedService}
                       onSuccess={() => {
                         if (!systemId || !groupId) return;
+                        void loadGroups(systemId);
                         void loadModels(systemId, groupId);
                       }}
                     />
@@ -464,37 +474,55 @@ export const ServiceApiSpecsTab: React.FC = () => {
                 });
               }}
             />
+            {!isVsCode && (
+              <FloatButton
+                tooltip={{ title: "Export selected specifications", placement: "left" }}
+                icon={<CloudDownloadOutlined />}
+                onClick={() => {
+                  void (async () => {
+                    if (selectedSpecRowKeys.length === 0) {
+                      message.info('There are no selected specifications yet');
+                      return;
+                    }
+                    const selected = (models ?? []).filter(m => selectedSpecRowKeys.includes(m.id));
+                    await handleExportSpecifications(selected, notify);
+                  })();
+                }}
+              />
+            )}
           </FloatButtonGroup>
         </>
       )}
       {currentTable === "operations" && (
         <>
           <operationsTable.Table />
-          <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
-            <FloatButton
-              tooltip={{ title: "Export", placement: "left" }}
-              icon={<CloudDownloadOutlined />}
-              onClick={() => {
-                void (async () => {
-                  try {
-                    if (!specId) {
-                      message.info('No model to export');
-                      return;
+          {!isVsCode && (
+            <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
+              <FloatButton
+                tooltip={{ title: "Export", placement: "left" }}
+                icon={<CloudDownloadOutlined />}
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      if (!specId) {
+                        message.info('No model to export');
+                        return;
+                      }
+                      const model = (models ?? []).find(m => m.id === specId);
+                      if (!model) {
+                        message.info('No model to export');
+                        return;
+                      }
+                      const file = await api.exportServices([specId], []);
+                      downloadFile(prepareFile(file));
+                    } catch (e) {
+                      notify.requestFailed('Export error', e);
                     }
-                    const model = (models ?? []).find(m => m.id === specId);
-                    if (!model) {
-                      message.info('No model to export');
-                      return;
-                    }
-                    const file = await api.exportServices([specId], []);
-                    downloadFile(prepareFile(file));
-                  } catch (e) {
-                    notify.requestFailed('Export error', e);
-                  }
-                })();
-              }}
-            />
-          </FloatButtonGroup>
+                  })();
+                }}
+              />
+            </FloatButtonGroup>
+          )}
         </>
       )}
       {errorModels && <div className={css.serviceApiSpecsTabError}>Error: {errorModels}</div>}
