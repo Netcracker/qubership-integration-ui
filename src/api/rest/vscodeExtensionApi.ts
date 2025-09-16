@@ -270,8 +270,7 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method generateApiSpecification not implemented.");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getServices = async (modelType: string, withSpec: boolean): Promise<IntegrationSystem[]> => {
+  getServices = async (): Promise<IntegrationSystem[]> => {
     return <IntegrationSystem[]>(
       (await this.sendMessageToExtension("getServices")).payload
     );
