@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react";
 import sassDts from 'vite-plugin-sass-dts';
 import dts from "vite-plugin-dts";
 import * as path from "node:path";
-import { nodeResolve } from '@rollup/plugin-node-resolve';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -14,13 +13,12 @@ export default defineConfig({
             entryRoot: 'src',
             outDir: 'dist-lib/types',
             insertTypesEntry: true
-        }),
-        nodeResolve({ browser: true })
+        })
     ],
     build: {
         outDir: 'dist-lib',
         emptyOutDir: true,
-        minify: false,
+        minify: true,
         sourcemap: false,
       rollupOptions: {
         input: path.resolve(__dirname, 'src/main.tsx'),
