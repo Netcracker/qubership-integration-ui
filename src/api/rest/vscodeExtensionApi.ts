@@ -49,7 +49,8 @@ import {
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
 
-export const STARTUP_EVENT = "navigate";
+export const NAVIGATE_EVENT = "navigate";
+export const STARTUP_EVENT = "startup";
 export const isVsCode = window.location.protocol === "vscode-webview:";
 
 export class VSCodeExtensionApi implements Api {
