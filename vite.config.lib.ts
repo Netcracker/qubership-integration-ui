@@ -24,8 +24,8 @@ export default defineConfig({
         input: path.resolve(__dirname, 'src/main.tsx'),
         external: [],
         output: {
-          format: 'es',
-          entryFileNames: 'index.es.js',
+          format: 'cjs',
+          entryFileNames: 'index.cjs.js',
           inlineDynamicImports: true,
           assetFileNames: (assetInfo) => {
             if (assetInfo.name?.endsWith('.css')) {
