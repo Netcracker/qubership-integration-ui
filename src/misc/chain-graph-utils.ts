@@ -79,6 +79,7 @@ export function getNodeFromElement(
     style: {
       backgroundColor: getElementColor(libraryElement),
       borderRadius: 5,
+      fontWeight: 500,
     },
   };
 }
