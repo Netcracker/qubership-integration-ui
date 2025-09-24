@@ -64,6 +64,7 @@ import {
   ApiSpecificationFormat,
   TransferElementRequest,
   Element,
+  SystemOperation,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -98,7 +99,7 @@ export class RestApi implements Api {
           if (isErrorResponse(data)) {
             responseBody = data;
             message = responseBody?.errorMessage;
-          } else if (typeof Blob !== 'undefined' && data instanceof Blob) {
+          } else if (typeof Blob !== "undefined" && data instanceof Blob) {
             try {
               const text = await data.text();
               const parsed: unknown = JSON.parse(text);
@@ -820,7 +821,10 @@ export class RestApi implements Api {
         responseType: "blob",
       },
     );
-    const contentType = (response.headers?.["content-type"] as string | undefined)?.toLowerCase() ?? "";
+    const contentType =
+      (
+        response.headers?.["content-type"] as string | undefined
+      )?.toLowerCase() ?? "";
     if (contentType.includes("application/json")) {
       try {
         const text = await response.data.text();
@@ -830,7 +834,10 @@ export class RestApi implements Api {
         }
       } catch (e) {
         if (e instanceof RestApiError) throw e;
-        throw new RestApiError("Failed to generate API specification", response.status);
+        throw new RestApiError(
+          "Failed to generate API specification",
+          response.status,
+        );
       }
     }
     return getFileFromResponse(response);
@@ -1124,6 +1131,18 @@ export class RestApi implements Api {
       modelId,
       {
         headers: { "Content-Type": "text/plain" },
+      },
+    );
+    return response.data;
+  };
+
+  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+    const response = await this.instance.get<SystemOperation[]>(
+      `/api/v1/${getAppName()}/systems-catalog/operations`,
+      {
+        params: {
+          modelId,
+        },
       },
     );
     return response.data;

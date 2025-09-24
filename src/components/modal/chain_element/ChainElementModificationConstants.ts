@@ -227,6 +227,18 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:fieldReplacesAnyOrOneOf": true,
       "ui:field": "oneOfAsSingleInputField",
     },
+    integrationSystemId: {
+      "ui:field": "serviceField",
+    },
+    systemType: {
+      "ui:field": "serviceTypeField",
+    },
+    integrationSpecificationId: {
+      "ui:field": "specificationField",
+    },
+    integrationOperationId: {
+      "ui:field": "systemOperationField",
+    },
   },
   id: { "ui:widget": "hidden" },
   elementType: { "ui:widget": "hidden" },

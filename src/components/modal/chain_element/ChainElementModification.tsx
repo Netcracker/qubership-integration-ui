@@ -32,6 +32,11 @@ import MappingField from "./field/MappingField.tsx";
 import CustomArrayField from "./field/CustomArrayField.tsx";
 import ScriptField from "./field/ScriptField.tsx";
 import JsonField from "./field/JsonField.tsx";
+import ServiceField from "./field/ServiceField.tsx";
+import SpecificationField from "./field/SpecificationField.tsx";
+import SystemOperationField from "./field/SystemOperationField.tsx";
+import { ServiceTypeField } from "./field/service/ServiceTypeField.tsx";
+import { FormContext } from "antd/es/form/context";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -48,9 +53,13 @@ type TabField = {
 };
 
 export type FormContext = {
-  operationId?: string;
+  integrationOperationId?: string;
   integrationOperationProtocolType?: string;
   elementType?: string;
+  integrationSystemId?: string;
+  integrationSpecificationGroupId?: string;
+  integrationSpecificationId?: string;
+  systemType?: string;
 };
 
 function constructTitle(name: string, type?: string): string {
@@ -82,6 +91,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
   const [schema, setSchema] = useState<JSONSchema7>({});
   const formDataRef = useRef<Record<string, unknown>>({});
+  const [formContext, setFormContext] = useState<FormContext>({});
 
   const [activeKey, setActiveKey] = useState<string>();
 
@@ -124,6 +134,21 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         err,
       );
     }
+
+    const formProperties = formDataRef.current.properties as Record<
+      string,
+      unknown
+    >;
+
+    setFormContext({
+      integrationOperationId: formProperties.integrationOperationId,
+      integrationOperationProtocolType: formProperties.integrationOperationId,
+      elementType: node.data.elementType,
+      integrationSystemId: formProperties.integrationSystemId,
+      systemType: formProperties.systemType,
+      integrationSpecificationGroupId: formProperties.integrationSpecificationGroupId,
+      integrationSpecificationId: formProperties.integrationSpecificationId,
+    } as FormContext);
   }, [node.data.elementType]);
 
   const handleOk = async () => {
@@ -412,15 +437,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               mergeDefaultsIntoFormData: "useFormDataIfPresent",
             }}
             formContext={
-              {
-                operationId: (
-                  formDataRef.current.properties as Record<string, unknown>
-                ).integrationOperationId,
-                integrationOperationProtocolType: (
-                  formDataRef.current.properties as Record<string, unknown>
-                ).integrationOperationId,
-                elementType: node.data.elementType,
-              } as FormContext
+              formContext
             }
             templates={{
               ObjectFieldTemplate: CustomObjectFieldTemplate,
@@ -434,10 +451,30 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               customArrayField: CustomArrayField,
               scriptField: ScriptField,
               jsonField: JsonField,
+              serviceField: ServiceField,
+              serviceTypeField: ServiceTypeField,
+              specificationField: SpecificationField,
+              systemOperationField: SystemOperationField,
             }}
             widgets={widgets}
             onChange={(e) => {
-              formDataRef.current = e.formData as Record<string, object>;
+              const newFormData = e.formData as Record<string, object>;
+
+              const props = (newFormData.properties as Record<string, unknown>);
+
+              props.integrationSystemId = formContext.integrationSystemId;
+              props.systemType = formContext.systemType;
+              props.integrationOperationId = formContext.integrationOperationId;
+              props.integrationSpecificationGroupId = formContext.integrationSpecificationGroupId;
+              props.integrationSpecificationId = formContext.integrationSpecificationId;
+
+              console.log(`updated properties: ${JSON.stringify(newFormData.properties)}`);
+
+              formDataRef.current = newFormData;
+
+              /* console.log(`form changed, serviceType = ${formContext.systemType}, serviceId =${formContext.integrationSystemId}` );
+              console.log(`form changed, newContext = ${JSON.stringify(formContext)}` ); */
+              console.log(`form changed, newValue = ${JSON.stringify(newFormData)}` );
             }}
           />
         </>
