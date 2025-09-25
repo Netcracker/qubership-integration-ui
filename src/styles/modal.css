@@ -1,0 +1,44 @@
+/* Modal tokens */
+:root {
+  --modal-bg: var(--vscode-editor-background, #ffffff);
+  --modal-text-color: var(--vscode-editor-foreground, rgba(0, 0, 0, 0.85));
+  --modal-border-color: var(--vscode-editorGroup-border, #d9d9d9);
+  --modal-header-bg: var(--vscode-editorGroupHeader-tabsBackground, #fafafa);
+  --modal-footer-bg: var(--vscode-editorGroupHeader-tabsBackground, #fafafa);
+  --modal-shadow: var(--vscode-widget-shadow, 0 6px 16px 0 rgba(0,0,0,0.08), 0 3px 6px -4px rgba(0,0,0,0.12), 0 9px 28px 8px rgba(0,0,0,0.05));
+  --modal-accent-bg: var(--vscode-button-background, #e6eef8);
+  --modal-accent-text: var(--vscode-button-foreground, #0b66ff);
+}
+
+/* Base Ant Modal mapping */
+:global(.ant-modal-content) {
+  background: var(--modal-bg);
+  color: var(--modal-text-color);
+  border: 1px solid var(--modal-border-color);
+}
+
+:global(.ant-modal-header) {
+  background: var(--modal-header-bg);
+  border-bottom: 1px solid var(--modal-border-color);
+}
+
+:global(.ant-modal-footer) {
+  background: var(--modal-footer-bg);
+  border-top: 1px solid var(--modal-border-color);
+}
+
+:global(.ant-modal) {
+  box-shadow: var(--modal-shadow);
+}
+
+/* Dark overrides via data-theme */
+[data-theme="dark"] {
+  --modal-bg: var(--vscode-editor-background, #141414);
+  --modal-text-color: var(--vscode-editor-foreground, rgba(255, 255, 255, 0.85));
+  --modal-border-color: var(--vscode-editorGroup-border, #303030);
+  --modal-header-bg: var(--vscode-editorGroupHeader-tabsBackground, #1f1f1f);
+  --modal-footer-bg: var(--vscode-editorGroupHeader-tabsBackground, #1f1f1f);
+  --modal-shadow: var(--vscode-widget-shadow, 0 6px 16px 0 rgba(0,0,0,0.45), 0 3px 6px -4px rgba(0,0,0,0.6), 0 9px 28px 8px rgba(0,0,0,0.4));
+}
+
+

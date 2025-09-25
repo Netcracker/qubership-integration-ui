@@ -1,19 +1,20 @@
 import { Flex } from "antd";
 import { SnippetsOutlined } from "@ant-design/icons";
 import React from "react";
-import commonStyles from "../components/admin_tools/CommonStyle.module.css";
+import "../styles/page-section.css";
 import Title from "antd/lib/typography/Title";
 import { Sessions } from "./Sessions.tsx";
 
 export const SessionsPage: React.FC = () => {
   return (
-    <Flex vertical className={commonStyles["container"]}>
-      <Flex vertical={false}>
-        <Title level={4} className={commonStyles["title"]}>
-          <SnippetsOutlined className={commonStyles["icon"]} />
+    <Flex vertical className="page-container">
+      <div className="page-header">
+        <Title level={4} className="page-title">
+          <SnippetsOutlined className="page-icon" />
           Sessions
         </Title>
-      </Flex>
+        <div className="page-actions" />
+      </div>
       <Sessions />
     </Flex>
   );

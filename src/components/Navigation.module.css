@@ -3,8 +3,11 @@
   justify-content: space-between;
   align-items: center;
   padding-right: 4px;
+  background: var(--table-bg);
 }
 
 .menu {
   flex: 1;
+  color: var(--table-header-text-color);
+  background: transparent !important;
 }

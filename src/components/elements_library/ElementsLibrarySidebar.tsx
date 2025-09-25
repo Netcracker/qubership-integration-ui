@@ -5,10 +5,12 @@ import DraggableElement from "./DraggableElement.tsx";
 import Sider from "antd/lib/layout/Sider";
 
 import styles from "./ElementsLibrarySidebar.module.css";
+import { useThemeContext } from "../../contexts/ThemeContext";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { useLibraryContext } from "../LibraryContext.tsx";
 
 export const ElementsLibrarySidebar = () => {
+  const { isDarkMode } = useThemeContext();
   const [, setElementsList] = useState<LibraryData | null>(null);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,14 +73,14 @@ export const ElementsLibrarySidebar = () => {
   };
 
   return (
-    <Sider width={200} theme="light" className={styles.sideMenu}>
+    <Sider width={200} theme={isDarkMode ? "dark" : "light"} className={styles.sideMenu}>
       {isLibraryLoading && loading ? (
         <Spin />
       ) : (
         <Menu
           className={styles.libraryElements}
           mode="inline"
-          theme="light"
+          theme={isDarkMode ? "dark" : "light"}
           items={items}
         />
       )}

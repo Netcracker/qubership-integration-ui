@@ -1,36 +1,4 @@
-.container {
-    background: #fff;
-    height: calc(100vh);
-    display: flex;
-    flex-direction: column;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 8px;
-}
-
-.title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0px;
-    font-size: 20px;
-    color: var(--text-color);
-    transition: color var(--transition-duration) var(--transition-easing);
-}
-
-.actions {
-    display: flex;
-    gap: 12px;
-}
-
-.icon {
-    margin-right: 12px;
-    transition: transform 0.2s var(--transition-easing), color var(--transition-duration) var(--transition-easing);
-}
+/* Use global .page-* classes instead of local duplicates */
 
 .loadingRow {
   opacity: 0.5;
@@ -38,7 +6,7 @@
 }
 
 .codeBlock {
-  background: #fff;
+  background: var(--modal-bg);
   border-radius: 4px;
   max-height: 350px;
   overflow: auto;
@@ -50,19 +18,12 @@
 }
 
 .variables-container {
-  background: #fff;
+  background: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
   padding-right: 32px;
-}
-
-.variables-title {
-  font-size: 20px;
-  color: var(--text-color);
-  margin: 0;
-  font-weight: 500;
 }
 
 .serviceApiSpecsTabHeader {
@@ -114,7 +75,7 @@
 }
 .triggerNameLink {
   font-size: 12px;
-  color: #888;
+  color: var(--table-header-text-muted-color);
   text-decoration: none;
 }
 .triggerNameLink:hover {
@@ -168,10 +129,10 @@
 .validationErrorContainer {
   margin-top: 24px;
   padding: 16px;
-  border: 1px solid #faad14;
+  border: 1px solid var(--vscode-inputValidation-warningBorder, #faad14);
   border-radius: 8px;
-  background: #fffbe6;
-  color: #ad6800;
+  background: var(--vscode-inputValidation-warningBackground, #fffbe6);
+  color: var(--vscode-inputValidation-warningForeground, #ad6800);
 }
 
 .validationErrorHeader {

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./Services.module.css";
+import "../../styles/page-section.css";
 import {
   CloudDownloadOutlined,
   CloudUploadOutlined,
@@ -357,15 +358,15 @@ export const ServicesListPage: React.FC = () => {
   }
 
   return (
-    <Flex vertical className={styles["container"]}>
-        <div className={styles["header"]}>
-          <Typography.Title level={4} className={styles["title"]}>
+    <Flex vertical className="page-container">
+        <div className="page-header">
+          <Typography.Title level={4} className="page-title">
             {(() => {
               switch (tab) {
-                case "external": return <GlobalOutlined className={styles["icon"]} />;
-                case "internal": return <CloudOutlined className={styles["icon"]} />;
-                case "implemented": return <ClusterOutlined className={styles["icon"]} />;
-                default: return <TableOutlined className={styles["icon"]} />;
+                case "external": return <GlobalOutlined className="page-icon" />;
+                case "internal": return <CloudOutlined className="page-icon" />;
+                case "implemented": return <ClusterOutlined className="page-icon" />;
+                default: return <TableOutlined className="page-icon" />;
               }
             })()}
             {(() => {
@@ -378,7 +379,7 @@ export const ServicesListPage: React.FC = () => {
             })()}
           </Typography.Title>
 
-          <div className={styles["actions"]}>
+          <div className="page-actions">
             {servicesTable.FilterButton()}
           </div>
         </div>

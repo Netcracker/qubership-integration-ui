@@ -1,41 +1,45 @@
 .container {
   display: flex;
   height: 100%;
-  border-radius: 8px;
+  border-radius: var(--sidebar-radius);
   overflow: hidden;
   min-height: 0;
   flex: 1;
-  background: #fff;
+  background: var(--sidebar-bg);
 }
 
 .sidebar {
-  background: #fff;
+  background: var(--sidebar-bg);
 }
 
 .sidebarInner {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: var(--sidebar-bg);
 }
 
 .sidebarMenu {
   flex-grow: 1;
   overflow-y: auto;
+  background: var(--sidebar-bg);
 }
 
-.sidebarToggleBar {
-  height: 40px;
-  line-height: 40px;
-  text-align: center;
-  cursor: pointer;
-  /*font-size: 16px;*/
-  font-weight: bold;
-  user-select: none;
-  transition: background 0.2s;
+
+
+/* Force AntD Menu inside Sider to keep the same background */
+.sidebar :global(.ant-menu) {
+  background: var(--sidebar-bg) !important;
+  border: none !important;
 }
 
-.sidebarToggleBar:hover {
-  background-color: #f0f0f0;
+.sidebar :global(.ant-menu-sub) {
+  background: var(--sidebar-bg) !important;
+}
+
+.sidebar :global(.ant-menu-item),
+.sidebar :global(.ant-menu-submenu-title) {
+  background: var(--sidebar-bg);
 }
 
 .mainContentWrapper {

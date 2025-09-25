@@ -1,5 +1,5 @@
 import React from "react";
-import { Table, Button, Typography } from "antd";
+import { Table, Button, Typography, Flex } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { EngineTable } from "./EngineTable";
 import { useEngines } from "./hooks/useEngines";
@@ -17,8 +17,10 @@ const EnginesForDomain: React.FC<{ domain: EngineDomain }> = ({ domain }) => {
   if (error) {
     return (
       <Typography.Text type="danger">
-        Error while loading list of engines
-        <Button onClick={() => void retry()}>Retry</Button>
+        <Flex align="center" gap={8}>
+          <span>Error while loading list of engines</span>
+          <Button onClick={() => void retry()}>Retry</Button>
+        </Flex>
       </Typography.Text>
     );
   }

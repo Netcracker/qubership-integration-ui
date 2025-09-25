@@ -23,6 +23,7 @@ import { ImportSpecificationsModal } from "./ImportSpecificationsModal";
 import { useModalsContext } from "../../Modals";
 import { useAsyncRequest } from './useAsyncRequest';
 import styles from "./Services.module.css";
+import "../../styles/page-section.css";
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { useServiceContext } from "./ServiceParametersPage";
 import { IntegrationSystemType } from "../../api/apiTypes";

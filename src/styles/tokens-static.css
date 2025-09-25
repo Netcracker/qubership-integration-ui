@@ -1,0 +1,13 @@
+/* Static tokens for fixed colors */
+:root {
+  --color-http-get: #61affe;
+  --color-http-post: #49cc90;
+  --color-http-put: #fca130;
+  --color-http-delete: #f93e3e;
+  --color-http-patch: #50e3c2;
+  --color-graphql-query: #1890ff;
+  --color-graphql-mutation: #52c41a;
+  --color-graphql-subscription: #722ed1;
+}
+
+

@@ -202,7 +202,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       key: 'name',
       render: (text: string, record: Environment) => (
         <span
-          style={{ fontWeight: 600, color: '#1677ff', cursor: 'pointer' }}
+          style={{ fontWeight: 600, color: 'var(--table-link-color, #1677ff)', cursor: 'pointer' }}
           onClick={() => handleEditClick(record)}
         >
           {text}
@@ -213,7 +213,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       title: 'Address',
       dataIndex: 'address',
       key: 'address',
-      render: (text?: string) => text || <span style={{ color: '#bbb' }}>/</span>,
+      render: (text?: string) => text || <span style={{ color: 'var(--table-header-text-muted-color, #bbb)' }}>/</span>,
     },
     {
       title: 'Source',
@@ -237,7 +237,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       key: 'labels',
       render: (labels?: unknown[]) => {
         if (!Array.isArray(labels) || labels.length === 0) {
-          return <span style={{ color: '#bbb' }}>-</span>;
+          return <span style={{ color: 'var(--table-header-text-muted-color, #bbb)' }}>-</span>;
         }
 
         return (
@@ -284,7 +284,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   ], [activeEnvironmentId, memoChains, formatTimestamp, handleDelete, handleEditClick, handleSwitchEnvironment, switchingEnvId, system]);
 
   if (loading) return <Spin style={{ margin: 32 }} />;
-  if (error) return <div style={{ color: 'red', margin: 32 }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--vscode-inputValidation-errorForeground, red)', margin: 32 }}>{error}</div>;
   if (!systemId) return null;
 
   return (
@@ -298,7 +298,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         pagination={false}
         bordered
         size="small"
-        style={{ background: "#fff", borderRadius: 12, width: '100%' }}
+        style={{ background: "var(--table-bg)", borderRadius: 12, width: '100%' }}
         columns={columns}
       />
       <EnvironmentParamsModal

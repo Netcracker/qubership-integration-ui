@@ -1,5 +1,5 @@
 .header {
-  background: white;
+  background: var(--table-bg);
   padding-right: 15px;
 }
 

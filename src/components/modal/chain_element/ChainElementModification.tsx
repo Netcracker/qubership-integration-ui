@@ -89,7 +89,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
   const schemaModules = import.meta.glob(
     "/node_modules/@netcracker/qip-schemas/assets/*.schema.yaml",
-    { as: "raw", eager: true },
+    { query: "?raw", import: "default", eager: true },
   );
 
   useEffect(() => {

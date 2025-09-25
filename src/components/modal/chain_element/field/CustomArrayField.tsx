@@ -219,17 +219,7 @@ const CustomArrayField: React.FC<FieldProps<[]>> = ({
             return (
               <List.Item
                 onClick={() => setSelectedIndex(idx)}
-                style={{
-                  cursor: "pointer",
-                  padding: "6px 8px",
-                  background: active ? "#f0f6ff" : undefined,
-                  borderLeft: active
-                    ? "3px solid #0b66ff"
-                    : "3px solid transparent",
-                  marginBottom: 6,
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
+                className={`${styles.listItem} ${active ? styles.active : ""}`}
               >
                 <span>{item.label}</span>
                 <Button

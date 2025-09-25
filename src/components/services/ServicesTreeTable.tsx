@@ -82,13 +82,13 @@ export interface ServicesTreeTableProps<T extends ServiceEntity = ServiceEntity>
 
 const clickableStyle: React.CSSProperties = {
   fontWeight: 500,
-  color: '#1677ff',
+  color: 'var(--table-link-color, #1677ff)',
   cursor: 'pointer',
 };
 
 const iconStyle: React.CSSProperties = {
   fontSize: 22,
-  color: '#b0b8c4',
+  color: 'var(--table-icon-muted-color, #b0b8c4)',
   marginRight: 8,
   verticalAlign: 'middle',
 };
@@ -345,12 +345,12 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
 
       const displayMethod = method.toUpperCase();
 
-      const color = methodColors[displayMethod] || "#d9d9d9";
+  const color = methodColors[displayMethod] || "var(--table-border-color, #d9d9d9)";
       return (
         <Tag
           style={{
             background: color,
-            color: "#fff",
+        color: "var(--modal-text-color, #fff)",
             borderRadius: 8,
             border: "none",
             fontWeight: 500,
@@ -592,7 +592,7 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
         expandable={expandable}
         size={"small"}
         pagination={pagination}
-        style={{ background: "#fff", borderRadius: 12, width: '100%' }}
+        style={{ background: "var(--table-bg)", borderRadius: 12, width: '100%' }}
         rowClassName={rowClassName}
         onRow={onRowClick ? (record) => ({
           onClick: (event: React.MouseEvent<HTMLElement>) => onRowClick(record, event),

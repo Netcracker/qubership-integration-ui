@@ -1,0 +1,58 @@
+/* Shared page section styles */
+.page-container {
+  min-height: 0;
+  height: 100%;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  /* margin-bottom: 0px; */
+  background: var(--table-bg);
+  color: var(--table-header-text-color);
+  padding: 4px 12px;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 0 0;
+  font-size: 20px;
+  color: var(--table-header-text-color);
+  transition: color 0.3s ease-in-out;
+}
+
+/* Increase specificity against Ant Design default typography color */
+/* .ant-typography.page-title {
+  color: var(--table-header-text-color);
+} */
+
+.page-title:hover {
+  color: var(--table-link-color);
+}
+
+.page-icon {
+  margin-right: 12px;
+  transition: transform 0.2s ease-in-out, color 0.3s ease-in-out;
+}
+
+.page-icon:hover {
+  transform: scale(1.1);
+  color: var(--table-link-color);
+}
+
+.page-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.page-table-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+

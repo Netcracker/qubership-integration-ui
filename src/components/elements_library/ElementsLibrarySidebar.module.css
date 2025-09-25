@@ -1,10 +1,23 @@
 .sideMenu {
   overflow: auto;
   scrollbar-gutter: auto;
-  border-radius: 15px 0 0 15px;
+  border-radius: var(--sidebar-radius) 0 0 var(--sidebar-radius);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border-color);
 }
 
 .libraryElements {
   position: absolute;
   border: none !important;
+}
+
+.sideMenu :global(.ant-menu),
+.sideMenu :global(.ant-menu-sub) {
+  background: var(--sidebar-bg) !important;
+  border: none !important;
+}
+
+.sideMenu :global(.ant-menu-item),
+.sideMenu :global(.ant-menu-submenu-title) {
+  background: var(--sidebar-bg);
 }

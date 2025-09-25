@@ -1,6 +1,40 @@
+/* VSCode mapping for tokens (effective in webview) */
+@import url('./styles/vscode.css');
+/* Static tokens */
+@import url('./styles/tokens-static.css');
+/* Shared sidebar base styles */
+@import url('./styles/sidebar.css');
+/* Shared table base styles */
+@import url('./styles/table.css');
+/* Shared modal base styles */
+@import url('./styles/modal.css');
+/* Shared page section styles */
+@import url('./styles/page-section.css');
 
 html {
-  background: white;
+  background: var(--modal-bg);
+}
+
+/* Disable flicker only during theme switch */
+.theme-switching .ant-menu,
+.theme-switching .ant-layout,
+.theme-switching .ant-layout-sider,
+.theme-switching .ant-layout-sider-children,
+.theme-switching .ant-modal,
+.theme-switching .ant-modal-content,
+.theme-switching .ant-table,
+.theme-switching .ant-table-thead > tr > th,
+.theme-switching .ant-table-tbody > tr > td,
+.theme-switching .sidebarToggleBar,
+.theme-switching .ant-card,
+.theme-switching .ant-breadcrumb,
+.theme-switching .ant-page-header,
+.theme-switching .ant-tabs,
+.theme-switching .ant-form-item,
+.theme-switching .ant-input,
+.theme-switching .ant-select,
+.theme-switching .ant-btn {
+  transition: background-color 0s !important;
 }
 
 :root {
@@ -63,7 +97,7 @@ button:focus-visible {
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: var(--modal-bg);
   }
 
   a:hover {
@@ -249,4 +283,162 @@ button:focus-visible {
 *:hover {
   scrollbar-width: thin;
   scrollbar-color: lightgray transparent;
+}
+
+/* Input theming - bind to VSCode/AntD tokens */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-group .ant-input,
+.ant-input-group .ant-input-affix-wrapper {
+  background-color: var(--vscode-input-background, var(--modal-bg)) !important;
+  color: var(--vscode-input-foreground, var(--modal-text-color)) !important;
+  border-color: var(--vscode-input-border, var(--modal-border-color)) !important;
+}
+
+.ant-input::placeholder,
+.ant-input-affix-wrapper .ant-input::placeholder {
+  color: var(--vscode-input-placeholderForeground, var(--table-header-text-muted-color)) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input:focus-within,
+.ant-input-affix-wrapper:focus-within {
+  border-color: var(--vscode-focusBorder, var(--table-link-color)) !important;
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder, var(--table-link-color)) !important;
+}
+
+/* Button theming - bind to VSCode tokens */
+.ant-btn {
+  background-color: var(--vscode-button-background, var(--modal-bg)) !important;
+  color: var(--vscode-button-foreground, var(--modal-text-color)) !important;
+  border-color: var(--vscode-input-border, var(--modal-border-color)) !important;
+}
+
+.ant-btn:hover {
+  background-color: var(--vscode-button-hoverBackground, var(--table-row-hover-bg)) !important;
+  color: var(--vscode-button-foreground, var(--modal-text-color)) !important;
+  border-color: var(--vscode-button-hoverBackground, var(--table-row-hover-bg)) !important;
+}
+
+.ant-btn:focus,
+.ant-btn:focus-visible {
+  border-color: var(--vscode-focusBorder, var(--table-link-color)) !important;
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder, var(--table-link-color)) !important;
+}
+
+/* ReactFlow theming - use darker text for better readability */
+.react-flow__node,
+.react-flow__node *,
+.react-flow__edge,
+.react-flow__edge *,
+.react-flow__handle,
+.react-flow__handle * {
+  color: #333333 !important;
+}
+
+/* Specific overrides for ReactFlow text elements */
+.react-flow__node .react-flow__node-label,
+.react-flow__node .react-flow__node-text,
+.react-flow__node div,
+.react-flow__node span,
+.react-flow__node p {
+  color: #333333 !important;
+}
+
+/* ReactFlow minimap theming */
+.react-flow__minimap {
+  background-color: var(--table-bg) !important;
+  border: 1px solid var(--table-border-color) !important;
+}
+
+.react-flow__minimap-mask {
+  fill: var(--table-bg) !important;
+}
+
+.react-flow__minimap-node {
+  fill: var(--table-header-bg) !important;
+  stroke: var(--table-border-color) !important;
+}
+
+/* Notification cards theming */
+.ant-notification .ant-notification-notice {
+  background-color: var(--modal-bg) !important;
+  border: 1px solid var(--modal-border-color) !important;
+  box-shadow: var(--modal-shadow) !important;
+  border-radius: 6px !important;
+}
+
+.ant-notification .ant-notification-notice-content {
+  color: var(--modal-text-color) !important;
+}
+
+.ant-notification .ant-notification-notice-message {
+  color: var(--modal-text-color) !important;
+}
+
+.ant-notification .ant-notification-notice-description {
+  color: var(--table-header-text-muted-color) !important;
+}
+
+.ant-notification .ant-notification-notice-close {
+  color: var(--table-header-text-muted-color) !important;
+}
+
+.ant-notification .ant-notification-notice-close:hover {
+  color: var(--modal-text-color) !important;
+}
+
+/* CustomArrayField theming - fix hardcoded colors in List.Item */
+.ant-list-item {
+  background: var(--table-bg) !important;
+  color: var(--table-text-color) !important;
+  border-left: 3px solid transparent !important;
+}
+
+.ant-list-item:hover {
+  background: var(--table-row-hover-bg) !important;
+}
+
+.ant-list-item.active {
+  background: var(--modal-accent-bg) !important;
+  border-left: 3px solid var(--table-link-color) !important;
+}
+
+/* More specific targeting for CustomArrayField */
+div[class*="CustomArrayField"] .ant-list-item,
+div[class*="CustomArrayField"] .ant-list-item * {
+  background: var(--table-bg) !important;
+  color: var(--table-text-color) !important;
+}
+
+div[class*="CustomArrayField"] .ant-list-item:hover {
+  background: var(--table-row-hover-bg) !important;
+}
+
+div[class*="CustomArrayField"] .ant-list-item.active {
+  background: var(--modal-accent-bg) !important;
+  border-left: 3px solid var(--table-link-color) !important;
+}
+
+/* Monaco Editor theming */
+.qip-editor {
+  background-color: var(--modal-bg) !important;
+  color: var(--modal-text-color) !important;
+}
+
+.qip-editor .monaco-editor {
+  background-color: var(--modal-bg) !important;
+}
+
+.qip-editor .monaco-editor .view-lines {
+  color: var(--modal-text-color) !important;
+}
+
+.qip-editor .monaco-editor .margin {
+  background-color: var(--table-header-bg) !important;
+}
+
+.qip-editor .monaco-editor .monaco-editor-background {
+  background-color: var(--modal-bg) !important;
 }

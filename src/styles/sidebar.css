@@ -1,0 +1,87 @@
+/* Sidebar tokens */
+:root {
+  --sidebar-bg: var(--vscode-sideBar-background, #ffffff);
+  --sidebar-border-color: var(--vscode-border, #f0f0f0);
+  --sidebar-radius: 8px;
+  --sidebar-padding: 0;
+  --sidebar-scrollbar-color: var(--vscode-scrollbarSlider-background, lightgray);
+}
+
+/* Base sidebar structure */
+.sidebar {
+  background: var(--sidebar-bg);
+}
+
+.sidebarInner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebarMenu {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.sidebarBorderRight {
+  border-right: 1px solid var(--sidebar-border-color);
+}
+
+.sidebarRoundedLeft {
+  border-radius: var(--sidebar-radius) 0 0 var(--sidebar-radius);
+}
+
+.sidebarToggleBar {
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: bold;
+  user-select: none;
+  transition: background 0s !important;
+}
+
+.sidebarToggleBar:hover {
+  background-color: var(--sidebar-bg);
+}
+
+/* Scrollbar styling using token */
+.sidebarMenu::-webkit-scrollbar-thumb {
+  background: var(--sidebar-scrollbar-color);
+}
+
+/* Ant Design Sider/Menu global overrides */
+.ant-layout-sider {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--sidebar-border-color);
+}
+
+.ant-layout-sider-children {
+  background: var(--sidebar-bg) !important;
+}
+
+.ant-menu,
+.ant-menu-sub,
+.ant-menu-light,
+.ant-menu-dark {
+  background: var(--sidebar-bg) !important;
+  border: none !important;
+}
+
+/* Prevent background flicker on theme switch for submenu items */
+.ant-menu,
+.ant-menu-sub,
+.ant-menu-item,
+.ant-menu-submenu-title {
+  transition: background-color 0s !important;
+}
+
+/* Dark theme overrides via data-theme */
+[data-theme="dark"] {
+  --sidebar-bg: var(--vscode-sideBar-background, #141414);
+  --sidebar-border-color: var(--vscode-border, #303030);
+  --sidebar-scrollbar-color: var(--vscode-scrollbarSlider-background, #434343);
+}
+
+
+

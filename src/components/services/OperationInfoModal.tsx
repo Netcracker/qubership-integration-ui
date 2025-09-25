@@ -4,6 +4,7 @@ import { OperationInfo } from '../../api/apiTypes';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import styles from './Services.module.css';
+import "../../styles/page-section.css";
 
 interface OperationInfoModalProps {
   visible: boolean;

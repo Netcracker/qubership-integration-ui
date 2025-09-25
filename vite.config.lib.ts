@@ -21,7 +21,7 @@ export default defineConfig({
         minify: true,
         sourcemap: false,
       rollupOptions: {
-        input: path.resolve(__dirname, 'src/main.tsx'),
+        input: path.resolve(__dirname, 'src/index.ts'),
         external: [],
         output: {
           format: 'es',

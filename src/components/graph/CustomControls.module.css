@@ -4,7 +4,7 @@
   bottom: 10px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--modal-bg);
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   z-index: 4;

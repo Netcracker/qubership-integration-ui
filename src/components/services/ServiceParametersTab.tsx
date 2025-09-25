@@ -92,7 +92,7 @@ export const ServiceParametersTab: React.FC<ServiceParametersTabProps> = ({
   };
 
   if (loadingSystem) return <Spin style={{ margin: 32 }} />;
-  if (loadError) return <div style={{ color: 'red', margin: 32 }}>{loadError}</div>;
+  if (loadError) return <div style={{ color: 'var(--vscode-inputValidation-errorForeground, red)', margin: 32 }}>{loadError}</div>;
   if (!system) return null;
 
   return (
@@ -160,7 +160,7 @@ export const ServiceParametersTab: React.FC<ServiceParametersTabProps> = ({
         >
           Save
         </Button>
-        {(saveError) && <div style={{ color: 'red', marginTop: 8 }}>{saveError}</div>}
+        {(saveError) && <div style={{ color: 'var(--vscode-inputValidation-errorForeground, red)', marginTop: 8 }}>{saveError}</div>}
       </Form>
     </div>
   );

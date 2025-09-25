@@ -291,7 +291,7 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
                   onFocus={() => setIsEditingText(true)}
                   onBlur={() => setIsEditingText(false)}
                   autoSize={{ minRows: 6, maxRows: 16 }}
-                  style={{ fontFamily: 'monospace', marginTop: 8, background: '#fafafa' }}
+                  style={{ fontFamily: 'monospace', marginTop: 8, background: 'var(--modal-bg)' }}
                 />
               ) : (
                 <Form.Item style={{ margin: 0 }}>

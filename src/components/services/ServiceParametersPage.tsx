@@ -14,6 +14,7 @@ import { api } from "../../api/api";
 import { IntegrationSystem, IntegrationSystemType, BaseEntity } from "../../api/apiTypes";
 import { isVsCode } from "../../api/rest/vscodeExtensionApi.ts";
 import styles from "./Services.module.css";
+import "../../styles/page-section.css";
 
 const { Title } = Typography;
 
@@ -183,7 +184,7 @@ export const ServiceParametersPage: React.FC = () => {
           <div
             style={{
               flexShrink: 0,
-              background: "#fff",
+              background: "var(--table-bg)",
               zIndex: 2,
               paddingLeft: sidePadding,
             }}
@@ -240,7 +241,7 @@ export const ServiceParametersPage: React.FC = () => {
             <Flex justify="space-between" align="center" style={{ margin: "4px 0 8px", fontSize: 20 }}>
               <Title
                 level={5}
-                className={styles["variables-title"]}
+                className="page-title"
                 style={{ margin: 0, fontSize: 20 }}
               >
                 Common Parameters

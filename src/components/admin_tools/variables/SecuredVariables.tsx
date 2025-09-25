@@ -19,7 +19,7 @@ import {
   MoreOutlined,
   CloudDownloadOutlined,
 } from "@ant-design/icons";
-import commonStyles from "../CommonStyle.module.css";
+// import commonStyles from "../CommonStyle.module.css";
 import styles from "./SecuredVariables.module.css";
 import VariablesTable from "./VariablesTable";
 import { variablesApi } from "../../../api/admin-tools/variables/variablesApi.ts";
@@ -339,12 +339,36 @@ export const SecuredVariables: React.FC = () => {
   );
 
   return (
-    <Flex vertical className={commonStyles["container"]}>
-      <Flex vertical={false}>
-        <Title level={4} className={commonStyles["title"]}>
-          <LockOutlined className={commonStyles["icon"]} />
+    <Flex vertical className="page-container">
+      <Flex vertical={false} className="page-header">
+        <Title level={4} className="page-title">
+          <LockOutlined className="page-icon" />
           Secured Variables
         </Title>
+        <div className="page-actions">
+          <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
+            <FloatButton
+              tooltip={{
+                title: "Delete selected variables",
+                placement: "left",
+              }}
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                if (!hasSelected) return;
+                Modal.confirm({
+                  title: `Delete selected variable(s)?`,
+                  content: `Are you sure you want to delete variables(s)?`,
+                  onOk: handleDeleteSelected,
+                });
+              }}
+            />
+            <FloatButton
+              tooltip={{ title: "Add secret", placement: "left" }}
+              icon={<PlusOutlined />}
+              onClick={() => setCreateModalVisible(true)}
+            />
+          </FloatButtonGroup>
+        </div>
       </Flex>
 
       <Modal
@@ -438,28 +462,7 @@ export const SecuredVariables: React.FC = () => {
         sticky
         scroll={{ y: "" }}
       />
-      <FloatButtonGroup trigger="hover" icon={<MoreOutlined />}>
-        <FloatButton
-          tooltip={{
-            title: "Delete selected variables",
-            placement: "left",
-          }}
-          icon={<DeleteOutlined />}
-          onClick={() => {
-            if (!hasSelected) return;
-            Modal.confirm({
-              title: `Delete selected variable(s)?`,
-              content: `Are you sure you want to delete variables(s)?`,
-              onOk: handleDeleteSelected,
-            });
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Add secret", placement: "left" }}
-          icon={<PlusOutlined />}
-          onClick={() => setCreateModalVisible(true)}
-        />
-      </FloatButtonGroup>
+      
     </Flex>
   );
 };

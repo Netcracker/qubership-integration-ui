@@ -10,6 +10,7 @@ import type { ElementWithChainName } from "../../api/apiTypes";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { ApiSpecificationType, ApiSpecificationFormat } from "../../api/apiTypes";
 import styles from "./Services.module.css";
+import "../../styles/page-section.css";
 import { validateFiles } from "./utils";
 
 const POLLING_INTERVAL = 1200;

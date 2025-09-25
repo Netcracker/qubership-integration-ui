@@ -1,0 +1,34 @@
+/* Map UI tokens to VSCode theme variables when available */
+
+/* Sidebar mapping to VSCode with fallbacks; no hardcoded white */
+:root {
+  --sidebar-bg: var(--vscode-sideBar-background, #ffffff);
+  --sidebar-border-color: var(--vscode-border, #d9d9d9);
+  --sidebar-scrollbar-color: var(--vscode-scrollbarSlider-background, lightgray);
+}
+
+/* Table */
+:root {
+  --table-bg: var(--vscode-editor-background, var(--table-bg));
+  --table-text-color: var(--vscode-editor-foreground, var(--table-text-color));
+  --table-border-color: var(--vscode-border, var(--table-border-color));
+  --table-header-bg: var(--vscode-panel-background, var(--table-header-bg));
+  --table-header-text-color: var(--vscode-foreground, var(--table-header-text-color));
+  --table-header-text-muted-color: var(--vscode-descriptionForeground, var(--table-header-text-muted-color));
+  --table-row-hover-bg: var(--vscode-sideBar-background, var(--table-row-hover-bg));
+  --table-link-color: var(--vscode-textLink-foreground, var(--table-link-color));
+  --table-icon-muted-color: var(--vscode-descriptionForeground, var(--table-icon-muted-color));
+}
+
+/* Modal */
+:root {
+  --modal-bg: var(--vscode-editor-background, var(--modal-bg));
+  --modal-text-color: var(--vscode-editor-foreground, var(--modal-text-color));
+  --modal-border-color: var(--vscode-border, var(--modal-border-color));
+  --modal-header-bg: var(--vscode-panel-background, var(--modal-header-bg));
+  --modal-footer-bg: var(--vscode-panel-background, var(--modal-footer-bg));
+  --modal-accent-bg: var(--vscode-button-background, var(--modal-accent-bg));
+  --modal-accent-text: var(--vscode-button-foreground, var(--modal-accent-text));
+}
+
+
