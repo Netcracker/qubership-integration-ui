@@ -54,6 +54,8 @@ type TabField = {
 
 export type FormContext = {
   integrationOperationId?: string;
+  integrationOperationPath?: string;
+  integrationOperationMethod?: string;
   integrationOperationProtocolType?: string;
   elementType?: string;
   integrationSystemId?: string;

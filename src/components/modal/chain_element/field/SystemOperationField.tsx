@@ -4,6 +4,7 @@ import { Select, SelectProps } from "antd";
 import { FormContext } from "../ChainElementModification";
 import { api } from "../../../../api/api";
 import { useNotificationService } from "../../../../hooks/useNotificationService";
+import { SystemOperation } from "../../../../api/apiTypes";
 
 const SystemOperationField: React.FC<FieldProps> = ({
   id,
@@ -16,6 +17,7 @@ const SystemOperationField: React.FC<FieldProps> = ({
 }) => {
   const notificationService = useNotificationService();
   const [options, setOptions] = useState<SelectProps["options"]>([]);
+  const [operationsMap, setOperationsMap] = useState<Map<string, SystemOperation>>(new Map());
   const specificationId = (formContext as FormContext).integrationSpecificationId;
 
   useEffect(() => {
@@ -29,6 +31,7 @@ const SystemOperationField: React.FC<FieldProps> = ({
               label: `${operation.name} ${operation.method} ${operation.path}`,
               value: operation.id,
             })) ?? [];
+          setOperationsMap(new Map(operations.map((operation) => [operation.id, operation])));
           setOptions(operationOptions);
         } catch (error) {
           notificationService.requestFailed(
@@ -56,6 +59,14 @@ const SystemOperationField: React.FC<FieldProps> = ({
   };
 
   const handleChange = (newValue: string) => {
+    const context = formContext as FormContext;
+    const operation: SystemOperation = operationsMap.get(newValue)!;
+
+    context.integrationOperationId = newValue;
+    context.integrationOperationPath = operation.path;
+    context.integrationOperationMethod = operation.method;
+    context.integrationOperationProtocolType = "http";
+
     onChange(newValue);
   };
 
