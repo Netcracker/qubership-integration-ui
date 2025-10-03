@@ -428,7 +428,7 @@ export class VSCodeExtensionApi implements Api {
 
   getOperations = async (modelId: string): Promise<SystemOperation[]> => {
     return <SystemOperation[]>(
-      (await this.sendMessageToExtension("getOperationInfo", modelId)).payload
+      (await this.sendMessageToExtension("getOperations", modelId)).payload
     );
   }
 
