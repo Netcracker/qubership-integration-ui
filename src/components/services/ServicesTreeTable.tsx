@@ -572,7 +572,7 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
         expandable={expandable}
         size={"small"}
         pagination={pagination}
-        style={{ background: "#fff", borderRadius: 12, width: '100%' }}
+        style={{ background: "var(--vscode-editor-background, #ffffff)", borderRadius: 12, width: '100%' }}
         rowClassName={rowClassName}
         onRow={onRowClick ? (record) => ({
           onClick: (event: React.MouseEvent<HTMLElement>) => onRowClick(record, event),
