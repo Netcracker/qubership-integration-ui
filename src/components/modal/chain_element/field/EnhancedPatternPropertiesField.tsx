@@ -66,7 +66,7 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
 }) => {
   const [specParameters, setSpecParameters] = useState<ParameterMetadata[]>([]);
   const [envParameters, setEnvParameters] = useState<Map<string, string>>(new Map());
-  const [isMaasEnvironment, setIsMaasEnvironment] = useState(false);
+  const [isMaasEnvironment, setIsMaasEnvironment] = useState<any>(null);
   const [loadedSpec, setLoadedSpec] = useState<any>(null);
   const [autoFilledOperationId, setAutoFilledOperationId] = useState<string | null>(null);
 
@@ -271,6 +271,19 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
     return params;
   }
 
+  // // Helper function to check if parameter should be hidden based on environment type
+  const isHiddenParameter = (name: string): boolean => {
+    if (paramType !== 'async') return false;
+
+    if (isMaasEnvironment) {
+      // In MaaS mode: hide 'topic' parameter
+      return name === 'topic';
+    } else {
+      // In Manual mode: hide parameters with 'maas.' prefix
+      return name.startsWith('maas.');
+    }
+  };
+
   const mergedParameters = useMemo((): EnhancedParameter[] => {
     console.log('[EnhancedPatternPropertiesField] mergedParameters useMemo recalculating:', {
       paramType,
@@ -285,19 +298,6 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
 
     const result: EnhancedParameter[] = [];
     const processed = new Set<string>();
-
-    // Helper function to check if parameter should be hidden based on environment type
-    const isHiddenParameter = (name: string): boolean => {
-      if (paramType !== 'async') return false;
-
-      if (isMaasEnvironment) {
-        // In MaaS mode: hide 'topic' parameter
-        return name === 'topic';
-      } else {
-        // In Manual mode: hide parameters with 'maas.' prefix
-        return name.startsWith('maas.');
-      }
-    };
 
     // 1. Add required parameters from specification
     specParameters.filter(p => p.required && !isHiddenParameter(p.name)).forEach(p => {
@@ -430,6 +430,16 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
     const defaultValue = envParameters.get(key) || '';
     onChange({ ...formData, [key]: defaultValue });
   };
+
+  useEffect(() => {
+    if (isMaasEnvironment == null) return;
+    const hiddenKeys = Object.keys(formData).filter(key => isHiddenParameter(key));
+    if (hiddenKeys.length > 0) {
+      const cleanedFormData = { ...formData };
+      hiddenKeys.forEach(key => delete cleanedFormData[key]);
+      onChange(cleanedFormData);
+    }
+  }, [isMaasEnvironment]);
 
   return (
     <div>
