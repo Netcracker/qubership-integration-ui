@@ -101,6 +101,10 @@ export const ChainProperties: React.FC = () => {
 
     if (isVsCode) {
       await moveChain(String(chainContext.chain.id), uiFoldersPath.join("/"));
+      changes = {
+        ...changes,
+        navigationPath: new Map(uiFoldersPath.map(path => [path, path]))
+      }
     }
 
     if (!isVsCode) {
