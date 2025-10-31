@@ -49,15 +49,9 @@ export const ChainProperties: React.FC = () => {
     [notificationService],
   );
 
-  const moveChain = async (chainId: string, destinationFolderId?: string) => {
+  const moveChain = async (chainId: string, folder?: string) => {
     try {
-      const chain = await api.moveChain(chainId, destinationFolderId);
-      if (chain) {
-        notificationService.info(
-          "Chain moved successfully",
-          "Chain moved successfully",
-        );
-      }
+      await api.moveChain(chainId, folder);
     } catch (error) {
       notificationService.requestFailed("Failed to move chain", error);
     }
@@ -69,9 +63,10 @@ export const ChainProperties: React.FC = () => {
         chainContext.chain.navigationPath,
       ).reverse();
 
+      console.log("full path", fullPath);
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
-        path: fullPath.slice(0, -1).join("/") ?? "",
+        path: fullPath.slice(0, -1).join("/"),
         labels: chainContext.chain.labels?.map((label) => label.name) ?? [],
         description: chainContext.chain.description ?? "",
         businessDescription: chainContext.chain.businessDescription ?? "",
@@ -103,8 +98,8 @@ export const ChainProperties: React.FC = () => {
       await moveChain(String(chainContext.chain.id), uiFoldersPath.join("/"));
       changes = {
         ...changes,
-        navigationPath: new Map(uiFoldersPath.map(path => [path, path]))
-      }
+        navigationPath: new Map(uiFoldersPath.map((path) => [path, path])),
+      };
     }
 
     if (!isVsCode) {
@@ -118,7 +113,6 @@ export const ChainProperties: React.FC = () => {
       }
 
       const navigationPath = new Map(folders.map((f) => [f.id, f.name]));
-
       const destinationFolderId = folders.reverse()[0]?.id;
 
       if (chainContext.chain.parentId !== destinationFolderId) {
