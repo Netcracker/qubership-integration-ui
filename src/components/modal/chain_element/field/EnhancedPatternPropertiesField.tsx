@@ -137,6 +137,15 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
       } else {
         setEnvParameters(new Map());
       }
+
+      const updatedFormData = { ...formData };
+      if (isMaas && 'topic' in updatedFormData) {
+        delete updatedFormData['topic'];
+        onChange(updatedFormData);
+      } else if (!isMaas && 'maas.classifier.name' in updatedFormData) {
+        delete updatedFormData['maas.classifier.name'];
+        onChange(updatedFormData);
+      }
     } catch (error) {
       console.error('[EnhancedPatternPropertiesField] Failed to load environment parameters:', error);
       setEnvParameters(new Map());
@@ -165,7 +174,7 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
     const protocolType = formContext?.integrationOperationProtocolType;
     const updates: Record<string, string> = {};
 
-    if (protocolType === 'kafka' && !formData['topic']) {
+    if (protocolType === 'kafka' && !formData['topic'] && isMaasEnvironment == false) {
       const topicValue = loadedSpec.topic || loadedSpec.channel;
       if (topicValue) {
         updates['topic'] = topicValue;
@@ -183,7 +192,7 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
       }
     }
 
-    if ((protocolType === 'kafka' || protocolType === 'amqp') && loadedSpec.maasClassifierName && !formData['maas.classifier.name']) {
+    if ((protocolType === 'kafka' || protocolType === 'amqp') && loadedSpec.maasClassifierName && !formData['maas.classifier.name'] && isMaasEnvironment) {
       updates['maas.classifier.name'] = loadedSpec.maasClassifierName;
     }
 
@@ -271,19 +280,6 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
     return params;
   }
 
-  // // Helper function to check if parameter should be hidden based on environment type
-  const isHiddenParameter = (name: string): boolean => {
-    if (paramType !== 'async') return false;
-
-    if (isMaasEnvironment) {
-      // In MaaS mode: hide 'topic' parameter
-      return name === 'topic';
-    } else {
-      // In Manual mode: hide parameters with 'maas.' prefix
-      return name.startsWith('maas.');
-    }
-  };
-
   const mergedParameters = useMemo((): EnhancedParameter[] => {
     console.log('[EnhancedPatternPropertiesField] mergedParameters useMemo recalculating:', {
       paramType,
@@ -298,6 +294,19 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
 
     const result: EnhancedParameter[] = [];
     const processed = new Set<string>();
+
+    // Helper function to check if parameter should be hidden based on environment type
+    const isHiddenParameter = (name: string): boolean => {
+      if (paramType !== 'async') return false;
+
+      if (isMaasEnvironment) {
+        // In MaaS mode: hide 'topic' parameter
+        return name === 'topic';
+      } else {
+        // In Manual mode: hide parameters with 'maas.' prefix
+        return name.startsWith('maas.');
+      }
+    };
 
     // 1. Add required parameters from specification
     specParameters.filter(p => p.required && !isHiddenParameter(p.name)).forEach(p => {
@@ -430,16 +439,6 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
     const defaultValue = envParameters.get(key) || '';
     onChange({ ...formData, [key]: defaultValue });
   };
-
-  useEffect(() => {
-    if (isMaasEnvironment == null) return;
-    const hiddenKeys = Object.keys(formData).filter(key => isHiddenParameter(key));
-    if (hiddenKeys.length > 0) {
-      const cleanedFormData = { ...formData };
-      hiddenKeys.forEach(key => delete cleanedFormData[key]);
-      onChange(cleanedFormData);
-    }
-  }, [isMaasEnvironment]);
 
   return (
     <div>
