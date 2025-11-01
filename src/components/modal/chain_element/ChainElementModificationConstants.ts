@@ -24,23 +24,21 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:widget": "uri",
       "ui:placeholder": "e.g. /api/v1/resource",
     },
-    validationFailureHandler: {
-      handlerContainer: {
-        exportFileExtension: {
-          "ui:widget": "hidden",
-        },
-        propertiesToExportInSeparateFile: {
-          "ui:widget": "hidden",
-        },
-        propertiesFilename: {
-          "ui:widget": "hidden",
-        },
-        script: {
-          "ui:field": "scriptField",
-        },
-        mappingDescription: {
-          "ui:field": "mappingField",
-        },
+    handlerContainer: {
+      exportFileExtension: {
+        "ui:widget": "hidden",
+      },
+      propertiesToExportInSeparateFile: {
+        "ui:widget": "hidden",
+      },
+      propertiesFilename: {
+        "ui:widget": "hidden",
+      },
+      script: {
+        "ui:field": "scriptField",
+      },
+      mappingDescription: {
+        "ui:field": "mappingField",
       },
     },
     invalidURI: {
@@ -337,11 +335,9 @@ export const pathToTabMap: Record<string, string> = {
   "properties.integrationGqlVariablesJSON": "Endpoint",
   "properties.integrationGqlQueryHeader": "Endpoint",
   "properties.integrationGqlVariablesHeader": "Endpoint",
-  "properties.validationFailureHandler": "Handle Validation Failure",
-  "properties.validationFailureHandler.handleValidationAction": "Handle Validation Failure",
-  "properties.validationFailureHandler.handlerContainer": "Handle Validation Failure",
-  "properties.validationFailureHandler.handlerContainer.script": "Handle Validation Failure",
-  "properties.validationFailureHandler.handlerContainer.mappingDescription": "Handle Validation Failure",
+  "properties.handleValidationAction": "Handle Validation Failure",
+  "properties.handlerContainer": "Handle Validation Failure",
+  "properties.handlerContainer.script": "Handle Validation Failure",
   "properties.handleChainFailureAction": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.elementId":

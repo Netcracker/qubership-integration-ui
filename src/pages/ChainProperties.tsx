@@ -63,7 +63,6 @@ export const ChainProperties: React.FC = () => {
         chainContext.chain.navigationPath,
       ).reverse();
 
-      console.log("full path", fullPath);
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
         path: fullPath.slice(0, -1).join("/"),
