@@ -14,17 +14,18 @@ import { useModalsContext } from "../Modals.tsx";
 import {
   CatalogItemType,
   ChainCreationRequest,
-  ChainItem,
+  ChainItem, CustomResourceBuildRequest,
   FolderFilter,
   FolderItem,
   ListFolderRequest,
-  UpdateFolderRequest,
+  UpdateFolderRequest
 } from "../api/apiTypes.ts";
+import { KubernetesOutlined } from "@ant-design/icons";
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
 import { TextColumnFilterDropdown } from "../components/table/TextColumnFilterDropdown.tsx";
-import { formatTimestamp } from "../misc/format-utils.ts";
+import { formatDate, formatTimestamp } from "../misc/format-utils.ts";
 import { TimestampColumnFilterDropdown } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import { TableRowSelection } from "antd/lib/table/interface";
@@ -427,6 +428,30 @@ const Chains = () => {
       setIsLoading(false);
     }
   };
+
+  const exportCR = async () => {
+    const ids = selectedRowKeys.map((k) => k.toString());
+    setIsLoading(true);
+    try {
+      const request: CustomResourceBuildRequest = {
+        options: {
+          language: "xml",
+          image: "qip-engine",
+        },
+        chainIds: ids
+      };
+      const text = await api.buildCR(request);
+      const blob = new Blob([text], { type: "application/yaml" });
+      const timestamp = formatDate(new Date());
+      const fileName = `cr-${timestamp}.yaml`;
+      const file = new File([blob], fileName, { type: "application/yaml" });
+      downloadFile(file);
+    } catch (error) {
+      notificationService.requestFailed("Failed to export CR", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const pasteItem = async (destinationFolderId?: string) => {
     if (!operation) {
@@ -974,6 +999,11 @@ const Chains = () => {
             tooltip={{ title: "Deploy selected chains", placement: "left" }}
             icon={<Icon name="send" />}
             // onClick={onDeployBtnClick}
+          />
+          <FloatButton
+            tooltip={{ title: "Export selected chains as Camel K CR", placement: "left" }}
+            icon={<KubernetesOutlined />}
+            onClick={() => void exportCR()}
           />
           <FloatButton
             tooltip={{ title: "Paste", placement: "left" }}

@@ -58,6 +58,7 @@ import {
   TransferElementRequest,
   Element,
   SystemOperation,
+  CustomResourceBuildRequest,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -146,6 +147,8 @@ export interface Api {
   ): Promise<Snapshot>;
 
   revertToSnapshot(chainId: string, snapshotId: string): Promise<Snapshot>;
+
+  buildCR(request: CustomResourceBuildRequest): Promise<string>;
 
   getLibraryElementByType(type: string): Promise<LibraryElement>;
 

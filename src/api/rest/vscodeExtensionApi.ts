@@ -44,8 +44,9 @@ import {
   SystemRequest,
   UsedService,
   Element,
-  MaskedFields, TransferElementRequest,
-  SystemOperation
+  MaskedFields,
+  TransferElementRequest,
+  SystemOperation,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -690,6 +691,10 @@ export class VSCodeExtensionApi implements Api {
   }
   moveFolder(): Promise<FolderItem> {
     throw new Error("Method moveFolder not implemented.");
+  }
+
+  buildCR(): Promise<string> {
+    throw new Error("Method buildCR not implemented.");
   }
 }
 

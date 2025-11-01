@@ -65,6 +65,7 @@ import {
   TransferElementRequest,
   Element,
   SystemOperation,
+  CustomResourceBuildRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1320,6 +1321,16 @@ export class RestApi implements Api {
       {
         diagramModes,
       },
+    );
+    return response.data;
+  };
+
+  buildCR = async (
+    request: CustomResourceBuildRequest
+  ): Promise<string> => {
+    const response = await this.instance.post<string>(
+      `/api/v1/${getAppName()}/catalog/cr`,
+      request,
     );
     return response.data;
   };

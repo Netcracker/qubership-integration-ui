@@ -1126,3 +1126,12 @@ export enum ApiSpecificationFormat {
   YAML = "YAML",
 }
 
+export type CustomResourceBuildRequest = {
+  options: CustomResourceOptions;
+  chainIds: string[];
+}
+
+export type CustomResourceOptions = {
+  language: string;
+  image: string;
+};
