@@ -12,6 +12,7 @@ dist
 dist-lib
 dist-ssr
 *.local
+.npmrc
 
 # Editor directories and files
 .vscode/*
