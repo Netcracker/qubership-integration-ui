@@ -22,7 +22,6 @@ import { DebouncedTextareaWidget } from "./widget/DebouncedTextareaWidget.tsx";
 import { DebouncedTextWidget } from "./widget/DebouncedTextWidget.tsx";
 import OneOfAsSingleInputField from "./field/OneOfAsSingleInputField.tsx";
 import PatternPropertiesField from "./field/PatternPropertiesField.tsx";
-
 import {
   INITIAL_UI_SCHEMA,
   pathToTabMap,

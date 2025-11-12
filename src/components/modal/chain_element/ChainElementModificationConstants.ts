@@ -344,7 +344,8 @@ export const pathToTabMap: Record<string, string> = {
   "properties.chainFailureHandlerContainer.elementId":
     "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.script": "Failure Response Mapping",
-  "properties.chainFailureHandlerContainer.mappingDescription": "Failure Response Mapping",
+  "properties.chainFailureHandlerContainer.mappingDescription":
+    "Failure Response Mapping",
   "properties.validationSchema": "Validate Request",
   "properties.roles": "Access Control",
   "properties.abacResource": "Access Control",
