@@ -1126,3 +1126,9 @@ export enum ApiSpecificationFormat {
   YAML = "YAML",
 }
 
+export type Folder = {
+  id?: string;
+  name: string;
+  subfolder?: Folder;
+  description?: string;
+}
