@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Table, Tag, Dropdown, Button, Modal } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Table, Dropdown, Button, Modal } from 'antd';
 import type { FilterDropdownProps, TableRowSelection } from 'antd/es/table/interface';
 import { formatTimestamp } from '../../misc/format-utils';
 import { UsageStatusTag } from './utils';
@@ -12,7 +12,7 @@ import {
   User,
   IntegrationSystemType,
 } from "../../api/apiTypes.ts";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ColumnsFilter } from '../table/ColumnsFilter';
 import { OperationInfoModal } from './OperationInfoModal';
 import { api } from '../../api/api';
@@ -22,6 +22,7 @@ import { InlineEdit } from '../InlineEdit';
 import { LabelsEdit } from '../table/LabelsEdit';
 import { ChainColumn } from './ChainColumn';
 import { Icon } from "../../IconProvider.tsx";
+import { HttpMethod } from './HttpMethod.tsx';
 
 export type ServiceEntity = IntegrationSystem | SpecificationGroup | Specification | SystemOperation;
 
@@ -137,7 +138,11 @@ const NameCell: React.FC<{ record: ServiceEntity }> = ({ record }) => {
   const [operationInfo, setOperationInfo] = React.useState<OperationInfo | undefined>(undefined);
   const [loading, setLoading] = React.useState(false);
 
-  const handleClick = () => {
+  const { operationId } = useParams<{
+    operationId?: string;
+  }>();
+
+  const handleClick = useCallback(() => {
     if (isSystemOperation(record)) {
       const fetchOperationInfo = async () => {
         setLoading(true);
@@ -158,7 +163,13 @@ const NameCell: React.FC<{ record: ServiceEntity }> = ({ record }) => {
         void navigate(url);
       }
     }
-  };
+  }, [record, navigate]);
+
+  useEffect(() => {
+    if (operationId && operationId === record.id) {
+      handleClick();
+    }
+  }, [operationId, record.id, handleClick]);
 
   return (
     <>
@@ -190,17 +201,6 @@ export const getNameColumnRender = () => {
   );
   renderNameColumn.displayName = 'RenderNameColumn';
   return renderNameColumn;
-};
-
-const methodColors: Record<string, string> = {
-  GET: '#61affe',
-  POST: '#49cc90',
-  PUT: '#fca130',
-  DELETE: '#f93e3e',
-  PATCH: '#50e3c2',
-  QUERY: '#1890ff',
-  MUTATION: '#52c41a',
-  SUBSCRIPTION: '#722ed1',
 };
 
 function renderLabelsCell(
@@ -339,27 +339,7 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
     title: "Method",
     dataIndex: "method",
     key: "method",
-    render: (value: unknown) => {
-      const method = value as string | undefined;
-      if (!method) return "-";
-
-      const displayMethod = method.toUpperCase();
-
-      const color = methodColors[displayMethod] || "#d9d9d9";
-      return (
-        <Tag
-          style={{
-            background: color,
-            color: "#fff",
-            borderRadius: 8,
-            border: "none",
-            fontWeight: 500,
-          }}
-        >
-          {displayMethod}
-        </Tag>
-      );
-    },
+    render: (value: unknown) => <HttpMethod value={value} />,
   },
   {
     title: "URL",
