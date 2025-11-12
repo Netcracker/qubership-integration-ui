@@ -59,6 +59,8 @@ export const ChainProperties: React.FC = () => {
 
   useEffect(() => {
     if (chainContext?.chain) {
+      console.log("chainContext chain", chainContext.chain);
+
       const fullPath = Object.values(
         chainContext.chain.navigationPath,
       ).reverse();
