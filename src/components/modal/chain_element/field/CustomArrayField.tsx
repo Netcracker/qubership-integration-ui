@@ -112,7 +112,7 @@ const CustomArrayField: React.FC<Props> = ({
                       schema: JSON.stringify(schema, null, 2),
                       wildcard: false,
                       contentType,
-               Environ     };
+                    };
                   },
                 );
 
