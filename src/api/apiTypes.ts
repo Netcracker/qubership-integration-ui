@@ -9,7 +9,7 @@ export type BaseEntity = {
 };
 
 export type Chain = BaseEntity & {
-  navigationPath: [string, string][];
+  navigationPath: Record<string, string>;
   elements: Element[];
   dependencies: Dependency[];
   deployments: Deployment[];

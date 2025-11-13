@@ -59,13 +59,14 @@ export const ChainProperties: React.FC = () => {
 
   useEffect(() => {
     if (chainContext?.chain) {
-      console.log("chainContext chain", chainContext.chain);
-
-      const fullPath = chainContext.chain.navigationPath.reverse();
 
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
-        path: fullPath.slice(0, -1).join("/"),
+        path: Object.entries(chainContext.chain.navigationPath)
+          .reverse()
+          .slice(0, -1)
+          .map(([key, value]) => value)
+          .join("/"),
         labels: chainContext.chain.labels?.map((label) => label.name) ?? [],
         description: chainContext.chain.description ?? "",
         businessDescription: chainContext.chain.businessDescription ?? "",
@@ -97,12 +98,14 @@ export const ChainProperties: React.FC = () => {
       await moveChain(String(chainContext.chain.id), uiFoldersPath.join("/"));
       changes = {
         ...changes,
-        navigationPath: uiFoldersPath.map((path) => [path, path]),
+        navigationPath: Object.fromEntries(
+          uiFoldersPath.map((path) => [path, path]),
+        ),
       };
     }
 
     if (!isVsCode) {
-      const lastSegment = String(uiFoldersPath.reverse()[0] ?? "");
+      const lastSegment = uiFoldersPath.reverse()[0] ?? "";
       const folders = await getPathToFolder(lastSegment);
       const dbFoldersPath = folders.map((f) => f.name).join("/");
 
@@ -111,7 +114,9 @@ export const ChainProperties: React.FC = () => {
         return;
       }
 
-      const navigationPath = folders.map((f) => [f.id, f.name] as [string, string]);
+      const navigationPath = Object.fromEntries(
+        folders.map((f) => [f.id, f.name] as [string, string]),
+      );
       const destinationFolderId = folders.reverse()[0]?.id;
 
       if (chainContext.chain.parentId !== destinationFolderId) {
