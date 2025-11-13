@@ -65,7 +65,7 @@ export const ChainProperties: React.FC = () => {
         path: Object.entries(chainContext.chain.navigationPath)
           .reverse()
           .slice(0, -1)
-          .map(([key, value]) => value)
+          .map(([, value]) => value)
           .join("/"),
         labels: chainContext.chain.labels?.map((label) => label.name) ?? [],
         description: chainContext.chain.description ?? "",
@@ -98,9 +98,7 @@ export const ChainProperties: React.FC = () => {
       await moveChain(String(chainContext.chain.id), uiFoldersPath.join("/"));
       changes = {
         ...changes,
-        navigationPath: Object.fromEntries(
-          uiFoldersPath.map((path) => [path, path]),
-        ),
+        navigationPath: uiFoldersPath.map((path) => [path, path]),
       };
     }
 
@@ -114,9 +112,7 @@ export const ChainProperties: React.FC = () => {
         return;
       }
 
-      const navigationPath = Object.fromEntries(
-        folders.map((f) => [f.id, f.name] as [string, string]),
-      );
+      const navigationPath = folders.map((f) => [f.id, f.name] as [string, string]);
       const destinationFolderId = folders.reverse()[0]?.id;
 
       if (chainContext.chain.parentId !== destinationFolderId) {
