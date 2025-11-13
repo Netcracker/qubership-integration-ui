@@ -18,8 +18,8 @@ export default defineConfig({
     build: {
         outDir: 'dist-lib',
         emptyOutDir: true,
-        minify: true,
-        sourcemap: false,
+        minify: false,
+        sourcemap: true,
       rollupOptions: {
         input: path.resolve(__dirname, 'src/main.tsx'),
         external: [],
