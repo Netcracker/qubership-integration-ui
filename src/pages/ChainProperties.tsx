@@ -61,9 +61,7 @@ export const ChainProperties: React.FC = () => {
     if (chainContext?.chain) {
       console.log("chainContext chain", chainContext.chain);
 
-      const fullPath = Object.values(
-        chainContext.chain.navigationPath,
-      ).reverse();
+      const fullPath = chainContext.chain.navigationPath.reverse();
 
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
