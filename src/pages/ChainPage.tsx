@@ -56,8 +56,7 @@ const ChainPage = () => {
 
   useEffect(() => {
     const items: BreadcrumbProps["items"] = [
-      ...(buildPathItems(chain?.navigationPath ?? new Map<string, string>()) ??
-        []),
+      ...(buildPathItems(new Map(chain?.navigationPath)) ?? []),
       ...(sessionId
         ? [
             { title: "Sessions", href: `/chains/${chainId}/sessions` },
