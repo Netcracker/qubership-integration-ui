@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { Button, Card, Checkbox, Form, Input, message, Modal, Spin, Tabs, Typography, Upload } from "antd";
+import { Button, Card, Checkbox, Form, Input, message, Modal, Spin, Table, Tabs, Typography, Upload } from "antd";
 import type { RcFile } from "antd/es/upload";
 import { useModalContext } from "../../ModalContextProvider";
 import { api } from "../../api/api";
 import { getErrorMessage } from "../../misc/error-utils";
 import { useNotificationService } from "../../hooks/useNotificationService";
-import type { ElementWithChainName } from "../../api/apiTypes";
+import type { ElementWithChainName, SpecApiFile } from "../../api/apiTypes";
 import { ApiSpecificationType, ApiSpecificationFormat } from "../../api/apiTypes";
 import styles from "./Services.module.css";
 import { validateFiles } from "./utils";
 import { Icon } from "../../IconProvider.tsx";
+import { VSCodeExtensionApi } from "../../api/rest/vscodeExtensionApi.ts";
 
 const POLLING_INTERVAL = 1200;
 const DEFAULT_EXTERNAL_ROUTES_ONLY = true;
@@ -39,8 +40,12 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
   const [selectedChainIds, setSelectedChainIds] = useState<string[]>([]);
   const [loadingChains, setLoadingChains] = useState(false);
   const [validationError, setValidationError] = useState<null | { message: string; triggers: ElementWithChainName[] }>(null);
+  const [specApiFiles, setSpecApiFiles] = useState<SpecApiFile[]>([]);
+  const [loadingApiFiles, setLoadingApiFiles] = useState(false);
+  const [selectedSpecApiFile, setSelectedSpecApiFile] = useState<SpecApiFile | null>(null);
 
   const isGroupMode = groupMode ?? (!!systemId && !specificationGroupId);
+  const isVsCodeContext = api instanceof VSCodeExtensionApi;
 
   const handleCancel = () => {
     closeContainingModal();
@@ -165,6 +170,70 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalRoutesOnly]);
 
+  const fetchSpecApiFiles = async () => {
+    if (!isVsCodeContext) return;
+    setLoadingApiFiles(true);
+    try {
+      const files = await api.getSpecApiFiles();
+      setSpecApiFiles(files);
+    } catch (e) {
+      notify.requestFailed(getErrorMessage(e, "Failed to load API contract files"), e);
+    } finally {
+      setLoadingApiFiles(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isVsCodeContext) {
+      void fetchSpecApiFiles();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVsCodeContext]);
+
+  const handleImportFromApi = async () => {
+    if (!selectedSpecApiFile) return;
+    if (isGroupMode && !name.trim()) {
+      setNameTouched(true);
+      message.warning("Name is required");
+      return;
+    }
+    setLoading(true);
+    setProgressText("Reading specification file...");
+    try {
+      const fileContent = await api.readSpecificationFileContent(
+        selectedSpecApiFile.fileUri,
+        selectedSpecApiFile.specificationFilePath
+      );
+      const fileName = selectedSpecApiFile.specificationFilePath.split('/').pop() || 'specification.yaml';
+      const blob = new Blob([fileContent], { type: 'text/yaml' });
+      const file = new File([blob], fileName, { type: 'text/yaml', lastModified: Date.now() });
+      const fileList: RcFile[] = [file as RcFile];
+      setProgressText("Uploading...");
+      let res;
+      if (isGroupMode) {
+        res = await api.importSpecificationGroup(
+          systemId!,
+          name.trim() || selectedSpecApiFile.name,
+          fileList,
+        );
+      } else {
+        res = await api.importSpecification(
+          specificationGroupId!,
+          fileList,
+          systemId!
+        );
+      }
+      setProgressText("Processing...");
+      setPolling(true);
+      await pollStatus(res.id);
+      resetLoadingState();
+      closeContainingModal();
+      onSuccess?.();
+    } catch (e: unknown) {
+      handleError(e, 'Import from API failed');
+    }
+  };
+
   const handleChainSelect = (chainId: string, checked: boolean) => {
     setSelectedChainIds((prev) =>
       checked ? [...prev, chainId] : prev.filter((id) => id !== chainId)
@@ -248,11 +317,100 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
       destroyOnHidden
     >
       <Tabs
-        defaultActiveKey="file"
+        defaultActiveKey={isVsCodeContext && isGroupMode ? "api" : "file"}
         items={[
-          {
-            key: "file",
-            label: "Import File",
+          ...(isVsCodeContext && isGroupMode ? [
+            {
+              key: "api",
+              label: "Import from API",
+              children: (
+                <div>
+                  {isGroupMode && (
+                    <Form.Item
+                      label="Name"
+                      required
+                      validateStatus={!name.trim() && nameTouched ? "error" : ""}
+                      help={!name.trim() && nameTouched ? "Name is required" : undefined}
+                      className={styles.formItemMargin}
+                    >
+                      <Input
+                        value={name}
+                        onChange={(e) => handleNameChange(e.target.value)}
+                        onBlur={handleNameBlur}
+                        placeholder="Enter group name"
+                      />
+                    </Form.Item>
+                  )}
+                  {loadingApiFiles ? (
+                    <Spin className={styles.spinCenter} />
+                  ) : (
+                    <div>
+                      {specApiFiles.length === 0 ? (
+                        <Typography.Text type="secondary">No API contract files found</Typography.Text>
+                      ) : (
+                        <Table
+                          dataSource={specApiFiles}
+                          rowKey="id"
+                          rowSelection={{
+                            type: 'radio',
+                            selectedRowKeys: selectedSpecApiFile ? [selectedSpecApiFile.id] : [],
+                            onSelect: (record) => {
+                              setSelectedSpecApiFile(record);
+                              if (isGroupMode && !nameTouched) {
+                                setName(record.name);
+                              }
+                            },
+                          }}
+                          columns={[
+                            {
+                              title: 'Name',
+                              dataIndex: 'name',
+                              key: 'name',
+                            },
+                            {
+                              title: 'Protocol',
+                              dataIndex: 'protocol',
+                              key: 'protocol',
+                            },
+                            {
+                              title: 'Description',
+                              dataIndex: 'description',
+                              key: 'description',
+                              render: (text: string | undefined) => text || '-',
+                            },
+                          ]}
+                          pagination={false}
+                          size="small"
+                        />
+                      )}
+                    </div>
+                  )}
+                  <Button
+                    type="primary"
+                    onClick={() => void handleImportFromApi()}
+                    loading={loading || polling}
+                    disabled={!selectedSpecApiFile || (isGroupMode && !name.trim()) || loading || polling}
+                    className={styles.importButton}
+                    block
+                    style={{ marginTop: 16 }}
+                  >
+                    Import
+                  </Button>
+                  {(loading || polling) && (
+                    <div className={styles.loadingContainer}>
+                      <Spin />
+                      <Typography.Text className={styles.loadingText}>
+                        {progressText}
+                      </Typography.Text>
+                    </div>
+                  )}
+                </div>
+              ),
+            }
+          ] : []),
+            {
+              key: "file",
+              label: "Import File",
             children: (
               <div>
                 {isGroupMode && (
