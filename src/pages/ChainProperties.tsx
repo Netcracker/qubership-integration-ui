@@ -103,7 +103,7 @@ export const ChainProperties: React.FC = () => {
       await moveChain(String(chainContext.chain.id), uiFoldersPath.join("/"));
       changes = {
         ...changes,
-        navigationPath: uiFoldersPath.reverse().map((path) => [path, path]),
+        navigationPath: uiFoldersPath.map((path) => [path, path]),
       };
     }
 
@@ -117,9 +117,7 @@ export const ChainProperties: React.FC = () => {
         return;
       }
 
-      const navigationPath = folders.map(
-        (f) => [f.id, f.name] as [string, string],
-      );
+      const navigationPath = folders.map((f) => [f.id, f.name] as [string, string]);
       const destinationFolderId = folders.reverse()[0]?.id;
 
       if (chainContext.chain.parentId !== destinationFolderId) {
