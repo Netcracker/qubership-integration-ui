@@ -60,6 +60,8 @@ export const ChainProperties: React.FC = () => {
   useEffect(() => {
     if (chainContext?.chain) {
 
+      console.log("chainContext", chainContext);
+
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
         path: Object.entries(chainContext.chain.navigationPath)
