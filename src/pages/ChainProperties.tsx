@@ -26,12 +26,6 @@ export type FormData = {
   deployAction?: string;
 };
 
-function normalizeNavigationPath(nav: [string, string][]): [string, string][] {
-  if (!nav) return [];
-  if (Array.isArray(nav)) return nav;
-  return Object.entries(nav);
-}
-
 export const ChainProperties: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
@@ -67,11 +61,15 @@ export const ChainProperties: React.FC = () => {
     if (chainContext?.chain) {
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
-        path: normalizeNavigationPath(chainContext.chain?.navigationPath)
-          .reverse()
-          .slice(0, -1)
-          .map(([, value]) => value)
-          .join("/"),
+        path: isVsCode
+          ? chainContext.chain?.navigationPath
+              .map(([, value]) => value)
+              .join("/")
+          : Object.entries(chainContext.chain?.navigationPath)
+              .reverse()
+              .slice(0, -1)
+              .map(([, value]) => value)
+              .join("/"),
         labels: chainContext.chain.labels?.map((label) => label.name) ?? [],
         description: chainContext.chain.description ?? "",
         businessDescription: chainContext.chain.businessDescription ?? "",
@@ -118,7 +116,9 @@ export const ChainProperties: React.FC = () => {
         return;
       }
 
-      const navigationPath = folders.map((f) => [f.id, f.name] as [string, string]);
+      const navigationPath = folders.map(
+        (f) => [f.id, f.name] as [string, string],
+      );
       const destinationFolderId = folders.reverse()[0]?.id;
 
       if (chainContext.chain.parentId !== destinationFolderId) {
