@@ -14,7 +14,6 @@ export const useChain = (chainId?: string) => {
       if (!chainId) return;
       setIsLoading(true);
       try {
-        console.log("Request to update chain", chain);
         return await api.updateChain(chainId, chain);
       } catch (error) {
         notificationService.requestFailed("Failed to update chain", error);
@@ -31,7 +30,6 @@ export const useChain = (chainId?: string) => {
     setError(null);
     try {
       const chainData = await api.getChain(chainId);
-      console.log("Current chainData", chainData);
       setChain(chainData);
       return chainData;
     } catch (error) {
