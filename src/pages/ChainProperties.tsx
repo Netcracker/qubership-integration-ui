@@ -60,14 +60,12 @@ export const ChainProperties: React.FC = () => {
   useEffect(() => {
     if (chainContext?.chain) {
 
-      console.log("chainContext", chainContext);
-
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
-        path: Object.entries(chainContext.chain.navigationPath)
+        path: Object.values(chainContext.chain?.navigationPath)
           .reverse()
           .slice(0, -1)
-          .map(([, value]) => value)
+          .map((value) => value)
           .join("/"),
         labels: chainContext.chain.labels?.map((label) => label.name) ?? [],
         description: chainContext.chain.description ?? "",
