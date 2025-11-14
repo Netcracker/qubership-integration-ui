@@ -108,9 +108,10 @@ export const ChainProperties: React.FC = () => {
 
     if (!isVsCode) {
       const lastSegment = uiFoldersPath.reverse()[0] ?? "";
-      const folders = await getPathToFolder(lastSegment);
+      const folders = await getPathToFolder(lastSegment); //get folders hierarchy from backend
       const dbFoldersPath = folders.map((f) => f.name).join("/");
 
+      //check that folders can move to this path
       if (dbFoldersPath !== uiFoldersPath.reverse().join("/")) {
         notificationService.requestFailed("Incorrect folder path", undefined);
         return;
@@ -125,7 +126,6 @@ export const ChainProperties: React.FC = () => {
         await moveChain(String(chainContext.chain.id), destinationFolderId);
       }
 
-      console.log("Moved chain path", navigationPath);
       changes = {
         ...changes,
         parentId: destinationFolderId,
