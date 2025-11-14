@@ -26,6 +26,12 @@ export type FormData = {
   deployAction?: string;
 };
 
+function normalizeNavigationPath(nav: [string, string][]): [string, string][] {
+  if (!nav) return [];
+  if (Array.isArray(nav)) return nav;
+  return Object.entries(nav);
+}
+
 export const ChainProperties: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
@@ -62,10 +68,10 @@ export const ChainProperties: React.FC = () => {
 
       const formData: FormData = {
         name: chainContext.chain.name ?? "",
-        path: Object.values(chainContext.chain?.navigationPath)
+        path: normalizeNavigationPath(chainContext.chain?.navigationPath)
           .reverse()
           .slice(0, -1)
-          .map((value) => value)
+          .map(([, value]) => value)
           .join("/"),
         labels: chainContext.chain.labels?.map((label) => label.name) ?? [],
         description: chainContext.chain.description ?? "",
