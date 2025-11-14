@@ -13,7 +13,7 @@ import styles from "./Chain.module.css";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { useBlocker } from 'react-router-dom';
+import { useBlocker } from "react-router-dom";
 import { useModalsContext } from "../Modals.tsx";
 import { UnsavedChangesModal } from "../components/modal/UnsavedChangesModal.tsx";
 
@@ -86,6 +86,7 @@ export const ChainProperties: React.FC = () => {
         path: isVsCode
           ? chainContext.chain?.navigationPath
               .map(([, value]) => value)
+              .filter((path) => path.length > 0)
               .join("/")
           : Object.entries(chainContext.chain?.navigationPath)
               .reverse()
@@ -101,7 +102,7 @@ export const ChainProperties: React.FC = () => {
       loadChainExtensionPropertiesToForm(chainContext, formData);
       form.setFieldsValue(formData);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFinish = async (values: FormData) => {
@@ -124,7 +125,7 @@ export const ChainProperties: React.FC = () => {
       await moveChain(String(chainContext.chain.id), uiFoldersPath.join("/"));
       changes = {
         ...changes,
-        navigationPath: uiFoldersPath.filter((path) => path.length > 0).map((path) => [path, path]),
+        navigationPath: uiFoldersPath.map((path) => [path, path]),
       };
     }
 
