@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Card, Checkbox, Form, Input, message, Modal, Spin, Table, Tabs, Typography, Upload } from "antd";
+import { Button, Card, Checkbox, Form, Input, message, Modal, Select, Spin, Tabs, Typography, Upload } from "antd";
 import type { RcFile } from "antd/es/upload";
 import { useModalContext } from "../../ModalContextProvider";
 import { api } from "../../api/api";
@@ -115,7 +115,7 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
     }
 
     setFiles(fileList);
-    if (!nameTouched && fileList.length > 0 && isGroupMode) {
+    if (fileList.length > 0 && isGroupMode && (!nameTouched || !name.trim())) {
       const base = fileList[0].name.replace(/\.[^.]+$/, "");
       setName(base);
     }
@@ -123,10 +123,6 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
 
   const handleNameChange = (value: string) => {
     setName(value);
-    setNameTouched(true);
-  };
-
-  const handleNameBlur = () => {
     setNameTouched(true);
   };
 
@@ -234,6 +230,20 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
     }
   };
 
+  const handleSpecApiSelect = (value: string | undefined) => {
+    const file = value ? specApiFiles.find((item) => item.id === value) ?? null : null;
+    setSelectedSpecApiFile(file);
+    if (file && isGroupMode && (!nameTouched || !name.trim())) {
+      setName(file.name);
+    }
+  };
+
+  React.useEffect(() => {
+    if (selectedSpecApiFile && !specApiFiles.some((file) => file.id === selectedSpecApiFile.id)) {
+      setSelectedSpecApiFile(null);
+    }
+  }, [selectedSpecApiFile, specApiFiles]);
+
   const handleChainSelect = (chainId: string, checked: boolean) => {
     setSelectedChainIds((prev) =>
       checked ? [...prev, chainId] : prev.filter((id) => id !== chainId)
@@ -333,10 +343,9 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
                       help={!name.trim() && nameTouched ? "Name is required" : undefined}
                       className={styles.formItemMargin}
                     >
-                      <Input
+                    <Input
                         value={name}
                         onChange={(e) => handleNameChange(e.target.value)}
-                        onBlur={handleNameBlur}
                         placeholder="Enter group name"
                       />
                     </Form.Item>
@@ -348,40 +357,27 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
                       {specApiFiles.length === 0 ? (
                         <Typography.Text type="secondary">No API contract files found</Typography.Text>
                       ) : (
-                        <Table
-                          dataSource={specApiFiles}
-                          rowKey="id"
-                          rowSelection={{
-                            type: 'radio',
-                            selectedRowKeys: selectedSpecApiFile ? [selectedSpecApiFile.id] : [],
-                            onSelect: (record) => {
-                              setSelectedSpecApiFile(record);
-                              if (isGroupMode && !nameTouched) {
-                                setName(record.name);
-                              }
-                            },
-                          }}
-                          columns={[
-                            {
-                              title: 'Name',
-                              dataIndex: 'name',
-                              key: 'name',
-                            },
-                            {
-                              title: 'Protocol',
-                              dataIndex: 'protocol',
-                              key: 'protocol',
-                            },
-                            {
-                              title: 'Description',
-                              dataIndex: 'description',
-                              key: 'description',
-                              render: (text: string | undefined) => text || '-',
-                            },
-                          ]}
-                          pagination={false}
-                          size="small"
-                        />
+                        <Form.Item
+                          label="API Contract"
+                          className={styles.formItemMargin}
+                        >
+                          <Select
+                            showSearch
+                            placeholder="Select API contract"
+                            optionFilterProp="label"
+                            filterOption={(input, option) =>
+                              typeof option?.label === "string" &&
+                              option.label.toLowerCase().startsWith(input.toLowerCase())
+                            }
+                            options={specApiFiles.map((file) => ({
+                              value: file.id,
+                              label: `${file.name} - ${file.protocol}`,
+                            }))}
+                            value={selectedSpecApiFile?.id}
+                            onChange={handleSpecApiSelect}
+                            allowClear
+                          />
+                        </Form.Item>
                       )}
                     </div>
                   )}
@@ -424,7 +420,6 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
                     <Input
                       value={name}
                       onChange={(e) => handleNameChange(e.target.value)}
-                      onBlur={handleNameBlur}
                       placeholder="Enter group name"
                       autoFocus
                     />
@@ -498,7 +493,6 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
                     <Input
                       value={name}
                       onChange={e => handleNameChange(e.target.value)}
-                      onBlur={handleNameBlur}
                       placeholder="Enter group name"
                     />
                   </Form.Item>
