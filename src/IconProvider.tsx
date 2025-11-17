@@ -155,10 +155,10 @@ const defaultIcons: IconSet = {
   verticalAlignMiddle: VerticalAlignMiddleOutlined,
 };
 
-const IconContext = createContext<IconSet>(defaultIcons);
+const IconContext = createContext<IconOverrides>(defaultIcons);
 
 export const IconProvider: React.FC<{
-  icons: IconSet;
+  icons: IconOverrides;
   children: ReactNode;
 }> = ({ icons, children }) => {
   const mergedIcons = { ...defaultIcons, ...icons };
