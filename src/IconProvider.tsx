@@ -163,6 +163,7 @@ export const IconProvider: React.FC<{
 }> = ({ icons, children }) => {
   const mergedIcons = { ...defaultIcons, ...icons };
 
+  console.log("Merged icons: ", mergedIcons);
   return (
     <IconContext.Provider value={mergedIcons}>{children}</IconContext.Provider>
   );
@@ -190,6 +191,9 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
   const icons = useIcons();
   const IconComponent = icons[name];
 
+
+  console.log("Get icon", icons, name);
+  console.log("Received component", IconComponent);
   if (!IconComponent) {
     console.warn(`Icon "${name}" not found in IconProvider`);
     return null;
