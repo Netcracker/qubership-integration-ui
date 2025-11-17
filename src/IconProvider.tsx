@@ -163,6 +163,8 @@ export const IconProvider: React.FC<{
 }> = ({ icons, children }) => {
   const mergedIcons = { ...defaultIcons, ...icons };
 
+  console.log("default icons and propagated", defaultIcons, icons);
+
   console.log("Merged icons: ", mergedIcons);
   return (
     <IconContext.Provider value={mergedIcons}>{children}</IconContext.Provider>
@@ -200,10 +202,12 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
   }
 
   if (React.isValidElement(IconComponent)) {
+    console.log("valid react component", IconComponent);
     return React.cloneElement(IconComponent, props);
   }
 
   if (typeof IconComponent === "string") {
+    console.log("string", IconComponent);
     return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
   }
 
