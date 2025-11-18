@@ -15,7 +15,6 @@ import { api } from "./api/api.ts";
 
 import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
 import { IconProvider } from "./IconProvider.tsx";
-import { getIcons } from "./appConfig.ts";
 
 const router = createMemoryRouter(
   createRoutesFromElements(
@@ -63,7 +62,7 @@ const AppExtension = () => {
   }
 
   return (
-    <IconProvider icons={getIcons()}>
+    <IconProvider>
       <Layout className={styles.layout}>
         <EventNotification>
           <Modals>

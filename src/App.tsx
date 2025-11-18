@@ -27,7 +27,6 @@ import Services from "./pages/Services.tsx";
 import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
 import AdminTools from "./pages/AdminTools.tsx";
 import { Masking } from "./pages/Masking.tsx";
-import { getIcons } from "./appConfig.ts";
 import { IconProvider } from "./IconProvider.tsx";
 
 const { Header } = Layout;
@@ -94,7 +93,7 @@ const router = createBrowserRouter(
 
 const App = () => {
   return (
-    <IconProvider icons={getIcons()}>
+    <IconProvider>
       <Layout className={styles.layout}>
         <EventNotification>
           <Modals>

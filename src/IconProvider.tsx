@@ -1,4 +1,10 @@
-import React, { createContext, useContext, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+} from "react";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
 import {
   DeleteOutlined,
@@ -72,6 +78,11 @@ import {
   ColumnHeightOutlined,
   VerticalAlignMiddleOutlined,
 } from "@ant-design/icons";
+import {
+  APP_EXTENSION_UPDATE,
+  appExtensionEvents,
+  AppExtensionUpdateEvent,
+} from "./components/events/appExtensionEvents.ts";
 
 export type IconSource =
   | React.ComponentType<AntdIconProps>
@@ -157,18 +168,27 @@ const defaultIcons: IconSet = {
 
 const IconContext = createContext<IconOverrides>(defaultIcons);
 
-export const IconProvider: React.FC<{
-  icons: IconOverrides;
-  children: ReactNode;
-}> = ({ icons, children }) => {
-  const mergedIcons = { ...defaultIcons, ...icons };
+export const IconProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [icons, setIcons] = useState<IconOverrides>(defaultIcons);
 
-  console.log("default icons and propagated", defaultIcons, icons);
+  useEffect(() => {
+    const handler = (message: AppExtensionUpdateEvent) => {
+      console.log("receive message from extension", message)
+      if (message.icons) {
+        setIcons((prev) => ({ ...prev, ...message.icons }));
+      }
+    };
 
-  console.log("Merged icons: ", mergedIcons);
-  return (
-    <IconContext.Provider value={mergedIcons}>{children}</IconContext.Provider>
-  );
+    appExtensionEvents.on(APP_EXTENSION_UPDATE, handler);
+
+    return () => {
+      appExtensionEvents.off(APP_EXTENSION_UPDATE, handler);
+    };
+  }, []);
+
+  return <IconContext.Provider value={icons}>{children}</IconContext.Provider>;
 };
 
 export const useIcons = () => {
@@ -193,7 +213,6 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
   const icons = useIcons();
   const IconComponent = icons[name];
 
-
   console.log("Get icon", icons, name);
   console.log("Received component", IconComponent);
   if (!IconComponent) {
@@ -208,7 +227,9 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
 
   if (typeof IconComponent === "string") {
     console.log("string", IconComponent);
-    return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
+    return (
+      <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />
+    );
   }
 
   // @ts-expect-error all cases covered
