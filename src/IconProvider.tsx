@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
+import parse from 'html-react-parser';
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -216,7 +217,8 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
 
   if (typeof IconComponent === "string") {
     console.log("string", IconComponent);
-    return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
+    // return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
+    return <>{parse(IconComponent)}</>;
   }
 
   // @ts-expect-error all cases covered
