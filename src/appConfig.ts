@@ -1,7 +1,7 @@
 import { IconOverrides } from "../dist-lib/types";
-import { APP_EXTENSION_UPDATE, appExtensionEvents } from "./components/events/appExtensionEvents.ts";
 
 let appNameValue: string = import.meta.env.VITE_API_APP;
+let appIcons: IconOverrides = {};
 
 /**
  * Sets the application name once on bootstrap. Subsequent reads use getAppName().
@@ -13,11 +13,21 @@ function setAppName(name: string | undefined | null): void {
   }
 }
 
+export function setIcons(icons?: IconOverrides) {
+  if (icons) {
+    appIcons = icons;
+  }
+}
+
 /**
  * Returns the current application name.
  */
 export function getAppName(): string {
   return appNameValue;
+}
+
+export function getIcons(): IconOverrides {
+  return appIcons;
 }
 
 export type AppExtensionProps = {
@@ -27,6 +37,6 @@ export type AppExtensionProps = {
 
 export function configureAppExtension(message: AppExtensionProps) {
   setAppName(message.appName);
-  appExtensionEvents.emit(APP_EXTENSION_UPDATE, message);
+  setIcons(message.icons);
   console.info("Initial extension configuration succeeded");
 }
