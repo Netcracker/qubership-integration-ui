@@ -249,7 +249,7 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
               {showProperties ? '▲' : '▼'}
             </span>
             <b>Properties</b>
-            <Badge count={Object.keys(propertiesObj).length} style={{ backgroundColor: '#1677ff', marginLeft: 8 }} />
+            <Badge count={Object.keys(propertiesObj).length} style={{ backgroundColor: 'var(--vscode-button-background, #1677ff)', marginLeft: 8 }} />
             {showProperties && (
               <>
                 <Button
