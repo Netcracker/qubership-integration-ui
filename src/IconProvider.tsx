@@ -73,6 +73,8 @@ import {
   VerticalAlignMiddleOutlined,
 } from "@ant-design/icons";
 import { APP_EXTENSION_UPDATE, appExtensionEvents } from "./appExtensionEvents.ts";
+import { AppExtensionProps } from "./appConfig.ts";
+import { VSCodeResponse } from "../dist-lib/types";
 
 export type IconSource =
   | React.ComponentType<AntdIconProps>
@@ -162,8 +164,8 @@ export const IconProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [icons, setIcons] = useState<IconOverrides>(defaultIcons);
 
   useEffect(() => {
-    const handler = (event: CustomEvent<IconOverrides>) => {
-      setIcons(prev => ({ ...prev, ...event.detail }));
+    const handler = (event: CustomEvent<VSCodeResponse<AppExtensionProps>>) => {
+      setIcons(prev => ({ ...prev, ...event.detail.payload?.icons }));
       console.log("IconProvider updated icons via EventTarget:", event.detail);
     };
 
