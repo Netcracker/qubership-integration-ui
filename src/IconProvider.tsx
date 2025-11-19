@@ -1,6 +1,12 @@
-import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+} from "react";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
-import parse from 'html-react-parser';
+import parse from "html-react-parser";
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -73,7 +79,10 @@ import {
   ColumnHeightOutlined,
   VerticalAlignMiddleOutlined,
 } from "@ant-design/icons";
-import { APP_EXTENSION_UPDATE, appExtensionEvents } from "./appExtensionEvents.ts";
+import {
+  APP_EXTENSION_UPDATE,
+  appExtensionEvents,
+} from "./appExtensionEvents.ts";
 import { AppExtensionProps } from "./appConfig.ts";
 import { VSCodeResponse } from "../dist-lib/types";
 
@@ -161,19 +170,27 @@ const defaultIcons: IconSet = {
 
 const IconContext = createContext<IconOverrides>(defaultIcons);
 
-export const IconProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const IconProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [icons, setIcons] = useState<IconOverrides>(defaultIcons);
 
   useEffect(() => {
     const handler = (event: CustomEvent<VSCodeResponse<AppExtensionProps>>) => {
-      setIcons(prev => ({ ...prev, ...event.detail.payload?.icons }));
+      setIcons((prev) => ({ ...prev, ...event.detail.payload?.icons }));
       console.log("IconProvider updated icons via EventTarget:", event.detail);
     };
 
-    appExtensionEvents.addEventListener(APP_EXTENSION_UPDATE, handler as EventListener);
+    appExtensionEvents.addEventListener(
+      APP_EXTENSION_UPDATE,
+      handler as EventListener,
+    );
 
     return () => {
-      appExtensionEvents.removeEventListener(APP_EXTENSION_UPDATE, handler as EventListener);
+      appExtensionEvents.removeEventListener(
+        APP_EXTENSION_UPDATE,
+        handler as EventListener,
+      );
     };
   }, []);
 
@@ -202,7 +219,6 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
   const icons = useIcons();
   const IconComponent = icons[name];
 
-
   console.log("Get icon", icons, name);
   console.log("Received component", IconComponent);
   if (!IconComponent) {
@@ -218,7 +234,7 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
   if (typeof IconComponent === "string") {
     console.log("string", IconComponent);
     // return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
-    return <>{parse(IconComponent)}</>;
+    return <span className="anticon">{parse(IconComponent)}</span>;
   }
 
   // @ts-expect-error all cases covered
