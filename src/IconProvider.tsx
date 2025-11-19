@@ -238,8 +238,8 @@ export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
     // return <span className="anticon">{parse(IconComponent)}</span>;
     // const newIcon = () => (IconComponent);
     const parsed = parse(IconComponent);
-    const Wrapped = () => <>{parsed}</>;
-    return <Icon component={Wrapped} {...props} />;
+    // const Wrapped = () => <>{parsed}</>;
+    return <Icon component={() => parsed} {...props} />;
   }
 
   // @ts-expect-error all cases covered
