@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import Icon from '@ant-design/icons';
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
-// import parse from "html-react-parser";
+import parse from "html-react-parser";
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -236,8 +236,10 @@ export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
     console.log("string", IconComponent);
     // return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
     // return <span className="anticon">{parse(IconComponent)}</span>;
-    const newIcon = () => (IconComponent);
-    return <Icon component={newIcon} {...props} />;
+    // const newIcon = () => (IconComponent);
+    const parsed = parse(IconComponent);
+    const Wrapped = () => <>{parsed}</>;
+    return <Icon component={Wrapped} {...props} />;
   }
 
   // @ts-expect-error all cases covered
