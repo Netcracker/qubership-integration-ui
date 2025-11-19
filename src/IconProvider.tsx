@@ -3,11 +3,10 @@ import React, {
   useContext,
   ReactNode,
   useState,
-  useEffect,
 } from "react";
-import Icon from '@ant-design/icons';
+import Icon from "@ant-design/icons";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
-// import parse from "html-react-parser";
+import parse from "html-react-parser";
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -80,23 +79,13 @@ import {
   ColumnHeightOutlined,
   VerticalAlignMiddleOutlined,
 } from "@ant-design/icons";
-import {
-  APP_EXTENSION_UPDATE,
-  appExtensionEvents,
-} from "./appExtensionEvents.ts";
-import { AppExtensionProps } from "./appConfig.ts";
-import { VSCodeResponse } from "../dist-lib/types";
 
 export type IconSource =
   | React.ComponentType<AntdIconProps>
   | string
   | React.ReactElement;
 
-export type IconSet = {
-  [iconName: string]: IconSource;
-};
-
-const defaultIcons: IconSet = {
+const defaultIcons = {
   plus: PlusOutlined,
   delete: DeleteOutlined,
   inbox: InboxOutlined,
@@ -169,33 +158,26 @@ const defaultIcons: IconSet = {
   verticalAlignMiddle: VerticalAlignMiddleOutlined,
 };
 
-const IconContext = createContext<IconOverrides>(defaultIcons);
+export interface IconContextType {
+  icons: IconOverrides;
+  setIcons: (icons: IconOverrides) => void;
+}
+
+export const IconContext = createContext<IconContextType>({
+  icons: defaultIcons,
+  setIcons: () => {},
+});
 
 export const IconProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [icons, setIcons] = useState<IconOverrides>(defaultIcons);
 
-  useEffect(() => {
-    const handler = (event: CustomEvent<VSCodeResponse<AppExtensionProps>>) => {
-      setIcons((prev) => ({ ...prev, ...event.detail.payload?.icons }));
-      console.log("IconProvider updated icons via EventTarget:", event.detail);
-    };
-
-    appExtensionEvents.addEventListener(
-      APP_EXTENSION_UPDATE,
-      handler as EventListener,
-    );
-
-    return () => {
-      appExtensionEvents.removeEventListener(
-        APP_EXTENSION_UPDATE,
-        handler as EventListener,
-      );
-    };
-  }, []);
-
-  return <IconContext.Provider value={icons}>{children}</IconContext.Provider>;
+  return (
+    <IconContext.Provider value={{ icons, setIcons }}>
+      {children}
+    </IconContext.Provider>
+  );
 };
 
 export const useIcons = () => {
@@ -206,7 +188,7 @@ export const useIcons = () => {
   return context;
 };
 
-interface IconProps extends Omit<AntdIconProps, "name"> {
+interface OverridableIconProps extends Omit<AntdIconProps, "name"> {
   name: IconName;
 }
 
@@ -216,12 +198,13 @@ export type IconOverrides = {
   [K in IconName]?: IconSource;
 };
 
-export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
+export const OverridableIcon: React.FC<OverridableIconProps> = ({
+  name,
+  ...props
+}) => {
   const icons = useIcons();
-  const IconComponent = icons[name];
+  const IconComponent = icons.icons[name];
 
-  console.log("Get icon", icons, name);
-  console.log("Received component", IconComponent);
   if (!IconComponent) {
     console.warn(`Icon "${name}" not found in IconProvider`);
     return null;
@@ -233,16 +216,12 @@ export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
   }
 
   if (typeof IconComponent === "string") {
-    console.log("string", IconComponent);
-    // const newIcon = () => (IconComponent);
-    // const parsed = parse(IconComponent);
-    // const Wrapped = () => <>{parsed}</>;
-    // if (!React.isValidElement(parsed)) {
-    //   console.warn("Parsed icon is not a React element:", parsed);
-    //   return null;
-    // }
-    // const sizedSvg = React.cloneElement(<>{parsed}</>, {
-    const sizedSvg = React.cloneElement(<>{IconComponent}</>, {
+    const parsed = parse(IconComponent);
+    if (!React.isValidElement(parsed)) {
+      console.warn("Parsed icon is not a React element:", parsed);
+      return null;
+    }
+    const sizedSvg = React.cloneElement(parsed, {
       width: "1em",
       height: "1em",
       ...props,
