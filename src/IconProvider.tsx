@@ -234,12 +234,9 @@ export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
 
   if (typeof IconComponent === "string") {
     console.log("string", IconComponent);
-    // return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
-    // return <span className="anticon">{parse(IconComponent)}</span>;
-    // const newIcon = () => (IconComponent);
     const parsed = parse(IconComponent);
     // const Wrapped = () => <>{parsed}</>;
-    return <Icon component={() => parsed} {...props} />;
+    return <Icon component={() => parsed} {...{ width: "1em", height: "1em",...props}} />;
   }
 
   // @ts-expect-error all cases covered
