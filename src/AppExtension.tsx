@@ -15,8 +15,6 @@ import { api } from "./api/api.ts";
 
 import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
 import { IconProvider } from "./IconProvider.tsx";
-// import { useEffect } from "react";
-// import { initGlobalAppConfig } from "./appExtensionEvents.ts";
 
 const router = createMemoryRouter(
   createRoutesFromElements(
@@ -59,9 +57,6 @@ const router = createMemoryRouter(
 );
 
 const AppExtension = () => {
-  // useEffect(() => {
-  //   initGlobalAppConfig();
-  // }, []);
 
   if (api instanceof VSCodeExtensionApi) {
     void api.sendMessageToExtension(STARTUP_EVENT);

@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  ReactNode,
-  useState,
-} from "react";
+import React, { createContext, useContext, ReactNode, useState } from "react";
 import Icon from "@ant-design/icons";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
 import parse from "html-react-parser";
@@ -171,7 +166,14 @@ export const IconContext = createContext<IconContextType>({
 export const IconProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [icons, setIcons] = useState<IconOverrides>(defaultIcons);
+  const [icons, setIconsState] = useState<IconOverrides>(defaultIcons);
+
+  const setIcons = (overrides: IconOverrides) => {
+    setIconsState((prev) => ({
+      ...prev,
+      ...overrides,
+    }));
+  };
 
   return (
     <IconContext.Provider value={{ icons, setIcons }}>
@@ -195,7 +197,7 @@ interface OverridableIconProps extends Omit<AntdIconProps, "name"> {
 export type IconName = keyof typeof defaultIcons;
 
 export type IconOverrides = {
-  [K in IconName]?: IconSource;
+  [K in IconName]: IconSource;
 };
 
 export const OverridableIcon: React.FC<OverridableIconProps> = ({
