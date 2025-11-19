@@ -197,7 +197,7 @@ interface OverridableIconProps extends Omit<AntdIconProps, "name"> {
 export type IconName = keyof typeof defaultIcons;
 
 export type IconOverrides = {
-  [K in IconName]: IconSource;
+  [K in IconName]?: IconSource;
 };
 
 export const OverridableIcon: React.FC<OverridableIconProps> = ({
