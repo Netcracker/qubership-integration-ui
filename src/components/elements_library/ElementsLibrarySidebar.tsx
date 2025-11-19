@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 import { Menu, Spin } from "antd";
 import { LibraryElement, LibraryData } from "../../api/apiTypes.ts";
 import DraggableElement from "./DraggableElement.tsx";
@@ -7,6 +7,7 @@ import Sider from "antd/lib/layout/Sider";
 import styles from "./ElementsLibrarySidebar.module.css";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { useLibraryContext } from "../LibraryContext.tsx";
+import { OverridableIcon } from "../../IconProvider.tsx";
 
 export const ElementsLibrarySidebar = () => {
   const [, setElementsList] = useState<LibraryData | null>(null);
@@ -18,6 +19,7 @@ export const ElementsLibrarySidebar = () => {
   type MenuItem = {
     key: string;
     label: React.ReactNode;
+    icon?: ReactElement<any, any>;
     children?: MenuItem[];
   };
 
@@ -34,6 +36,7 @@ export const ElementsLibrarySidebar = () => {
             folderMap.set(element.folder, {
               key: element.folder,
               label: prettifyName(element.folder),
+              icon: <OverridableIcon name="folder" style={{ fontSize: 16 }} />,
               children: [],
             });
           }

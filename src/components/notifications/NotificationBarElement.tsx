@@ -1,7 +1,7 @@
 import React from "react";
 import { List } from "antd";
 import { NotificationItem } from "./contexts/NotificationLogContext.tsx";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../IconProvider.tsx";
 
 type NotificationBarElementProps = {
   value: NotificationItem;
@@ -16,11 +16,11 @@ export const NotificationBarElement: React.FC<NotificationBarElementProps> = ({
     const style = { fontSize: "18", marginTop: 4 };
     switch (type) {
       case "error":
-        return <Icon name="closeCircle" style={{ ...style, color: "#ff4d4f" }} />;
+        return <OverridableIcon name="closeCircle" style={{ ...style, color: "#ff4d4f" }} />;
       case "info":
       default:
         return (
-          <Icon name="exclamationCircle" style={{ ...style, color: "#1890ff" }} />
+          <OverridableIcon name="exclamationCircle" style={{ ...style, color: "#1890ff" }} />
         );
     }
   };
@@ -28,7 +28,7 @@ export const NotificationBarElement: React.FC<NotificationBarElementProps> = ({
   return (
     <List.Item
       actions={[
-        <Icon name="close"
+        <OverridableIcon name="close"
           key="close"
           style={{ cursor: "pointer" }}
           onClick={() => onRemove(value)}

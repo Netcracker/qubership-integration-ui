@@ -3,7 +3,7 @@ import { ChainGraphNode } from "./ChainGraphNodeTypes.ts";
 import { Badge, Button, Tooltip } from "antd";
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { EllipsisLabel } from "./EllipsisLabel";
-import { Icon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../IconProvider.tsx";
 
 function useElementWidth(ref: React.RefObject<HTMLElement>) {
   const [width, setWidth] = useState(0);
@@ -78,7 +78,7 @@ export function ContainerNode({
             <Button
               size="small"
               type="text"
-              icon={isCollapsed ? <Icon name="caretRightFilled" /> : <Icon name="caretDownFilled" />}
+              icon={isCollapsed ? <OverridableIcon name="caretRightFilled" /> : <OverridableIcon name="caretDownFilled" />}
               onClick={() => data.onToggleCollapse?.()}
               tabIndex={-1}
             />

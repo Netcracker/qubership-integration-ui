@@ -5,8 +5,9 @@ import React, {
   useState,
   useEffect,
 } from "react";
+import Icon from '@ant-design/icons';
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
-import parse from "html-react-parser";
+// import parse from "html-react-parser";
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -215,7 +216,7 @@ export type IconOverrides = {
   [K in IconName]?: IconSource;
 };
 
-export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
+export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
   const icons = useIcons();
   const IconComponent = icons[name];
 
@@ -234,7 +235,9 @@ export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
   if (typeof IconComponent === "string") {
     console.log("string", IconComponent);
     // return <span {...props} dangerouslySetInnerHTML={{ __html: IconComponent }} />;
-    return <span className="anticon">{parse(IconComponent)}</span>;
+    // return <span className="anticon">{parse(IconComponent)}</span>;
+    const newIcon = () => (IconComponent);
+    return <Icon component={newIcon} {...props} />;
   }
 
   // @ts-expect-error all cases covered

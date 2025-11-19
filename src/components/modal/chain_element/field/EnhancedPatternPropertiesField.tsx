@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { FieldProps, RJSFSchema } from "@rjsf/utils";
 import { Input, Button, Tag, Tooltip } from "antd";
 import styles from "./EnhancedPatternPropertiesField.module.css";
-import { Icon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
 import { api } from "../../../../api/api";
 import {
@@ -545,7 +545,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
           onClick={() => setCollapsed((s) => !s)}
         >
           <span className={styles.iconWrapper}>
-            {collapsed ? <Icon name="right" /> : <Icon name="down" />}
+            {collapsed ? <OverridableIcon name="right" /> : <OverridableIcon name="down" />}
           </span>
           <span>{title}</span>
           <span className={styles.badge}>{mergedParameters.length}</span>
@@ -614,7 +614,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
                           <Button
                             size="small"
                             type="text"
-                            icon={<Icon name="rollback" />}
+                            icon={<OverridableIcon name="rollback" />}
                             onClick={() => restoreDefaultValue(param.name)}
                             className={styles.restoreBtn}
                           />
@@ -624,7 +624,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
                         <Button
                           size="small"
                           type="text"
-                          icon={<Icon name="delete" />}
+                          icon={<OverridableIcon name="delete" />}
                           onClick={() => handleDelete(param.name)}
                           className={styles.deleteBtn}
                         />

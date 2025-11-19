@@ -37,7 +37,7 @@ import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { capitalize } from "../../misc/format-utils.ts";
 import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
 import { api } from "../../api/api.ts";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../IconProvider.tsx";
 import { normalizeProtocol } from "../../misc/protocol-utils.ts";
 
 function buildGraphQLOperations(schemaText: string, queryText: string) {
@@ -644,7 +644,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                     beforeUpload={() => false}
                   >
                     <p className="ant-upload-drag-icon">
-                      <Icon name="inbox" />
+                      <OverridableIcon name="inbox" />
                     </p>
                     <p className="ant-upload-text">
                       Click or drag file to this area to upload

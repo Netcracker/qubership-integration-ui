@@ -46,7 +46,7 @@ import {
   ChainGraphNodeData,
   nodeTypes,
 } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
-import { Icon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../IconProvider.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 
 const ChainGraphInner: React.FC = () => {
@@ -252,7 +252,7 @@ const ChainGraphInner: React.FC = () => {
         </ElkDirectionContextProvider>
       </div>
       {!isVsCode && (
-        <FloatButtonGroup trigger="hover" icon={<Icon name="more" />}>
+        <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
           <FloatButton
             icon={<>⭾</>}
             tooltip={{
@@ -262,7 +262,7 @@ const ChainGraphInner: React.FC = () => {
             onClick={openSequenceDiagram}
           />
           <FloatButton
-            icon={<Icon name="send" />}
+            icon={<OverridableIcon name="send" />}
             tooltip={{
               title: "Save and deploy",
               placement: "left",

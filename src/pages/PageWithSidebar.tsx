@@ -49,9 +49,9 @@ export const PageWithSidebar: React.FC<PageWithSidebarProps> = ({
             onClick={() => setCollapsed(!collapsed)}
           >
             {collapsed ? (
-              <Icon name="doubleRight" />
+              <OverridableIcon name="doubleRight" />
             ) : (
-              <Icon name="doubleLeft" />
+              <OverridableIcon name="doubleLeft" />
             )}
           </div>
         </div>
