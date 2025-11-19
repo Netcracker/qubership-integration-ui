@@ -234,9 +234,19 @@ export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
 
   if (typeof IconComponent === "string") {
     console.log("string", IconComponent);
+    // const newIcon = () => (IconComponent);
     const parsed = parse(IconComponent);
     // const Wrapped = () => <>{parsed}</>;
-    return <Icon component={() => parsed} {...{ width: "1em", height: "1em",...props}} />;
+    if (!React.isValidElement(parsed)) {
+      console.warn("Parsed icon is not a React element:", parsed);
+      return null;
+    }
+    const sizedSvg = React.cloneElement(parsed, {
+      width: "1em",
+      height: "1em",
+      ...props,
+    });
+    return <Icon component={() => sizedSvg} />;
   }
 
   // @ts-expect-error all cases covered
