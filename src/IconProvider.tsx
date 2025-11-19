@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import Icon from '@ant-design/icons';
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
-import parse from "html-react-parser";
+// import parse from "html-react-parser";
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -235,13 +235,14 @@ export const OverridableIcon: React.FC<IconProps> = ({ name, ...props }) => {
   if (typeof IconComponent === "string") {
     console.log("string", IconComponent);
     // const newIcon = () => (IconComponent);
-    const parsed = parse(IconComponent);
+    // const parsed = parse(IconComponent);
     // const Wrapped = () => <>{parsed}</>;
-    if (!React.isValidElement(parsed)) {
-      console.warn("Parsed icon is not a React element:", parsed);
-      return null;
-    }
-    const sizedSvg = React.cloneElement(parsed, {
+    // if (!React.isValidElement(parsed)) {
+    //   console.warn("Parsed icon is not a React element:", parsed);
+    //   return null;
+    // }
+    // const sizedSvg = React.cloneElement(<>{parsed}</>, {
+    const sizedSvg = React.cloneElement(<>{IconComponent}</>, {
       width: "1em",
       height: "1em",
       ...props,
