@@ -74,7 +74,6 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
   }
 
   if (React.isValidElement(IconComponent)) {
-    console.log("valid react component", IconComponent);
     return React.cloneElement(IconComponent, props);
   }
 

@@ -26,7 +26,6 @@ export const ElementsLibrarySidebar = () => {
 
   useEffect(() => {
     if (libraryData) {
-      console.log("libraryData", libraryData);
       setElementsList(libraryData);
 
       const folderMap = new Map<string, MenuItem>();
