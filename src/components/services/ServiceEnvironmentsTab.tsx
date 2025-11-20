@@ -11,8 +11,15 @@ import { ChainColumn } from './ChainColumn';
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { getErrorMessage } from '../../misc/error-utils';
 import { useLocation } from "react-router-dom";
-import { Icon } from "../../IconProvider.tsx";
-import {environmentLabels} from "./utils.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { environmentLabels } from "./utils.tsx";
+import { isVsCode } from "../../api/rest/vscodeExtensionApi.ts";
+import {
+  isAmqpProtocol,
+  isKafkaProtocol,
+  isHttpProtocol,
+  normalizeProtocol,
+} from "../../misc/protocol-utils";
 
 interface ServiceEnvironmentsTabProps {
   formatTimestamp: (val: number) => string;
@@ -24,7 +31,8 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   setSystem,
 }) => {
   const system = useServiceContext();
-  const protocol = system?.protocol || '';
+  const protocol = system?.protocol || "";
+  const normalizedProtocol = normalizeProtocol(protocol);
   const systemId = system?.id || "";
   const activeEnvironmentId = system?.activeEnvironmentId;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,51 +49,56 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   const notificationService = useNotificationService();
   const location = useLocation();
 
-  const getDefaultProperties = useCallback((protocol: string, sourceType: EnvironmentSourceType) => {
-    if (sourceType === EnvironmentSourceType.MANUAL) {
-      const proto = protocol.toLowerCase();
-      if (proto === 'amqp' || proto === 'rabbit') {
-        return {
-          password: '',
-          username: '',
-          routingKey: '',
-          acknowledgeMode: 'AUTO',
-        };
+  const getDefaultProperties = useCallback(
+    (protocol: string, sourceType: EnvironmentSourceType) => {
+      const normalized = normalizeProtocol(protocol);
+
+      if (sourceType === EnvironmentSourceType.MANUAL) {
+        if (isAmqpProtocol(normalized)) {
+          return {
+            password: "",
+            username: "",
+            routingKey: "",
+            acknowledgeMode: "AUTO",
+          };
+        }
+        if (isKafkaProtocol(normalized)) {
+          return {
+            key: "",
+            sslProtocol: "",
+            saslMechanism: "",
+            saslJaasConfig: "",
+            securityProtocol: "",
+            sslEnabledProtocols: "",
+            sslEndpointAlgorithm: "",
+          };
+        }
+        if (normalized === "http") {
+          return {
+            connectTimeout: "120000",
+            soTimeout: "120000",
+            connectionRequestTimeout: "120000",
+            responseTimeout: "120000",
+            getWithBody: "false",
+            deleteWithBody: "false",
+          };
+        }
       }
-      if (proto === 'kafka') {
-        return {
-          key: '',
-          sslProtocol: '',
-          saslMechanism: '',
-          saslJaasConfig: '',
-          securityProtocol: '',
-          sslEnabledProtocols: '',
-          sslEndpointAlgorithm: '',
-        };
+
+      if (sourceType === EnvironmentSourceType.MAAS_BY_CLASSIFIER) {
+        if (isAmqpProtocol(normalized)) {
+          return {
+            routingKey: "",
+            acknowledgeMode: "AUTO",
+          };
+        }
+        return {};
       }
-      if (proto === 'http') {
-        return {
-          connectTimeout: '120000',
-          soTimeout: '120000',
-          connectionRequestTimeout: '120000',
-          responseTimeout: '120000',
-          getWithBody: 'false',
-          deleteWithBody: 'false',
-        };
-      }
-    }
-    if (sourceType === EnvironmentSourceType.MAAS_BY_CLASSIFIER) {
-      const proto = protocol.toLowerCase();
-      if (proto === 'amqp' || proto === 'rabbit') {
-        return {
-          routingKey: '',
-          acknowledgeMode: 'AUTO',
-        };
-      }
+
       return {};
-    }
-    return {};
-  }, []);
+    },
+    [],
+  );
 
   const defaultNewEnv: Environment = {
     id: '',
@@ -93,7 +106,10 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
     name: 'New Environment',
     address: '',
     labels: [],
-    properties: getDefaultProperties(protocol, EnvironmentSourceType.MANUAL),
+    properties: getDefaultProperties(
+      normalizedProtocol ?? "",
+      EnvironmentSourceType.MANUAL,
+    ),
     sourceType: EnvironmentSourceType.MANUAL,
   };
 
@@ -203,7 +219,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       key: 'name',
       render: (text: string, record: Environment) => (
         <span
-          style={{ fontWeight: 600, color: '#1677ff', cursor: 'pointer' }}
+          style={{ fontWeight: 600, color: 'var(--vscode-textLink-foreground, #1677ff)', cursor: 'pointer' }}
           onClick={() => handleEditClick(record)}
         >
           {text}
@@ -214,7 +230,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       title: 'Address',
       dataIndex: 'address',
       key: 'address',
-      render: (text?: string) => text || <span style={{ color: '#bbb' }}>/</span>,
+      render: (text?: string) => text || <span style={{ color: 'var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45))' }}>/</span>,
     },
     {
       title: 'Source',
@@ -230,6 +246,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       title: 'Modified',
       dataIndex: 'modifiedWhen',
       key: 'modifiedWhen',
+      hidden: isVsCode,
       render: (val?: number) => val ? formatTimestamp(val) : '',
     },
     {
@@ -238,7 +255,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       key: 'labels',
       render: (labels?: unknown[]) => {
         if (!Array.isArray(labels) || labels.length === 0) {
-          return <span style={{ color: '#bbb' }}>-</span>;
+          return <span style={{ color: 'var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45))' }}>-</span>;
         }
 
         return (
@@ -276,7 +293,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         <Tooltip title="Delete">
           <Button
             type="text"
-            icon={<Icon name="delete" />}
+            icon={<OverridableIcon name="delete" />}
             danger
             onClick={() => handleDelete(record.id)}
           />
@@ -286,7 +303,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   ], [activeEnvironmentId, memoChains, formatTimestamp, handleDelete, handleEditClick, handleSwitchEnvironment, switchingEnvId, system]);
 
   if (loading) return <Spin style={{ margin: 32 }} />;
-  if (error) return <div style={{ color: 'red', margin: 32 }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--vscode-errorForeground, #d73a49)', margin: 32 }}>{error}</div>;
   if (!systemId) return null;
 
   return (
@@ -302,7 +319,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         pagination={false}
         bordered
         size="small"
-        style={{ background: "#fff", borderRadius: 12, width: '100%' }}
+        style={{ background: "var(--vscode-editor-background)", borderRadius: 12, width: '100%' }}
         columns={columns}
       />
       <EnvironmentParamsModal

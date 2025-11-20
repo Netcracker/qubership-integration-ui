@@ -27,7 +27,7 @@ import { TextValueEdit } from "../components/table/TextValueEdit.tsx";
 import { LabelsEdit } from "../components/table/LabelsEdit.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
-import { Icon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 export const Snapshots: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
@@ -215,43 +215,43 @@ export const Snapshots: React.FC = () => {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
-      render: (_, snapshot) => <>{snapshot.createdBy.username}</>,
+      render: (_, snapshot) => <>{snapshot.createdBy?.username ?? "—"}</>,
       sorter: (a, b) =>
-        a.createdBy.username.localeCompare(b.createdBy.username),
+        (a.createdBy?.username ?? "").localeCompare(b.createdBy?.username ?? ""),
       filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       onFilter: getTextColumnFilterFn(
-        (snapshot) => snapshot.createdBy.username,
+        (snapshot) => snapshot.createdBy?.username ?? "",
       ),
     },
     {
       title: "Created At",
       dataIndex: "createdWhen",
       key: "createdWhen",
-      render: (_, snapshot) => <>{formatTimestamp(snapshot.createdWhen)}</>,
-      sorter: (a, b) => a.createdWhen - b.createdWhen,
+      render: (_, snapshot) => <>{snapshot.createdWhen ? formatTimestamp(snapshot.createdWhen) : "-"}</>,
+      sorter: (a, b) => (a.createdWhen ?? 0) - (b.createdWhen ?? 0),
       filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      onFilter: getTimestampColumnFilterFn((snapshot) => snapshot.createdWhen),
+      onFilter: getTimestampColumnFilterFn((snapshot) => snapshot.createdWhen ?? 0),
     },
     {
       title: "Modified By",
       dataIndex: "modifiedBy",
       key: "modifiedBy",
-      render: (_, snapshot) => <>{snapshot.modifiedBy.username}</>,
+      render: (_, snapshot) => <>{snapshot.modifiedBy?.username ?? "—"}</>,
       sorter: (a, b) =>
-        a.modifiedBy.username.localeCompare(b.modifiedBy.username),
+        (a.modifiedBy?.username ?? "").localeCompare(b.modifiedBy?.username ?? ""),
       filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       onFilter: getTextColumnFilterFn(
-        (snapshot) => snapshot.modifiedBy.username,
+        (snapshot) => snapshot.modifiedBy?.username ?? "",
       ),
     },
     {
       title: "Modified At",
       dataIndex: "modifiedWhen",
       key: "modifiedWhen",
-      render: (_, snapshot) => <>{formatTimestamp(snapshot.modifiedWhen)}</>,
-      sorter: (a, b) => a.modifiedWhen - b.modifiedWhen,
+      render: (_, snapshot) => <>{snapshot.modifiedWhen ? formatTimestamp(snapshot.modifiedWhen) : "-"}</>,
+      sorter: (a, b) => (a.modifiedWhen ?? 0) - (b.modifiedWhen ?? 0),
       filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      onFilter: getTimestampColumnFilterFn((snapshot) => snapshot.modifiedWhen),
+      onFilter: getTimestampColumnFilterFn((snapshot) => snapshot.modifiedWhen ?? 0),
     },
     {
       title: "",
@@ -265,19 +265,19 @@ export const Snapshots: React.FC = () => {
               items: [
                 {
                   key: "delete",
-                  icon: <Icon name="delete" />,
+                  icon: <OverridableIcon name="delete" />,
                   label: "Delete",
                   onClick: () => deleteSnapshotWithConfirmation(snapshot),
                 },
                 {
                   key: "revert",
-                  icon: <Icon name="rollback" />,
+                  icon: <OverridableIcon name="rollback" />,
                   label: "Revert to",
                   onClick: () => revertToSnapshotWithConfirmation(snapshot),
                 },
                 {
                   key: "showXml",
-                  icon: <Icon name="fileText" />,
+                  icon: <OverridableIcon name="fileText" />,
                   label: "Show XML",
                   onClick: () => showSnapshotXml(snapshot),
                 },
@@ -292,7 +292,7 @@ export const Snapshots: React.FC = () => {
             trigger={["click"]}
             placement="bottomRight"
           >
-            <Button size="small" type="text" icon={<Icon name="more" />} />
+            <Button size="small" type="text" icon={<OverridableIcon name="more" />} />
           </Dropdown>
         </>
       ),
@@ -323,7 +323,7 @@ export const Snapshots: React.FC = () => {
         style={{ height: "100%" }}
         scroll={{ y: "" }}
       />
-      <FloatButtonGroup trigger="hover" icon={<Icon name="more" />}>
+      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           tooltip={{ title: "Compare selected snapshots", placement: "left" }}
           icon={<>⇄</>}
@@ -331,12 +331,12 @@ export const Snapshots: React.FC = () => {
         />
         <FloatButton
           tooltip={{ title: "Delete selected snapshots", placement: "left" }}
-          icon={<Icon name="delete" />}
+          icon={<OverridableIcon name="delete" />}
           onClick={onDeleteBtnClick}
         />
         <FloatButton
           tooltip={{ title: "Create snapshot", placement: "left" }}
-          icon={<Icon name="plus" />}
+          icon={<OverridableIcon name="plus" />}
           onClick={onCreateBtnClick}
         />
       </FloatButtonGroup>

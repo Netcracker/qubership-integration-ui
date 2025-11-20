@@ -82,7 +82,7 @@ import {
 } from "./TransformationEditDialog.tsx";
 import { useMappingDescription } from "./useMappingDescription.tsx";
 import { MappingTableItemActionButton } from "./MappingTableItemActionButton.tsx";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export type MappingTableViewProps = Omit<
   React.HTMLAttributes<HTMLElement>,
@@ -1010,85 +1010,95 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           filteredValue:
             controlsStateMap.get(selectedSchema)?.filters.type || null,
         },
-        {
-          key: "optionality",
-          title: "Optionality",
-          render: (_value: unknown, item: MappingTableItem) => {
-            return isAttributeItem(item) ? (
-              readonly ? (
-                item.attribute.required ? (
-                  "required"
-                ) : (
-                  "optional"
-                )
-              ) : (
-                <InlineEdit<{ optionality: string }>
-                  values={{ optionality: String(!!item.attribute.required) }}
-                  editor={
-                    <SelectEdit
-                      name="optionality"
-                      options={[
-                        {
-                          value: "false",
-                          label: "optional",
-                        },
-                        { value: "true", label: "required" },
-                      ]}
-                    />
+        ...(selectedSchema === SchemaKind.TARGET
+          ? [
+              {
+                key: "optionality",
+                title: "Optionality",
+                render: (_value: unknown, item: MappingTableItem) => {
+                  return isAttributeItem(item) ? (
+                    readonly ? (
+                      item.attribute.required ? (
+                        "required"
+                      ) : (
+                        "optional"
+                      )
+                    ) : (
+                      <InlineEdit<{ optionality: string }>
+                        values={{
+                          optionality: String(!!item.attribute.required),
+                        }}
+                        editor={
+                          <SelectEdit
+                            name="optionality"
+                            options={[
+                              {
+                                value: "false",
+                                label: "optional",
+                              },
+                              { value: "true", label: "required" },
+                            ]}
+                          />
+                        }
+                        viewer={item.attribute.required ? "required" : "optional"}
+                        onSubmit={({ optionality }) => {
+                          tryUpdateAttribute(item.kind, item.path, {
+                            required: optionality === "true",
+                          });
+                        }}
+                      />
+                    )
+                  ) : (
+                    <></>
+                  );
+                },
+                sorter: (
+                  i0: MappingTableItem,
+                  i1: MappingTableItem,
+                  sortOrder: SortOrder | undefined,
+                ) => {
+                  if (isAttributeItem(i0)) {
+                    const s1 = i0.attribute.required ? "required" : "optional";
+                    const s2 = (i1 as AttributeItem).attribute.required
+                      ? "required"
+                      : "optional";
+                    return s1.localeCompare(s2);
+                  } else {
+                    return compareGroupItems(i0, i1, sortOrder ?? null);
                   }
-                  viewer={item.attribute.required ? "required" : "optional"}
-                  onSubmit={({ optionality }) => {
-                    tryUpdateAttribute(item.kind, item.path, {
-                      required: optionality === "true",
-                    });
-                  }}
-                />
-              )
-            ) : (
-              <></>
-            );
-          },
-          sorter: (
-            i0: MappingTableItem,
-            i1: MappingTableItem,
-            sortOrder: SortOrder | undefined,
-          ) => {
-            if (isAttributeItem(i0)) {
-              const s1 = i0.attribute.required ? "required" : "optional";
-              const s2 = (i1 as AttributeItem).attribute.required
-                ? "required"
-                : "optional";
-              return s1.localeCompare(s2);
-            } else {
-              return compareGroupItems(i0, i1, sortOrder ?? null);
-            }
-          },
-          sortDirections: ["ascend" as const, "descend" as const, null],
-          sortOrder:
-            controlsStateMap.get(selectedSchema)?.sorts.columnKey ===
-            "optionality"
-              ? controlsStateMap.get(selectedSchema)?.sorts.order
-              : null,
-          filterDropdown: (props: FilterDropdownProps) => (
-            <EnumColumnFilterDropdown
-              options={[
-                { value: "false", label: "optional" },
-                { value: "true", label: "required" },
-              ]}
-              {...props}
-            />
-          ),
-          onFilter: (value: boolean | React.Key, item: MappingTableItem) => {
-            return (
-              !isAttributeItem(item) ||
-              getEnumColumnFilterFn((i: AttributeItem) =>
-                String(i.attribute.required ?? false),
-              )(value, item)
-            );
-          },
-          filteredValue:
-            controlsStateMap.get(selectedSchema)?.filters.optionality || null,
-        },
+                },
+                sortDirections: ["ascend" as const, "descend" as const, null],
+                sortOrder:
+                  controlsStateMap.get(selectedSchema)?.sorts.columnKey ===
+                  "optionality"
+                    ? controlsStateMap.get(selectedSchema)?.sorts.order
+                    : null,
+                filterDropdown: (props: FilterDropdownProps) => (
+                  <EnumColumnFilterDropdown
+                    options={[
+                      { value: "false", label: "optional" },
+                      { value: "true", label: "required" },
+                    ]}
+                    {...props}
+                  />
+                ),
+                onFilter: (
+                  value: boolean | React.Key,
+                  item: MappingTableItem,
+                ) => {
+                  return (
+                    !isAttributeItem(item) ||
+                    getEnumColumnFilterFn((i: AttributeItem) =>
+                      String(i.attribute.required ?? false),
+                    )(value, item)
+                  );
+                },
+                filteredValue:
+                  controlsStateMap.get(selectedSchema)?.filters.optionality ||
+                  null,
+              },
+            ]
+          : []),
         {
           key: "description",
           title: "Description",
@@ -1641,6 +1651,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 readonly={readonly}
                 enableEdit={false}
                 enableXmlNamespaces={bodyFormat === SourceFormat.XML.toString()}
+                schemaKind={selectedSchema}
                 onLoad={(type) => {
                   if (isBodyGroup(item)) {
                     updateBodyType(selectedSchema, type);
@@ -1756,14 +1767,14 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 updateControlsState({ selectedColumns: selectedKeys }),
             }}
           >
-            <Button icon={<Icon name="settings" />} />
+            <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
           <Dropdown
             menu={{
               items: [
                 {
                   key: "saveAsMarkdown",
-                  icon: <Icon name="fileMarkdown" />,
+                  icon: <OverridableIcon name="fileMarkdown" />,
                   label: "Save as markdown",
                   onClick: () => {
                     exportMappingAsMarkdown(mappingDescription);
@@ -1771,7 +1782,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 },
                 {
                   key: "clearFilters",
-                  icon: <Icon name="clear" />,
+                  icon: <OverridableIcon name="clear" />,
                   label: "Clear filters",
                   onClick: () => {
                     updateControlsState({ filters: {} });
@@ -1779,7 +1790,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
                 },
                 {
                   key: "clearSorts",
-                  icon: <Icon name="clear" />,
+                  icon: <OverridableIcon name="clear" />,
                   label: "Clear sorters",
                   onClick: () => {
                     updateControlsState({ sorts: {} });
@@ -1790,7 +1801,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
             trigger={["click"]}
             placement="bottomLeft"
           >
-            <Button icon={<Icon name="more" />} />
+            <Button icon={<OverridableIcon name="more" />} />
           </Dropdown>
         </Flex>
         <Table<MappingTableItem>

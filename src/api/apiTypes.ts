@@ -2,14 +2,14 @@ export type BaseEntity = {
   id: string;
   name: string;
   description: string;
-  createdWhen: number;
-  createdBy: User;
-  modifiedWhen: number;
-  modifiedBy: User;
+  createdWhen?: number;
+  createdBy?: User;
+  modifiedWhen?: number;
+  modifiedBy?: User;
 };
 
 export type Chain = BaseEntity & {
-  navigationPath: Map<string, string>; // Need to be a Map to preserve key order
+  navigationPath: [string, string][];
   elements: Element[];
   dependencies: Dependency[];
   deployments: Deployment[];
@@ -52,10 +52,10 @@ export type PatchElementRequest = {
 };
 
 export type TransferElementRequest = {
-    parentId: string | null;
-    elements: string[];
-    swimlaneId: string | null;
-}
+  parentId: string | null;
+  elements: string[];
+  swimlaneId: string | null;
+};
 
 export type ConnectionRequest = {
   from: string;
@@ -101,7 +101,7 @@ export type Element = BaseEntity & {
   children?: Element[];
   swimlaneId?: string;
   mandatoryChecksPassed: boolean;
-}
+};
 
 export type LibraryElement = {
   name: string;
@@ -160,17 +160,17 @@ export enum ElementColorType {
   UNSUPPORTED = 'unsupported'
 }
 
-export type ElementWithChainName  = BaseEntity &  {
+export type ElementWithChainName = BaseEntity & {
   type: string;
-  chainId: string
-  chainName: string
+  chainId: string;
+  chainName: string;
   arentElementId: string;
   originalId: string;
   properties?: Record<string, unknown>;
   children: ChildElement[];
-  swimlaneId: string
+  swimlaneId: string;
   mandatoryChecksPassed: boolean;
-}
+};
 
 export interface ElementFilter {
   elementTitle: string;
@@ -323,10 +323,10 @@ export type MaskedFields = {
 export type MaskedField = {
   id: string;
   name: string;
-  createdWhen: number;
-  createdBy: User;
-  modifiedWhen: number;
-  modifiedBy: User;
+  createdWhen?: number;
+  createdBy?: User;
+  modifiedWhen?: number;
+  modifiedBy?: User;
 };
 
 export type SessionFilterAndSearchRequest = {
@@ -1126,3 +1126,18 @@ export enum ApiSpecificationFormat {
   YAML = "YAML",
 }
 
+export type Folder = {
+  id?: string;
+  name: string;
+  subfolder?: Folder;
+  description?: string;
+};
+
+export interface SpecApiFile {
+  id: string;
+  name: string;
+  description?: string;
+  protocol: string;
+  specificationFilePath: string;
+  fileUri: string;
+}

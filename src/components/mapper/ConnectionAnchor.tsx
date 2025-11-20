@@ -1,13 +1,14 @@
 import React, { forwardRef, useEffect, useState } from "react";
 import styles from "./ConnectionAnchor.module.css";
 import { Tooltip, TooltipProps } from "antd";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export type ConnectionAnchorProps = React.HTMLAttributes<HTMLElement> & {
   tooltipTitle?: TooltipProps["title"];
   tooltipPlacement?: TooltipProps["placement"];
   invalid?: boolean;
   connected: boolean;
+  required?: boolean;
   showSettingIcon?: boolean;
   onClick?: (connected: boolean) => void;
 };
@@ -20,6 +21,7 @@ export const ConnectionAnchor = forwardRef<
     {
       invalid,
       connected,
+      required,
       onClick,
       tooltipPlacement,
       tooltipTitle,
@@ -40,8 +42,11 @@ export const ConnectionAnchor = forwardRef<
       if (invalid) {
         classNames.push(styles["invalid"]);
       }
+      if (required) {
+        classNames.push(styles["required"]);
+      }
       setClassName(classNames.join(" "));
-    }, [invalid, connected]);
+    }, [invalid, connected, required]);
 
     return (
       <Tooltip title={tooltipTitle ?? ""} placement={tooltipPlacement}>
@@ -52,7 +57,7 @@ export const ConnectionAnchor = forwardRef<
           onClick={() => onClick?.(connected)}
         >
           {showSettingIcon ? (
-            <Icon name="settings" />
+            <OverridableIcon name="settings" />
           ) : (
             <div className={styles["inner-circle"]}></div>
           )}

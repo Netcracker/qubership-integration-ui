@@ -45,7 +45,8 @@ import {
   UsedService,
   Element,
   MaskedFields, TransferElementRequest,
-  SystemOperation
+  SystemOperation,
+  SpecApiFile
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -468,6 +469,12 @@ export class VSCodeExtensionApi implements Api {
     await this.sendMessageToExtension("deleteSpecificationModel", modelId);
   };
 
+  moveChain = async (chainId: string, folder?: string): Promise<Chain> => {
+    return <Chain>(
+      (await this.sendMessageToExtension("moveChain", { chainId, folder })).payload
+    );
+  }
+
   getDetailedDesignTemplates(): Promise<DetailedDesignTemplate[]> {
     throw new Error("Method getDetailedDesignTemplates not implemented.");
   }
@@ -546,10 +553,6 @@ export class VSCodeExtensionApi implements Api {
 
   copyChain(): Promise<Chain> {
     throw new Error("Method copyChain not implemented.");
-  }
-
-  moveChain(): Promise<Chain> {
-    throw new Error("Method moveChain not implemented.");
   }
 
   exportAllChains(): Promise<File> {
@@ -673,6 +676,9 @@ export class VSCodeExtensionApi implements Api {
   getPathToFolder(): Promise<FolderItem[]> {
     throw new Error("Method getPathToFolder not implemented.");
   }
+  getPathToFolderByName(): Promise<FolderItem[]> {
+    throw new Error("Method getPathToFolder not implemented.");
+  }
   listFolder(): Promise<(FolderItem | ChainItem)[]> {
     throw new Error("Method listFolder not implemented.");
   }
@@ -691,6 +697,18 @@ export class VSCodeExtensionApi implements Api {
   moveFolder(): Promise<FolderItem> {
     throw new Error("Method moveFolder not implemented.");
   }
+
+  getSpecApiFiles = async (): Promise<SpecApiFile[]> => {
+    return <SpecApiFile[]>(
+      (await this.sendMessageToExtension("getSpecApiFiles")).payload
+    );
+  };
+
+  readSpecificationFileContent = async (fileUri: string, specificationFilePath: string): Promise<string> => {
+    return <string>(
+      (await this.sendMessageToExtension("readSpecificationFileContent", { fileUri, specificationFilePath })).payload
+    );
+  };
 }
 
 interface VSCodeApi<T> {

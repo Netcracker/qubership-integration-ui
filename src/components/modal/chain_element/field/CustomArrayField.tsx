@@ -4,10 +4,11 @@ import { MappingDescription } from "../../../../mapper/model/model.ts";
 import { MappingUtil } from "../../../../mapper/util/mapping.ts";
 import { Mapping } from "../../../mapper/Mapping.tsx";
 import { api } from "../../../../api/api.ts";
+import { isHttpProtocol } from "../../../../misc/protocol-utils.ts";
 import { Script } from "../../../Script.tsx";
 import { FormContext } from "../ChainElementModification.tsx";
 import styles from "./CustomArrayField.module.css";
-import { Icon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 
 type BaseItem = {
   id: string;
@@ -74,7 +75,8 @@ const CustomArrayField: React.FC<Props> = ({
   }, [name, formContext]);
 
   const [availableCodes, setAvailableCodes] = useState<{ value: string }[]>(
-    readOnlyMode || formContext?.integrationOperationProtocolType !== "http"
+    readOnlyMode ||
+      !isHttpProtocol(formContext?.integrationOperationProtocolType)
       ? []
       : defaultCodeOptions,
   );
@@ -114,18 +116,17 @@ const CustomArrayField: React.FC<Props> = ({
                     };
                   },
                 );
+
+                const usedIds = formData.map((f) => f.id);
+                setAvailableCodes(
+                  Object.keys(acc)
+                    .filter((id) => !usedIds.includes(id))
+                    .map((id) => ({ value: id })),
+                );
                 return acc;
               },
               {} as Record<string, AfterValidation>,
             ),
-          );
-
-          const usedIds = formData.map((f) => f.id);
-
-          setAvailableCodes(
-            Object.keys(validationSchemas)
-              .filter((id) => !usedIds.includes(id))
-              .map((id) => ({ value: id })),
           );
         } else {
           const responseCodes = Object.keys(responseSchemas).map((c) => ({
@@ -217,7 +218,7 @@ const CustomArrayField: React.FC<Props> = ({
           />
           <Button
             type="primary"
-            icon={<Icon name="plus" />}
+            icon={<OverridableIcon name="plus" />}
             onClick={handleAdd}
             disabled={
               !selectedCode ||
@@ -254,7 +255,7 @@ const CustomArrayField: React.FC<Props> = ({
                   size="small"
                   type="text"
                   danger
-                  icon={<Icon name="delete" />}
+                  icon={<OverridableIcon name="delete" />}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(idx);

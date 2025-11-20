@@ -18,9 +18,10 @@ import type { JSONSchema7 } from "json-schema";
 import validator from "@rjsf/validator-ajv8";
 import StringAsMultipleSelectWidget from "./widget/StringAsMultipleSelectWidget.tsx";
 import CustomSelectWidget from "./widget/CustomSelectWidget.tsx";
+import { DebouncedTextareaWidget } from "./widget/DebouncedTextareaWidget.tsx";
+import { DebouncedTextWidget } from "./widget/DebouncedTextWidget.tsx";
 import OneOfAsSingleInputField from "./field/OneOfAsSingleInputField.tsx";
 import PatternPropertiesField from "./field/PatternPropertiesField.tsx";
-
 import {
   INITIAL_UI_SCHEMA,
   pathToTabMap,
@@ -35,7 +36,15 @@ import JsonField from "./field/JsonField.tsx";
 import ServiceField from "./field/ServiceField.tsx";
 import SpecificationField from "./field/SpecificationField.tsx";
 import SystemOperationField from "./field/SystemOperationField.tsx";
-import { FormContext } from "antd/es/form/context";
+import CustomOneOfField from "./field/CustomOneOfField.tsx";
+import EnhancedPatternPropertiesField from "./field/EnhancedPatternPropertiesField.tsx";
+import BodyMimeTypeField from "./field/BodyMimeTypeField.tsx";
+import { useModalsContext } from "../../../Modals.tsx";
+import { UnsavedChangesModal } from "../UnsavedChangesModal.tsx";
+import {
+  isKafkaProtocol,
+  normalizeProtocol,
+} from "../../../misc/protocol-utils.ts";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -51,6 +60,26 @@ type TabField = {
   schema: JSONSchema7;
 };
 
+const getOptionalString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+const validateKafkaGroupId = (
+  properties?: Record<string, unknown>,
+  elementType?: string,
+) => {
+  if (!properties || elementType !== "async-api-trigger") return;
+  if (!isKafkaProtocol(properties["integrationOperationProtocolType"])) return;
+
+  const asyncProperties = properties[
+    "integrationOperationAsyncProperties"
+  ] as Record<string, unknown> | undefined;
+  const groupIdValue = asyncProperties?.["groupId"];
+  const groupId = typeof groupIdValue === "string" ? groupIdValue.trim() : "";
+  if (!groupId) {
+    throw new Error("Group ID is required for Kafka operations.");
+  }
+};
+
 export type FormContext = {
   integrationOperationId?: string;
   integrationOperationPath?: string;
@@ -61,7 +90,9 @@ export type FormContext = {
   integrationSpecificationGroupId?: string;
   integrationSpecificationId?: string;
   systemType?: string;
-  updateContext(newContext: Record<string, unknown>): void;
+  bodyFormData?: unknown;
+  synchronousGrpcCall?: boolean;
+  updateContext?: (newContext: Record<string, unknown>) => void;
 };
 
 function constructTitle(name: string, type?: string): string {
@@ -84,6 +115,8 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   onSubmit,
   onClose,
 }) => {
+  console.log(`[ChainElementModification] Component RENDER for element: ${elementId}, type: ${node.data.elementType}`);
+
   const { isLoading: libraryElementIsLoading, libraryElement } =
     useLibraryElement(node.data.elementType);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,29 +126,33 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
   const [schema, setSchema] = useState<JSONSchema7>({});
   const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [formContext, setFormContext] = useState<Record<
-      string,
-      unknown
-    >>({});
+  const [formContext, setFormContext] = useState<FormContext>({});
 
   const [activeKey, setActiveKey] = useState<string>();
-
-  useEffect(() => {
-    setFormData((prevFormData) => {
-      const newContextProperties = { ...formContext, updateContext: undefined };
-      return {
-        ...prevFormData,
-        properties: enrichProperties(
-          prevFormData.properties as Record<string, unknown>,
-          newContextProperties,
-        ),
-      };
-    });
-  }, [formContext]);
+  const { showModal } = useModalsContext();
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
 
   useEffect(() => {
     setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
   }, [libraryElement, node]);
+
+  const enrichProperties = useCallback((
+    targetProperties: Record<string, unknown>,
+    sourceProperties: Record<string, unknown>,
+  ): Record<string, unknown> => {
+    const result = { ...targetProperties };
+    Object.entries(sourceProperties).forEach(([key, value]) => {
+      if (key === "integrationOperationProtocolType") {
+        value = normalizeProtocol(value);
+      }
+      if (value === undefined) {
+        delete result[key];
+      } else {
+        result[key] = value === null ? undefined : value;
+      }
+    });
+    return result;
+  }, []);
 
   const schemaModules = useMemo(
     () =>
@@ -153,20 +190,42 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       const formProperties = initialFormData.properties as Record<string, unknown>;
 
       setFormContext({
-        integrationOperationId: formProperties.integrationOperationId,
-        integrationOperationProtocolType: formProperties.integrationOperationProtocolType,
+        integrationOperationId: getOptionalString(formProperties.integrationOperationId),
+        integrationOperationProtocolType: normalizeProtocol(
+          formProperties.integrationOperationProtocolType,
+        ),
         elementType: node.data.elementType,
-        integrationSystemId: formProperties.integrationSystemId,
-        systemType: formProperties.systemType,
+        integrationSystemId: getOptionalString(formProperties.integrationSystemId),
+        systemType: getOptionalString(formProperties.systemType),
         integrationSpecificationGroupId:
-          formProperties.integrationSpecificationGroupId,
-        integrationSpecificationId: formProperties.integrationSpecificationId,
-        integrationOperationPath: formProperties.integrationOperationPath,
-        integrationOperationMethod: formProperties.integrationOperationMethod,
+          getOptionalString(formProperties.integrationSpecificationGroupId),
+        integrationSpecificationId: getOptionalString(
+          formProperties.integrationSpecificationId,
+        ),
+        integrationOperationPath: getOptionalString(formProperties.integrationOperationPath),
+        integrationOperationMethod: getOptionalString(
+          formProperties.integrationOperationMethod,
+        ),
+        bodyFormData: formProperties.bodyFormData,
+        synchronousGrpcCall: Boolean(formProperties.synchronousGrpcCall),
         updateContext: (updatedProperties: Record<string, unknown>) => {
+          if (updatedProperties.integrationOperationProtocolType !== undefined) {
+            updatedProperties.integrationOperationProtocolType = normalizeProtocol(
+              updatedProperties.integrationOperationProtocolType
+            );
+          }
           setFormContext((prevContext) =>
             enrichProperties(prevContext, updatedProperties),
           );
+
+          setFormData((prevFormData) => ({
+            ...prevFormData,
+            properties: enrichProperties(
+              prevFormData.properties as Record<string, unknown>,
+              updatedProperties,
+            ),
+          }));
+          setHasChanges(true);
         },
       });
     } catch (err) {
@@ -177,25 +236,47 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         err,
       );
     }
-  }, [node.data, node.id, notificationService, schemaModules]);
-
-  const enrichProperties = (
-    targetProperties: Record<string, unknown>,
-    sourceProperties: Record<string, unknown>,
-  ): Record<string, unknown> => {
-    const result = { ...targetProperties };
-    Object.entries(sourceProperties).forEach(([key, value]) => {
-      result[key] = value === null ? undefined : value;
-    });
-    return result;
-  };
+  }, [node.data, node.id, notificationService, schemaModules, enrichProperties]);
 
   const handleClose = useCallback(() => {
     closeContainingModal();
     onClose?.();
   }, [closeContainingModal, onClose]);
 
+  const handleCheckUnsavedAndClose = useCallback(() => {
+    if (hasChanges) {
+      showModal({
+        component: (
+          <UnsavedChangesModal
+            onYes={() => {
+              handleClose();
+              setHasChanges(false);
+            }}
+          />
+        ),
+      });
+    } else {
+      handleClose();
+    }
+  }, [showModal, handleClose, hasChanges]);
+
   const handleOk = useCallback(async () => {
+    try {
+      validateKafkaGroupId(
+        formData?.properties as Record<string, unknown> | undefined,
+        node.data.elementType,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : "Unknown error";
+      notificationService.info("Validation failed", message);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const request: PatchElementRequest = {
@@ -223,7 +304,16 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       setIsLoading(false);
       handleClose();
     }
-  }, [formData, chainId, elementId, node, onSubmit, notificationService, updateElement, handleClose]);
+  }, [
+    formData,
+    chainId,
+    elementId,
+    node,
+    onSubmit,
+    notificationService,
+    updateElement,
+    handleClose,
+  ]);
 
   const collectTabFields = useCallback((
     schema: JSONSchema7,
@@ -296,6 +386,32 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     }
   }, [uniqueTabs, activeKey]);
 
+  useEffect(() => {
+    setFormData((prevFormData) => {
+      const newContextProperties = {
+        ...formContext,
+        integrationOperationProtocolType: normalizeProtocol(
+          formContext?.integrationOperationProtocolType
+        ),
+        updateContext: undefined,
+      };
+      const enrichedProps = enrichProperties(
+        prevFormData.properties as Record<string, unknown>,
+        newContextProperties,
+      );
+
+      // Only update if properties actually changed
+      if (JSON.stringify(enrichedProps) === JSON.stringify(prevFormData.properties)) {
+        return prevFormData;
+      }
+
+      return {
+        ...prevFormData,
+        properties: enrichedProps,
+      };
+    });
+  }, [formContext, enrichProperties]);
+
   const applyHiddenUiSchema = useCallback((target: UiSchema, hidden: UiSchema) => {
     for (const key in hidden) {
       if (
@@ -362,12 +478,13 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             (v) => v.join(".") === fullPath.join("."),
           );
 
-          if (
-            (schema.properties[key].type === "object" && isVisible) ||
-            key === "properties"
-          ) {
+          const subSchema = schema.properties[key];
+          const isObjectSchema = typeof subSchema === 'object' &&
+                                 'type' in subSchema && subSchema.type === "object";
+
+          if ((isObjectSchema && isVisible) || key === "properties") {
             buildHiddenUiSchema(
-              schema.properties[key] as JSONSchema7,
+              subSchema as JSONSchema7,
               currentPath,
             );
           } else if (!isVisible) {
@@ -387,6 +504,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const widgets: RegistryWidgetsType = {
     stringAsMultipleSelectWidget: StringAsMultipleSelectWidget,
     customSelectWidget: CustomSelectWidget,
+    debouncedTextareaWidget: DebouncedTextareaWidget,
+    TextWidget: DebouncedTextWidget,
+    textarea: DebouncedTextareaWidget,
   };
 
   const uiSchemaForTab = useCallback((initialUiSchema: UiSchema, activeKey?: string) => {
@@ -402,10 +522,13 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       props["httpMethodRestrict"] = { "ui:widget": "hidden" };
     }
 
-     if (activeKey && (activeKey !== "Endpoint" || node.data.elementType === "service-call")) {
-      console.log(`activeKey = ${activeKey}`);
+     if (activeKey && activeKey !== "Endpoint") {
       props["ui:fieldReplacesAnyOrOneOf"] = true;
       props["ui:field"] = "hidden";
+    } else if (activeKey === "Endpoint" && node.data.elementType === "service-call") {
+      props["ui:fieldReplacesAnyOrOneOf"] = true;
+      // eslint-disable-next-line react/prop-types
+      delete props["ui:field"];
     } else {
       // eslint-disable-next-line react/prop-types
       delete props["ui:fieldReplacesAnyOrOneOf"];
@@ -422,7 +545,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     if (!schema) return [];
 
     const baseUi: UiSchema = uiSchemaForTab(INITIAL_UI_SCHEMA, activeKey);
-
     return buildUiSchemaForTab(tabFields, activeKey ?? "", schema, baseUi);
   }, [tabFields, activeKey, schema, uiSchemaForTab, buildUiSchemaForTab]);
 
@@ -434,7 +556,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     <Modal
       open
       title={title}
-      onCancel={handleClose}
+      onCancel={handleCheckUnsavedAndClose}
       maskClosable={false}
       loading={libraryElementIsLoading}
       footer={[
@@ -448,7 +570,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         >
           Save
         </Button>,
-        <Button key="cancel" onClick={handleClose}>
+        <Button key="cancel" onClick={handleCheckUnsavedAndClose}>
           Cancel
         </Button>,
       ]}
@@ -456,6 +578,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         footer: styles["modal-footer"],
         content: styles["modal"],
         body: styles["modal-body"],
+        header: styles["modal-header"],
       }}
     >
       {schema && activeKey && (
@@ -471,7 +594,15 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             formData={formData}
             validator={validator}
             uiSchema={uiSchema}
-            liveValidate={true}
+            transformErrors={(errors) => {
+              // Suppress oneOf error when protocol is grpc (no matching oneOf branch by design)
+              const proto = normalizeProtocol(formContext?.integrationOperationProtocolType);
+              if (proto === 'grpc') {
+                return errors.filter((e) => e.name !== 'oneOf');
+              }
+              return errors;
+            }}
+            liveValidate={false}
             experimental_defaultFormStateBehavior={{
               allOf: "populateDefaults",
               mergeDefaultsIntoFormData: "useFormDataIfPresent",
@@ -484,20 +615,32 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               ErrorListTemplate,
             }}
             fields={{
+              OneOfField: CustomOneOfField,
               oneOfAsSingleInputField: OneOfAsSingleInputField,
               anyOfAsSingleSelectField: AnyOfAsSingleSelectField,
               patternPropertiesField: PatternPropertiesField,
+              enhancedPatternPropertiesField: EnhancedPatternPropertiesField,
               mappingField: MappingField,
+              // @ts-expect-error - CustomArrayField has incompatible prop types
               customArrayField: CustomArrayField,
               scriptField: ScriptField,
               jsonField: JsonField,
               serviceField: ServiceField,
               specificationField: SpecificationField,
               systemOperationField: SystemOperationField,
+              bodyMimeTypeField: BodyMimeTypeField,
             }}
             widgets={widgets}
             onChange={(e) => {
-              setFormData(e.formData as Record<string, object>);
+              const newFormData = e.formData as Record<string, object>;
+              if (
+                newFormData.type &&
+                formData.type &&
+                JSON.stringify(newFormData) !== JSON.stringify(formData)
+              ) {
+                setHasChanges(true);
+              }
+              setFormData(newFormData);
             }}
           />
         </>

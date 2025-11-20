@@ -58,6 +58,7 @@ import {
   TransferElementRequest,
   Element,
   SystemOperation,
+  SpecApiFile,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -79,7 +80,7 @@ export interface Api {
 
   copyChain(chainId: string, folderId?: string): Promise<Chain>;
 
-  moveChain(chainId: string, folderId?: string): Promise<Chain>;
+  moveChain(chainId: string, folder?: string): Promise<Chain>;
 
   exportAllChains(): Promise<File>;
 
@@ -216,6 +217,8 @@ export interface Api {
   getRootFolders(filter: string, openedFolderId: string): Promise<FolderItem[]>;
 
   getPathToFolder(folderId: string): Promise<FolderItem[]>;
+
+  getPathToFolderByName(folderName: string): Promise<FolderItem[]>;
 
   listFolder(request: ListFolderRequest): Promise<(FolderItem | ChainItem)[]>;
 
@@ -410,6 +413,13 @@ export interface Api {
     specificationGroupId: string,
     httpTriggerIds: string[],
   ): Promise<void>;
+
+  getSpecApiFiles(): Promise<SpecApiFile[]>;
+
+  readSpecificationFileContent(
+    fileUri: string,
+    specificationFilePath: string
+  ): Promise<string>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

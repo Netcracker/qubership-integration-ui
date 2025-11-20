@@ -80,7 +80,7 @@ import { TransformationInfoCard } from "./TransformationInfo.tsx";
 import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
 import { ElementReferencesList } from "./ElementReferencesList.tsx";
 import { traverseElementsDepthFirst } from "../../misc/tree-utils.ts";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
 const DRAG_POINT_ID = "drag-point";
@@ -652,6 +652,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 getBodyFormat(mappingDescription, SchemaKind.SOURCE) ===
                 SourceFormat.XML.toString()
               }
+              schemaKind={SchemaKind.SOURCE}
               onEdit={() => {
                 if (isAttributeItem(item)) {
                   showModal({
@@ -1067,6 +1068,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   tooltipPlacement={"left"}
                   invalid={errors.length > 0}
                   connected={item.actions.length > 0}
+                  required={Boolean(item.attribute.required)}
                   onDragOver={(e) => e.preventDefault()}
                   onDragStart={(event) => {
                     const reference: AttributeReference = {
@@ -1199,6 +1201,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 getBodyFormat(mappingDescription, SchemaKind.TARGET) ===
                 SourceFormat.XML.toString()
               }
+              schemaKind={SchemaKind.TARGET}
               onEdit={() => {
                 if (isAttributeItem(item)) {
                   showModal({
@@ -1312,7 +1315,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
   return (
     <ArcherContainer
       ref={archerContainerRef}
-      style={{ height: "100%" }}
+      style={{ height: "100%"}}
       strokeWidth={3}
       strokeColor={"#FFB02E"}
       endShape={{ arrow: { arrowLength: 3, arrowThickness: 3 } }}
@@ -1321,7 +1324,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
       {...props}
     >
       {contextHolder}
-      <Row ref={containerRef} gutter={[16, 16]} style={{ height: "100%" }}>
+      <Row ref={containerRef} style={{ height: "100%" }}>
         <Col span={9} className={graphViewStyles["mapping-table-column"]}>
           <Table<MappingTableItem>
             className="flex-table"
@@ -1383,7 +1386,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                 {
                   label: "Delete",
                   key: "delete",
-                  icon: <Icon name="delete" />,
+                  icon: <OverridableIcon name="delete" />,
                   onClick: () => {
                     deleteSelectedConnections();
                   },

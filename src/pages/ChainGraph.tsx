@@ -8,6 +8,7 @@ import {
 } from "@xyflow/react";
 
 import "@xyflow/react/dist/style.css";
+import "../styles/reactflow-theme.css";
 import React, {
   MouseEvent,
   useCallback,
@@ -31,17 +32,22 @@ import { LibraryProvider } from "../components/LibraryContext.tsx";
 import { useChainGraph } from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
-import { CreateDeploymentRequest, DiagramMode } from "../api/apiTypes.ts";
+import {
+  CreateDeploymentRequest,
+  DiagramMode,
+  Element,
+} from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
 import { useLibraryContext } from "../components/LibraryContext.tsx";
 import { ChainContext } from "./ChainPage.tsx";
 import {
+  ChainGraphNode,
   ChainGraphNodeData,
   nodeTypes,
 } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
-import { Icon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 
 const ChainGraphInner: React.FC = () => {
@@ -53,6 +59,15 @@ const ChainGraphInner: React.FC = () => {
   const navigate = useNavigate();
   const notificationService = useNotificationService();
   const { isLibraryLoading } = useLibraryContext();
+
+  const refreshChain = useCallback(async () => {
+    if (!chainContext?.refresh) return;
+    try {
+      await chainContext.refresh();
+    } catch (err) {
+      notificationService.requestFailed("Failed to refresh chain", err);
+    }
+  }, [chainContext, notificationService]);
 
   const {
     nodes,
@@ -70,7 +85,15 @@ const ChainGraphInner: React.FC = () => {
     toggleDirection,
     updateNodeData,
     isLoading,
-  } = useChainGraph(chainId);
+  } = useChainGraph(chainId, refreshChain);
+
+  const handleElementUpdated = useCallback(
+    (element: Element, node: ChainGraphNode) => {
+      updateNodeData(element, node);
+      void refreshChain();
+    },
+    [updateNodeData, refreshChain],
+  );
 
   const onNodeDoubleClick = (
     _event: MouseEvent,
@@ -105,7 +128,7 @@ const ChainGraphInner: React.FC = () => {
               node={node}
               chainId={chainId!}
               elementId={node.id}
-              onSubmit={updateNodeData}
+              onSubmit={handleElementUpdated}
               onClose={clearElementPath}
             />
           </ChainContext.Provider>
@@ -119,7 +142,7 @@ const ChainGraphInner: React.FC = () => {
       clearElementPath,
       setElementPath,
       showModal,
-      updateNodeData,
+      handleElementUpdated,
     ],
   );
 
@@ -230,7 +253,7 @@ const ChainGraphInner: React.FC = () => {
         </ElkDirectionContextProvider>
       </div>
       {!isVsCode && (
-        <FloatButtonGroup trigger="hover" icon={<Icon name="more" />}>
+        <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
           <FloatButton
             icon={<>⭾</>}
             tooltip={{
@@ -240,7 +263,7 @@ const ChainGraphInner: React.FC = () => {
             onClick={openSequenceDiagram}
           />
           <FloatButton
-            icon={<Icon name="send" />}
+            icon={<OverridableIcon name="send" />}
             tooltip={{
               title: "Save and deploy",
               placement: "left",
