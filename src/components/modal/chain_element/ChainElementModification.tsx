@@ -63,8 +63,11 @@ type TabField = {
 const getOptionalString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined;
 
-const validateKafkaGroupId = (properties?: Record<string, unknown>) => {
-  if (!properties) return;
+const validateKafkaGroupId = (
+  properties?: Record<string, unknown>,
+  elementType?: string,
+) => {
+  if (!properties || elementType !== "async-api-trigger") return;
   if (!isKafkaProtocol(properties["integrationOperationProtocolType"])) return;
 
   const asyncProperties = properties[
@@ -261,6 +264,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     try {
       validateKafkaGroupId(
         formData?.properties as Record<string, unknown> | undefined,
+        node.data.elementType,
       );
     } catch (error) {
       const message =
@@ -574,6 +578,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         footer: styles["modal-footer"],
         content: styles["modal"],
         body: styles["modal-body"],
+        header: styles["modal-header"],
       }}
     >
       {schema && activeKey && (

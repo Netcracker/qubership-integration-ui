@@ -50,6 +50,7 @@ import { FilterButton } from "../components/table/filter/FilterButton.tsx";
 import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
+import styles from "./Chains.module.css";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
@@ -923,7 +924,7 @@ const Chains = () => {
   return (
     <>
       {contextHolder}
-      <Flex vertical gap={16} style={{ height: "100%" }}>
+      <Flex vertical gap={16} className={styles.container}>
         {pathItems && pathItems.length > 0 ? (
           <Breadcrumb items={pathItems} />
         ) : null}
@@ -943,7 +944,7 @@ const Chains = () => {
               onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
             }}
           >
-            <Button icon={<IcoOverridableIconn name="settings" />} />
+            <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
           <FilterButton count={filterItemStates.length} onClick={addFilter} />
         </Flex>
