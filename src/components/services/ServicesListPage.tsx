@@ -34,7 +34,7 @@ import { useModalsContext } from "../../Modals";
 import { getErrorMessage } from '../../misc/error-utils';
 import { useAsyncRequest } from './useAsyncRequest';
 import type { ExpandableConfig } from 'antd/es/table/interface';
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const STORAGE_KEY = "servicesListTable";
 

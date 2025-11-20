@@ -3,7 +3,7 @@ import { ChainGraphNode } from "./ChainGraphNodeTypes.ts";
 import { Badge, Button, Tooltip } from "antd";
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { EllipsisLabel } from "./EllipsisLabel";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { IconName, OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 function useElementWidth(ref: React.RefObject<HTMLElement>) {
   const [width, setWidth] = useState(0);
@@ -93,6 +93,13 @@ export function ContainerNode({
             minWidth: 0,
           }}
         >
+          <OverridableIcon name={data.elementType as IconName} style={{ fontSize: 16 }} />
+
+          <EllipsisLabel
+            text={trimmedLabel}
+            style={{ flex: 1, minWidth: 0, display: "block" }}
+          />
+
           {data.unitCount! > 0 && (
             <Badge
               count={data.unitCount}
@@ -102,11 +109,6 @@ export function ContainerNode({
               style={{ display: "inline-flex", color: "black" }}
             />
           )}
-
-          <EllipsisLabel
-            text={trimmedLabel}
-            style={{ flex: 1, minWidth: 0, display: "block" }}
-          />
         </div>
       </div>
 

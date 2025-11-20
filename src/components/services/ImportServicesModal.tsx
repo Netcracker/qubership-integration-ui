@@ -7,7 +7,7 @@ import { ImportSystemResult, SystemImportStatus } from "../../api/apiTypes";
 import { getErrorMessage } from '../../misc/error-utils';
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { validateFiles } from "./utils";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 interface Props {
   onSuccess?: () => void;

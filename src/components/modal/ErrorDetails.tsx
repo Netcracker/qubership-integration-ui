@@ -5,7 +5,7 @@ import styles from "./ErrorDetails.module.css";
 import React from "react";
 import { downloadFile } from "../../misc/download-utils.ts";
 import { copyToClipboard } from "../../misc/clipboard-util.ts";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type ErrorDetailsProps = {
   service: string;

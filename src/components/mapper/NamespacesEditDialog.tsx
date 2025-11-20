@@ -4,7 +4,7 @@ import { XmlNamespace } from "../../mapper/model/metadata";
 import { Button, Flex, message, Modal, Table, TableProps } from "antd";
 import { InlineEdit } from "../InlineEdit";
 import { TextValueEdit } from "../table/TextValueEdit";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export type NamespacesEditDialogProps = {
   namespaces: XmlNamespace[];

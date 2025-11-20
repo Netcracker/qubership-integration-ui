@@ -40,7 +40,7 @@ import { SelectEdit } from "../table/SelectEdit.tsx";
 import Checkbox from "antd/lib/checkbox";
 import { ImportStatus } from "../labels/ImportStatus.tsx";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type ImportChainsProps = {
   onSuccess?: () => void;

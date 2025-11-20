@@ -5,7 +5,7 @@ import {
   useNotificationLog,
 } from "./contexts/NotificationLogContext.tsx";
 import { NotificationBarElement } from "./NotificationBarElement.tsx";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export const NotificationBar: React.FC = () => {
   const [open, setOpen] = useState(false);

@@ -23,7 +23,7 @@ import styles from "./Services.module.css";
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { useServiceContext } from "./ServiceParametersPage";
 import { IntegrationSystemType } from "../../api/apiTypes";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const STORAGE_KEY = "systemParameters";
 

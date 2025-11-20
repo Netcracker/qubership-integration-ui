@@ -3,7 +3,7 @@ import React from "react";
 import commonStyles from "../components/admin_tools/CommonStyle.module.css";
 import Title from "antd/lib/typography/Title";
 import { Sessions } from "./Sessions.tsx";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 export const SessionsPage: React.FC = () => {
   return (

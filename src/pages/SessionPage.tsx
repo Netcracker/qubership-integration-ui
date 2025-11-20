@@ -15,7 +15,7 @@ import { useModalsContext } from "../Modals.tsx";
 import { SessionElementDetails } from "../components/modal/SessionElementDetails.tsx";
 import { downloadFile } from "../misc/download-utils.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 function cleanUpChildren(element: SessionElement) {
   if (element.children?.length === 0) {

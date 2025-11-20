@@ -11,7 +11,7 @@ import { useNotificationService } from "../../../hooks/useNotificationService.ts
 import { ResizeCallbackData } from "react-resizable";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { ApiResponse, Variable } from "../../../api/admin-tools/variables/types.ts";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 const { Title } = Typography;
 

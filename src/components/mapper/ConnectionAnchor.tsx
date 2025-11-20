@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect, useState } from "react";
 import styles from "./ConnectionAnchor.module.css";
 import { Tooltip, TooltipProps } from "antd";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export type ConnectionAnchorProps = React.HTMLAttributes<HTMLElement> & {
   tooltipTitle?: TooltipProps["title"];

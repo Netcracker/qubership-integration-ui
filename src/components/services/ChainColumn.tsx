@@ -3,7 +3,7 @@ import { Dropdown, Button, Menu } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { isVsCode, VSCodeExtensionApi } from '../../api/rest/vscodeExtensionApi';
 import { api } from '../../api/api';
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 interface Chain {
   id: string;

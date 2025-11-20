@@ -16,7 +16,7 @@ import { Editor, Monaco } from "@monaco-editor/react";
 import { editor, languages, MarkerSeverity } from "monaco-editor";
 import { isParseError } from "../../../../mapper/actions-text/parser.ts";
 import { LocationRange } from "pegjs";
-import { OverridableIcon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 
 const MAPPER_DICTIONARY_LANGUAGE_ID = "qip-mapper-dictionary";
 

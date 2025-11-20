@@ -1,7 +1,7 @@
 import React from "react";
 import { List } from "antd";
 import { NotificationItem } from "./contexts/NotificationLogContext.tsx";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type NotificationBarElementProps = {
   value: NotificationItem;

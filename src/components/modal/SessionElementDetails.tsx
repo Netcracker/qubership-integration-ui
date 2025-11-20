@@ -12,7 +12,7 @@ import {
 import { copyToClipboard } from "../../misc/clipboard-util.ts";
 import { SessionElementBodyChangesView } from "../sessions/SessionElementBodyChangesView.tsx";
 import { traverseElementsDepthFirst } from "../../misc/tree-utils.ts";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type SessionElementDetailsProps = {
   session: Session;

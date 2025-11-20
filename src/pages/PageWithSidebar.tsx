@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Divider, Layout } from "antd";
 import { AnimatePresence, motion } from "framer-motion";
 import styles from "./PageWithSidebar.module.css";
-import { Icon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 const { Sider, Content } = Layout;
 

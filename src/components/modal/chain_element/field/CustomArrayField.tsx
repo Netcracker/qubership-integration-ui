@@ -8,7 +8,7 @@ import { isHttpProtocol } from "../../../../misc/protocol-utils.ts";
 import { Script } from "../../../Script.tsx";
 import { FormContext } from "../ChainElementModification.tsx";
 import styles from "./CustomArrayField.module.css";
-import { OverridableIcon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 
 type BaseItem = {
   id: string;

@@ -2,7 +2,7 @@ import { Handle, NodeProps, Position } from "@xyflow/react";
 import { ChainGraphNode } from "./ChainGraphNodeTypes.ts";
 import { useMemo } from "react";
 import { EllipsisLabel } from "./EllipsisLabel";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { IconName, OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 export function UnitNode({
   data,
@@ -43,7 +43,7 @@ export function UnitNode({
           padding: "6px 8px",
         }}
       >
-        <OverridableIcon name="download" style={{ fontSize: 16 }} />
+        <OverridableIcon name={data.elementType as IconName} style={{ fontSize: 16 }} />
         <EllipsisLabel
           text={trimmedLabel}
           style={{

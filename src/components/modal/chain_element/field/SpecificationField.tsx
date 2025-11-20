@@ -7,7 +7,7 @@ import { useNotificationService } from "../../../../hooks/useNotificationService
 import { Specification, SpecificationGroup } from "../../../../api/apiTypes";
 import { JSONSchema7 } from "json-schema";
 import { VSCodeExtensionApi } from "../../../../api/rest/vscodeExtensionApi";
-import { OverridableIcon } from "../../../../IconProvider";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 
 const SpecificationField: React.FC<
   FieldProps<string, JSONSchema7, FormContext>

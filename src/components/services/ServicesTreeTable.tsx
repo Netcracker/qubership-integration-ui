@@ -21,7 +21,7 @@ import type { SpecificationGroup, Specification, SystemOperation } from '../../a
 import { InlineEdit } from '../InlineEdit';
 import { LabelsEdit } from '../table/LabelsEdit';
 import { ChainColumn } from './ChainColumn';
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { HttpMethod } from './HttpMethod.tsx';
 
 export type ServiceEntity = IntegrationSystem | SpecificationGroup | Specification | SystemOperation;

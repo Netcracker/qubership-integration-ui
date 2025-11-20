@@ -27,7 +27,7 @@ import Services from "./pages/Services.tsx";
 import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
 import AdminTools from "./pages/AdminTools.tsx";
 import { Masking } from "./pages/Masking.tsx";
-import { IconProvider } from "./IconProvider.tsx";
+import { IconProvider } from "./icons/IconProvider.tsx";
 
 const { Header } = Layout;
 

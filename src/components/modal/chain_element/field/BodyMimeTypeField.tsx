@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { FieldProps } from "@rjsf/utils";
 import { Select, Input, Button } from "antd";
 import styles from "./BodyParametersField.module.css";
-import { OverridableIcon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
 
 interface BodyFormEntry {

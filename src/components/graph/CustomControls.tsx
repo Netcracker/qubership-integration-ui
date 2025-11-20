@@ -3,7 +3,7 @@ import { useReactFlow } from "@xyflow/react";
 import styles from "./CustomControls.module.css";
 import { useElkDirectionContext } from "../../pages/ElkDirectionContext.tsx";
 import { Button } from "antd";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export const CustomControls = () => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();

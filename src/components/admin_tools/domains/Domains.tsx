@@ -5,7 +5,7 @@ import { useDomains } from "../../../hooks/useDomains";
 import commonStyles from "../CommonStyle.module.css";
 import React from "react";
 import { Flex } from "antd";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 export const Domains: React.FC = () => {
   const { domains, isLoading } = useDomains();

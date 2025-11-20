@@ -21,7 +21,7 @@ import { downloadFile } from "../../misc/download-utils.ts";
 import { MenuInfo } from "rc-menu/lib/interface";
 import mermaid from "mermaid";
 import styles from "./SequenceDiagram.module.css";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type SequenceDiagramProps = {
   title?: string;

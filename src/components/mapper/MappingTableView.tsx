@@ -82,7 +82,7 @@ import {
 } from "./TransformationEditDialog.tsx";
 import { useMappingDescription } from "./useMappingDescription.tsx";
 import { MappingTableItemActionButton } from "./MappingTableItemActionButton.tsx";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export type MappingTableViewProps = Omit<
   React.HTMLAttributes<HTMLElement>,

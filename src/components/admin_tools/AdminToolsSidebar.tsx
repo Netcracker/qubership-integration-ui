@@ -1,6 +1,6 @@
 import { Menu } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const menuItems = [
   {

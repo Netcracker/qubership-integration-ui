@@ -6,7 +6,7 @@ import styles from "./ImportSessions.module.css";
 import { api } from "../../api/api.ts";
 import { Session } from "../../api/apiTypes.ts";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type ImportSessionsProps = {
   onSuccess?: (sessions: Session[]) => void;

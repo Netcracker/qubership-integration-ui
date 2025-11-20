@@ -30,7 +30,7 @@ import { makeEnumColumnFilterDropdown } from "../EnumColumnFilterDropdown.tsx";
 import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
 import { ResizableTitle } from "../ResizableTitle.tsx";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export enum OperationType {
   READ = "read",

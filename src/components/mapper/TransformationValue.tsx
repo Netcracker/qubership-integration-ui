@@ -9,7 +9,7 @@ import styles from "./TransformationValue.module.css";
 import { VerificationError } from "../../mapper/verification/model.ts";
 import { PLACEHOLDER } from "../../misc/format-utils.ts";
 import { TransformationInfoTooltip } from "./TransformationInfoTooltip.tsx";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export type TransformationValueProps = {
   transformation?: Transformation;

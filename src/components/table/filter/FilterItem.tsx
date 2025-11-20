@@ -3,7 +3,7 @@ import { ItemType } from "antd/es/menu/interface";
 import { FilterCondition, FilterColumn, FilterConditions, FilterValueType } from "./filter";
 import { useCallback, useEffect, useState } from "react";
 import { FilterValue } from "./value/FilterValue";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 
 export type FilterItemState = {

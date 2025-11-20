@@ -27,7 +27,7 @@ import { TextValueEdit } from "../components/table/TextValueEdit.tsx";
 import { LabelsEdit } from "../components/table/LabelsEdit.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 export const Snapshots: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();

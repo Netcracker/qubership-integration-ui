@@ -12,7 +12,7 @@ import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
 import { api } from "../api/api.ts";
 import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 export const Deployments: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();

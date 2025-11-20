@@ -44,7 +44,7 @@ import {
 } from "../components/table/TextColumnFilterDropdown.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { parseJson } from "../misc/json-helper.ts";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 type SessionTableItem = Session & {
   children?: SessionTableItem[];

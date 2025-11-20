@@ -14,7 +14,7 @@ import { STARTUP_EVENT, VSCodeExtensionApi } from "./api/rest/vscodeExtensionApi
 import { api } from "./api/api.ts";
 
 import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
-import { IconProvider } from "./IconProvider.tsx";
+import { IconProvider } from "./icons/IconProvider.tsx";
 
 const router = createMemoryRouter(
   createRoutesFromElements(

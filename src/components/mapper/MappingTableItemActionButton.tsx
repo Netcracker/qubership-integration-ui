@@ -18,7 +18,7 @@ import { XmlNamespace } from "../../mapper/model/metadata.ts";
 import { NamespacesEditDialog } from "./NamespacesEditDialog.tsx";
 import { useModalsContext } from "../../Modals.tsx";
 import { DataType } from "../../mapper/model/model.ts";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 export type MappingTableItemActionButtonProps = {
   elementId: string;

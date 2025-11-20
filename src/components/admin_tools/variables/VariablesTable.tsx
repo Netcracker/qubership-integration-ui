@@ -13,7 +13,7 @@ import {
 import type { FilterDropdownProps } from "antd/lib/table/interface";
 import { Variable } from "../../../api/admin-tools/variables/types";
 import { ResizableTitle } from "../../ResizableTitle.tsx";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 interface VariablesTableProps {
   variables: Variable[];

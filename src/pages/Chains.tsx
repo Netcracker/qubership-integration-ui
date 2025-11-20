@@ -50,7 +50,7 @@ import { FilterButton } from "../components/table/filter/FilterButton.tsx";
 import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];

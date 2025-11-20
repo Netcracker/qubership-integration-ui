@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { FieldProps, RJSFSchema } from "@rjsf/utils";
 import { Input, Button, Tag, Tooltip } from "antd";
 import styles from "./EnhancedPatternPropertiesField.module.css";
-import { OverridableIcon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
 import { api } from "../../../../api/api";
 import {

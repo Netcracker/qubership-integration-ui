@@ -4,7 +4,7 @@ import { SelectEdit } from "../table/SelectEdit.tsx";
 import { PLACEHOLDER } from "../../misc/format-utils.ts";
 import { NumberValueEdit } from "../table/NumberValueEdit.tsx";
 import React from "react";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type DefaultValueEditProps = {
   name: string;

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { FieldProps } from "@rjsf/utils";
 import { Input, Button } from "antd";
 import styles from "./PatternPropertiesField.module.css";
-import { OverridableIcon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 
 const PatternPropertiesField: React.FC<FieldProps<Record<string, string>>> = ({
   formData = {},

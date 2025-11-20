@@ -1,5 +1,5 @@
 import { Badge, Button, Tooltip } from "antd";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 export type FilterButtonProps = {
   count: number;

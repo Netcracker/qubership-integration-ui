@@ -37,7 +37,7 @@ import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { capitalize } from "../../misc/format-utils.ts";
 import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
 import { api } from "../../api/api.ts";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { normalizeProtocol } from "../../misc/protocol-utils.ts";
 
 function buildGraphQLOperations(schemaText: string, queryText: string) {

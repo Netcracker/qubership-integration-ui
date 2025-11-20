@@ -46,7 +46,7 @@ import {
   ChainGraphNodeData,
   nodeTypes,
 } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 
 const ChainGraphInner: React.FC = () => {

@@ -7,7 +7,7 @@ import { useNotificationService } from "../../../../hooks/useNotificationService
 import { SystemOperation } from "../../../../api/apiTypes";
 import { JSONSchema7 } from "json-schema";
 import { VSCodeExtensionApi } from "../../../../api/rest/vscodeExtensionApi";
-import { OverridableIcon } from "../../../../IconProvider";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { HttpMethod } from "../../../services/HttpMethod";
 import { ServiceTag } from "./ServiceTag";
 import {

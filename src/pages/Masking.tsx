@@ -20,7 +20,7 @@ import {
   TimestampColumnFilterDropdown,
 } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 export const Masking: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();

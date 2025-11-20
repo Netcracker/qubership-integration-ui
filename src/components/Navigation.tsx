@@ -2,7 +2,7 @@ import { Menu } from "antd";
 import styles from "./Navigation.module.css";
 import type { MenuProps } from "antd";
 import { NotificationBar } from "./notifications/NotificationBar.tsx";
-import { OverridableIcon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 type MenuItem = Required<MenuProps>["items"][number];
 

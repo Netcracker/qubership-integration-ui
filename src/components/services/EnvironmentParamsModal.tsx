@@ -5,7 +5,7 @@ import { Environment, EnvironmentRequest } from '../../api/apiTypes';
 import { useServiceContext } from './ServiceParametersPage';
 import { Segmented } from 'antd';
 import { EnvironmentSourceType } from '../../api/apiTypes';
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { environmentLabelOptions } from "./utils.tsx";
 import {
   isAmqpProtocol,

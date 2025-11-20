@@ -3,7 +3,7 @@ import { useModalContext } from "../../../ModalContextProvider";
 import { FilterItem, FilterItemState } from "./FilterItem";
 import { useState } from "react";
 import { FilterColumn, FilterCondition } from "./filter";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 export type FilterProps = {
   filterColumns: FilterColumn[];

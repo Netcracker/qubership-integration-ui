@@ -80,7 +80,7 @@ import { TransformationInfoCard } from "./TransformationInfo.tsx";
 import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
 import { ElementReferencesList } from "./ElementReferencesList.tsx";
 import { traverseElementsDepthFirst } from "../../misc/tree-utils.ts";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
 const DRAG_POINT_ID = "drag-point";

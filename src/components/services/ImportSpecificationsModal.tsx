@@ -9,7 +9,7 @@ import type { ElementWithChainName, SpecApiFile } from "../../api/apiTypes";
 import { ApiSpecificationType, ApiSpecificationFormat } from "../../api/apiTypes";
 import styles from "./Services.module.css";
 import { validateFiles } from "./utils";
-import { OverridableIcon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { VSCodeExtensionApi } from "../../api/rest/vscodeExtensionApi.ts";
 import { SourceFlagTag } from "./SourceFlagTag";
 

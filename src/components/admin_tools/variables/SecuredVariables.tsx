@@ -25,7 +25,7 @@ import { useNotificationService } from "../../../hooks/useNotificationService.ts
 import { ResizeCallbackData } from "react-resizable";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { LongActionButton } from "../../LongActionButton.tsx";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 const { Title } = Typography;
 

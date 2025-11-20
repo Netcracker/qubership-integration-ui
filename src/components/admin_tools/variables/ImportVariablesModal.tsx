@@ -6,7 +6,7 @@ import { useModalContext } from "../../../ModalContextProvider.tsx";
 import { variablesApi } from "../../../api/admin-tools/variables/variablesApi.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { VariableImportPreview } from "../../../api/apiTypes.ts";
-import { OverridableIcon } from "../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 interface Props {
   onSuccess?: () => void;
