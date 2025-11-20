@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Navigation from "./components/Navigation.tsx";
 import { Navigate, Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from "react-router";
 import Chains from "./pages/Chains";
@@ -97,14 +97,26 @@ const router = createBrowserRouter(
 
 const App = () => {
   const [theme, setTheme] = useState<ThemeMode>(() => initializeBrowserTheme());
+  const [themeUpdateKey, setThemeUpdateKey] = useState(0);
 
   useEffect(() => {
     const cleanup = setupThemeListener(setTheme);
     return cleanup;
   }, []);
 
+  useEffect(() => {
+    const handleThemeVariablesUpdated = () => {
+      setThemeUpdateKey(prev => prev + 1);
+    };
+
+    window.addEventListener('theme-variables-updated', handleThemeVariablesUpdated);
+    return () => {
+      window.removeEventListener('theme-variables-updated', handleThemeVariablesUpdated);
+    };
+  }, []);
+
   const isDark = theme === 'dark' || theme === 'high-contrast';
-  const antdConfig = getAntdThemeConfig(isDark);
+  const antdConfig = useMemo(() => getAntdThemeConfig(isDark), [isDark, themeUpdateKey]);
 
   return (
     <ConfigProvider theme={antdConfig}>

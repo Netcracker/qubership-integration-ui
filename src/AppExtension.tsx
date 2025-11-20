@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Route, createMemoryRouter, createRoutesFromElements, RouterProvider } from "react-router";
 import ChainPage from "./pages/ChainPage.tsx";
 import { ConfigProvider, Layout } from "antd";
@@ -62,7 +62,20 @@ const router = createMemoryRouter(
 
 const AppExtension = () => {
   const { isDark, palette } = useVSCodeTheme();
-  const antdConfig = useMemo(() => getAntdThemeConfig(isDark), [isDark, palette]);
+  const [themeUpdateKey, setThemeUpdateKey] = useState(0);
+
+  useEffect(() => {
+    const handleThemeVariablesUpdated = () => {
+      setThemeUpdateKey(prev => prev + 1);
+    };
+
+    window.addEventListener('theme-variables-updated', handleThemeVariablesUpdated);
+    return () => {
+      window.removeEventListener('theme-variables-updated', handleThemeVariablesUpdated);
+    };
+  }, []);
+
+  const antdConfig = useMemo(() => getAntdThemeConfig(isDark), [isDark, palette, themeUpdateKey]);
 
   if (api instanceof VSCodeExtensionApi) {
     void api.sendMessageToExtension(STARTUP_EVENT);

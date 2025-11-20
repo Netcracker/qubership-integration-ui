@@ -221,6 +221,10 @@ export const useVSCodeTheme = () => {
     root.classList.add('theme-switching');
     setTimeout(() => {
       root.classList.remove('theme-switching');
+      
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('theme-variables-updated', { detail: { theme: themeClass } }));
+      }
     }, 250);
   }, [isVSCodeWebview]);
 
