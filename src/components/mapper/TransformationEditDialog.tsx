@@ -70,17 +70,9 @@ export const TransformationEditDialog: React.FC<
   }, [parametersComponentMap, transformation]);
 
   useEffect(() => {
-    let params = transformation?.parameters ?? [];
-
-    if (transformation?.name === "dictionary" && params.length > 1) {
-      const [first, ...rest] = params;
-      const combined = rest.join(";\n") + ";";
-      params = [first, combined];
-    }
-
     form.setFieldsValue({
       name: transformation?.name ?? "",
-      parameters: params,
+      parameters: transformation?.parameters ?? [],
     });
   }, [form, transformation]);
 
@@ -119,15 +111,6 @@ export const TransformationEditDialog: React.FC<
           }
         }}
         onFinish={(values) => {
-          if (values.name === "dictionary" && values.parameters.length > 1) {
-            const [first, joined] = values.parameters;
-            const separated = joined
-              ?.split(";")
-              .map((v) => v.trim())
-              .filter(Boolean) || [];
-            values.parameters = [first, ...separated];
-          }
-
           onSubmit?.(values.name ? values : undefined, descriptionValue);
           closeContainingModal();
         }}
