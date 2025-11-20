@@ -40,7 +40,7 @@ import {
 } from "./theme/themeInit.ts";
 import { getAntdThemeConfig } from "./theme/antdTokens.ts";
 import { IconProvider } from "./icons/IconProvider.tsx";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const { Header } = Layout;
 
@@ -106,13 +106,25 @@ const router = createBrowserRouter(
 
 const App = () => {
   const [theme, setTheme] = useState<ThemeMode>(() => initializeBrowserTheme());
+  const [themeUpdateKey, setThemeUpdateKey] = useState(0);
 
   useEffect(() => {
     return setupThemeListener(setTheme);
   }, []);
 
+  useEffect(() => {
+    const handleThemeVariablesUpdated = () => {
+      setThemeUpdateKey(prev => prev + 1);
+    };
+
+    window.addEventListener("theme-variables-updated", handleThemeVariablesUpdated);
+    return () => {
+      window.removeEventListener("theme-variables-updated", handleThemeVariablesUpdated);
+    };
+  }, []);
+
   const isDark = theme === "dark" || theme === "high-contrast";
-  const antdConfig = getAntdThemeConfig(isDark);
+  const antdConfig = useMemo(() => getAntdThemeConfig(isDark), [isDark, themeUpdateKey]);
 
   return (
     <ConfigProvider theme={antdConfig}>
