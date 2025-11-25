@@ -63,8 +63,9 @@ const readTheme = () => {
   ];
 
   for (const target of candidates) {
-    const value = target?.getAttribute("data-theme");
-    if (value) return value;
+    if (!target) continue;
+    const value = target.getAttribute("data-theme");
+    if (value !== null && typeof value === 'string') return value;
   }
 
   if (document.body?.classList.contains("vscode-dark")) {
@@ -290,7 +291,7 @@ const ChainGraphInner: React.FC = () => {
 
     const updateTheme = () => {
       const theme = readTheme();
-      if (!theme) return;
+      if (!theme || typeof theme !== 'string') return;
       if (currentThemeRef.current === theme) {
         if (document.body.dataset.theme !== theme) {
           document.body.dataset.theme = theme;

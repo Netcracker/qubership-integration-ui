@@ -39,7 +39,7 @@ export async function formatDocumentInEditor(
     .then(() => editor?.updateOptions({ readOnly: true }));
 }
 
-export function setUpDocumentFormatting(editor: editor_.IStandaloneCodeEditor, monaco?: any) {
+export function setUpDocumentFormatting(editor: editor_.IStandaloneCodeEditor, monaco?: Monaco) {
   const formatDocument = () => formatDocumentInEditor(editor);
 
   // on first initialization

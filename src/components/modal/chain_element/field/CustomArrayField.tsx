@@ -191,7 +191,7 @@ const CustomArrayField: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [operationId]);
+  }, [operationId, readOnlyMode, availableCodes, formData]);
 
   const handleAdd = () => {
     if (!selectedCode) return;

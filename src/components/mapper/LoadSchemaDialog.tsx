@@ -475,7 +475,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
       return;
     }
     const fieldPath = ["schema", "element"];
-    const currentValue = form.getFieldValue(fieldPath);
+    const currentValue = form.getFieldValue(fieldPath) as string | undefined;
     const currentOption = elementOptions.find(
       (option) => option.value === currentValue,
     );
@@ -527,7 +527,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
       return;
     }
     const operationField = ["schema", "operation"];
-    const currentValue = form.getFieldValue(operationField);
+    const currentValue = form.getFieldValue(operationField) as string | undefined;
     const availableValues = new Set(operationOptions.map((option) => option.value));
     const shouldUseStored =
       !!storedSelection &&

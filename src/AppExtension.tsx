@@ -60,11 +60,12 @@ const router = createMemoryRouter(
 );
 
 const AppExtension = () => {
-  const { isDark, palette } = useVSCodeTheme();
+  const { isDark } = useVSCodeTheme();
   const [themeUpdateKey, setThemeUpdateKey] = useState(0);
   const antdConfig = useMemo(
     () => getAntdThemeConfig(isDark),
-    [isDark, palette, themeUpdateKey],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isDark, themeUpdateKey],
   );
 
   useEffect(() => {

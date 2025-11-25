@@ -370,87 +370,6 @@ pre[class*="language-"] .token.punctuation {
   border-bottom-color: var(--vscode-editorGroup-border, var(--vscode-border)) !important;
 }
 
-.ant-tabs-nav-operations {
-  background-color: var(--vscode-editor-background) !important;
-}
-
-.ant-tabs-nav-more {
-  background-color: var(--vscode-editor-background) !important;
-  color: var(--vscode-foreground) !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.ant-tabs-nav-more:focus,
-.ant-tabs-nav-more:focus-visible {
-  outline: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-}
-
-.ant-tabs-nav-more:hover {
-  background-color: var(--vscode-list-hoverBackground) !important;
-  color: var(--vscode-foreground) !important;
-  outline: none !important;
-}
-
-.ant-tabs-nav-more:active,
-.ant-tabs-nav-more.ant-tabs-dropdown-open {
-  background-color: var(--vscode-list-activeSelectionBackground, var(--vscode-list-hoverBackground)) !important;
-  color: var(--vscode-foreground) !important;
-  outline: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-}
-
-.ant-tabs-nav-more .anticon {
-  color: inherit !important;
-}
-
-.ant-tabs-nav-more .anticon svg {
-  fill: currentColor !important;
-}
-
-.ant-tabs-dropdown {
-  background-color: var(--vscode-panel-background) !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.ant-tabs-dropdown * {
-  border: none !important;
-  outline: none !important;
-}
-
-.ant-tabs-dropdown-menu {
-  background-color: var(--vscode-panel-background) !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.ant-tabs-dropdown-menu::before,
-.ant-tabs-dropdown-menu::after {
-  display: none !important;
-}
-
-.ant-tabs-dropdown-menu-item {
-  color: var(--vscode-foreground) !important;
-  background-color: transparent !important;
-}
-
-.ant-tabs-dropdown-menu-item:hover {
-  background-color: var(--vscode-list-hoverBackground) !important;
-  color: var(--vscode-foreground) !important;
-}
-
-.ant-tabs-dropdown-menu-item-active {
-  background-color: var(--vscode-list-activeSelectionBackground, var(--vscode-list-hoverBackground)) !important;
-  color: var(--vscode-foreground) !important;
-}
-
 /* Modal theming */
 .ant-modal,
 .ant-modal-content {
@@ -506,5 +425,38 @@ pre[class*="language-"] .token.punctuation {
 .ant-modal-mask {
   background-color: color-mix(in srgb, var(--vscode-editor-background, #000000) 75%, transparent) !important;
   opacity: 0.5 !important;
+}
+
+/* Modal confirm theming */
+.ant-modal-confirm-title,
+.ant-modal-confirm-content {
+  color: var(--vscode-modal-foreground, var(--vscode-foreground)) !important;
+}
+
+.ant-modal-confirm-btns .ant-btn-primary {
+  border: none !important;
+  border-color: transparent !important;
+}
+
+.ant-modal-confirm-btns .ant-btn-primary:hover {
+  border: none !important;
+  border-color: transparent !important;
+}
+
+/* Message theming */
+.ant-message-notice {
+  background-color: var(--vscode-panel-background) !important;
+  color: var(--vscode-foreground) !important;
+}
+
+.ant-message-notice-content {
+  background-color: var(--vscode-panel-background) !important;
+  color: var(--vscode-foreground) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.ant-message-custom-content {
+  color: var(--vscode-foreground) !important;
 }
 

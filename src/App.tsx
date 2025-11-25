@@ -124,6 +124,7 @@ const App = () => {
   }, []);
 
   const isDark = theme === "dark" || theme === "high-contrast";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const antdConfig = useMemo(() => getAntdThemeConfig(isDark), [isDark, themeUpdateKey]);
 
   return (
