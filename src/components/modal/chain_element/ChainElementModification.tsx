@@ -179,7 +179,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         "Schema not found",
         `Schema for elementType "${node.data.elementType}" was not found.`,
         undefined,
-      );// eslint-disable-next-line react-hooks/exhaustive-deps
+      );
       return;
     }
 
