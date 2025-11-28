@@ -1132,6 +1132,13 @@ export type CustomResourceBuildRequest = {
 }
 
 export type CustomResourceOptions = {
-  language: string;
-  image: string;
+  language?: string;
+  name?: string;
+  container?: ContainerOptions;
+  environment?: Record<string, string>;
 };
+
+export type ContainerOptions = {
+  image?: string;
+  imagePoolPolicy?: "Always" | "Never" | "IfNotPresent";
+}

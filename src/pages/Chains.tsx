@@ -14,7 +14,7 @@ import { useModalsContext } from "../Modals.tsx";
 import {
   CatalogItemType,
   ChainCreationRequest,
-  ChainItem, CustomResourceBuildRequest,
+  ChainItem, CustomResourceBuildRequest, CustomResourceOptions,
   FolderFilter,
   FolderItem,
   ListFolderRequest,
@@ -52,6 +52,7 @@ import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
 import { Icon } from "../IconProvider.tsx";
+import { ExportCRDialog } from "../components/modal/ExportCRDialog.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -429,15 +430,12 @@ const Chains = () => {
     }
   };
 
-  const exportCR = async () => {
+  const exportCR = async (options: CustomResourceOptions) => {
     const ids = selectedRowKeys.map((k) => k.toString());
     setIsLoading(true);
     try {
       const request: CustomResourceBuildRequest = {
-        options: {
-          language: "xml",
-          image: "qip-engine",
-        },
+        options,
         chainIds: ids
       };
       const text = await api.buildCR(request);
@@ -451,6 +449,12 @@ const Chains = () => {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  const onExportCRBtnClick = async () => {
+    showModal({
+      component: <ExportCRDialog onSubmit={(options) => exportCR(options)}/>
+    });
   }
 
   const pasteItem = async (destinationFolderId?: string) => {
@@ -1003,7 +1007,7 @@ const Chains = () => {
           <FloatButton
             tooltip={{ title: "Export selected chains as Camel K CR", placement: "left" }}
             icon={<KubernetesOutlined />}
-            onClick={() => void exportCR()}
+            onClick={() => void onExportCRBtnClick()}
           />
           <FloatButton
             tooltip={{ title: "Paste", placement: "left" }}
