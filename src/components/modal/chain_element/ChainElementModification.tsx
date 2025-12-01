@@ -175,6 +175,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         integrationOperationPath: formProperties.integrationOperationPath,
         integrationOperationMethod: formProperties.integrationOperationMethod,
         bodyFormData: formProperties.bodyFormData,
+        integrationOperationSkipEmptyQueryParameters: formProperties.integrationOperationSkipEmptyQueryParameters,
         updateContext: (updatedProperties: Record<string, unknown>) => {
           setFormContext((prevContext) =>
             enrichProperties(prevContext, updatedProperties),

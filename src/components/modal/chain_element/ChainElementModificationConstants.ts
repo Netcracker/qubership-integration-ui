@@ -303,6 +303,9 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     integrationSpecificationGroupId: {
       "ui:widget": "hidden",
     },
+    integrationOperationSkipEmptyQueryParameters: {
+      "ui:widget": "hidden",
+    },
   },
   id: { "ui:widget": "hidden" },
   elementType: { "ui:widget": "hidden" },
@@ -328,6 +331,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.integrationOperationPathParameters": "Endpoint",
   "properties.integrationOperationQueryParameters": "Endpoint",
   "properties.integrationAdditionalParameters": "Endpoint",
+  "properties.integrationOperationSkipEmptyQueryParameters": "Endpoint",
   "properties.bodyMimeType": "Endpoint",
   "properties.bodyFormData": "Endpoint",
   "properties.integrationGqlQuery": "Endpoint",

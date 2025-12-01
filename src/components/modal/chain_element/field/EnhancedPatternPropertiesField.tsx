@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { FieldProps } from "@rjsf/utils";
-import { Input, Button, Tag, Tooltip } from "antd";
+import { Input, Button, Tag, Tooltip, Checkbox } from "antd";
 import styles from "./EnhancedPatternPropertiesField.module.css";
 import { Icon } from "../../../../IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
@@ -536,6 +536,28 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
                   </td>
                 </tr>
               ))}
+              {paramType === 'query' && formContext?.integrationOperationProtocolType === 'http' && (
+                <tr>
+                  <td colSpan={3} className={styles.td} style={{ padding: '12px' }}>
+                    <Checkbox
+                      checked={(formContext as any)?.integrationOperationSkipEmptyQueryParameters ?? false}
+                      onChange={(e) => {
+                        if (formContext?.updateContext) {
+                          formContext.updateContext({
+                            integrationOperationSkipEmptyQueryParameters: e.target.checked,
+                          });
+                        }
+                      }}
+                      disabled={disabled || readonly}
+                    >
+                      Skip empty query parameters
+                    </Checkbox>
+                    <div style={{ fontSize: '12px', color: '#8c8c8c', marginTop: '4px', marginLeft: '24px' }}>
+                      If checked, empty query parameters will be excluded from the request URL.
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         ))}
