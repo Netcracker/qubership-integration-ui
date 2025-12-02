@@ -258,7 +258,7 @@ export const ExportCRDialog: React.FC<ExportCRDialogProps> = ({ onSubmit }) => {
         wrapperCol={{ flex: "auto" }}
         labelWrap
         initialValues={{
-          name: `integration-${formatDate(new Date())}`,
+          name: `integration-${formatDate(new Date()).replaceAll("_", "-").toLowerCase()}`,
           language: "xml",
           container: {
             imagePoolPolicy: "IfNotPresent",
