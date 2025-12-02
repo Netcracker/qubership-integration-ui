@@ -3,7 +3,7 @@ import { Select } from "antd";
 import { WidgetProps } from "@rjsf/utils";
 import { JSONSchema7 } from "json-schema";
 
-const CustomSelectWidget: React.FC<WidgetProps> = ({
+const MultipleSelectWidget: React.FC<WidgetProps> = ({
   value,
   name,
   onChange,
@@ -48,4 +48,4 @@ const CustomSelectWidget: React.FC<WidgetProps> = ({
   );
 };
 
-export default CustomSelectWidget;
+export default MultipleSelectWidget;
