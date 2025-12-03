@@ -22,7 +22,6 @@ import {
   ListFolderRequest,
   UpdateFolderRequest,
 } from "../api/apiTypes.ts";
-import { KubernetesOutlined } from "@ant-design/icons";
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
@@ -55,7 +54,6 @@ import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
 import styles from "./Chains.module.css";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
-import { Icon } from "../IconProvider.tsx";
 import { ExportCRDialog } from "../components/modal/ExportCRDialog.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
@@ -455,7 +453,7 @@ const Chains = () => {
     }
   }
 
-  const onExportCRBtnClick = async () => {
+  const onExportCRBtnClick = () => {
     showModal({
       component: <ExportCRDialog onSubmit={(options) => exportCR(options)}/>
     });
@@ -1011,8 +1009,8 @@ const Chains = () => {
           />
           <FloatButton
             tooltip={{ title: "Export selected chains as Camel K CR", placement: "left" }}
-            icon={<KubernetesOutlined />}
-            onClick={() => void onExportCRBtnClick()}
+            icon={<OverridableIcon name="kubernetes" />}
+            onClick={() => onExportCRBtnClick()}
           />
           <FloatButton
             tooltip={{ title: "Paste", placement: "left" }}

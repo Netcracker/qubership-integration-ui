@@ -97,7 +97,7 @@ import {
   SisternodeOutlined,
   CheckCircleOutlined,
   DeliveredProcedureOutlined,
-  DeleteRowOutlined,
+  DeleteRowOutlined, KubernetesOutlined
 } from "@ant-design/icons";
 
 export const commonIcons = {
@@ -172,6 +172,7 @@ export const commonIcons = {
   solution: SolutionOutlined,
   columnHeight: ColumnHeightOutlined,
   verticalAlignMiddle: VerticalAlignMiddleOutlined,
+  kubernetes: KubernetesOutlined,
 };
 
 export const elementIcons = {
