@@ -14,11 +14,13 @@ import { useModalsContext } from "../Modals.tsx";
 import {
   CatalogItemType,
   ChainCreationRequest,
-  ChainItem, CustomResourceBuildRequest, CustomResourceOptions,
+  ChainItem,
+  CustomResourceBuildRequest,
+  CustomResourceOptions,
   FolderFilter,
   FolderItem,
   ListFolderRequest,
-  UpdateFolderRequest
+  UpdateFolderRequest,
 } from "../api/apiTypes.ts";
 import { KubernetesOutlined } from "@ant-design/icons";
 import React, { useCallback, useEffect, useState } from "react";
@@ -51,6 +53,8 @@ import { FilterButton } from "../components/table/filter/FilterButton.tsx";
 import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
+import styles from "./Chains.module.css";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { Icon } from "../IconProvider.tsx";
 import { ExportCRDialog } from "../components/modal/ExportCRDialog.tsx";
 
@@ -112,7 +116,7 @@ function buildPathItems(path: FolderItem[]): BreadcrumbProps["items"] {
   return [
     {
       href: "/chains",
-      title: <Icon name="home" />,
+      title: <OverridableIcon name="home" />,
     },
     ...items,
   ];
@@ -526,7 +530,8 @@ const Chains = () => {
         data.push(variablesData);
       }
 
-      const archiveData = await mergeZipArchives(data);
+      const nonEmptyData = data.filter(d => d.size !== 0);
+      const archiveData = await mergeZipArchives(nonEmptyData);
       const file = new File([archiveData], chainsFile.name, {
         type: "application/zip",
       });
@@ -803,9 +808,9 @@ const Chains = () => {
       render: (_, item) => (
         <Flex vertical={false} gap={4}>
           {item.itemType === CatalogItemType.FOLDER ? (
-            <Icon name="folder" />
+            <OverridableIcon name="folder" />
           ) : (
-            <Icon name="file" />
+            <OverridableIcon name="file" />
           )}
           <a
             onClick={(event) => {
@@ -867,9 +872,9 @@ const Chains = () => {
       dataIndex: "createdBy",
       key: "createdBy",
       hidden: !selectedKeys.includes("createdBy"),
-      render: (_, item) => <>{item.createdBy.username}</>,
+      render: (_, item) => <>{item.createdBy?.username}</>,
       sorter: (a, b) =>
-        a.createdBy.username.localeCompare(b.createdBy.username),
+        (a.createdBy?.username ?? "").localeCompare(b.createdBy?.username ?? ""),
       filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       // onFilter: getTextColumnFilterFn(
       //   (item) => item.createdBy.username,
@@ -880,8 +885,8 @@ const Chains = () => {
       dataIndex: "createdWhen",
       key: "createdWhen",
       hidden: !selectedKeys.includes("createdWhen"),
-      render: (_, item) => <>{formatTimestamp(item.createdWhen)}</>,
-      sorter: (a, b) => a.createdWhen - b.createdWhen,
+      render: (_, item) => <>{item.createdWhen ? formatTimestamp(item.createdWhen) : "-"}</>,
+      sorter: (a, b) => (a.createdWhen ?? 0) - (b.createdWhen ?? 0),
       filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
       // onFilter: getTimestampColumnFilterFn((item) => item.createdWhen),
     },
@@ -890,9 +895,9 @@ const Chains = () => {
       dataIndex: "modifiedBy",
       key: "modifiedBy",
       hidden: !selectedKeys.includes("modifiedBy"),
-      render: (_, item) => <>{item.modifiedBy.username}</>,
+      render: (_, item) => <>{item.modifiedBy?.username ?? "-"}</>,
       sorter: (a, b) =>
-        a.modifiedBy.username.localeCompare(b.modifiedBy.username),
+        (a.modifiedBy?.username ?? "").localeCompare(b.modifiedBy?.username ?? ""),
       filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       // onFilter: getTextColumnFilterFn(
       //   (item) => item.modifiedBy.username,
@@ -903,8 +908,8 @@ const Chains = () => {
       dataIndex: "modifiedWhen",
       key: "modifiedWhen",
       hidden: !selectedKeys.includes("modifiedWhen"),
-      render: (_, item) => <>{formatTimestamp(item.modifiedWhen)}</>,
-      sorter: (a, b) => a.modifiedWhen - b.modifiedWhen,
+      render: (_, item) => <>{item.modifiedWhen ? formatTimestamp(item.modifiedWhen) : "-"}</>,
+      sorter: (a, b) => (a.modifiedWhen ?? 0) - (b.modifiedWhen ?? 0),
       filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
       // onFilter: getTimestampColumnFilterFn((item) => item.modifiedWhen),
     },
@@ -926,7 +931,7 @@ const Chains = () => {
             trigger={["click"]}
             placement="bottomRight"
           >
-            <Button size="small" type="text" icon={<Icon name="more" />} />
+            <Button size="small" type="text" icon={<OverridableIcon name="more" />} />
           </Dropdown>
         </>
       ),
@@ -951,7 +956,7 @@ const Chains = () => {
   return (
     <>
       {contextHolder}
-      <Flex vertical gap={16} style={{ height: "100%" }}>
+      <Flex vertical gap={16} className={styles.container}>
         {pathItems && pathItems.length > 0 ? (
           <Breadcrumb items={pathItems} />
         ) : null}
@@ -971,7 +976,7 @@ const Chains = () => {
               onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
             }}
           >
-            <Button icon={<Icon name="settings" />} />
+            <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
           <FilterButton count={filterItemStates.length} onClick={addFilter} />
         </Flex>
@@ -998,10 +1003,10 @@ const Chains = () => {
             },
           }}
         />
-        <FloatButtonGroup trigger="hover" icon={<Icon name="more" />}>
+        <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
           <FloatButton
             tooltip={{ title: "Deploy selected chains", placement: "left" }}
-            icon={<Icon name="send" />}
+            icon={<OverridableIcon name="send" />}
             // onClick={onDeployBtnClick}
           />
           <FloatButton
@@ -1011,7 +1016,7 @@ const Chains = () => {
           />
           <FloatButton
             tooltip={{ title: "Paste", placement: "left" }}
-            icon={<Icon name="carryOut" />}
+            icon={<OverridableIcon name="carryOut" />}
             onClick={() => void pasteItem(getFolderId())}
           />
           <FloatButton
@@ -1021,12 +1026,12 @@ const Chains = () => {
           />
           <FloatButton
             tooltip={{ title: "Import chains", placement: "left" }}
-            icon={<Icon name="cloudUpload" />}
+            icon={<OverridableIcon name="cloudUpload" />}
             onClick={onImportBtnClick}
           />
           <FloatButton
             tooltip={{ title: "Export selected chains", placement: "left" }}
-            icon={<Icon name="cloudDownload" />}
+            icon={<OverridableIcon name="cloudDownload" />}
             onClick={onExportBtnClick}
           />
           <FloatButton
@@ -1034,17 +1039,17 @@ const Chains = () => {
               title: "Delete selected chains and folders",
               placement: "left",
             }}
-            icon={<Icon name="delete" />}
+            icon={<OverridableIcon name="delete" />}
             onClick={onDeleteBtnClick}
           />
           <FloatButton
             tooltip={{ title: "Create folder", placement: "left" }}
-            icon={<Icon name="folderAdd" />}
+            icon={<OverridableIcon name="folderAdd" />}
             onClick={() => onCreateFolderBtnClick(getFolderId())}
           />
           <FloatButton
             tooltip={{ title: "Create chain", placement: "left" }}
-            icon={<Icon name="fileAdd" />}
+            icon={<OverridableIcon name="fileAdd" />}
             onClick={() => onCreateChainBtnClick(getFolderId())}
           />
         </FloatButtonGroup>

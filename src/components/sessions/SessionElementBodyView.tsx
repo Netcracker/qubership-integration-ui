@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { Editor } from "@monaco-editor/react";
+import React, { useEffect, useRef, useState } from "react";
+import { Editor, Monaco } from "@monaco-editor/react";
 import { editor as editor_ } from "monaco-editor";
+import { useMonacoTheme, applyVSCodeThemeToMonaco } from "../../hooks/useMonacoTheme";
 
 type SessionElementBodyViewProps = React.HTMLAttributes<HTMLElement> & {
   headers: Record<string, string>;
@@ -38,7 +39,7 @@ export async function formatDocumentInEditor(
     .then(() => editor?.updateOptions({ readOnly: true }));
 }
 
-export function setUpDocumentFormatting(editor: editor_.IStandaloneCodeEditor) {
+export function setUpDocumentFormatting(editor: editor_.IStandaloneCodeEditor, monaco?: Monaco) {
   const formatDocument = () => formatDocumentInEditor(editor);
 
   // on first initialization
@@ -50,6 +51,10 @@ export function setUpDocumentFormatting(editor: editor_.IStandaloneCodeEditor) {
   editor.onDidChangeModelContent(() =>
     setTimeout(() => void formatDocument(), 1),
   );
+
+  if (monaco) {
+    applyVSCodeThemeToMonaco(monaco);
+  }
 }
 
 export const SessionElementBodyView: React.FC<SessionElementBodyViewProps> = ({
@@ -57,18 +62,30 @@ export const SessionElementBodyView: React.FC<SessionElementBodyViewProps> = ({
   body,
 }) => {
   const [language, setLanguage] = useState<string | undefined>(undefined);
+  const monacoTheme = useMonacoTheme();
+  const monacoRef = useRef<Monaco | null>(null);
 
   useEffect(() => {
     setLanguage(guessLanguageFromContentType(getContentType(headers)));
   }, [headers]);
+
+  useEffect(() => {
+    if (monacoRef.current) {
+      applyVSCodeThemeToMonaco(monacoRef.current);
+    }
+  }, [monacoTheme]);
 
   return (
     <Editor
       className="qip-editor"
       language={language}
       value={body}
+      theme={monacoTheme}
       options={{ readOnly: true, fixedOverflowWidgets: true }}
-      onMount={setUpDocumentFormatting}
+      onMount={(editor, monaco) => {
+        monacoRef.current = monaco;
+        setUpDocumentFormatting(editor, monaco);
+      }}
     />
   );
 };

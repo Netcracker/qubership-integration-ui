@@ -3,35 +3,21 @@ import { Breadcrumb, Col, Flex, Radio, RadioChangeEvent, Row, Result, Button } f
 import { Outlet, useLocation, useNavigate, useParams } from "react-router";
 import { useChain } from "../hooks/useChain.tsx";
 import styles from "./Chain.module.css";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import { Chain } from "../api/apiTypes.ts";
 import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { Icon } from "../IconProvider.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 export type ChainContextData = {
   chain: Chain | undefined;
   update: (changes: Partial<Chain>) => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 export const ChainContext = createContext<ChainContextData | undefined>(
   undefined,
 );
-
-function buildPathItems(path: Map<string, string>): BreadcrumbProps["items"] {
-  const entries = Object.entries(path).reverse();
-  const items = entries.map(([key, value]: [string, string], index) => ({
-    title: value,
-    href: index < entries.length - 1 ? `/chains?folder=${key}` : undefined,
-  }));
-  return [
-    {
-      href: "/chains",
-      title: <Icon name="home" />,
-    },
-    ...items,
-  ];
-}
 
 const ChainPage = () => {
   const { chainId, sessionId } = useParams();
@@ -42,20 +28,35 @@ const ChainPage = () => {
   const navigate = useNavigate();
   const activeKey = getActiveTabKey(pathname);
 
-  const { chain, setChain, updateChain, isLoading, error } = useChain(chainId);
+  const { chain, setChain, updateChain, getChain, isLoading, error } = useChain(chainId);
+
+  const refreshChain = useCallback(async () => {
+    if (chainId) {
+      const updatedChain = await getChain();
+      if (updatedChain) {
+        setChain(updatedChain);
+      }
+    }
+  }, [chainId, getChain, setChain]);
 
   useEffect(() => {
-    const items: BreadcrumbProps["items"] = [
-      ...(buildPathItems(chain?.navigationPath ?? new Map<string, string>()) ??
-        []),
+    const navigationItems = Object.entries(chain?.navigationPath ?? [])
+      .reverse()
+      .map(([key, value], index, arr) => ({
+        title: value,
+        href: index < arr.length - 1 ? `/chains?folder=${key}` : undefined,
+      }));
+
+    setPathItems([
+      { href: "/chains", title: <OverridableIcon name="home" /> },
+      ...navigationItems,
       ...(sessionId
         ? [
             { title: "Sessions", href: `/chains/${chainId}/sessions` },
             { title: sessionId },
           ]
         : []),
-    ];
-    setPathItems(items);
+    ]);
   }, [chain, chainId, sessionId]);
 
   const handlePageChange = (event: RadioChangeEvent) => {
@@ -132,6 +133,7 @@ const ChainPage = () => {
             value={{
               chain,
               update: async (changes) => updateChain(changes).then(setChain),
+              refresh: refreshChain,
             }}
           >
             <Outlet />

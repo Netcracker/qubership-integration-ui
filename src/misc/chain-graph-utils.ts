@@ -10,14 +10,22 @@ export function getDataFromElement(
   element: Element,
   libraryElement?: LibraryElement,
 ): ChainGraphNodeData {
-  return {
+  let node = {
     elementType: element.type,
     label: element.name,
     description: element.description,
     properties: element.properties,
-    inputEnabled: libraryElement?.inputEnabled ?? true,
-    outputEnabled: libraryElement?.outputEnabled ?? true,
-  };
+  } as ChainGraphNodeData;
+
+  if (libraryElement) {
+    node = {
+      ...node,
+      inputEnabled: libraryElement?.inputEnabled,
+      outputEnabled: libraryElement?.outputEnabled,
+      typeTitle: libraryElement?.title,
+    };
+  }
+  return node;
 }
 
 export function getLibraryElement(
@@ -44,7 +52,7 @@ export function getNodeFromElement(
   position?: XYPosition,
 ): ChainGraphNode {
   const defaultPosition: XYPosition = { x: 0, y: 0 };
-  const nodeType = libraryElement?.container ? "container" : "unit";
+  const nodeType = libraryElement?.container || element.type === 'container' ? "container" : "unit";
   const isHorizontal = direction === "RIGHT";
   const isContainer = nodeType === "container";
 
@@ -76,15 +84,23 @@ export function getNodeFromElement(
     ...(element.parentElementId && {
       parentId: element.parentElementId,
     }),
-    style: {
-      backgroundColor: getElementColor(libraryElement),
-      borderRadius: 5,
-      fontWeight: 500,
-    },
+    ...(isContainer ? {
+      className: 'container-node',
+      style: {
+        borderRadius: 5,
+        fontWeight: 500,
+      },
+    } : {
+      style: {
+        backgroundColor: getElementColor(libraryElement),
+        borderRadius: 5,
+        fontWeight: 500,
+      },
+    }),
   };
 }
 
-function getElementColor(libraryElement: LibraryElement | undefined): string {
+export function getElementColor(libraryElement: LibraryElement | undefined): string {
   if (!libraryElement) {
     return '#fdf39d';
   }
@@ -170,6 +186,8 @@ export function getIntersectionParent(
       )
         ? parentCandidate
         : parentNode;
+  } else if (parentCandidate.data.elementType == 'container') {
+    parentNode = parentCandidate;
   }
   return parentNode;
 }

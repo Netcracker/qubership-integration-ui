@@ -5,8 +5,12 @@ import { Environment, EnvironmentRequest } from '../../api/apiTypes';
 import { useServiceContext } from './ServiceParametersPage';
 import { Segmented } from 'antd';
 import { EnvironmentSourceType } from '../../api/apiTypes';
-import { Icon } from "../../IconProvider.tsx";
-import {environmentLabelOptions} from "./utils.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { environmentLabelOptions } from "./utils.tsx";
+import {
+  isAmqpProtocol,
+  isKafkaProtocol,
+} from "../../misc/protocol-utils";
 
 interface EnvironmentParamsModalProps {
   open: boolean;
@@ -39,6 +43,8 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
   const [currentSourceType, setCurrentSourceType] = useState<EnvironmentSourceType>(environment?.sourceType || EnvironmentSourceType.MANUAL);
   const system = useServiceContext();
   const protocol = system?.protocol || '';
+  const isAsyncProtocolSupported =
+    isKafkaProtocol(protocol) || isAmqpProtocol(protocol);
 
 
   useEffect(() => {
@@ -128,7 +134,17 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
     })();
   };
 
-  const cellStyle = { border: '1px solid #eee', padding: 4 };
+  const tableBackground = 'var(--table-bg, var(--vscode-editor-background, var(--vscode-panel-background, #ffffff)))';
+  const tableBorderColor = 'var(--vscode-editorGroup-border, var(--vscode-border, #d9d9d9))';
+  const tableForeground = 'var(--vscode-foreground, rgba(0, 0, 0, 0.88))';
+  const mutedColor = 'var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.6))';
+
+  const cellStyle = {
+    border: `1px solid ${tableBorderColor}`,
+    padding: 4,
+    background: tableBackground,
+    color: tableForeground,
+  };
   const iconBtnStyle = {
     width: 28,
     height: 28,
@@ -195,12 +211,12 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
               setCurrentSourceType(val as EnvironmentSourceType);
               form.setFieldValue('sourceType', val);
             }}
-            disabled={!(protocol && ['KAFKA', 'AMQP', 'RABBIT'].includes(protocol.toUpperCase()))}
+            disabled={!isAsyncProtocolSupported}
             style={{ minWidth: 120, width: 'auto' }}
           />
           {(currentSourceType === EnvironmentSourceType.MAAS || currentSourceType === EnvironmentSourceType.MAAS_BY_CLASSIFIER) && (
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: 8, color: '#888' }}>
-              <Icon name="questionCircle" style={{ marginRight: 8, fontSize: 18 }} />
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: 8, color: mutedColor }}>
+              <OverridableIcon name="questionCircle" style={{ marginRight: 8, fontSize: 18 }} />
               <span>This type allows the use of the MaaS classifier to obtain connection parameters when creating a chain snapshot.</span>
             </div>
           )}
@@ -224,160 +240,179 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
           </Form.Item>
         </div>
 
-        {environment?.properties && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', userSelect: 'none' }}>
-              <span
-                style={{ marginRight: 8, fontSize: 16, color: '#888', cursor: 'pointer' }}
-                onClick={() => setShowProperties(prev => !prev)}
-              >
-                {showProperties ? '▲' : '▼'}
-              </span>
-              <b>Properties</b>
-              <Badge count={Object.keys(propertiesObj).length} style={{ backgroundColor: '#1677ff', marginLeft: 8 }} />
-              {showProperties && (
-                <>
-                  <Button
-                    icon={<Icon name="plus" />}
-                    size="small"
-                    style={{ marginLeft: 16 }}
-                    onClick={() => {
-                      const newId = Math.random().toString(36).slice(2);
-                      setAddingRows(rows => [...rows, { key: '', value: '', id: newId }]);
-                      setFocusRowId(newId);
-                    }}
-                  />
-                  <Switch
-                    checked={showAsKeyValue}
-                    onChange={setShowAsKeyValue}
-                    style={{ marginLeft: 16 }}
-                    size="small"
-                  />
-                  <span style={{ marginLeft: 8 }}>Show as Key Value</span>
-                </>
-              )}
-            </div>
-
-            <div style={showProperties ? propertiesTableTransition : propertiesTableHidden}>
-              {showAsKeyValue ? (
-                <Input.TextArea
-                  value={propertiesText}
-                  onChange={e => {
-                    const lines = e.target.value.split('\n');
-                    const obj: Record<string, string> = {};
-                    lines.forEach(line => {
-                      const match = line.match(/^\s*([^=;\s]+)\s*=\s*([^;]*);?\s*$/);
-                      if (match) obj[match[1]] = match[2];
-                    });
-                    setPropertiesObj(obj);
-                    setPropertiesText(e.target.value);
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', userSelect: 'none' }}>
+            <span
+              style={{ marginRight: 8, fontSize: 16, color: mutedColor, cursor: 'pointer' }}
+              onClick={() => setShowProperties(prev => !prev)}
+            >
+              {showProperties ? '▲' : '▼'}
+            </span>
+            <b>Properties</b>
+            <Badge count={Object.keys(propertiesObj).length} style={{ backgroundColor: 'var(--vscode-button-background, #1677ff)', marginLeft: 8 }} />
+            {showProperties && (
+              <>
+                <Button
+                  icon={<OverridableIcon name="plus" />}
+                  size="small"
+                  style={{ marginLeft: 16 }}
+                  onClick={() => {
+                    const newId = Math.random().toString(36).slice(2);
+                    setAddingRows(rows => [...rows, { key: '', value: '', id: newId }]);
+                    setFocusRowId(newId);
                   }}
-                  onFocus={() => setIsEditingText(true)}
-                  onBlur={() => setIsEditingText(false)}
-                  autoSize={{ minRows: 6, maxRows: 16 }}
-                  style={{ fontFamily: 'monospace', marginTop: 8, background: '#fafafa' }}
                 />
-              ) : (
-                <Form.Item style={{ margin: 0 }}>
-                  <table style={{ width: '100%', marginTop: 8, borderCollapse: 'collapse' }}>
-                    <thead>
-                    <tr>
-                      <th style={{ ...cellStyle, width: '35%' }}>Key</th>
-                      <th style={{ ...cellStyle, width: '60%' }}>Value</th>
-                      <th style={{ ...cellStyle, width: '5%' }}></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {Object.entries(propertiesObj).map(([key, value]) => (
-                      <tr key={key}>
-                        <td style={cellStyle}>{key}</td>
-                        <td style={cellStyle}>
-                          {editingValueKey === key ? (
-                            <Input
-                              ref={el => el && (valueInputRefs.current[key] = el)}
-                              defaultValue={value}
-                              onBlur={e => {
-                                setPropertiesObj(prev => ({ ...prev, [key]: e.target.value }));
-                                setEditingValueKey(null);
-                              }}
-                              onPressEnter={e => {
-                                setPropertiesObj(prev => ({ ...prev, [key]: (e.target as HTMLInputElement).value }));
-                                setEditingValueKey(null);
-                              }}
-                              style={{ width: '100%' }}
-                            />
-                          ) : (
-                            <div
-                              style={{ display: 'flex', alignItems: 'center', minHeight: 32, cursor: 'pointer' }}
-                              onMouseEnter={() => setHoverValueKey(key)}
-                              onMouseLeave={() => setHoverValueKey(null)}
-                              onClick={() => setEditingValueKey(key)}
-                            >
-                              <span style={{ flex: 1 }}>{value}</span>
-                              {hoverValueKey === key && <Icon name="edit" style={{ marginLeft: 8, color: '#888' }} />}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ ...cellStyle, textAlign: 'center' }}>
-                          <Button
-                            type="text"
-                            icon={<Icon name="delete" />}
-                            danger
-                            style={iconBtnStyle}
-                            onClick={() => {
-                              setPropertiesObj(prev => {
-                                const copy = { ...prev };
-                                delete copy[key];
-                                return copy;
-                              });
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                    {addingRows.map(record => (
-                      <tr key={record.id}>
-                        <td style={cellStyle}>
-                          <Input
-                            ref={el => el && (keyInputRefs.current[record.id] = el)}
-                            value={record.key}
-                            onChange={e => {
-                              setAddingRows(rows => rows.map(r => r.id === record.id ? { ...r, key: e.target.value } : r));
-                            }}
-                            onPressEnter={() => handleAddRow(record)}
-                            style={{ minWidth: 80 }}
-                          />
-                        </td>
-                        <td style={cellStyle}>
-                          <Input
-                            value={record.value}
-                            onChange={e => {
-                              setAddingRows(rows => rows.map(r => r.id === record.id ? { ...r, value: e.target.value } : r));
-                            }}
-                            onPressEnter={() => handleAddRow(record)}
-                            style={{ minWidth: 80 }}
-                          />
-                        </td>
-                        <td style={{ ...cellStyle, textAlign: 'center' }}>
-                          <Button
-                            type="text"
-                            icon={<Icon name="delete" />}
-                            danger
-                            style={iconBtnStyle}
-                            onClick={() => {
-                              setAddingRows(rows => rows.filter(r => r.id !== record.id));
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                    </tbody>
-                  </table>
-                </Form.Item>
-              )}
-            </div>
+                <Switch
+                  checked={showAsKeyValue}
+                  onChange={setShowAsKeyValue}
+                  style={{ marginLeft: 16 }}
+                  size="small"
+                />
+                <span style={{ marginLeft: 8, color: mutedColor }}>Show as Key Value</span>
+              </>
+            )}
           </div>
-        )}
+
+          <div
+            style={{
+              ...(showProperties ? propertiesTableTransition : propertiesTableHidden),
+              background: tableBackground,
+              border: `1px solid ${tableBorderColor}`,
+              borderRadius: 6,
+              marginTop: 8,
+            }}
+          >
+            {showAsKeyValue ? (
+              <Input.TextArea
+                value={propertiesText}
+                onChange={e => {
+                  const lines = e.target.value.split('\n');
+                  const obj: Record<string, string> = {};
+                  lines.forEach(line => {
+                    const match = line.match(/^\s*([^=;\s]+)\s*=\s*([^;]*);?\s*$/);
+                    if (match) obj[match[1]] = match[2];
+                  });
+                  setPropertiesObj(obj);
+                  setPropertiesText(e.target.value);
+                }}
+                onFocus={() => setIsEditingText(true)}
+                onBlur={() => setIsEditingText(false)}
+                autoSize={{ minRows: 6, maxRows: 16 }}
+                style={{
+                  fontFamily: 'monospace',
+                  marginTop: 8,
+                  background: tableBackground,
+                  color: tableForeground,
+                  borderColor: tableBorderColor,
+                }}
+              />
+            ) : (
+              <Form.Item style={{ margin: 0 }}>
+                <table
+                  style={{
+                    width: '100%',
+                    marginTop: 8,
+                    borderCollapse: 'collapse',
+                    color: tableForeground,
+                  }}
+                >
+                  <thead>
+                  <tr>
+                    <th style={{ ...cellStyle, width: '35%' }}>Key</th>
+                    <th style={{ ...cellStyle, width: '60%' }}>Value</th>
+                    <th style={{ ...cellStyle, width: '5%' }}></th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {Object.entries(propertiesObj).map(([key, value]) => (
+                    <tr key={key}>
+                      <td style={cellStyle}>{key}</td>
+                      <td style={cellStyle}>
+                        {editingValueKey === key ? (
+                          <Input
+                            ref={el => el && (valueInputRefs.current[key] = el)}
+                            defaultValue={value}
+                            onBlur={e => {
+                              setPropertiesObj(prev => ({ ...prev, [key]: e.target.value }));
+                              setEditingValueKey(null);
+                            }}
+                            onPressEnter={e => {
+                              setPropertiesObj(prev => ({ ...prev, [key]: (e.target as HTMLInputElement).value }));
+                              setEditingValueKey(null);
+                            }}
+                            style={{ width: '100%' }}
+                          />
+                        ) : (
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', minHeight: 32, cursor: 'pointer', color: tableForeground }}
+                            onMouseEnter={() => setHoverValueKey(key)}
+                            onMouseLeave={() => setHoverValueKey(null)}
+                            onClick={() => setEditingValueKey(key)}
+                          >
+                            <span style={{ flex: 1 }}>{value}</span>
+                            {hoverValueKey === key && <OverridableIcon name="edit" style={{ marginLeft: 8, color: mutedColor }} />}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ ...cellStyle, textAlign: 'center' }}>
+                        <Button
+                          type="text"
+                          icon={<OverridableIcon name="delete" />}
+                          danger
+                          style={iconBtnStyle}
+                          onClick={() => {
+                            setPropertiesObj(prev => {
+                              const copy = { ...prev };
+                              delete copy[key];
+                              return copy;
+                            });
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  {addingRows.map(record => (
+                    <tr key={record.id}>
+                      <td style={cellStyle}>
+                        <Input
+                          ref={el => el && (keyInputRefs.current[record.id] = el)}
+                          value={record.key}
+                          onChange={e => {
+                            setAddingRows(rows => rows.map(r => r.id === record.id ? { ...r, key: e.target.value } : r));
+                          }}
+                          onPressEnter={() => handleAddRow(record)}
+                          style={{ minWidth: 80 }}
+                        />
+                      </td>
+                      <td style={cellStyle}>
+                        <Input
+                          value={record.value}
+                          onChange={e => {
+                            setAddingRows(rows => rows.map(r => r.id === record.id ? { ...r, value: e.target.value } : r));
+                          }}
+                          onPressEnter={() => handleAddRow(record)}
+                          style={{ minWidth: 80 }}
+                        />
+                      </td>
+                      <td style={{ ...cellStyle, textAlign: 'center' }}>
+                        <Button
+                          type="text"
+                          icon={<OverridableIcon name="delete" />}
+                          danger
+                          style={iconBtnStyle}
+                          onClick={() => {
+                            setAddingRows(rows => rows.filter(r => r.id !== record.id));
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </Form.Item>
+            )}
+          </div>
+        </div>
       </Form>
     </Modal>
   );

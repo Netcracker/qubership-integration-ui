@@ -4,10 +4,12 @@ import { MappingDescription } from "../../../../mapper/model/model.ts";
 import { MappingUtil } from "../../../../mapper/util/mapping.ts";
 import { Mapping } from "../../../mapper/Mapping.tsx";
 import { api } from "../../../../api/api.ts";
+import { isHttpProtocol } from "../../../../misc/protocol-utils.ts";
 import { Script } from "../../../Script.tsx";
 import { FormContext } from "../ChainElementModification.tsx";
 import styles from "./CustomArrayField.module.css";
-import { Icon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
+import { useVSCodeTheme } from "../../../../hooks/useVSCodeTheme.ts";
 
 type BaseItem = {
   id: string;
@@ -74,7 +76,8 @@ const CustomArrayField: React.FC<Props> = ({
   }, [name, formContext]);
 
   const [availableCodes, setAvailableCodes] = useState<{ value: string }[]>(
-    readOnlyMode || formContext?.integrationOperationProtocolType !== "http"
+    readOnlyMode ||
+      !isHttpProtocol(formContext?.integrationOperationProtocolType)
       ? []
       : defaultCodeOptions,
   );
@@ -83,6 +86,45 @@ const CustomArrayField: React.FC<Props> = ({
   const [validationSchemas, setValidationSchemas] = useState<
     Record<string, AfterValidation>
   >({});
+
+  const { isDark, themeData } = useVSCodeTheme();
+
+  const themeColors = useMemo(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return {
+        activeBackground: '#f0f6ff',
+        activeBorder: '#0b66ff',
+      };
+    }
+    const style = getComputedStyle(document.documentElement);
+    const getColorFromThemeOrCss = (themeKey: string, cssVar: string, fallback: string): string => {
+      if (themeData?.colors?.[themeKey]) {
+        return themeData.colors[themeKey];
+      }
+      const value = style.getPropertyValue(cssVar).trim();
+      return value || fallback;
+    };
+    return {
+      activeBackground: getColorFromThemeOrCss(
+        'list.activeSelectionBackground',
+        '--vscode-list-activeSelectionBackground',
+        getColorFromThemeOrCss(
+          'list.hoverBackground',
+          '--vscode-list-hoverBackground',
+          isDark ? '#264f78' : '#f0f6ff'
+        )
+      ),
+      activeBorder: getColorFromThemeOrCss(
+        'focusBorder',
+        '--vscode-focusBorder',
+        getColorFromThemeOrCss(
+          'button.background',
+          '--vscode-button-background',
+          isDark ? '#007acc' : '#0b66ff'
+        )
+      ),
+    };
+  }, [isDark, themeData]);
 
   const operationId = formContext?.integrationOperationId;
 
@@ -114,18 +156,17 @@ const CustomArrayField: React.FC<Props> = ({
                     };
                   },
                 );
+
+                const usedIds = formData.map((f) => f.id);
+                setAvailableCodes(
+                  Object.keys(acc)
+                    .filter((id) => !usedIds.includes(id))
+                    .map((id) => ({ value: id })),
+                );
                 return acc;
               },
               {} as Record<string, AfterValidation>,
             ),
-          );
-
-          const usedIds = formData.map((f) => f.id);
-
-          setAvailableCodes(
-            Object.keys(validationSchemas)
-              .filter((id) => !usedIds.includes(id))
-              .map((id) => ({ value: id })),
           );
         } else {
           const responseCodes = Object.keys(responseSchemas).map((c) => ({
@@ -150,7 +191,7 @@ const CustomArrayField: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [operationId]);
+  }, [operationId, readOnlyMode, availableCodes, formData]);
 
   const handleAdd = () => {
     if (!selectedCode) return;
@@ -217,7 +258,7 @@ const CustomArrayField: React.FC<Props> = ({
           />
           <Button
             type="primary"
-            icon={<Icon name="plus" />}
+            icon={<OverridableIcon name="plus" />}
             onClick={handleAdd}
             disabled={
               !selectedCode ||
@@ -240,9 +281,9 @@ const CustomArrayField: React.FC<Props> = ({
                 style={{
                   cursor: "pointer",
                   padding: "6px 8px",
-                  background: active ? "#f0f6ff" : undefined,
+                  background: active ? themeColors.activeBackground : undefined,
                   borderLeft: active
-                    ? "3px solid #0b66ff"
+                    ? `3px solid ${themeColors.activeBorder}`
                     : "3px solid transparent",
                   marginBottom: 6,
                   display: "flex",
@@ -254,7 +295,7 @@ const CustomArrayField: React.FC<Props> = ({
                   size="small"
                   type="text"
                   danger
-                  icon={<Icon name="delete" />}
+                  icon={<OverridableIcon name="delete" />}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(idx);

@@ -303,6 +303,13 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     integrationSpecificationGroupId: {
       "ui:widget": "hidden",
     },
+    abacParameters: {
+      resourceMap: {
+        "ui:fieldReplacesAnyOrOneOf": true,
+        "ui:field": "enhancedPatternPropertiesField",
+        "ui:title": "Resource Map",
+      },
+    },
   },
   id: { "ui:widget": "hidden" },
   elementType: { "ui:widget": "hidden" },
@@ -338,15 +345,23 @@ export const pathToTabMap: Record<string, string> = {
   "properties.handleValidationAction": "Handle Validation Failure",
   "properties.handlerContainer": "Handle Validation Failure",
   "properties.handlerContainer.script": "Handle Validation Failure",
+  "properties.handlerContainer.mappingDescription": "Handle Validation Failure",
   "properties.handleChainFailureAction": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.elementId":
     "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.script": "Failure Response Mapping",
+  "properties.chainFailureHandlerContainer.mappingDescription":
+    "Failure Response Mapping",
   "properties.validationSchema": "Validate Request",
   "properties.roles": "Access Control",
-  "properties.abacResource": "Access Control",
   "properties.accessControlType": "Access Control",
+  "properties.abacParameters": "Access Control",
+  "properties.abacParameters.resourceType": "Access Control",
+  "properties.abacParameters.operation": "Access Control",
+  "properties.abacParameters.resourceDataType": "Access Control",
+  "properties.abacParameters.resourceString": "Access Control",
+  "properties.abacParameters.resourceMap": "Access Control",
   "properties.allowedContentTypes": "Validate Request",
   "properties.rejectRequestIfNonNullBodyGetDelete": "Validate Request",
   "properties.authorizationConfiguration": "Authorization",

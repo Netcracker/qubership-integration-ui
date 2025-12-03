@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Flex, Spin, Button, FloatButton } from "antd";
+import { Flex, Spin, Button, FloatButton, Tooltip } from "antd";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/api";
@@ -23,7 +23,7 @@ import styles from "./Services.module.css";
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { useServiceContext } from "./ServiceParametersPage";
 import { IntegrationSystemType } from "../../api/apiTypes";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const STORAGE_KEY = "systemParameters";
 
@@ -69,7 +69,7 @@ const getGroupActions = (
     {
       key: expandedRowKeys.includes(group.id) ? 'collapse' : 'expand',
       label: expandedRowKeys.includes(group.id) ? 'Collapse' : 'Expand',
-      icon: expandedRowKeys.includes(group.id) ? <Icon name="up" /> : <Icon name="down" />,
+      icon: expandedRowKeys.includes(group.id) ? <OverridableIcon name="up" /> : <OverridableIcon name="down" />,
       onClick: () => {
         setExpandedRowKeys(
           expandedRowKeys.includes(group.id)
@@ -81,7 +81,7 @@ const getGroupActions = (
     {
       key: 'add',
       label: 'Add Specification',
-      icon: <Icon name="plus" />,
+      icon: <OverridableIcon name="plus" />,
       onClick: () => {
         showModal({
           component: (
@@ -102,7 +102,7 @@ const getGroupActions = (
     {
       key: 'delete',
       label: 'Delete',
-      icon: <Icon name="delete" />,
+      icon: <OverridableIcon name="delete" />,
       onClick: async () => {
         try {
           await api.deleteSpecificationGroup(group.id);
@@ -133,7 +133,7 @@ const getSpecActions = (
     {
       key: expandedRowKeys.includes(spec.id) ? 'collapse' : 'expand',
       label: expandedRowKeys.includes(spec.id) ? 'Collapse' : 'Expand',
-      icon: expandedRowKeys.includes(spec.id) ? <Icon name="up" /> : <Icon name="down" />,
+      icon: expandedRowKeys.includes(spec.id) ? <OverridableIcon name="up" /> : <OverridableIcon name="down" />,
       onClick: () => {
         setExpandedRowKeys(
           expandedRowKeys.includes(spec.id)
@@ -146,7 +146,7 @@ const getSpecActions = (
       ? [{
           key: 'delete',
           label: 'Delete',
-          icon: <Icon name="delete" />,
+          icon: <OverridableIcon name="delete" />,
           onClick: async () => {
             try {
               await api.deleteSpecificationModel(spec.id);
@@ -167,7 +167,7 @@ const getSpecActions = (
       ? [{
           key: 'deprecate',
           label: 'Deprecate',
-          icon: <Icon name="stop" />,
+          icon: <OverridableIcon name="stop" />,
           onClick: async () => {
             try {
               await api.deprecateModel(spec.id);
@@ -187,7 +187,7 @@ const getSpecActions = (
     {
       key: 'export',
       label: 'Export',
-      icon: <Icon name="export" />,
+      icon: <OverridableIcon name="export" />,
       onClick: () => handleExportSpecifications([spec], notify),
     },
   ];
@@ -373,6 +373,41 @@ export const ServiceApiSpecsTab: React.FC = () => {
 
   const css = styles as Record<string, string>;
 
+  const onImportSpecGroupClick = () => {
+    showModal({
+      component: (
+        <ImportSpecificationsModal
+          systemId={systemId}
+          groupMode={true}
+          isImplementedService={isImplementedService}
+          onSuccess={() => {
+            if (!systemId) return;
+            void loadGroups(systemId);
+            invalidateServiceCache(systemId);
+          }}
+        />
+      ),
+    });
+  };
+
+  const onImportSpecClick = () => {
+    showModal({
+      component: (
+        <ImportSpecificationsModal
+          systemId={systemId}
+          specificationGroupId={groupId}
+          isImplementedService={isImplementedService}
+          onSuccess={() => {
+            if (!systemId || !groupId) return;
+            void loadGroups(systemId);
+            void loadModels(systemId, groupId);
+            invalidateServiceCache(systemId);
+          }}
+        />
+      ),
+    });
+  };
+
   return (
     <Flex vertical>
       <div className={css.serviceApiSpecsTabHeader}>
@@ -390,10 +425,30 @@ export const ServiceApiSpecsTab: React.FC = () => {
         </div>
         <div className={css.serviceApiSpecsTabHeaderRight}>
           <span className={currentTable === "groups" ? css.serviceApiSpecsTabFilterGroup : css.serviceApiSpecsTabFilterNone}>
-            {serviceGroupsTable.FilterButton()}
+            <Flex vertical={false} gap={8}>
+              {isVsCode && (
+                <Tooltip title="Import Specifications">
+                  <Button
+                    icon={<OverridableIcon name="cloudUpload" />}
+                    onClick={onImportSpecGroupClick}
+                  />
+                </Tooltip>
+              )}
+              {serviceGroupsTable.FilterButton()}
+            </Flex>
           </span>
           <span className={currentTable === "specs" ? css.serviceApiSpecsTabFilterGroup : css.serviceApiSpecsTabFilterNone}>
-            {modelsTable.FilterButton()}
+            <Flex vertical={false} gap={8}>
+              {isVsCode && (
+                <Tooltip title="Import Specifications">
+                  <Button
+                    icon={<OverridableIcon name="cloudUpload" />}
+                    onClick={onImportSpecClick}
+                  />
+                </Tooltip>
+              )}
+              {modelsTable.FilterButton()}
+            </Flex>
           </span>
           <span className={currentTable === "operations" ? css.serviceApiSpecsTabFilterGroup : css.serviceApiSpecsTabFilterNone}>
             {operationsTable.FilterButton()}
@@ -405,103 +460,77 @@ export const ServiceApiSpecsTab: React.FC = () => {
       {!loadingGroups && !errorGroups && currentTable === "groups" && (
         <>
           <serviceGroupsTable.Table />
-          <FloatButtonGroup trigger="hover" icon={<Icon name="more" />}>
-            <FloatButton
-              tooltip={{ title: "Import Specifications", placement: "left" }}
-              icon={<Icon name="cloudUpload" />}
-              onClick={() => {
-                showModal({
-                  component: (
-                    <ImportSpecificationsModal
-                      systemId={systemId}
-                      groupMode={true}
-                      isImplementedService={isImplementedService}
-                      onSuccess={() => {
-                        if (!systemId) return;
-                        void loadGroups(systemId);
-                        invalidateServiceCache(systemId);
-                      }}
-                    />
-                  ),
-                });
-              }}
-            />
-            {!isVsCode && (
+          {!isVsCode && (
+            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+              <FloatButton
+                tooltip={{ title: "Import Specifications", placement: "left" }}
+                icon={<OverridableIcon name="cloudUpload" />}
+                onClick={onImportSpecGroupClick}
+              />
               <FloatButton
                 tooltip={{ title: "Export all groups", placement: "left" }}
-                icon={<Icon name="cloudDownload" />}
+                icon={<OverridableIcon name="cloudDownload" />}
                 onClick={() => {
                   void (async () => {
                     if (!(serviceSpecData ?? []).length) {
-                      message.info('No groups to export');
+                      message.info("No groups to export");
                       return;
                     }
-                    const groupIds = (serviceSpecData ?? []).map(g => g.id);
+                    const groupIds = (serviceSpecData ?? []).map((g) => g.id);
                     try {
                       const file = await api.exportServices([], groupIds);
                       downloadFile(prepareFile(file));
                     } catch (e) {
-                      notify.requestFailed('Export error', e);
+                      notify.requestFailed("Export error", e);
                     }
                   })();
                 }}
               />
-            )}
-          </FloatButtonGroup>
+            </FloatButtonGroup>
+          )}
         </>
       )}
       {currentTable === "specs" && (
         <>
           <modelsTable.Table />
-          <FloatButtonGroup trigger="hover" icon={<Icon name="more" />}>
-            <FloatButton
-              tooltip={{ title: "Import Specification", placement: "left" }}
-              icon={<Icon name="cloudUpload" />}
-              onClick={() => {
-                showModal({
-                  component: (
-                    <ImportSpecificationsModal
-                      systemId={systemId}
-                      specificationGroupId={groupId}
-                      isImplementedService={isImplementedService}
-                      onSuccess={() => {
-                        if (!systemId || !groupId) return;
-                        void loadGroups(systemId);
-                        void loadModels(systemId, groupId);
-                        invalidateServiceCache(systemId);
-                      }}
-                    />
-                  ),
-                });
-              }}
-            />
-            {!isVsCode && (
+          {!isVsCode && (
+            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
               <FloatButton
-                tooltip={{ title: "Export selected specifications", placement: "left" }}
-                icon={<Icon name="cloudDownload" />}
+                tooltip={{ title: "Import Specification", placement: "left" }}
+                icon={<OverridableIcon name="cloudUpload" />}
+                onClick={onImportSpecClick}
+              />
+              <FloatButton
+                tooltip={{
+                  title: "Export selected specifications",
+                  placement: "left",
+                }}
+                icon={<OverridableIcon name="cloudDownload" />}
                 onClick={() => {
                   void (async () => {
                     if (selectedSpecRowKeys.length === 0) {
-                      message.info('There are no selected specifications yet');
+                      message.info("There are no selected specifications yet");
                       return;
                     }
-                    const selected = (models ?? []).filter(m => selectedSpecRowKeys.includes(m.id));
+                    const selected = (models ?? []).filter((m) =>
+                      selectedSpecRowKeys.includes(m.id),
+                    );
                     await handleExportSpecifications(selected, notify);
                   })();
                 }}
               />
-            )}
-          </FloatButtonGroup>
+            </FloatButtonGroup>
+          )}
         </>
       )}
       {currentTable === "operations" && (
         <>
           <operationsTable.Table />
           {!isVsCode && (
-            <FloatButtonGroup trigger="hover" icon={<Icon name="more" />}>
+            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
               <FloatButton
                 tooltip={{ title: "Export", placement: "left" }}
-                icon={<Icon name="cloudDownload" />}
+                icon={<OverridableIcon name="cloudDownload" />}
                 onClick={() => {
                   void (async () => {
                     try {

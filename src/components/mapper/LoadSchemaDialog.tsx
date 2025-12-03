@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   Button,
   Col,
@@ -13,7 +13,8 @@ import {
 } from "antd";
 import { useModalContext } from "../../ModalContextProvider";
 import Dragger from "antd/lib/upload/Dragger";
-import { Editor } from "@monaco-editor/react";
+import { Editor, Monaco } from "@monaco-editor/react";
+import { useMonacoTheme, applyVSCodeThemeToMonaco } from "../../hooks/useMonacoTheme";
 import {
   GraphQLOperationInfo,
   GraphQLUtil,
@@ -26,7 +27,7 @@ import {
   SchemaKind,
 } from "../../mapper/model/model.ts";
 import { ChainContext } from "../../pages/ChainPage.tsx";
-import { Chain, Dependency, Element } from "../../api/apiTypes.ts";
+import { Element } from "../../api/apiTypes.ts";
 import { editor, MarkerSeverity } from "monaco-editor";
 import {
   AttributeImporter,
@@ -37,7 +38,8 @@ import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { capitalize } from "../../misc/format-utils.ts";
 import { exportAsJsonSchema } from "../../mapper/json-schema/json-schema.ts";
 import { api } from "../../api/api.ts";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { normalizeProtocol } from "../../misc/protocol-utils.ts";
 
 function buildGraphQLOperations(schemaText: string, queryText: string) {
   const operations: GraphQLOperationInfo[] = [];
@@ -81,6 +83,7 @@ function buildOperationSelectOptions(
 
 export type LoadSchemaDialogProps = {
   elementId: string;
+  schemaKind: SchemaKind;
   onSubmit?: (type: DataType) => void;
 };
 
@@ -101,6 +104,62 @@ type FormData = {
   file: File;
   sample: CodeSample;
 };
+
+type StoredSelection = {
+  elementId: string;
+  operation?: string;
+};
+
+const buildSelectionStorageKey = (
+  mapperId: string,
+  schemaKind: SchemaKind,
+): string => `loadSchemaSelection:${mapperId}:${schemaKind}`;
+
+function getSessionStorage(): Storage | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  try {
+    return window.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+function readStoredSelection(
+  mapperId: string,
+  schemaKind: SchemaKind,
+): StoredSelection | undefined {
+  const storage = getSessionStorage();
+  if (!storage) {
+    return undefined;
+  }
+  try {
+    const raw = storage.getItem(buildSelectionStorageKey(mapperId, schemaKind));
+    return raw ? (JSON.parse(raw) as StoredSelection) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStoredSelection(
+  mapperId: string,
+  schemaKind: SchemaKind,
+  selection: StoredSelection,
+): void {
+  const storage = getSessionStorage();
+  if (!storage) {
+    return;
+  }
+  try {
+    storage.setItem(
+      buildSelectionStorageKey(mapperId, schemaKind),
+      JSON.stringify(selection),
+    );
+  } catch {
+    // ignore storage errors
+  }
+}
 
 function importFile(
   file: File,
@@ -188,38 +247,12 @@ function isOperationSet(element: Element): boolean {
 
 function isConfiguredGraphQLServiceCallElement(element: Element): boolean {
   return (
-    element.properties?.["integrationOperationProtocolType"] === "graphql" &&
+    normalizeProtocol(element.properties?.["integrationOperationProtocolType"]) ===
+      "graphql" &&
     !!element.properties?.["integrationSystemId"] &&
     !!element.properties?.["integrationSpecificationId"] &&
     !!element.properties?.["integrationGqlQuery"]
   );
-}
-
-function getHopsBetweenElements(
-  from: string,
-  to: string,
-  connections: Dependency[],
-): number {
-  const nodeMap = new Map<string, number>([[from, 0]]);
-  const result = new Map<string, number>([]);
-  while (nodeMap.size > 0 && !result.has(to)) {
-    const [node, cost] = Array.from(nodeMap.entries()).sort(
-      (e0, e1) => e0[1] - e1[1],
-    )[0];
-    result.set(node, cost);
-    nodeMap.delete(node);
-    connections
-      .filter(
-        (connection) =>
-          connection.from === node &&
-          !result.has(connection.to) &&
-          (nodeMap.get(connection.to) ?? Infinity > cost + 1),
-      )
-      .forEach((connection) => {
-        nodeMap.set(connection.to, cost + 1);
-      });
-  }
-  return result.get(to) ?? Infinity;
 }
 
 type ElementOption = NonNullable<SelectProps["options"]>["0"] & {
@@ -229,8 +262,11 @@ type ElementOption = NonNullable<SelectProps["options"]>["0"] & {
 type OperationOption = NonNullable<SelectProps["options"]>["0"] &
   Partial<GraphQLSample>;
 
-function buildElementOptions(elementId: string, chain: Chain): ElementOption[] {
-  return chain.elements
+function buildElementOptions(
+  elementId: string,
+  elements: Element[],
+): ElementOption[] {
+  return elements
     .filter(
       (element) =>
         element.id !== elementId &&
@@ -238,17 +274,9 @@ function buildElementOptions(elementId: string, chain: Chain): ElementOption[] {
           isOperationSet(element) ||
           isConfiguredGraphQLServiceCallElement(element)),
     )
-    .map(
-      (element) =>
-        [
-          element,
-          getHopsBetweenElements(element.id, elementId, chain.dependencies),
-        ] as [Element, number],
-    )
-    .sort((e0, e1) => e0[1] - e1[1])
-    .map(([element, hops]) => ({
+    .map((element) => ({
       value: element.id,
-      label: hops === 1 ? <b>{element.name}</b> : element.name,
+      label: element.name,
       element,
     }));
 }
@@ -346,11 +374,14 @@ async function buildOperationOptions(
 
 export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   elementId,
+  schemaKind,
   onSubmit,
 }) => {
   const chainContext = useContext(ChainContext);
   const { closeContainingModal } = useModalContext();
   const notificationService = useNotificationService();
+  const monacoTheme = useMonacoTheme();
+  const monacoInstancesRef = useRef<Set<Monaco>>(new Set());
   const [form] = Form.useForm<FormData>();
   const [isOperationsLoading, setIsOperationsLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string>("json");
@@ -358,6 +389,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
     SelectProps["options"]
   >([]);
   const [activeTab, setActiveTab] = useState<string>("schema");
+  const [chainElements, setChainElements] = useState<Element[]>(
+    chainContext?.chain?.elements ?? [],
+  );
   const [elementOptions, setElementOptions] = useState<ElementOption[]>([]);
   const [selectedElement, setSelectedElement] = useState<Element | undefined>(
     undefined,
@@ -372,6 +406,49 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   const [graphqlQueryErrors, setGraphqlQueryErrors] = useState<
     editor.IMarker[]
   >([]);
+  const [storedSelection, setStoredSelection] = useState<StoredSelection | undefined>(() =>
+    readStoredSelection(elementId, schemaKind),
+  );
+  const registerMonacoInstance = useCallback((monaco?: Monaco) => {
+    if (!monaco) {
+      return;
+    }
+    monacoInstancesRef.current.add(monaco);
+    applyVSCodeThemeToMonaco(monaco);
+  }, []);
+
+  useEffect(() => {
+    monacoInstancesRef.current.forEach((instance) => applyVSCodeThemeToMonaco(instance));
+  }, [monacoTheme]);
+
+  useEffect(() => {
+    setStoredSelection(readStoredSelection(elementId, schemaKind));
+  }, [elementId, schemaKind]);
+
+  useEffect(() => {
+    setChainElements(chainContext?.chain?.elements ?? []);
+  }, [chainContext?.chain?.elements]);
+
+  useEffect(() => {
+    const chainId = chainContext?.chain?.id;
+    if (!chainId) return;
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const elementsResponse = await api.getElements(chainId);
+        if (cancelled) return;
+        setChainElements(elementsResponse);
+      } catch (error) {
+        console.error("Failed to refresh chain structure before loading schema", error);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [chainContext?.chain?.id]);
 
   useEffect(() => {
     setIsOperationsLoading(true);
@@ -385,18 +462,50 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   }, [notificationService, selectedElement]);
 
   useEffect(() => {
-    const options = chainContext?.chain
-      ? buildElementOptions(elementId, chainContext.chain)
-      : [];
+    if (!chainElements.length) {
+      setElementOptions([]);
+      return;
+    }
+    const options = buildElementOptions(elementId, chainElements);
     setElementOptions(options);
-  }, [elementId, chainContext]);
+  }, [elementId, chainElements]);
 
   useEffect(() => {
-    if (!!form && !!elementOptions && elementOptions.length > 0) {
-      form.setFieldValue(["schema", "element"], elementOptions[0].value);
-      setSelectedElement(elementOptions[0].element);
+    if (!form || elementOptions.length === 0) {
+      return;
     }
-  }, [form, elementOptions]);
+    const fieldPath = ["schema", "element"];
+    const currentValue = form.getFieldValue(fieldPath) as string | undefined;
+    const currentOption = elementOptions.find(
+      (option) => option.value === currentValue,
+    );
+
+    if (currentOption) {
+      if (currentOption.element.id !== selectedElement?.id) {
+        setSelectedElement(currentOption.element);
+      }
+      return;
+    }
+
+    const storedElementId = storedSelection?.elementId;
+    const storedIsAvailable = storedElementId
+      ? elementOptions.some((option) => option.value === storedElementId)
+      : false;
+    const fallbackValue = storedIsAvailable
+      ? storedElementId
+      : elementOptions[0]?.value;
+
+    if (fallbackValue) {
+      form.setFieldValue(fieldPath, fallbackValue);
+      const matched = elementOptions.find(
+        (option) => option.value === fallbackValue,
+      )?.element;
+      setSelectedElement(matched);
+    } else {
+      form.setFieldValue(fieldPath, undefined);
+      setSelectedElement(undefined);
+    }
+  }, [form, elementOptions, selectedElement, storedSelection]);
 
   const onOperationChange = useCallback(
     (option: OperationOption | undefined) => {
@@ -414,21 +523,50 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   );
 
   useEffect(() => {
-    if (form) {
-      if (!!operationOptions && operationOptions.length > 0) {
-        form.setFieldValue(["schema", "operation"], operationOptions[0].value);
-      } else {
-        form.setFieldValue(["schema", "operation"], undefined);
-      }
-      onOperationChange(operationOptions[0]);
+    if (!form) {
+      return;
     }
+    const operationField = ["schema", "operation"];
+    const currentValue = form.getFieldValue(operationField) as string | undefined;
+    const availableValues = new Set(operationOptions.map((option) => option.value));
+    const shouldUseStored =
+      !!storedSelection &&
+      !!selectedElement &&
+      storedSelection.elementId === selectedElement.id &&
+      !!storedSelection.operation &&
+      availableValues.has(storedSelection.operation);
+    const preferredOperationValue = shouldUseStored
+      ? storedSelection?.operation
+      : operationOptions[0]?.value;
+
+    if (preferredOperationValue !== undefined) {
+      if (currentValue !== preferredOperationValue) {
+        form.setFieldValue(operationField, preferredOperationValue);
+        const option = operationOptions.find(
+          (candidate) => candidate.value === preferredOperationValue,
+        );
+        onOperationChange(option);
+      }
+    } else if (currentValue !== undefined) {
+      form.setFieldValue(operationField, undefined);
+      onOperationChange(undefined);
+    } else {
+      onOperationChange(undefined);
+    }
+
     form.setFieldValue(
       ["schema", "language"],
       selectedElement && isConfiguredGraphQLServiceCallElement(selectedElement)
         ? "graphql"
         : "json",
     );
-  }, [form, onOperationChange, operationOptions, selectedElement]);
+  }, [
+    form,
+    onOperationChange,
+    operationOptions,
+    selectedElement,
+    storedSelection,
+  ]);
 
   const languageOptions: SelectProps["options"] = [
     { value: "json", label: "JSON" },
@@ -482,6 +620,14 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
           }
         }}
         onFinish={(data) => {
+          if (activeTab === "schema") {
+            const selection: StoredSelection = {
+              elementId: data.schema.element,
+              operation: data.schema.operation,
+            };
+            writeStoredSelection(elementId, schemaKind, selection);
+            setStoredSelection(selection);
+          }
           importDataType(
             activeTab,
             data,
@@ -572,10 +718,12 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         <Editor
                           className="qip-editor"
                           language={"graphql"}
+                          theme={monacoTheme}
                           options={{
                             readOnly: true,
                             fixedOverflowWidgets: true,
                           }}
+                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
                         />
                       </Form.Item>
                       <Form.Item
@@ -587,10 +735,12 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         <Editor
                           className="qip-editor"
                           language={"graphql"}
+                          theme={monacoTheme}
                           options={{
                             readOnly: true,
                             fixedOverflowWidgets: true,
                           }}
+                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
                         />
                       </Form.Item>
                     </>
@@ -605,6 +755,8 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         className="qip-editor"
                         options={{ readOnly: true, fixedOverflowWidgets: true }}
                         language={"json"}
+                        theme={monacoTheme}
+                        onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
                       />
                     </Form.Item>
                   )}
@@ -642,7 +794,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                     beforeUpload={() => false}
                   >
                     <p className="ant-upload-drag-icon">
-                      <Icon name="inbox" />
+                      <OverridableIcon name="inbox" />
                     </p>
                     <p className="ant-upload-text">
                       Click or drag file to this area to upload
@@ -720,6 +872,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         <Editor
                           className="qip-editor"
                           language={"graphql"}
+                          theme={monacoTheme}
                           onValidate={(markers) => {
                             setGraphqlSchemaErrors(
                               markers.filter(
@@ -732,6 +885,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                             ]);
                           }}
                           options={{ fixedOverflowWidgets: true }}
+                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
                         />
                       </Form.Item>
                       <Form.Item
@@ -758,6 +912,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         <Editor
                           className="qip-editor"
                           language={"graphql"}
+                          theme={monacoTheme}
                           onValidate={(markers) => {
                             setGraphqlQueryErrors(
                               markers.filter(
@@ -770,6 +925,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                             ]);
                           }}
                           options={{ fixedOverflowWidgets: true }}
+                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
                         />
                       </Form.Item>
                     </>
@@ -800,6 +956,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                       <Editor
                         className="qip-editor"
                         language={selectedLanguage}
+                        theme={monacoTheme}
                         onValidate={(markers) => {
                           setSampleErrors(
                             markers.filter(
@@ -810,6 +967,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                           void form.validateFields([["sample", "text"]]);
                         }}
                         options={{ fixedOverflowWidgets: true }}
+                        onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
                       />
                     </Form.Item>
                   )}

@@ -1,13 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { FieldProps } from "@rjsf/utils";
-import { Button, Flex, Select, SelectProps, Tooltip } from "antd";
+import { Button, Flex, Select, SelectProps, Switch, Tooltip, Typography } from "antd";
 import { FormContext } from "../ChainElementModification";
 import { api } from "../../../../api/api";
 import { useNotificationService } from "../../../../hooks/useNotificationService";
 import { SystemOperation } from "../../../../api/apiTypes";
 import { JSONSchema7 } from "json-schema";
 import { VSCodeExtensionApi } from "../../../../api/rest/vscodeExtensionApi";
-import { Icon } from "../../../../IconProvider";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
+import { HttpMethod } from "../../../services/HttpMethod";
+import { ServiceTag } from "./ServiceTag";
+import {
+  isHttpProtocol,
+  normalizeProtocol,
+} from "../../../../misc/protocol-utils";
 
 const SystemOperationField: React.FC<
   FieldProps<string, JSONSchema7, FormContext>
@@ -23,6 +29,11 @@ const SystemOperationField: React.FC<
   const specGroupId = formContext?.integrationSpecificationGroupId;
   const specificationId = formContext?.integrationSpecificationId;
   const [operationId, setOperationId] = useState<string | undefined>(formData);
+  const protocolType = normalizeProtocol(
+    formContext?.integrationOperationProtocolType,
+  );
+  const isGrpcOperation = protocolType === "grpc";
+  const synchronousGrpcCall = Boolean(formContext?.synchronousGrpcCall);
 
   useEffect(() => {
     const loadOperations = async () => {
@@ -33,7 +44,11 @@ const SystemOperationField: React.FC<
 
           const operationOptions: SelectProps["options"] =
             operations?.map((operation) => ({
-              label: `${operation.name} ${operation.method} ${operation.path}`,
+              label: (
+                <>
+                  <ServiceTag value={operation.name} width={200}/><HttpMethod value={operation.method} width={110}/>{operation.path}
+                </>
+              ),
               value: operation.id,
             })) ?? [];
           setOperationsMap(
@@ -76,18 +91,23 @@ const SystemOperationField: React.FC<
       const systemId = formContext?.integrationSystemId;
 
       const apply = async (proto?: string) => {
-        const protocolType = (typeof proto === 'string' && proto.trim()) ? proto.toLowerCase() : 'http';
-        
+        const protocolType = normalizeProtocol(proto) ?? "http";
+
         // Initialize query parameters from specification (for HTTP/SOAP)
-        let queryParams = {};
-        if (protocolType === 'http' || protocolType === 'soap') {
+        const queryParams: Record<string, string> = {};
+        if (isHttpProtocol(protocolType)) {
           try {
             const opInfo = await api.getOperationInfo(newValue);
-            if (opInfo.specification?.parameters) {
-              const queryParamNames = opInfo.specification.parameters
-                .filter((p: any) => p.in === 'query')
-                .map((p: any) => p.name);
-              
+            if (opInfo.specification?.parameters && Array.isArray(opInfo.specification.parameters)) {
+              interface Parameter {
+                in?: string;
+                name?: string;
+              }
+              const parameters = opInfo.specification.parameters as Parameter[];
+              const queryParamNames = parameters
+                .filter((p): p is Parameter & { in: 'query'; name: string } => p.in === 'query' && typeof p.name === 'string')
+                .map((p) => p.name);
+
               queryParamNames.forEach((name: string) => {
                 queryParams[name] = '';
               });
@@ -96,7 +116,7 @@ const SystemOperationField: React.FC<
             console.error('Failed to load operation specification for query params:', error);
           }
         }
-        
+
         formContext?.updateContext({
           integrationOperationId: newValue,
           integrationOperationPath: operation.path,
@@ -131,6 +151,15 @@ const SystemOperationField: React.FC<
     operationId,
   ]);
 
+  const handleGrpcSynchronousChange = useCallback(
+    (checked: boolean) => {
+      formContext?.updateContext?.({
+        synchronousGrpcCall: checked,
+      });
+    },
+    [formContext],
+  );
+
   return (
     <div>
       <label htmlFor={id} style={labelStyle}>
@@ -146,7 +175,7 @@ const SystemOperationField: React.FC<
         />
         <Tooltip title="Go to operation">
           <Button
-            icon={<Icon name="send" />}
+            icon={<OverridableIcon name="send" />}
             disabled={
               !(systemId && specGroupId && specificationId && operationId)
             }
@@ -154,6 +183,19 @@ const SystemOperationField: React.FC<
           />
         </Tooltip>
       </Flex>
+      {isGrpcOperation && (
+        <Flex
+          align="center"
+          gap={8}
+          style={{ marginTop: 12, marginBottom: 8 }}
+        >
+          <Typography.Text strong>Synchronous call</Typography.Text>
+          <Switch
+            checked={synchronousGrpcCall}
+            onChange={handleGrpcSynchronousChange}
+          />
+        </Flex>
+      )}
     </div>
   );
 };

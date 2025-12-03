@@ -1,12 +1,20 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { FieldProps } from "@rjsf/utils";
+import { FieldProps, RJSFSchema } from "@rjsf/utils";
 import { Input, Button, Tag, Tooltip } from "antd";
 import styles from "./EnhancedPatternPropertiesField.module.css";
-import { Icon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
 import { api } from "../../../../api/api";
+import {
+  isAmqpProtocol,
+  isKafkaProtocol,
+  normalizeProtocol,
+} from "../../../../misc/protocol-utils";
 
 type ParamType = 'path' | 'query' | 'additional' | 'async' | 'custom';
+
+type EnhancedFieldProps = FieldProps<Record<string, string>, RJSFSchema, FormContext>;
+type EnhancedIdSchema = EnhancedFieldProps['idSchema'];
 
 interface ParameterMetadata {
   name: string;
@@ -27,9 +35,34 @@ interface EnhancedParameter extends ParameterMetadata {
 interface EnvironmentData {
   id: string;
   sourceType?: string;
-  properties: Record<string, string>;
-  defaultProperties?: Record<string, string>;
+  properties?: Record<string, unknown>;
+  defaultProperties?: Record<string, unknown>;
 }
+
+interface ServiceSummary {
+  activeEnvironmentId?: string | null;
+}
+
+interface OpenAPIParameter {
+  in?: string;
+  name?: string;
+  required?: boolean;
+  description?: string;
+  deprecated?: boolean;
+}
+
+interface OperationSpecFragment {
+  topic?: string;
+  channel?: string;
+  exchange?: string;
+  queues?: string;
+  queue?: string;
+  maasClassifierName?: string;
+  groupId?: string;
+  parameters?: OpenAPIParameter[];
+}
+
+type SpecificationNode = OperationSpecFragment | undefined | null;
 
 const SECURED_PARAMS = ['password', 'token', 'secret', 'apiKey', 'api_key'];
 const DEPRECATED_PARAMS = ['maas.createRelatedEntities', 'maas.autoRemoveRelatedEntities'];
@@ -43,8 +76,8 @@ function isDeprecatedParameter(name: string): boolean {
   return DEPRECATED_PARAMS.includes(name);
 }
 
-function determineParamType(idSchema: any): ParamType {
-  const fieldId = idSchema?.$id || '';
+function determineParamType(idSchema?: EnhancedIdSchema | null): ParamType {
+  const fieldId = idSchema?.$id ?? '';
 
   if (fieldId.includes('PathParameters')) return 'path';
   if (fieldId.includes('QueryParameters')) return 'query';
@@ -54,7 +87,127 @@ function determineParamType(idSchema: any): ParamType {
   return 'custom';
 }
 
-const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>, any, FormContext>> = ({
+function parseParametersFromSpec(specification: SpecificationNode, paramType: ParamType, protocolType?: string, elementType?: string): ParameterMetadata[] {
+  if (paramType === 'async') {
+    return parseAsyncAPIParameters(protocolType, elementType);
+  }
+
+  if (!specification) {
+    return [];
+  }
+
+  if (paramType === 'path' || paramType === 'query') {
+    return parseOpenAPIParameters(specification, paramType);
+  }
+
+  return [];
+}
+
+function parseOpenAPIParameters(spec: OperationSpecFragment, paramType: ParamType): ParameterMetadata[] {
+  const parameters = Array.isArray(spec.parameters) ? spec.parameters : [];
+  const targetIn = paramType === 'path' ? 'path' : 'query';
+
+  return parameters
+    .filter((parameter): parameter is OpenAPIParameter & { name: string } =>
+      Boolean(parameter) && parameter.in === targetIn && typeof parameter?.name === 'string')
+    .map((parameter) => {
+      const { name } = parameter;
+      return {
+        name,
+        required: Boolean(parameter.required),
+        source: 'specification' as const,
+        description: parameter.description,
+        deprecated: Boolean(parameter.deprecated) || isDeprecatedParameter(name),
+        secured: isSecuredParameter(name),
+      };
+    });
+}
+
+function parseAsyncAPIParameters(protocolType?: string, elementType?: string): ParameterMetadata[] {
+  const params: ParameterMetadata[] = [];
+  const isAsyncApiTrigger = elementType === 'async-api-trigger';
+
+  if (isKafkaProtocol(protocolType) || isAmqpProtocol(protocolType)) {
+    params.push({
+      name: 'maas.classifier.name',
+      required: false,
+      source: 'specification',
+    });
+  }
+
+  if (isKafkaProtocol(protocolType)) {
+    params.push({
+      name: 'topic',
+      required: false,
+      source: 'specification',
+    });
+    params.push({
+      name: 'groupId',
+      required: isAsyncApiTrigger,
+      source: 'specification',
+    });
+  }
+
+  if (isAmqpProtocol(protocolType)) {
+    params.push({
+      name: 'exchange',
+      required: false,
+      source: 'specification',
+    });
+    params.push({
+      name: 'queues',
+      required: false,
+      source: 'specification',
+    });
+  }
+
+  return params;
+}
+
+function toOperationSpecFragment(specification: unknown): OperationSpecFragment | null {
+  if (!specification || typeof specification !== 'object') {
+    return null;
+  }
+
+  const record = specification as Record<string, unknown>;
+  const parametersValue = record.parameters;
+  const parameters = Array.isArray(parametersValue)
+    ? parametersValue.filter((item): item is OpenAPIParameter =>
+        typeof item === 'object' && item !== null)
+    : undefined;
+
+  return {
+    topic: typeof record.topic === 'string' ? record.topic : undefined,
+    channel: typeof record.channel === 'string' ? record.channel : undefined,
+    exchange: typeof record.exchange === 'string' ? record.exchange : undefined,
+    queues: typeof record.queues === 'string' ? record.queues : undefined,
+    queue: typeof record.queue === 'string' ? record.queue : undefined,
+    maasClassifierName: typeof record.maasClassifierName === 'string' ? record.maasClassifierName : undefined,
+    groupId: typeof record.groupId === 'string' ? record.groupId : undefined,
+    parameters,
+  };
+}
+
+function extractSpecification(response: unknown): unknown {
+  if (response && typeof response === 'object' && 'specification' in response) {
+    return (response as { specification?: unknown }).specification;
+  }
+  return undefined;
+}
+
+function toStringMap(source?: Record<string, unknown>): Map<string, string> {
+  if (!source) {
+    return new Map<string, string>();
+  }
+
+  const entries = Object.entries(source).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string'
+  );
+
+  return new Map(entries);
+}
+
+const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   formData = {},
   onChange,
   schema,
@@ -66,17 +219,22 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
 }) => {
   const [specParameters, setSpecParameters] = useState<ParameterMetadata[]>([]);
   const [envParameters, setEnvParameters] = useState<Map<string, string>>(new Map());
-  const [isMaasEnvironment, setIsMaasEnvironment] = useState(false);
-  const [loadedSpec, setLoadedSpec] = useState<any>(null);
+  const [isMaasEnvironment, setIsMaasEnvironment] = useState<boolean>(false);
+  const [loadedSpec, setLoadedSpec] = useState<OperationSpecFragment | null>(null);
+  const [loadedSpecOperationId, setLoadedSpecOperationId] = useState<string | null>(null);
   const [autoFilledOperationId, setAutoFilledOperationId] = useState<string | null>(null);
+  const [isEnvironmentLoaded, setIsEnvironmentLoaded] = useState<boolean>(false);
 
   const paramType = useMemo(() => determineParamType(idSchema), [idSchema]);
 
   const title = useMemo(() => {
     if (paramType === 'async') {
-      const protocolType = formContext?.integrationOperationProtocolType;
+      const protocolType = normalizeProtocol(
+        formContext?.integrationOperationProtocolType,
+      );
       if (protocolType) {
-        const protocolName = protocolType.charAt(0).toUpperCase() + protocolType.slice(1);
+        const protocolName =
+          protocolType.charAt(0).toUpperCase() + protocolType.slice(1);
         return `${protocolName} Parameters`;
       }
     }
@@ -88,61 +246,73 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
 
   const loadOperationSpecification = useCallback(async () => {
     const operationId = formContext?.integrationOperationId;
-    const protocolType = formContext?.integrationOperationProtocolType;
+    const protocolType = normalizeProtocol(
+      formContext?.integrationOperationProtocolType,
+    );
 
     if (!operationId) {
       setSpecParameters([]);
       setLoadedSpec(null);
+      setLoadedSpecOperationId(null);
       setAutoFilledOperationId(null);
       return;
     }
 
     try {
-      const opInfo = await api.getOperationInfo(operationId);
-      const params = parseParametersFromSpec(opInfo.specification, paramType, protocolType);
+      const response = await api.getOperationInfo(operationId);
+      const specFragment = toOperationSpecFragment(extractSpecification(response));
+      const params = parseParametersFromSpec(
+        specFragment,
+        paramType,
+        protocolType ?? undefined,
+        formContext?.elementType,
+      );
       setSpecParameters(params);
-      setLoadedSpec(opInfo.specification);
-    } catch (error) {
-      console.error('Failed to load operation specification:', error);
+      setLoadedSpec(specFragment);
+      setLoadedSpecOperationId(operationId);
+      setAutoFilledOperationId(null);
+    } catch (error: unknown) {
+      const details = error instanceof Error ? error : new Error(String(error));
+      console.error('Failed to load operation specification:', details);
       setSpecParameters([]);
       setLoadedSpec(null);
+      setLoadedSpecOperationId(null);
       setAutoFilledOperationId(null);
     }
-  }, [formContext?.integrationOperationId, formContext?.integrationOperationProtocolType, paramType]);
+  }, [formContext?.integrationOperationId, formContext?.integrationOperationProtocolType, formContext?.elementType, paramType]);
 
   const loadEnvironmentParameters = useCallback(async () => {
     const systemId = formContext?.integrationSystemId;
 
+    setIsEnvironmentLoaded(false);
+
     if (!systemId) {
       setEnvParameters(new Map());
       setIsMaasEnvironment(false);
+      setIsEnvironmentLoaded(true);
       return;
     }
 
     try {
-      const service = await api.getService(systemId);
-      const environments = await api.getEnvironments(systemId);
+      const service: ServiceSummary = await api.getService(systemId);
+      const environments: EnvironmentData[] = await api.getEnvironments(systemId);
 
-      let activeEnv = environments.find(e => e.id === service.activeEnvironmentId) as EnvironmentData | undefined;
-      if (!activeEnv && environments.length > 0) {
-        activeEnv = environments[0] as EnvironmentData;
-      }
+      const activeEnv = environments.find(env => env.id === service.activeEnvironmentId)
+        ?? environments[0];
 
       const isMaas = activeEnv?.sourceType === 'MAAS_BY_CLASSIFIER';
-      setIsMaasEnvironment(isMaas);
+      setIsMaasEnvironment(Boolean(isMaas));
 
-      if (activeEnv?.properties) {
-        const envMap = new Map(Object.entries(activeEnv.properties));
-        setEnvParameters(envMap);
-      } else {
-        setEnvParameters(new Map());
-      }
-    } catch (error) {
-      console.error('[EnhancedPatternPropertiesField] Failed to load environment parameters:', error);
+      setEnvParameters(toStringMap(activeEnv?.properties));
+      setIsEnvironmentLoaded(true);
+    } catch (error: unknown) {
+      const details = error instanceof Error ? error : new Error(String(error));
+      console.error('[EnhancedPatternPropertiesField] Failed to load environment parameters:', details);
       setEnvParameters(new Map());
       setIsMaasEnvironment(false);
+      setIsEnvironmentLoaded(true);
     }
-  }, [formContext?.integrationSystemId, paramType]);
+  }, [formContext?.integrationSystemId]);
 
   useEffect(() => {
     void loadOperationSpecification();
@@ -152,154 +322,113 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
     void loadEnvironmentParameters();
   }, [loadEnvironmentParameters]);
 
-  // Auto-fill parameters from specification (separate effect to avoid infinite loop)
+  useEffect(() => {
+    if (paramType !== 'async' || !isEnvironmentLoaded) {
+      return;
+    }
+
+    const elementType = formContext?.elementType;
+    const isAsyncApiTrigger = elementType === 'async-api-trigger';
+
+    let updatedData: Record<string, string> | null = null;
+
+    if (isMaasEnvironment && formData.topic !== undefined) {
+      updatedData = { ...formData };
+      delete updatedData.topic;
+    }
+
+    if (!isMaasEnvironment && formData['maas.classifier.name'] !== undefined) {
+      updatedData = { ...(updatedData ?? formData) };
+      delete updatedData['maas.classifier.name'];
+    }
+
+    if (!isAsyncApiTrigger && formData.groupId !== undefined) {
+      updatedData = { ...(updatedData ?? formData) };
+      delete updatedData.groupId;
+    }
+
+    if (updatedData) {
+      onChange(updatedData);
+    }
+  }, [formData, isMaasEnvironment, onChange, paramType, isEnvironmentLoaded, formContext?.elementType]);
+
   useEffect(() => {
     if (!loadedSpec) return;
 
     const operationId = formContext?.integrationOperationId;
-
-    if (operationId === autoFilledOperationId) {
+    if (!operationId || operationId !== loadedSpecOperationId || operationId === autoFilledOperationId) {
       return;
     }
 
-    const protocolType = formContext?.integrationOperationProtocolType;
+    const protocolType = normalizeProtocol(
+      formContext?.integrationOperationProtocolType,
+    );
     const updates: Record<string, string> = {};
 
-    if (protocolType === 'kafka' && !formData['topic']) {
-      const topicValue = loadedSpec.topic || loadedSpec.channel;
+    if (isKafkaProtocol(protocolType) && !formData['topic'] && !isMaasEnvironment) {
+      const topicValue = loadedSpec.topic ?? loadedSpec.channel;
       if (topicValue) {
         updates['topic'] = topicValue;
       }
     }
 
-    if (protocolType === 'amqp' && loadedSpec.exchange && !formData['exchange']) {
+    if (isAmqpProtocol(protocolType) && loadedSpec.exchange && !formData['exchange']) {
       updates['exchange'] = loadedSpec.exchange;
     }
 
-    if (protocolType === 'amqp' && !formData['queues']) {
+    if (isAmqpProtocol(protocolType) && !formData['queues']) {
       const queuesValue = loadedSpec.queues || loadedSpec.queue;
       if (queuesValue) {
         updates['queues'] = queuesValue;
       }
     }
 
-    if ((protocolType === 'kafka' || protocolType === 'amqp') && loadedSpec.maasClassifierName && !formData['maas.classifier.name']) {
-      updates['maas.classifier.name'] = loadedSpec.maasClassifierName;
+    if (isKafkaProtocol(protocolType) || isAmqpProtocol(protocolType)) {
+      const classifierName = loadedSpec?.maasClassifierName;
+      if (isMaasEnvironment && classifierName) {
+        updates['maas.classifier.name'] = classifierName;
+      } else if (!formData['maas.classifier.name']) {
+        if (classifierName) {
+          updates['maas.classifier.name'] = classifierName;
+        } else if (isAmqpProtocol(protocolType)) {
+          updates['maas.classifier.name'] = 'public';
+        }
+      }
+    }
+
+    const elementType = formContext?.elementType;
+    const isAsyncApiTrigger = elementType === 'async-api-trigger';
+    if (isKafkaProtocol(protocolType) && isAsyncApiTrigger && !formData['groupId'] && loadedSpec?.groupId) {
+      updates['groupId'] = loadedSpec.groupId;
     }
 
     if (Object.keys(updates).length > 0) {
-      const updatedProps = { ...formData, ...updates };
-      onChange(updatedProps);
-      setAutoFilledOperationId(operationId || null);
+      onChange({ ...formData, ...updates });
+      setAutoFilledOperationId(operationId);
     }
-  }, [loadedSpec, formContext?.integrationOperationProtocolType, formContext?.integrationOperationId, paramType, autoFilledOperationId, formData, onChange]);
+  }, [loadedSpec, loadedSpecOperationId, formContext?.integrationOperationProtocolType, formContext?.integrationOperationId, formContext?.elementType, paramType, autoFilledOperationId, formData, onChange, isMaasEnvironment]);
 
-  function parseParametersFromSpec(specification: unknown, paramType: ParamType, protocolType?: string): ParameterMetadata[] {
-    if (!specification || typeof specification !== 'object') return [];
-
-    const spec = specification as any;
-
-    if (paramType === 'path' || paramType === 'query') {
-      return parseOpenAPIParameters(spec, paramType);
-    }
-
-    if (paramType === 'async') {
-      return parseAsyncAPIParameters(spec, protocolType);
-    }
-
-    return [];
-  }
-
-  function parseOpenAPIParameters(spec: any, paramType: ParamType): ParameterMetadata[] {
-    if (!spec?.parameters || !Array.isArray(spec.parameters)) return [];
-
-    const targetIn = paramType === 'path' ? 'path' : 'query';
-
-    return spec.parameters
-      .filter((p: any) => p.in === targetIn)
-      .map((p: any) => ({
-        name: p.name,
-        required: p.required || false,
-        source: 'specification' as const,
-        description: p.description,
-        deprecated: p.deprecated || isDeprecatedParameter(p.name),
-        secured: isSecuredParameter(p.name),
-      }));
-  }
-
-  function parseAsyncAPIParameters(_spec: any, protocolType?: string): ParameterMetadata[] {
-    const params: ParameterMetadata[] = [];
-
-    // MaaS Classifier Name - for Kafka/AMQP protocols
-    // Note: Will be filtered based on environment type in mergedParameters
-    if (protocolType === 'kafka' || protocolType === 'amqp') {
-      params.push({
-        name: 'maas.classifier.name',
-        required: false,
-        source: 'specification',
-      });
-    }
-
-    // Kafka Topic - auto-filled from spec.topic
-    // Note: Will be filtered based on environment type in mergedParameters
-    if (protocolType === 'kafka') {
-      params.push({
-        name: 'topic',
-        required: false,
-        source: 'specification',
-      });
-    }
-
-    // AMQP Exchange - auto-filled from spec.exchange
-    if (protocolType === 'amqp') {
-      params.push({
-        name: 'exchange',
-        required: false,
-        source: 'specification',
-      });
-    }
-
-    // RabbitMQ Queues - auto-filled from spec.queues or spec.queue
-    if (protocolType === 'amqp') {
-      params.push({
-        name: 'queues',
-        required: false,
-        source: 'specification',
-      });
-    }
-
-    return params;
-  }
+  const elementType = formContext?.elementType;
+  const isAsyncApiTrigger = elementType === 'async-api-trigger';
 
   const mergedParameters = useMemo((): EnhancedParameter[] => {
-    console.log('[EnhancedPatternPropertiesField] mergedParameters useMemo recalculating:', {
-      paramType,
-      isMaasEnvironment,
-      specParametersCount: specParameters.length,
-      envParametersCount: envParameters.size,
-      formDataKeys: Object.keys(formData),
-      formDataValues: formData,
-      specParameters,
-      envParametersKeys: Array.from(envParameters.keys()),
-    });
-
     const result: EnhancedParameter[] = [];
     const processed = new Set<string>();
 
-    // Helper function to check if parameter should be hidden based on environment type
     const isHiddenParameter = (name: string): boolean => {
       if (paramType !== 'async') return false;
 
+      if (name === 'groupId' && !isAsyncApiTrigger) {
+        return true;
+      }
+
       if (isMaasEnvironment) {
-        // In MaaS mode: hide 'topic' parameter
         return name === 'topic';
       } else {
-        // In Manual mode: hide parameters with 'maas.' prefix
         return name.startsWith('maas.');
       }
     };
 
-    // 1. Add required parameters from specification
     specParameters.filter(p => p.required && !isHiddenParameter(p.name)).forEach(p => {
       const value = formData[p.name] || envParameters.get(p.name) || '';
       result.push({
@@ -312,9 +441,6 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
       processed.add(p.name);
     });
 
-    // 2. Add optional parameters from specification
-    // For async/additional: ALWAYS show spec params (even if empty), unless hidden
-    // For path/query: only show if present in formData
     specParameters.filter(p => !p.required && !isHiddenParameter(p.name)).forEach(p => {
       const hasFormValue = formData[p.name] !== undefined;
       const isAsyncOrAdditional = paramType === 'async' || paramType === 'additional';
@@ -333,7 +459,6 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
       }
     });
 
-    // 3. For async/additional: Add ALL environment parameters (except hidden)
     if (paramType === 'additional' || paramType === 'async') {
       envParameters.forEach((envValue, name) => {
         if (!processed.has(name) && !isHiddenParameter(name)) {
@@ -354,7 +479,6 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
       });
     }
 
-    // 4. Add custom parameters (not in spec, not in env, and not hidden)
     Object.entries(formData).forEach(([name, value]) => {
       if (!processed.has(name) && !isHiddenParameter(name)) {
         result.push({
@@ -370,7 +494,7 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
     });
 
     return result;
-  }, [specParameters, envParameters, formData, paramType, isMaasEnvironment]);
+  }, [specParameters, envParameters, formData, paramType, isMaasEnvironment, isAsyncApiTrigger]);
 
   function isOverridden(name: string, formData: Record<string, string>, envParams: Map<string, string>): boolean {
     return envParams.has(name) &&
@@ -394,12 +518,12 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
   };
 
   const [localValues, setLocalValues] = useState<Record<string, string>>({});
-  const debounceTimersRef = React.useRef<Record<string, NodeJS.Timeout>>({});
+  const debounceTimersRef = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // Clean up timers on unmount
   useEffect(() => {
+    const timersSnapshot = debounceTimersRef.current;
     return () => {
-      Object.values(debounceTimersRef.current).forEach(timer => clearTimeout(timer));
+      Object.values(timersSnapshot).forEach(timer => clearTimeout(timer));
     };
   }, []);
 
@@ -439,7 +563,7 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
           onClick={() => setCollapsed((s) => !s)}
         >
           <span className={styles.iconWrapper}>
-            {collapsed ? <Icon name="right" /> : <Icon name="down" />}
+            {collapsed ? <OverridableIcon name="right" /> : <OverridableIcon name="down" />}
           </span>
           <span>{title}</span>
           <span className={styles.badge}>{mergedParameters.length}</span>
@@ -449,7 +573,7 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
           <Button
             size="small"
             type="text"
-            icon={<Icon name="plus" />}
+            icon={<OverridableIcon name="plus" />}
             onClick={handleAdd}
             disabled={disabled || readonly}
             style={{ marginLeft: 8 }}
@@ -471,8 +595,16 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
               </tr>
             </thead>
             <tbody>
-              {mergedParameters.map((param, idx) => (
-                <tr key={idx} className={param.required ? styles.requiredRow : ''}>
+              {mergedParameters.map((param, idx) => {
+                const displayedValue = localValues[param.name] ?? param.value;
+                const hasValue =
+                  displayedValue !== undefined &&
+                  String(displayedValue).trim().length > 0;
+                const rowClass =
+                  param.required && !hasValue ? styles.requiredRow : '';
+
+                return (
+                  <tr key={idx} className={rowClass}>
                   <td className={styles.td}>
                     <div className={styles.nameCell}>
                       {param.canDelete && param.source === 'custom' ? (
@@ -508,7 +640,7 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
                           <Button
                             size="small"
                             type="text"
-                            icon={<Icon name="rollback" />}
+                            icon={<OverridableIcon name="rollback" />}
                             onClick={() => restoreDefaultValue(param.name)}
                             className={styles.restoreBtn}
                           />
@@ -518,15 +650,16 @@ const EnhancedPatternPropertiesField: React.FC<FieldProps<Record<string, string>
                         <Button
                           size="small"
                           type="text"
-                          icon={<Icon name="delete" />}
+                          icon={<OverridableIcon name="delete" />}
                           onClick={() => handleDelete(param.name)}
                           className={styles.deleteBtn}
                         />
                       )}
                     </div>
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ))}

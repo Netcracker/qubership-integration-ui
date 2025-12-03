@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNotificationService } from "./useNotificationService.tsx";
 
 export const useChain = (chainId?: string) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(chainId));
   const [chain, setChain] = useState<Chain>();
   const [error, setError] = useState<Error | null>(null);
   const notificationService = useNotificationService();
@@ -14,7 +14,7 @@ export const useChain = (chainId?: string) => {
       if (!chainId) return;
       setIsLoading(true);
       try {
-        return api.updateChain(chainId, chain);
+        return await api.updateChain(chainId, chain);
       } catch (error) {
         notificationService.requestFailed("Failed to update chain", error);
       } finally {
@@ -47,5 +47,5 @@ export const useChain = (chainId?: string) => {
     void getChain().then(setChain);
   }, [getChain]);
 
-  return { isLoading, chain, setChain, updateChain, error };
+  return { isLoading, chain, setChain, updateChain, getChain, error };
 };

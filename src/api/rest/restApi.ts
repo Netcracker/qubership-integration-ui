@@ -65,6 +65,7 @@ import {
   TransferElementRequest,
   Element,
   SystemOperation,
+  SpecApiFile,
   CustomResourceBuildRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
@@ -183,12 +184,12 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  moveChain = async (chainId: string, folderId?: string): Promise<Chain> => {
+  moveChain = async (chainId: string, folder?: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
       `/api/v1/${getAppName()}/catalog/chains/${chainId}/move`,
       null,
       {
-        params: { targetFolderId: folderId },
+        params: { targetFolderId: folder },
       },
     );
     return response.data;
@@ -650,6 +651,13 @@ export class RestApi implements Api {
   getPathToFolder = async (folderId: string): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
       `/api/v2/${getAppName()}/catalog/folders/${folderId}/path`,
+    );
+    return response.data;
+  };
+
+  getPathToFolderByName = async (folderName: string): Promise<FolderItem[]> => {
+    const response = await this.instance.get<FolderItem[]>(
+      `/api/v2/${getAppName()}/catalog/folders/path?name=${folderName}`,
     );
     return response.data;
   };
@@ -1324,6 +1332,35 @@ export class RestApi implements Api {
     );
     return response.data;
   };
+
+  getSpecApiFiles = (): Promise<SpecApiFile[]> => {
+    return Promise.resolve([]);
+  };
+
+  readSpecificationFileContent = (): Promise<string> => {
+    return Promise.reject(new Error("Method readSpecificationFileContent not implemented in RestApi"));
+  };
+
+  groupElements = async (
+    chainId: string,
+    elementIds: string[]
+  ): Promise<Element> => {
+    const response = await this.instance.post<Element>(
+      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups`,
+      elementIds,
+    );
+    return response.data;
+  }
+
+  ungroupElements = async (
+    chainId: string,
+    groupId: string
+  ): Promise<Element[]> => {
+    const response = await this.instance.delete<Element[]>(
+      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups/${groupId}`
+    );
+    return response.data;
+  }
 
   buildCR = async (
     request: CustomResourceBuildRequest

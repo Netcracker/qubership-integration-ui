@@ -6,9 +6,16 @@ import { IntegrationSystem } from "../../../../api/apiTypes";
 import { FormContext } from "../ChainElementModification";
 import { JSONSchema7 } from "json-schema";
 import { useNotificationService } from "../../../../hooks/useNotificationService";
-import { Icon } from "../../../../IconProvider";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { VSCodeExtensionApi } from "../../../../api/rest/vscodeExtensionApi";
 import { api } from "../../../../api/api";
+import { ServiceTag } from "./ServiceTag";
+import { capitalize } from "../../../../misc/format-utils";
+import {
+  isAsyncProtocol,
+  isHttpProtocol,
+  normalizeProtocol,
+} from "../../../../misc/protocol-utils";
 
 const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
   id,
@@ -34,7 +41,7 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
 
       const serviceOptions: SelectProps["options"] =
         services?.map((service: IntegrationSystem) => ({
-          label: `${service.type} ${service.name}`,
+          label: <><ServiceTag value={capitalize(service.type)}/>{service.name}</>,
           value: service.id,
         })) ?? [];
       setOptions(serviceOptions);
@@ -64,10 +71,9 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
     (newValue: string) => {
       setServiceId(newValue);
       const newService: IntegrationSystem = servicesMap.get(newValue)!;
-      const protocol = (typeof newService?.protocol === 'string' && newService.protocol.trim()) ? newService.protocol.toLowerCase() : 'http';
-      
-      const isAsync = protocol === 'kafka' || protocol === 'amqp';
-      const isHttp = protocol === 'http' || protocol === 'soap';
+      const protocol = normalizeProtocol(newService?.protocol) ?? "http";
+      const isAsync = isAsyncProtocol(protocol);
+      const isHttp = isHttpProtocol(protocol);
 
       formContext?.updateContext({
         integrationSystemId: newValue,
@@ -116,7 +122,7 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
         />
         <Tooltip title="Go to service">
           <Button
-            icon={<Icon name="send" />}
+            icon={<OverridableIcon name="send" />}
             disabled={!serviceId}
             onClick={onNavigationButtonClick}
           />

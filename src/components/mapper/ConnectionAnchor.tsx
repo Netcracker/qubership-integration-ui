@@ -1,13 +1,14 @@
 import React, { forwardRef, useEffect, useState } from "react";
 import styles from "./ConnectionAnchor.module.css";
 import { Tooltip, TooltipProps } from "antd";
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon as Icon } from "../../icons/IconProvider.tsx";
 
 export type ConnectionAnchorProps = React.HTMLAttributes<HTMLElement> & {
   tooltipTitle?: TooltipProps["title"];
   tooltipPlacement?: TooltipProps["placement"];
   invalid?: boolean;
   connected: boolean;
+  required?: boolean;
   showSettingIcon?: boolean;
   onClick?: (connected: boolean) => void;
 };
@@ -20,6 +21,7 @@ export const ConnectionAnchor = forwardRef<
     {
       invalid,
       connected,
+      required,
       onClick,
       tooltipPlacement,
       tooltipTitle,
@@ -29,19 +31,22 @@ export const ConnectionAnchor = forwardRef<
     ref,
   ) => {
     const [className, setClassName] = useState<string>(
-      `${styles["connection-anchor"]} ${styles["disconnected"]}`,
+      `${styles["connection-anchor"] as string} ${styles.disconnected}`,
     );
 
     useEffect(() => {
-      const classNames: (keyof typeof styles)[] = [
-        styles["connection-anchor"],
-        styles[connected ? "connected" : "disconnected"],
+      const classNames: string[] = [
+        styles["connection-anchor"] as string,
+        connected ? styles.connected : styles.disconnected,
       ];
       if (invalid) {
-        classNames.push(styles["invalid"]);
+        classNames.push(styles.invalid as string);
+      }
+      if (required && !connected) {
+        classNames.push(styles.required as string);
       }
       setClassName(classNames.join(" "));
-    }, [invalid, connected]);
+    }, [invalid, connected, required]);
 
     return (
       <Tooltip title={tooltipTitle ?? ""} placement={tooltipPlacement}>

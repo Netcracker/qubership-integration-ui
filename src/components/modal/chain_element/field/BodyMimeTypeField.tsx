@@ -1,17 +1,15 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { FieldProps } from "@rjsf/utils";
+import type { RJSFSchema } from "@rjsf/utils";
 import { Select, Input, Button } from "antd";
 import styles from "./BodyParametersField.module.css";
-import { Icon } from "../../../../IconProvider.tsx";
+import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
-
-interface BodyFormEntry {
-  fieldName?: string;
-  mimeType?: string;
-  name: string;
-  fileName?: string;
-  value: string;
-}
+import {
+  BodyFormEntry,
+  createEmptyBodyFormEntry,
+  toBodyFormData,
+} from "./bodyFormDataUtils.ts";
 
 const MIME_TYPE_OPTIONS = [
   { label: 'Inherit', value: undefined },
@@ -20,7 +18,7 @@ const MIME_TYPE_OPTIONS = [
   { label: 'application/x-www-form-urlencoded', value: 'application/x-www-form-urlencoded' },
 ];
 
-const BodyMimeTypeField: React.FC<FieldProps<string, any, FormContext>> = ({
+const BodyMimeTypeField: React.FC<FieldProps<string | undefined, RJSFSchema, FormContext>> = ({
   formData,
   onChange,
   formContext,
@@ -28,15 +26,21 @@ const BodyMimeTypeField: React.FC<FieldProps<string, any, FormContext>> = ({
   readonly,
 }) => {
   const bodyMimeType = formData;
-  
-  // Get bodyFormData from formContext (synced by ChainElementModification)
-  const bodyFormData = (formContext as any)?.bodyFormData || [];
-  
+
+  const bodyFormData = useMemo(
+    () => toBodyFormData(formContext?.bodyFormData),
+    [formContext?.bodyFormData],
+  );
+
   const [collapsed, setCollapsed] = useState(bodyFormData.length === 0);
 
-  const handleMimeTypeChange = (value: string) => {
+  const updateBodyFormData = (nextFormData: BodyFormEntry[]) => {
+    formContext?.updateContext?.({ bodyFormData: nextFormData });
+  };
+
+  const handleMimeTypeChange = (value: string | undefined) => {
     onChange(value);
-    
+
     // Clear form data if switching to None or Inherit
     if (!value || value === 'None') {
       formContext?.updateContext?.({ bodyFormData: [] });
@@ -44,33 +48,24 @@ const BodyMimeTypeField: React.FC<FieldProps<string, any, FormContext>> = ({
   };
 
   const handleAddRow = () => {
-    const newEntry: BodyFormEntry = {
-      name: '',
-      value: '',
-      fileName: '',
-      mimeType: 'text/plain',
-    };
-    
+    const newEntry = createEmptyBodyFormEntry();
     const newFormData = [...bodyFormData, newEntry];
-    formContext?.updateContext?.({ bodyFormData: newFormData });
+    updateBodyFormData(newFormData);
   };
 
   const handleDeleteRow = (index: number) => {
-    const newFormData = bodyFormData.filter((_: any, i: number) => i !== index);
-    formContext?.updateContext?.({ bodyFormData: newFormData });
+    const newFormData = bodyFormData.filter((_, i) => i !== index);
+    updateBodyFormData(newFormData);
   };
 
   const handleFieldChange = (index: number, field: keyof BodyFormEntry, value: string) => {
     const newFormData = [...bodyFormData];
-    // Ensure the entry exists
-    if (!newFormData[index]) {
-      newFormData[index] = { name: '', value: '', fileName: '', mimeType: 'text/plain' };
-    }
-    newFormData[index] = { ...newFormData[index], [field]: value };
-    formContext?.updateContext?.({ bodyFormData: newFormData });
+    const entry = newFormData[index] ?? createEmptyBodyFormEntry();
+    newFormData[index] = { ...entry, [field]: value };
+    updateBodyFormData(newFormData);
   };
 
-  const showTable = bodyMimeType && bodyMimeType !== 'None';
+  const showTable = Boolean(bodyMimeType && bodyMimeType !== 'None');
   const isMultipartFormData = bodyMimeType === 'multipart/form-data';
 
   return (
@@ -100,7 +95,7 @@ const BodyMimeTypeField: React.FC<FieldProps<string, any, FormContext>> = ({
               onClick={() => setCollapsed(s => !s)}
             >
               <span className={styles.iconWrapper}>
-                {collapsed ? <Icon name="right" /> : <Icon name="down" />}
+                {collapsed ? <OverridableIcon name="right" /> : <OverridableIcon name="down" />}
               </span>
               <span>Form Data</span>
               <span className={styles.badge}>{bodyFormData.length}</span>
@@ -109,7 +104,7 @@ const BodyMimeTypeField: React.FC<FieldProps<string, any, FormContext>> = ({
               <Button
                 size="small"
                 type="text"
-                icon={<Icon name="plus" />}
+                icon={<OverridableIcon name="plus" />}
                 onClick={handleAddRow}
                 disabled={disabled || readonly}
                 style={{ marginLeft: 8 }}
@@ -176,7 +171,7 @@ const BodyMimeTypeField: React.FC<FieldProps<string, any, FormContext>> = ({
                         <Button
                           size="small"
                           type="text"
-                          icon={<Icon name="delete" />}
+                          icon={<OverridableIcon name="delete" />}
                           onClick={() => handleDeleteRow(idx)}
                           disabled={disabled || readonly}
                           className={styles.deleteBtn}

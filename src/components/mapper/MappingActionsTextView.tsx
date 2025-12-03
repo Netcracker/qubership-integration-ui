@@ -5,8 +5,9 @@ import {
   MessageSchema,
   Transformation,
 } from "../../mapper/model/model.ts";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Editor, Monaco } from "@monaco-editor/react";
+import { useMonacoTheme, applyVSCodeThemeToMonaco } from "../../hooks/useMonacoTheme";
 import {
   editor,
   languages,
@@ -480,6 +481,7 @@ export const MappingActionsTextView: React.FC<MappingActionsTextViewProps> = ({
 }) => {
   const [value, setValue] = useState<string>("");
   const [actions, setActions] = useState<MappingAction[]>([]);
+  const monacoRef = useRef<Monaco | null>(null);
 
   useEffect(() => {
     if (actionsAreTheSame(actions, mapping?.actions ?? [])) {
@@ -490,6 +492,7 @@ export const MappingActionsTextView: React.FC<MappingActionsTextViewProps> = ({
 
   const onEditorMount = useCallback(
     (editor: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+      monacoRef.current = monaco;
       configureMapperActionsLanguage(
         editor,
         monaco,
@@ -499,9 +502,17 @@ export const MappingActionsTextView: React.FC<MappingActionsTextViewProps> = ({
           onChange?.(mappingDescription);
         },
       );
+      applyVSCodeThemeToMonaco(monaco);
     },
     [mapping, onChange],
   );
+
+  const monacoTheme = useMonacoTheme();
+  useEffect(() => {
+    if (monacoRef.current) {
+      applyVSCodeThemeToMonaco(monacoRef.current);
+    }
+  }, [monacoTheme]);
 
   return (
     <Editor
@@ -509,6 +520,7 @@ export const MappingActionsTextView: React.FC<MappingActionsTextViewProps> = ({
       className="qip-editor"
       value={value}
       language={MAPPER_ACTIONS_LANGUAGE_ID}
+      theme={monacoTheme}
       onMount={(editor, monaco) => onEditorMount(editor, monaco)}
       options={{ fixedOverflowWidgets: true }}
     />

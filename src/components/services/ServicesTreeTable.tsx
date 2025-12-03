@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Table, Tag, Dropdown, Button, Modal } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Table, Dropdown, Button, Modal } from 'antd';
 import type { FilterDropdownProps, TableRowSelection } from 'antd/es/table/interface';
 import { formatTimestamp } from '../../misc/format-utils';
 import { UsageStatusTag } from './utils';
@@ -12,7 +12,7 @@ import {
   User,
   IntegrationSystemType,
 } from "../../api/apiTypes.ts";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ColumnsFilter } from '../table/ColumnsFilter';
 import { OperationInfoModal } from './OperationInfoModal';
 import { api } from '../../api/api';
@@ -21,7 +21,8 @@ import type { SpecificationGroup, Specification, SystemOperation } from '../../a
 import { InlineEdit } from '../InlineEdit';
 import { LabelsEdit } from '../table/LabelsEdit';
 import { ChainColumn } from './ChainColumn';
-import { Icon } from "../../IconProvider.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { HttpMethod } from './HttpMethod.tsx';
 
 export type ServiceEntity = IntegrationSystem | SpecificationGroup | Specification | SystemOperation;
 
@@ -82,13 +83,13 @@ export interface ServicesTreeTableProps<T extends ServiceEntity = ServiceEntity>
 
 const clickableStyle: React.CSSProperties = {
   fontWeight: 500,
-  color: '#1677ff',
+  color: 'var(--vscode-textLink-foreground, #1677ff)',
   cursor: 'pointer',
 };
 
 const iconStyle: React.CSSProperties = {
   fontSize: 22,
-  color: '#b0b8c4',
+  color: 'var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45))',
   marginRight: 8,
   verticalAlign: 'middle',
 };
@@ -97,20 +98,20 @@ function getIcon(record: ServiceEntity): React.JSX.Element | null {
   if (isIntegrationSystem(record)) {
     switch (record.type) {
       case IntegrationSystemType.EXTERNAL:
-        return <Icon name="global" style={iconStyle} />;
+        return <OverridableIcon name="global" style={iconStyle} />;
       case IntegrationSystemType.INTERNAL:
-        return <Icon name="cloud" style={iconStyle} />;
+        return <OverridableIcon name="cloud" style={iconStyle} />;
       case IntegrationSystemType.IMPLEMENTED:
-        return <Icon name="cluster" style={iconStyle} />;
+        return <OverridableIcon name="cluster" style={iconStyle} />;
       default:
-        return <Icon name="global" style={iconStyle} />;
+        return <OverridableIcon name="global" style={iconStyle} />;
     }
   }
   if (isSpecificationGroup(record)) {
-    return <Icon name="inbox" style={iconStyle}/>
+    return <OverridableIcon name="inbox" style={iconStyle}/>
   }
   if (isSpecification(record)) {
-    return <Icon name="fileText" style={iconStyle} />;
+    return <OverridableIcon name="fileText" style={iconStyle} />;
   }
   return null;
 }
@@ -137,7 +138,11 @@ const NameCell: React.FC<{ record: ServiceEntity }> = ({ record }) => {
   const [operationInfo, setOperationInfo] = React.useState<OperationInfo | undefined>(undefined);
   const [loading, setLoading] = React.useState(false);
 
-  const handleClick = () => {
+  const { operationId } = useParams<{
+    operationId?: string;
+  }>();
+
+  const handleClick = useCallback(() => {
     if (isSystemOperation(record)) {
       const fetchOperationInfo = async () => {
         setLoading(true);
@@ -158,7 +163,13 @@ const NameCell: React.FC<{ record: ServiceEntity }> = ({ record }) => {
         void navigate(url);
       }
     }
-  };
+  }, [record, navigate]);
+
+  useEffect(() => {
+    if (operationId && operationId === record.id) {
+      handleClick();
+    }
+  }, [operationId, record.id, handleClick]);
 
   return (
     <>
@@ -190,17 +201,6 @@ export const getNameColumnRender = () => {
   );
   renderNameColumn.displayName = 'RenderNameColumn';
   return renderNameColumn;
-};
-
-const methodColors: Record<string, string> = {
-  GET: '#61affe',
-  POST: '#49cc90',
-  PUT: '#fca130',
-  DELETE: '#f93e3e',
-  PATCH: '#50e3c2',
-  QUERY: '#1890ff',
-  MUTATION: '#52c41a',
-  SUBSCRIPTION: '#722ed1',
 };
 
 function renderLabelsCell(
@@ -339,27 +339,7 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
     title: "Method",
     dataIndex: "method",
     key: "method",
-    render: (value: unknown) => {
-      const method = value as string | undefined;
-      if (!method) return "-";
-
-      const displayMethod = method.toUpperCase();
-
-      const color = methodColors[displayMethod] || "#d9d9d9";
-      return (
-        <Tag
-          style={{
-            background: color,
-            color: "#fff",
-            borderRadius: 8,
-            border: "none",
-            fontWeight: 500,
-          }}
-        >
-          {displayMethod}
-        </Tag>
-      );
-    },
+    render: (value: unknown) => <HttpMethod value={value} />,
   },
   {
     title: "URL",
@@ -413,7 +393,7 @@ function ActionMenu<T>({ record, actions }: { record: T; actions: ActionConfig<T
       trigger={["click"]}
       placement="bottomRight"
     >
-      <Button type="text" icon={<Icon name="more" />} />
+      <Button type="text" icon={<OverridableIcon name="more" />} />
     </Dropdown>
   );
 }
@@ -455,13 +435,13 @@ export function getServiceActions({
       {
         key: 'edit',
         label: 'Edit',
-        icon: <Icon name="edit" />,
+        icon: <OverridableIcon name="edit" />,
         onClick: onEdit,
       },
       {
         key: 'delete',
         label: 'Delete',
-        icon: <Icon name="delete" />,
+        icon: <OverridableIcon name="delete" />,
         onClick: onDelete,
         confirm: {
           title: 'Are you sure you want to delete this service?',
@@ -472,13 +452,13 @@ export function getServiceActions({
       {
         key: 'expandAll',
         label: 'Expand All',
-        icon: <Icon name="columnHeight" />,
+        icon: <OverridableIcon name="columnHeight" />,
         onClick: onExpandAll,
       },
       {
         key: 'collapseAll',
         label: 'Collapse All',
-        icon: <Icon name="verticalAlignMiddle" />,
+        icon: <OverridableIcon name="verticalAlignMiddle" />,
         onClick: onCollapseAll,
       },
     ];
@@ -486,7 +466,7 @@ export function getServiceActions({
       actions.push({
         key: 'export',
         label: 'Export',
-        icon: <Icon name="cloudDownload" />,
+        icon: <OverridableIcon name="cloudDownload" />,
         onClick: (rec) => onExportSelected([rec]),
       });
     }
@@ -554,7 +534,7 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
       )}
       trigger={['click']}
     >
-      <Button icon={<Icon name="settings" />}/>
+      <Button icon={<OverridableIcon name="settings" />}/>
     </Dropdown>
   );
 
@@ -592,7 +572,7 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
         expandable={expandable}
         size={"small"}
         pagination={pagination}
-        style={{ background: "#fff", borderRadius: 12, width: '100%' }}
+        style={{ background: "var(--vscode-editor-background)", borderRadius: 12, width: '100%' }}
         rowClassName={rowClassName}
         onRow={onRowClick ? (record) => ({
           onClick: (event: React.MouseEvent<HTMLElement>) => onRowClick(record, event),

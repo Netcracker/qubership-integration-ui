@@ -2,6 +2,7 @@ import { Handle, NodeProps, Position } from "@xyflow/react";
 import { ChainGraphNode } from "./ChainGraphNodeTypes.ts";
 import { useMemo } from "react";
 import { EllipsisLabel } from "./EllipsisLabel";
+import { IconName, OverridableIcon } from "../../../icons/IconProvider.tsx";
 
 export function UnitNode({
   data,
@@ -18,7 +19,7 @@ export function UnitNode({
   return (
     <div
       style={{
-        border: selected ? "2px solid #000" : undefined,
+        border: selected ? "2px solid var(--vscode-focusBorder)" : undefined,
         borderRadius: 5,
         width: "100%",
         height: "100%",
@@ -31,21 +32,52 @@ export function UnitNode({
         style={{
           width: "100%",
           height: "100%",
-          display: "grid",
-          placeItems: "center",
+          flexDirection: "row",
+          display: "flex",
+          gap: 6,
           userSelect: "none",
           textAlign: "center",
-          lineHeight: 1.2,
-          padding: "6px 8px",
+          lineHeight: 1.35,
+          paddingTop: "8px",
+          paddingBottom: "6px",
+          paddingLeft: "8px",
         }}
       >
-        <EllipsisLabel
-          text={trimmedLabel}
-          style={{
-            maxWidth: "100%",
-            minWidth: 0,
-          }}
+        <OverridableIcon
+          name={data.elementType as IconName}
+          style={{ fontSize: 16 }}
         />
+        <div
+          style={{
+            width: "100%",
+          }}
+        >
+          <EllipsisLabel
+            text={trimmedLabel}
+            style={{
+              minWidth: 0,
+              fontSize: 12,
+              textAlign: "left",
+            }}
+          />
+          <div
+            style={{
+              textAlign: "right",
+              marginTop: 2,
+            }}
+          >
+            <span
+              style={{
+                background: "rgba(0, 0, 0, 0.15)",
+                padding: "2px 5px",
+                borderRadius: 3,
+                fontSize: 8,
+              }}
+            >
+              {data.typeTitle}
+            </span>
+          </div>
+        </div>
       </div>
 
       {data.inputEnabled !== false && (
