@@ -67,6 +67,7 @@ import {
   SystemOperation,
   SpecApiFile,
   ContextSystem,
+  IntegrationSystemType,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -863,7 +864,9 @@ export class RestApi implements Api {
     const response = await this.instance.get<ContextSystem[]>(
       `/api/v1/${getAppName()}/catalog/context-system`,
     );
-    return response.data;
+    const result = response.data;
+    response.data.map(system => system.type = IntegrationSystemType.CONTEXT);
+    return result;
   }
 
   createService = async (system: SystemRequest): Promise<IntegrationSystem> => {
@@ -1046,6 +1049,13 @@ export class RestApi implements Api {
     );
     return response.data;
   };
+
+  getContextService = async (id: string): Promise<ContextSystem> => {
+    const response = await this.instance.get<ContextSystem>(
+      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
+    );
+    return response.data;
+  }
 
   getService = async (id: string): Promise<IntegrationSystem> => {
     const response = await this.instance.get<IntegrationSystem>(

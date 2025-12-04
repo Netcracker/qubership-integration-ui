@@ -10,7 +10,7 @@ import { useBlocker } from "react-router-dom";
 import { useModalsContext } from "../../Modals.tsx";
 import { UnsavedChangesModal } from "../modal/UnsavedChangesModal.tsx";
 
-interface ServiceParametersTabProps {
+export interface ServiceParametersTabProps {
   systemId: string;
   activeTab: string
   formatTimestamp: (val: string) => string;

@@ -348,6 +348,8 @@ export interface Api {
 
   deleteSpecificationGroup(id: string): Promise<void>;
 
+  getContextService(id: string): Promise<ContextSystem>;
+
   getService(id: string): Promise<IntegrationSystem>;
 
   updateService(

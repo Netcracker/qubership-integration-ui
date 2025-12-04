@@ -975,6 +975,7 @@ export type IntegrationSystem = {
 export type ContextSystem = {
   id: string;
   name: string;
+  type: IntegrationSystemType;
   description?: string;
   createdWhen?: string;
   createdBy?: User;

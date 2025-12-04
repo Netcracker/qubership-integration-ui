@@ -27,7 +27,7 @@ import { HttpMethod } from './HttpMethod.tsx';
 export type ServiceEntity = IntegrationSystem | SpecificationGroup | Specification | SystemOperation | ContextSystem;
 
 export function isIntegrationSystem(record: ServiceEntity): record is IntegrationSystem {
-  return 'type' in record;
+  return 'type' in record && record['type'] !== IntegrationSystemType.CONTEXT;
 }
 
 export function isSpecificationGroup(record: ServiceEntity): record is SpecificationGroup {
@@ -40,6 +40,10 @@ export function isSpecification(record: ServiceEntity): record is Specification 
 
 export function isSystemOperation(record: ServiceEntity): record is SystemOperation {
   return 'method' in record && 'path' in record && 'modelId' in record;
+}
+
+export function isContextSystem(record: ServiceEntity): record is ContextSystem {
+  return 'type' in record && record['type'] === IntegrationSystemType.CONTEXT;
 }
 
 export interface ServicesTableColumn<T extends ServiceEntity = ServiceEntity> {

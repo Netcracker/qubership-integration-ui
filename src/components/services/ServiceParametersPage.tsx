@@ -55,6 +55,24 @@ export const ServiceParametersPageLayout: React.FC<
   );
 };
 
+export const ServiceParametersPageHeader: React.FC = () => {
+  return (
+    <Flex
+      justify="space-between"
+      align="center"
+      style={{ margin: "4px 0 8px", fontSize: 20 }}
+    >
+      <Title
+        level={5}
+        className={styles["variables-title"]}
+        style={{ margin: 0, fontSize: 20 }}
+      >
+        Common Parameters
+      </Title>
+    </Flex>
+  );
+};
+
 export const ServiceParametersPage: React.FC = () => {
   const { systemId, groupId, specId } = useParams<{ systemId: string; groupId?: string; specId?: string }>();
   const location = useLocation();
@@ -220,17 +238,7 @@ export const ServiceParametersPage: React.FC = () => {
                   </Breadcrumb.Item>
                 )}
               </Breadcrumb>
-
-              <Flex justify="space-between" align="center" style={{ margin: "4px 0 8px", fontSize: 20 }}>
-                <Title
-                  level={5}
-                  className={styles["variables-title"]}
-                  style={{ margin: 0, fontSize: 20 }}
-                >
-                  Common Parameters
-                </Title>
-              </Flex>
-
+              <ServiceParametersPageHeader />
               <Tabs
                 items={tabItems}
                 activeKey={activeTab}

@@ -26,6 +26,7 @@ import {
   isSpecificationGroup,
   isIntegrationSystem,
   allContextServicesTreeTableColumns,
+  isContextSystem,
 } from "./ServicesTreeTable";
 import type { ContextSystem, IntegrationSystem, SpecificationGroup } from "../../api/apiTypes";
 import { downloadFile } from '../../misc/download-utils';
@@ -246,8 +247,8 @@ export const ServicesListPage: React.FC = () => {
   const servicesTable = useServicesTreeTable<ServiceEntity>({
     dataSource: buildDataSource,
     rowKey: "id",
-    columns: allColumns?.map(col => col.key)?? [],
-    allColumns: [...allColumns?.map(col => col.key) ?? [], actionsColumn.key],
+    columns: allServicesTreeTableColumns.map(col => col.key),
+    allColumns: [...allServicesTreeTableColumns.map(col => col.key), actionsColumn.key],
     defaultVisibleKeys: visibleColumns,
     storageKey: STORAGE_KEY,
     loading,
@@ -294,6 +295,8 @@ export const ServicesListPage: React.FC = () => {
           setSpecsByGroup((prev) => ({ ...prev, [record.id]: record.specifications }));
           setLoadingRows((rows) => rows.filter((id) => id !== record.id));
         }
+      } else if (isContextSystem(record)) {
+        void navigate(`/services/context/${record.id}/parameters`);
       }
     },
   });
