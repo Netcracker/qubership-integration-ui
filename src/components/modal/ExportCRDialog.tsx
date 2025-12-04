@@ -15,9 +15,9 @@ import {
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { formatDate } from "../../misc/format-utils.ts";
-import { Icon } from "../../IconProvider.tsx";
 import { InlineEdit } from "../InlineEdit.tsx";
 import { TextValueEdit } from "../table/TextValueEdit.tsx";
+import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type EnvironmentEditorProps = {
   value?: Record<string, string>;
@@ -117,7 +117,7 @@ const EnvironmentEditor: React.FC<EnvironmentEditorProps> = ({
           <Button
             size="small"
             type="text"
-            icon={<Icon name="plusCircle" />}
+            icon={<OverridableIcon name="plusCircle" />}
             onClick={() => addRecord()}
           >
             Add variable
@@ -125,7 +125,7 @@ const EnvironmentEditor: React.FC<EnvironmentEditorProps> = ({
           <Button
             size="small"
             type="text"
-            icon={<Icon name="clear" />}
+            icon={<OverridableIcon name="clear" />}
             onClick={() => clearRecords()}
           >
             Clear variables
@@ -207,7 +207,7 @@ const EnvironmentEditor: React.FC<EnvironmentEditorProps> = ({
                 return (
                   <Button
                     type="text"
-                    icon={<Icon name="delete" />}
+                    icon={<OverridableIcon name="delete" />}
                     onClick={() => deleteRecord(index)}
                   />
                 );
