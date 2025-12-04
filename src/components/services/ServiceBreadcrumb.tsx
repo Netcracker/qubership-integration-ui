@@ -4,13 +4,44 @@ import { isVsCode } from "../../api/rest/vscodeExtensionApi.ts";
 import { IntegrationSystemType } from "../../api/apiTypes.ts";
 import { useNavigate } from "react-router-dom";
 
-type ServiceBreadcrumbItemProps = {
+type ServiceNameBreadcrumbItemProps = {
+  type?: IntegrationSystemType;
+  id?: string;
+  name?: string;
+};
+
+type ServiceTypeBreadcrumbItemProps = {
   type?: IntegrationSystemType;
 };
 
-export const ServiceBreadcrumbItem: React.FC<ServiceBreadcrumbItemProps> = (
-  props: ServiceBreadcrumbItemProps,
-) => {
+export const ServiceNameBreadcrumbItem: React.FC<
+  ServiceNameBreadcrumbItemProps
+> = (props: ServiceNameBreadcrumbItemProps) => {
+  const navigate = useNavigate();
+
+  const endpoint =
+    props.type === IntegrationSystemType.CONTEXT
+      ? `/services/context/${props.id}/parameters`
+      : `/services/systems/${props.id}/specificationGroups`;
+
+  return (
+    <Breadcrumb.Item>
+      <a
+        onClick={(e) => {
+          e.preventDefault();
+          void navigate(endpoint);
+        }}
+        href={endpoint}
+      >
+        {props.name || props.id || "..."}
+      </a>
+    </Breadcrumb.Item>
+  );
+};
+
+export const ServiceTypeBreadcrumbItem: React.FC<
+  ServiceTypeBreadcrumbItemProps
+> = (props: ServiceTypeBreadcrumbItemProps) => {
   const navigate = useNavigate();
 
   const getTypeLabel = (type?: IntegrationSystemType) => {

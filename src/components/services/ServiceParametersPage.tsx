@@ -13,7 +13,7 @@ import { ServiceEnvironmentsTab } from "./ServiceEnvironmentsTab";
 import { api } from "../../api/api";
 import { IntegrationSystem, IntegrationSystemType, BaseEntity } from "../../api/apiTypes";
 import styles from "./Services.module.css";
-import { ServiceBreadcrumbItem } from "./ServiceBreadcrumb.tsx";
+import { ServiceNameBreadcrumbItem, ServiceTypeBreadcrumbItem } from "./ServiceBreadcrumb.tsx";
 
 const { Title } = Typography;
 
@@ -188,8 +188,9 @@ export const ServiceParametersPage: React.FC = () => {
         <ChainsContext.Provider value={chains}>
           <ServiceParametersPageLayout>
               <Breadcrumb>
-                <ServiceBreadcrumbItem type={system?.type}/>
-                <Breadcrumb.Item>
+                <ServiceTypeBreadcrumbItem type={system?.type}/>
+                <ServiceNameBreadcrumbItem type={system?.type} id={systemId} name={system?.name}/>
+                {/* <Breadcrumb.Item>
                   <a
                     onClick={e => {
                       e.preventDefault();
@@ -199,7 +200,7 @@ export const ServiceParametersPage: React.FC = () => {
                   >
                     {system?.name || systemId || "..."}
                   </a>
-                </Breadcrumb.Item>
+                </Breadcrumb.Item> */}
                 {groupId && groupName && (
                   <Breadcrumb.Item>
                     <a
