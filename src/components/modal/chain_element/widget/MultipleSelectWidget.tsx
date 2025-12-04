@@ -31,7 +31,6 @@ const MultipleSelectWidget: React.FC<WidgetProps> = ({
   const mode = modeMap[name] ?? "tags";
 
   const handleChange = (selected: []) => {
-    console.log("Custom widget onChange values: ", selected);
     onChange(selected);
   };
 
