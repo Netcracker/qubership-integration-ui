@@ -105,6 +105,7 @@ export const ServiceParametersPage: React.FC = () => {
       case IntegrationSystemType.EXTERNAL: return "External Services";
       case IntegrationSystemType.INTERNAL: return "Internal Services";
       case IntegrationSystemType.IMPLEMENTED: return "Implemented Services";
+      case IntegrationSystemType.CONTEXT: return "Context Services";
       default: return "Services";
     }
   };
@@ -114,6 +115,7 @@ export const ServiceParametersPage: React.FC = () => {
       case IntegrationSystemType.EXTERNAL: return "external";
       case IntegrationSystemType.INTERNAL: return "internal";
       case IntegrationSystemType.IMPLEMENTED: return "implemented";
+      case IntegrationSystemType.CONTEXT: return "context";
       default: return "implemented";
     }
   };

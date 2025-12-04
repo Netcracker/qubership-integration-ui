@@ -25,8 +25,9 @@ import {
   isSpecification,
   isSpecificationGroup,
   isIntegrationSystem,
+  allContextServicesTreeTableColumns,
 } from "./ServicesTreeTable";
-import type { IntegrationSystem, SpecificationGroup } from "../../api/apiTypes";
+import type { ContextSystem, IntegrationSystem, SpecificationGroup } from "../../api/apiTypes";
 import { downloadFile } from '../../misc/download-utils';
 import { prepareFile } from "./utils.tsx";
 import ImportServicesModal from "./ImportServicesModal";
@@ -38,17 +39,8 @@ import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const STORAGE_KEY = "servicesListTable";
 
-const visibleColumns: string[] = [
-  "name",
-  "protocol",
-  "status",
-  "source",
-  "labels",
-  "usedBy",
-];
-
 export const ServicesListPage: React.FC = () => {
-  type TabType = "external" | "internal" | "implemented";
+  type TabType = "external" | "internal" | "implemented" | "context";
   const [tab] = useHashTab("implemented") as [TabType, (tab: TabType) => void];
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
@@ -58,10 +50,12 @@ export const ServicesListPage: React.FC = () => {
     external: IntegrationSystem[];
     internal: IntegrationSystem[];
     implemented: IntegrationSystem[];
+    context: ContextSystem[];
   }>({
     external: [],
     internal: [],
     implemented: [],
+    context: [],
   });
   const [specGroupsByService, setSpecGroupsByService] = useState<Record<string, SpecificationGroup[]>>({});
   const [specsByGroup, setSpecsByGroup] = useState<Record<string, Specification[]>>({});
@@ -70,6 +64,8 @@ export const ServicesListPage: React.FC = () => {
   const notify = useNotificationService();
   const navigate = useNavigate();
   const { showModal } = useModalsContext();
+  const [allColumns, setAllColumns] = useState<ServicesTableColumn<ServiceEntity>[]>();
+  const [visibleColumns, setVisibleColumns] = useState<string[]>();
 
   const {
     loading,
@@ -81,6 +77,7 @@ export const ServicesListPage: React.FC = () => {
       external: all.filter((s) => s.type === IntegrationSystemType.EXTERNAL),
       internal: all.filter((s) => s.type === IntegrationSystemType.INTERNAL),
       implemented: all.filter((s) => s.type === IntegrationSystemType.IMPLEMENTED),
+      context: await api.getContextServices(),
     });
   }, { initialValue: undefined });
 
@@ -89,13 +86,23 @@ export const ServicesListPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getServicesByTab = useCallback(() => {
+  useEffect(() => {
+    setAllColumns(tab === 'context' ? allContextServicesTreeTableColumns : allServicesTreeTableColumns);
+
+    const columns: string[] =
+      tab === "context"
+        ? ["name", "protocol", "status", "source", "labels", "usedBy"]
+        : ["name", "createdWhen", "createdBy", "modifiedWhen", "modifiedBy"];
+    setVisibleColumns(columns);
+  }, [tab]);
+
+  const getServicesByTab = useCallback((): IntegrationSystem[] | ContextSystem[] => {
     if (tab === "internal") return servicesByType["internal"];
     return servicesByType[tab] ?? [];
   },[servicesByType, tab]);
 
   const buildDataSource = useMemo((): ServiceEntity[] => {
-    return getServicesByTab().map((service: IntegrationSystem) => {
+    return getServicesByTab().map((service: IntegrationSystem | ContextSystem) => {
       const groups = specGroupsByService[service.id];
       return {
         ...service,
@@ -239,8 +246,8 @@ export const ServicesListPage: React.FC = () => {
   const servicesTable = useServicesTreeTable<ServiceEntity>({
     dataSource: buildDataSource,
     rowKey: "id",
-    columns: allServicesTreeTableColumns.map(col => col.key),
-    allColumns: [...allServicesTreeTableColumns.map(col => col.key), actionsColumn.key],
+    columns: allColumns?.map(col => col.key)?? [],
+    allColumns: [...allColumns?.map(col => col.key) ?? [], actionsColumn.key],
     defaultVisibleKeys: visibleColumns,
     storageKey: STORAGE_KEY,
     loading,
@@ -346,6 +353,12 @@ export const ServicesListPage: React.FC = () => {
     return newMap;
   }
 
+  const getDefaultType = (tab: string): IntegrationSystemType => {
+    return IntegrationSystemType[
+      tab.toUpperCase() as keyof typeof IntegrationSystemType
+    ];
+  };
+
   return (
     <Flex vertical className={styles["container"]}>
         <div className={styles["header"]}>
@@ -363,6 +376,7 @@ export const ServicesListPage: React.FC = () => {
                 case "external": return "External Services";
                 case "internal": return "Internal Services";
                 case "implemented": return "Implemented Services";
+                case "context": return "Context Services";
                 default: return "Services";
               }
             })()}
@@ -421,7 +435,7 @@ export const ServicesListPage: React.FC = () => {
           onCreate={handleCreate}
           loading={createLoading}
           error={createError}
-          defaultType={tab === "external" ? IntegrationSystemType.EXTERNAL : (tab === "internal" ? IntegrationSystemType.INTERNAL : IntegrationSystemType.IMPLEMENTED)}
+          defaultType={getDefaultType(tab)}
         />
     </Flex>
   );

@@ -17,14 +17,14 @@ import { ColumnsFilter } from '../table/ColumnsFilter';
 import { OperationInfoModal } from './OperationInfoModal';
 import { api } from '../../api/api';
 import { TextColumnFilterDropdown, getTextColumnFilterFn } from '../table/TextColumnFilterDropdown.tsx';
-import type { SpecificationGroup, Specification, SystemOperation } from '../../api/apiTypes';
+import type { SpecificationGroup, Specification, SystemOperation, ContextSystem } from '../../api/apiTypes';
 import { InlineEdit } from '../InlineEdit';
 import { LabelsEdit } from '../table/LabelsEdit';
 import { ChainColumn } from './ChainColumn';
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { HttpMethod } from './HttpMethod.tsx';
 
-export type ServiceEntity = IntegrationSystem | SpecificationGroup | Specification | SystemOperation;
+export type ServiceEntity = IntegrationSystem | SpecificationGroup | Specification | SystemOperation | ContextSystem;
 
 export function isIntegrationSystem(record: ServiceEntity): record is IntegrationSystem {
   return 'type' in record;
@@ -239,6 +239,49 @@ function getLabelsColumn(onUpdateLabels?: (record: ServiceEntity, labels: string
     }
   };
 }
+
+export const allContextServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] = [
+  {
+    title: "Name",
+    dataIndex: "name",
+    key: "name",
+    filterDropdown: (props: FilterDropdownProps) => (
+      <TextColumnFilterDropdown {...props} />
+    ),
+    onFilter: getTextColumnFilterFn((record) => record.name),
+    render: getNameColumnRender(),
+  },
+  {
+    title: "Created When",
+    dataIndex: "createdWhen",
+    key: "createdWhen",
+    render: (createdWhen) => <>{formatTimestamp(createdWhen as number)}</>,
+  },
+  {
+    title: "Created By",
+    dataIndex: "createdBy",
+    key: "createdBy",
+    render: (value: unknown) => {
+      const createdBy = value as User | undefined;
+      return createdBy?.username || "";
+    },
+  },
+  {
+    title: "Modified When",
+    dataIndex: "modifiedWhen",
+    key: "modifiedWhen",
+    render: (modifiedWhen) => <>{formatTimestamp(modifiedWhen as number)}</>,
+  },
+  {
+    title: "Modified By",
+    dataIndex: "modifiedBy",
+    key: "modifiedBy",
+    render: (value: unknown) => {
+      const modifiedBy = value as User | undefined;
+      return modifiedBy?.username || "";
+    },
+  },
+];
 
 export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] = [
   {

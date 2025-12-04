@@ -18,6 +18,11 @@ const menuItems = [
     icon: <OverridableIcon name="cluster" />,
     label: "Implemented",
   },
+  {
+    key: "#context",
+    icon: <OverridableIcon name="cluster" />,
+    label: "Context",
+  },
 ];
 
 export const ServiceSidebar = ({ collapsed }: { collapsed: boolean }) => {
