@@ -874,7 +874,7 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  createContextService = async(system: ContextSystem): Promise<ContextSystem> => {
+  createContextService = async(system: Pick<ContextSystem, 'name' | 'description'>): Promise<ContextSystem> => {
     const response = await this.instance.post<ContextSystem>(
       `/api/v1/${getAppName()}/catalog/context-system`,
       system,

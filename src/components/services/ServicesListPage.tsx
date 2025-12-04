@@ -316,14 +316,19 @@ export const ServicesListPage: React.FC = () => {
     setCreateLoading(true);
     setCreateError(null);
     try {
-      const service = await api.createService({ name, description, type });
+      const service: IntegrationSystem | ContextSystem =
+        type === IntegrationSystemType.CONTEXT
+          ? await api.createContextService({ name, description})
+          : await api.createService({ name, description, type });
       if (type === IntegrationSystemType.INTERNAL || type === IntegrationSystemType.IMPLEMENTED) {
         await api.createEnvironment(service.id, { name, address: "/" });
       }
       void loadServices();
       setCreateModalOpen(false);
       message.success("Service created");
-      void navigate(`/services/systems/${service.id}/parameters`);
+      void navigate(
+        `/services/${type === IntegrationSystemType.CONTEXT ? "context" : "systems"}/${service.id}/parameters`,
+      );
     } catch (e: unknown) {
       setCreateError(getErrorMessage(e, "Service creation error"));
       notify.requestFailed(getErrorMessage(e, "Service creation error"), e);

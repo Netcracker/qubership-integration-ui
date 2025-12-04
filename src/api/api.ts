@@ -303,7 +303,7 @@ export interface Api {
 
   createService(system: SystemRequest): Promise<IntegrationSystem>;
 
-  createContextService(system: ContextSystem): Promise<ContextSystem>;
+  createContextService(system: Pick<ContextSystem, 'name' | 'description'>): Promise<ContextSystem>;
 
   createEnvironment(
     systemId: string,
