@@ -244,49 +244,6 @@ function getLabelsColumn(onUpdateLabels?: (record: ServiceEntity, labels: string
   };
 }
 
-export const allContextServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] = [
-  {
-    title: "Name",
-    dataIndex: "name",
-    key: "name",
-    filterDropdown: (props: FilterDropdownProps) => (
-      <TextColumnFilterDropdown {...props} />
-    ),
-    onFilter: getTextColumnFilterFn((record) => record.name),
-    render: getNameColumnRender(),
-  },
-  {
-    title: "Created When",
-    dataIndex: "createdWhen",
-    key: "createdWhen",
-    render: (createdWhen) => <>{formatTimestamp(createdWhen as number)}</>,
-  },
-  {
-    title: "Created By",
-    dataIndex: "createdBy",
-    key: "createdBy",
-    render: (value: unknown) => {
-      const createdBy = value as User | undefined;
-      return createdBy?.username || "";
-    },
-  },
-  {
-    title: "Modified When",
-    dataIndex: "modifiedWhen",
-    key: "modifiedWhen",
-    render: (modifiedWhen) => <>{formatTimestamp(modifiedWhen as number)}</>,
-  },
-  {
-    title: "Modified By",
-    dataIndex: "modifiedBy",
-    key: "modifiedBy",
-    render: (value: unknown) => {
-      const modifiedBy = value as User | undefined;
-      return modifiedBy?.username || "";
-    },
-  },
-];
-
 export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] = [
   {
     title: "Name",
@@ -467,6 +424,7 @@ export function getServiceActions({
   onExpandAll,
   onCollapseAll,
   isRootEntity,
+  isExpandAvailable,
   onExportSelected,
 }: {
   onEdit: (record: ServiceEntity) => void;
@@ -474,6 +432,7 @@ export function getServiceActions({
   onExpandAll: (record: ServiceEntity) => void;
   onCollapseAll: (record: ServiceEntity) => void;
   isRootEntity: (record: ServiceEntity) => boolean;
+  isExpandAvailable: (record: ServiceEntity) => boolean;
   onExportSelected?: (selected: ServiceEntity[]) => void;
 }) {
   return (record: ServiceEntity): ActionConfig<ServiceEntity>[] => {
@@ -495,20 +454,24 @@ export function getServiceActions({
           okText: 'Delete',
           cancelText: 'Cancel',
         },
-      },
-      {
-        key: 'expandAll',
-        label: 'Expand All',
-        icon: <OverridableIcon name="columnHeight" />,
-        onClick: onExpandAll,
-      },
-      {
-        key: 'collapseAll',
-        label: 'Collapse All',
-        icon: <OverridableIcon name="verticalAlignMiddle" />,
-        onClick: onCollapseAll,
-      },
-    ];
+      }];
+      if (isExpandAvailable(record)) {
+        actions.push(
+          {
+            key: "expandAll",
+            label: "Expand All",
+            icon: <OverridableIcon name="columnHeight" />,
+            onClick: onExpandAll,
+          },
+          {
+            key: "collapseAll",
+            label: "Collapse All",
+            icon: <OverridableIcon name="verticalAlignMiddle" />,
+            onClick: onCollapseAll,
+          },
+        );
+      }
+
     if (onExportSelected) {
       actions.push({
         key: 'export',

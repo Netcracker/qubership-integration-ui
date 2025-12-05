@@ -10,8 +10,10 @@ import {
   ServiceNameBreadcrumbItem,
   ServiceTypeBreadcrumbItem,
 } from "./ServiceBreadcrumb";
-import { IntegrationSystemType } from "../../api/apiTypes";
+import { ContextSystem, IntegrationSystemType } from "../../api/apiTypes";
 import { ContextServiceParametersTab } from "./context/ContextServiceParametersTab";
+import { useEffect, useState } from "react";
+import { api } from "../../api/api";
 
 const sidePadding = 32;
 
@@ -19,6 +21,23 @@ export const ContextServiceParametersPage: React.FC = () => {
   const { systemId } = useParams<{
     systemId: string;
   }>();
+  const [system, setSystem] = useState<ContextSystem>();
+
+  useEffect(() => {
+    if (systemId) {
+      void api
+        .getContextService(systemId)
+        .then((service) => {
+          setSystem(service);
+        })
+        .catch((error) => {
+          console.error(
+            "ContextServiceParametersPage: Error reloading service",
+            error,
+          );
+        });
+    }
+  }, [systemId]);
 
   const activeTab = "parameters";
 
@@ -47,7 +66,7 @@ export const ContextServiceParametersPage: React.FC = () => {
         <ServiceNameBreadcrumbItem
           type={IntegrationSystemType.CONTEXT}
           id={systemId}
-          name={systemId}
+          name={system?.name}
         />
       </Breadcrumb>
       <ServiceParametersPageHeader />

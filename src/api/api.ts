@@ -357,6 +357,15 @@ export interface Api {
     data: Partial<IntegrationSystem>,
   ): Promise<IntegrationSystem>;
 
+  updateContextService(
+    id: string,
+    data: Partial<ContextSystem>,
+  ): Promise<ContextSystem>;
+
+  deleteContextService(serviceId: string): Promise<void>;
+
+  exportContextServices(serviceIds: string[]): Promise<File>;
+
   getEnvironments(systemId: string): Promise<Environment[]>;
 
   getApiSpecifications(systemId: string): Promise<SpecificationGroup[]>;

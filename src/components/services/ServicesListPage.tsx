@@ -25,7 +25,6 @@ import {
   isSpecification,
   isSpecificationGroup,
   isIntegrationSystem,
-  allContextServicesTreeTableColumns,
   isContextSystem,
 } from "./ServicesTreeTable";
 import type { ContextSystem, IntegrationSystem, SpecificationGroup } from "../../api/apiTypes";
@@ -39,6 +38,17 @@ import type { ExpandableConfig } from 'antd/es/table/interface';
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 const STORAGE_KEY = "servicesListTable";
+
+const visibleColumns: string[] = [
+  "name",
+  "protocol",
+  "status",
+  "source",
+  "labels",
+  "usedBy",
+  "createdWhen",
+  "createdBy",
+];
 
 export const ServicesListPage: React.FC = () => {
   type TabType = "external" | "internal" | "implemented" | "context";
@@ -65,8 +75,6 @@ export const ServicesListPage: React.FC = () => {
   const notify = useNotificationService();
   const navigate = useNavigate();
   const { showModal } = useModalsContext();
-  const [allColumns, setAllColumns] = useState<ServicesTableColumn<ServiceEntity>[]>();
-  const [visibleColumns, setVisibleColumns] = useState<string[]>();
 
   const {
     loading,
@@ -86,16 +94,6 @@ export const ServicesListPage: React.FC = () => {
     void loadServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    setAllColumns(tab === 'context' ? allContextServicesTreeTableColumns : allServicesTreeTableColumns);
-
-    const columns: string[] =
-      tab === "context"
-        ? ["name", "protocol", "status", "source", "labels", "usedBy"]
-        : ["name", "createdWhen", "createdBy", "modifiedWhen", "modifiedBy"];
-    setVisibleColumns(columns);
-  }, [tab]);
 
   const getServicesByTab = useCallback((): IntegrationSystem[] | ContextSystem[] => {
     if (tab === "internal") return servicesByType["internal"];
@@ -172,12 +170,18 @@ export const ServicesListPage: React.FC = () => {
   };
 
   const isRootEntity = (record: ServiceEntity) => {
-    return isIntegrationSystem(record)
+    return isIntegrationSystem(record) || isContextSystem(record)
+  };
+
+  const isExpandAvailable = (record: ServiceEntity) => {
+    return !isContextSystem(record)
   };
 
   const handleEdit = (record: ServiceEntity) => {
     if (isIntegrationSystem(record)) {
       void navigate(`/services/systems/${record.id}/specificationGroups`);
+    } else if (isContextSystem(record)) {
+      void navigate(`/services/context/${record.id}/parameters`);
     }
   };
 
@@ -228,6 +232,8 @@ export const ServicesListPage: React.FC = () => {
   const handleDeleteWithConfirm = (record: ServiceEntity) => {
     if (isIntegrationSystem(record)) {
       void handleDelete(record.id);
+    } else if (isContextSystem(record)) {
+      void handleDeleteContext(record.id);
     }
   };
 
@@ -238,6 +244,7 @@ export const ServicesListPage: React.FC = () => {
       onExpandAll: () => { void handleExpandAll(); },
       onCollapseAll: handleCollapseAll,
       isRootEntity,
+      isExpandAvailable,
       onExportSelected:  (selected) => { void handleExportSelected(selected); },
     })
   );
@@ -308,7 +315,9 @@ export const ServicesListPage: React.FC = () => {
     }
     try {
       const systemIds = selected.map(s => s.id)
-      const file = await api.exportServices(systemIds, []);
+      const file = isContextSystem(selected[0])
+        ? await api.exportContextServices(systemIds)
+        : await api.exportServices(systemIds, []);
       downloadFile(prepareFile(file));
     } catch (e: unknown) {
       notify.requestFailed(getErrorMessage(e, 'Export error'), e);
@@ -343,6 +352,16 @@ export const ServicesListPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await api.deleteService(id);
+      void loadServices();
+      message.success("Service deleted");
+    } catch (e: unknown) {
+      notify.requestFailed(getErrorMessage(e, "Service deletion error"), e);
+    }
+  };
+
+  const handleDeleteContext = async (id: string) => {
+    try {
+      await api.deleteContextService(id);
       void loadServices();
       message.success("Service deleted");
     } catch (e: unknown) {

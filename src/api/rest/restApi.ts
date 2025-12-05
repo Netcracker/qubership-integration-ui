@@ -1057,6 +1057,44 @@ export class RestApi implements Api {
     return response.data;
   }
 
+  updateContextService = async (
+    id: string,
+    data: Partial<ContextSystem>,
+  ): Promise<ContextSystem> => {
+    const response = await this.instance.put<ContextSystem>(
+      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
+      data,
+    );
+    return response.data;
+  };
+
+  deleteContextService = async (serviceId: string): Promise<void> => {
+    await this.instance.delete(
+      `/api/v1/${getAppName()}/catalog/context-system/${serviceId}`,
+    );
+  };
+
+  exportContextServices = async (
+    serviceIds: string[],
+  ): Promise<File> => {
+    const formData: FormData = new FormData();
+    if (serviceIds?.length) {
+      formData.append("systemIds", serviceIds.join(","));
+    }
+    const response = await this.instance.post<Blob>(
+      `/api/v1/${getAppName()}/catalog/context-system/export`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          accept: "*/*",
+        },
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
+  };
+
   getService = async (id: string): Promise<IntegrationSystem> => {
     const response = await this.instance.get<IntegrationSystem>(
       `/api/v1/${getAppName()}/systems-catalog/systems/${id}`,

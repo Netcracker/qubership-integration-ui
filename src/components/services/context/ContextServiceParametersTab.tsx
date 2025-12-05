@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Form, Input, Button, Descriptions, Spin } from "antd";
-import { ContextSystem, IntegrationSystem } from "../../../api/apiTypes";
+import { ContextSystem } from "../../../api/apiTypes";
 import { api } from "../../../api/api";
 import { useAsyncRequest } from '../useAsyncRequest';
 import { isVsCode } from "../../../api/rest/vscodeExtensionApi.ts";
@@ -66,7 +66,7 @@ export const ContextServiceParametersTab: React.FC<ServiceParametersTabProps> = 
       name: values.name,
       description: values.description,
     };
-    const updated: IntegrationSystem = await api.updateService(systemId, payload);
+    const updated: ContextSystem = await api.updateContextService(systemId, payload);
     setSystem(updated);
     contextServiceCache[systemId] = updated;
     return updated;
