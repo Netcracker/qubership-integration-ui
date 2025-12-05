@@ -20,7 +20,7 @@ const menuItems = [
   },
   {
     key: "#context",
-    icon: <OverridableIcon name="cluster" />,
+    icon: <OverridableIcon name="database" />,
     label: "Context",
   },
 ];

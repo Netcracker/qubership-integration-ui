@@ -395,6 +395,7 @@ export const ServicesListPage: React.FC = () => {
                 case "external": return <OverridableIcon name="global" className={styles["icon"]} />;
                 case "internal": return <OverridableIcon name="cloud" className={styles["icon"]} />;
                 case "implemented": return <OverridableIcon name="cluster" className={styles["icon"]} />;
+                case "context": return <OverridableIcon name="database" className={styles["icon"]} />;
                 default: return <OverridableIcon name="table" className={styles["icon"]} />;
               }
             })()}

@@ -107,6 +107,8 @@ function getIcon(record: ServiceEntity): React.JSX.Element | null {
         return <OverridableIcon name="cloud" style={iconStyle} />;
       case IntegrationSystemType.IMPLEMENTED:
         return <OverridableIcon name="cluster" style={iconStyle} />;
+      case IntegrationSystemType.CONTEXT:
+        return <OverridableIcon name="database" style={iconStyle} />;
       default:
         return <OverridableIcon name="global" style={iconStyle} />;
     }
