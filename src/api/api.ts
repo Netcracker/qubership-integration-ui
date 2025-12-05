@@ -60,6 +60,7 @@ import {
   SystemOperation,
   SpecApiFile,
   ContextSystem,
+  IntegrationSystemType,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -322,6 +323,7 @@ export interface Api {
 
   importSystems(
     file: File,
+    systemType: IntegrationSystemType,
     systemIds?: string[],
     deployLabel?: string,
     packageName?: string,

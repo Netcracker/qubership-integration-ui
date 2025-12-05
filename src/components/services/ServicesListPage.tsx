@@ -443,7 +443,7 @@ export const ServicesListPage: React.FC = () => {
               icon={<OverridableIcon name="cloudUpload" />}
               onClick={() => {
                 showModal({
-                  component: <ImportServicesModal onSuccess={() => { void loadServices(); }} />,
+                  component: <ImportServicesModal onSuccess={() => { void loadServices(); }} systemType={getDefaultType(tab)}/>,
                 });
               }}
             />

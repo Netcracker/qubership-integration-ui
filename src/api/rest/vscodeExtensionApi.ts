@@ -46,7 +46,8 @@ import {
   Element,
   MaskedFields, TransferElementRequest,
   SystemOperation,
-  SpecApiFile
+  SpecApiFile,
+  IntegrationSystemType
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -319,6 +320,7 @@ export class VSCodeExtensionApi implements Api {
 
   importSystems = async (
     file: File,
+    systemType: IntegrationSystemType,
     systemIds?: string[],
     deployLabel?: string,
     packageName?: string,
