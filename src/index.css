@@ -273,6 +273,12 @@ button:focus-visible {
   }
 }
 
+.flex-form-item-h100 {
+  .ant-form-item-control {
+    height: 100%;
+  }
+}
+
 .width100 {
   width: 100%;
 }
