@@ -151,6 +151,10 @@ button:focus-visible {
 }
 
 .flex-tabs {
+  min-height: 0;
+  flex-grow: 1;
+  flex-shrink: 1;
+
   .ant-tabs-content-holder {
     display: flex;
     flex-direction: column;
@@ -161,11 +165,13 @@ button:focus-visible {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
   }
 
   .ant-tabs-tabpane {
     flex-grow: 1;
     flex-shrink: 1;
+    min-height: 0;
   }
 }
 
