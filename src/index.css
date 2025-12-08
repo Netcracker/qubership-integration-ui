@@ -170,6 +170,7 @@ button:focus-visible {
 }
 
 .flex-table {
+  min-height: 0;
   flex-grow: 1;
   flex-shrink: 1;
 
@@ -186,6 +187,10 @@ button:focus-visible {
           height: 100%;
           display: flex;
           flex-direction: column;
+
+          > .ant-table-header {
+            flex-shrink: 0;
+          }
 
           > .ant-table-body {
             min-height: 0;
