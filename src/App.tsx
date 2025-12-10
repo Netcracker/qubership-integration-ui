@@ -126,9 +126,10 @@ const App = () => {
   const isDark = theme === "dark" || theme === "high-contrast";
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const antdConfig = useMemo(() => getAntdThemeConfig(isDark), [isDark, themeUpdateKey]);
+  const nonce = window.document.documentElement.getAttribute(`nonce`) || '';
 
   return (
-    <ConfigProvider theme={antdConfig}>
+    <ConfigProvider theme={antdConfig} csp={{ nonce }}>
       <AntdApp>
         <IconProvider>
           <Layout className={styles.layout}>
