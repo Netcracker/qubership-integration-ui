@@ -1455,7 +1455,7 @@ export class RestApi implements Api {
         },
       },
     );
-    return response.data;
+    return (response.status === 204) ? [] : response.data;
   };
 
   terminateExchange = async (
