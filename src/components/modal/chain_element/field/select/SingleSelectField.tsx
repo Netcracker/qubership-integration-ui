@@ -6,6 +6,7 @@ import { JSONSchema7 } from "json-schema";
 import { FormContext } from "../../ChainElementModification.tsx";
 import { SelectTag } from "./SelectTag.tsx";
 import { ElementWithChainName } from "../../../../../api/apiTypes.ts";
+import { labelStyle } from "./Select.tsx";
 
 type OptionType = {
   value: string;
@@ -71,12 +72,6 @@ const SingleSelectField: React.FC<
 
     void load();
   }, [name, chainId, schema.readOnly]);
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 500,
-  };
 
   const requiredMark = required ? (
     <span style={{ color: "#ff4d4f", marginRight: 4 }}>*</span>

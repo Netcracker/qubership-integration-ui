@@ -1,6 +1,7 @@
 import React from "react";
 import { FieldProps } from "@rjsf/utils";
 import { Script } from "../../../Script.tsx";
+import { labelStyle, requiredStyle } from "./select/Select.tsx";
 
 const JsonField: React.FC<FieldProps> = ({
   formData,
@@ -11,17 +12,6 @@ const JsonField: React.FC<FieldProps> = ({
   schema,
 }) => {
   const title = uiSchema?.["ui:title"] ?? schema?.title ?? "";
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 500,
-  };
-
-  const requiredStyle: React.CSSProperties = {
-    color: "#ff4d4f",
-    marginRight: 4,
-  };
 
   return (
     <div>

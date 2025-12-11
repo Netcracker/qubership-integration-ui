@@ -8,6 +8,7 @@ import { Specification, SpecificationGroup } from "../../../../../api/apiTypes.t
 import { JSONSchema7 } from "json-schema";
 import { VSCodeExtensionApi } from "../../../../../api/rest/vscodeExtensionApi.ts";
 import { OverridableIcon } from "../../../../../icons/IconProvider.tsx";
+import { labelStyle, requiredStyle } from "./Select.tsx";
 
 const SpecificationField: React.FC<
   FieldProps<string, JSONSchema7, FormContext>
@@ -85,17 +86,6 @@ const SpecificationField: React.FC<
   }, [systemId, notificationService]);
 
   const title = props.uiSchema?.["ui:title"] ?? props.schema?.title ?? "";
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 500,
-  };
-
-  const requiredStyle: React.CSSProperties = {
-    color: "#ff4d4f",
-    marginRight: 4,
-  };
 
   const handleChange = useCallback(
     (newValue: string) => {

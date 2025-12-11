@@ -19,6 +19,7 @@ import {
   isHttpProtocol,
   normalizeProtocol,
 } from "../../../../../misc/protocol-utils.ts";
+import { labelStyle, requiredStyle } from "./Select.tsx";
 
 const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
   id,
@@ -92,17 +93,6 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
   }, [filteredServices, notificationService]);
 
   const title = uiSchema?.["ui:title"] ?? schema?.title ?? "";
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 500,
-  };
-
-  const requiredStyle: React.CSSProperties = {
-    color: "#ff4d4f",
-    marginRight: 4,
-  };
 
   const handleChange = useCallback(
     (newValue: string) => {

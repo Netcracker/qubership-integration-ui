@@ -1,6 +1,7 @@
 import React from "react";
 import { FieldProps } from "@rjsf/utils";
 import { Input } from "antd";
+import { labelStyle, requiredStyle } from "./select/Select";
 
 const OneOfAsSingleInputField: React.FC<FieldProps<string>> = ({
   id,
@@ -12,16 +13,6 @@ const OneOfAsSingleInputField: React.FC<FieldProps<string>> = ({
   fieldPathId,
 }) => {
   const title = uiSchema?.["ui:title"] ?? schema?.title ?? "";
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 500,
-  };
-  const requiredStyle: React.CSSProperties = {
-    color: "#ff4d4f",
-    marginRight: 4,
-  };
 
   return (
     <div>
