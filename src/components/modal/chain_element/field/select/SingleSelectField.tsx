@@ -6,7 +6,7 @@ import { JSONSchema7 } from "json-schema";
 import { FormContext } from "../../ChainElementModification.tsx";
 import { SelectTag } from "./SelectTag.tsx";
 import { ElementWithChainName } from "../../../../../api/apiTypes.ts";
-import { labelStyle } from "./Select.tsx";
+import { labelStyle } from "./SelectAndNavigateField.tsx";
 
 type OptionType = {
   value: string;

@@ -1,7 +1,7 @@
 import React from "react";
 import { FieldProps } from "@rjsf/utils";
 import { Script } from "../../../Script.tsx";
-import { labelStyle, requiredStyle } from "./select/Select.tsx";
+import { labelStyle, requiredStyle } from "./select/SelectAndNavigateField.tsx";
 
 const JsonField: React.FC<FieldProps> = ({
   formData,

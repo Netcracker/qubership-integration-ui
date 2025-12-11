@@ -2,7 +2,7 @@ import React from "react";
 import { Select } from "antd";
 import { FieldProps } from "@rjsf/utils";
 import { JSONSchema7 } from "json-schema";
-import { labelStyle, requiredStyle } from "./Select";
+import { labelStyle, requiredStyle } from "./SelectAndNavigateField";
 
 const AnyOfAsSingleSelectField: React.FC<FieldProps<string>> = ({
   id,

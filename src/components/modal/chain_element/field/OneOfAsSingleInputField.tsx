@@ -1,7 +1,7 @@
 import React from "react";
 import { FieldProps } from "@rjsf/utils";
 import { Input } from "antd";
-import { labelStyle, requiredStyle } from "./select/Select";
+import { labelStyle, requiredStyle } from "./select/SelectAndNavigateField";
 
 const OneOfAsSingleInputField: React.FC<FieldProps<string>> = ({
   id,

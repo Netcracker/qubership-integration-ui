@@ -7,7 +7,7 @@ import { useNotificationService } from "../../../../../hooks/useNotificationServ
 import { Specification, SpecificationGroup } from "../../../../../api/apiTypes.ts";
 import { JSONSchema7 } from "json-schema";
 import { VSCodeExtensionApi } from "../../../../../api/rest/vscodeExtensionApi.ts";
-import { SelectAndNavigateField } from "./Select.tsx";
+import { SelectAndNavigateField } from "./SelectAndNavigateField.tsx";
 
 const SpecificationField: React.FC<
   FieldProps<string, JSONSchema7, FormContext>

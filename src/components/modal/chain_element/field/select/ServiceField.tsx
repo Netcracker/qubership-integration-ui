@@ -18,7 +18,7 @@ import {
   isHttpProtocol,
   normalizeProtocol,
 } from "../../../../../misc/protocol-utils.ts";
-import { SelectAndNavigateField } from "./Select.tsx";
+import { SelectAndNavigateField } from "./SelectAndNavigateField.tsx";
 
 const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
   id,
