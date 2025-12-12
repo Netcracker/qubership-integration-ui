@@ -5,3 +5,11 @@ declare module "*.pegjs" {
   const parser: Parser;
   export default parser;
 }
+
+declare module "rollup-plugin-pegjs" {
+  import type { Plugin } from "rollup";
+
+  function pegjsPlugin(options?: never): Plugin;
+
+  export default pegjsPlugin;
+}

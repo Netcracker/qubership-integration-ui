@@ -5,39 +5,39 @@
   /* Editor Colors - Light defaults */
   --vscode-editor-background: #ffffff;
   --vscode-editor-foreground: rgba(0, 0, 0, 0.88);
-  
+
   /* Panel Colors */
   --vscode-panel-background: #fafafa;
   --vscode-sideBar-background: #ffffff;
   --vscode-editorGroupHeader-tabsBackground: #fafafa;
   --vscode-editorGroupHeader-foreground: rgba(0, 0, 0, 0.88);
-  
+
   /* Button Colors */
   --vscode-button-background: #0078d4;
   --vscode-button-foreground: #ffffff;
   --vscode-button-hoverBackground: #106ebe;
-  
+
   /* Input Colors */
   --vscode-input-background: #ffffff;
   --vscode-input-foreground: rgba(0, 0, 0, 0.88);
   --vscode-input-border: #d9d9d9;
   --vscode-input-placeholderForeground: rgba(0, 0, 0, 0.45);
-  
+
   /* Text Colors */
   --vscode-foreground: rgba(0, 0, 0, 0.88);
   --vscode-descriptionForeground: #9ca3af;
-  
+
   /* Border Colors */
   --vscode-border: #d9d9d9;
   --vscode-editorGroup-border: #d9d9d9;
   --vscode-focusBorder: #007acc;
-  
+
   /* Status Colors */
   --vscode-errorForeground: #d73a49;
   --vscode-warningForeground: #e36209;
   --vscode-textLink-foreground: #1677ff;
   --vscode-terminal-ansiGreen: #28a745;
-  
+
   /* List Colors */
   --vscode-list-activeSelectionBackground: #0078d4;
   --vscode-list-activeSelectionForeground: #ffffff;
@@ -45,16 +45,16 @@
 
   /* Shadows */
   --modal-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  
+
   /* Font Settings */
   --vscode-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --vscode-font-size: 14px;
   --vscode-font-weight: normal;
   --vscode-line-height: 1.5;
-  
+
   /* Animation Control */
   --transition-duration: 0.25s;
-  
+
   /* Container Node Colors */
   --container-border-color: #dedacd;
   --container-header-background: #fff9e6;
@@ -92,7 +92,7 @@
   --vscode-list-activeSelectionForeground: #ffffff;
   --vscode-list-hoverBackground: #262626;
   --modal-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  
+
   /* Container Node Colors */
   --container-border-color: #fff9e6;
   --container-header-background: #fff9e6;
@@ -125,7 +125,7 @@
   --vscode-list-activeSelectionForeground: #000000;
   --vscode-list-hoverBackground: #333333;
   --modal-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-  
+
   /* Container Node Colors */
   --container-border-color: #fff9e6;
   --container-header-background: #fff9e6;
@@ -137,7 +137,7 @@
 }
 
 :root:not(.theme-switching) * {
-  transition: 
+  transition:
     background-color var(--transition-duration) ease,
     color var(--transition-duration) ease,
     border-color var(--transition-duration) ease,
@@ -198,5 +198,29 @@ body {
   --container-header-background: #fff9e6;
 }
 
+/* VS Code Extension Layout Styles */
+/* These styles ensure proper layout for the VS Code webview */
+html.vscode-webview,
+body.vscode-webview {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: auto !important;
+}
 
+body.vscode-webview {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.vscode-webview #app-root {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
 

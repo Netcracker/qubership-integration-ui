@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import sassDts from 'vite-plugin-sass-dts';
 import dts from "vite-plugin-dts";
 import * as path from "node:path";
+import pegjsPlugin from "rollup-plugin-pegjs";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,7 +14,8 @@ export default defineConfig({
             entryRoot: 'src',
             outDir: 'dist-lib/types',
             insertTypesEntry: true
-        })
+        }),
+        pegjsPlugin()
     ],
     build: {
         outDir: 'dist-lib',

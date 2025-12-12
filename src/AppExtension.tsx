@@ -67,6 +67,7 @@ const AppExtension = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isDark, themeUpdateKey],
   );
+  const nonce = window.document.documentElement.getAttribute('nonce') || '';
 
   useEffect(() => {
     const handleThemeVariablesUpdated = () => {
@@ -83,8 +84,23 @@ const AppExtension = () => {
     void api.sendMessageToExtension(STARTUP_EVENT);
   }
 
+  // Add vscode-webview class immediately on page load for CSS to apply
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "vscode-webview:"
+  ) {
+    document.documentElement.classList.add("vscode-webview");
+    if (document.body) {
+      document.body.classList.add("vscode-webview");
+    } else {
+      document.addEventListener("DOMContentLoaded", () => {
+        document.body.classList.add("vscode-webview");
+      });
+    }
+  }
+
   return (
-    <ConfigProvider theme={antdConfig}>
+    <ConfigProvider theme={antdConfig} csp={{nonce}}>
       <AntdApp>
         <IconProvider>
           <Layout className={styles.layout}>
