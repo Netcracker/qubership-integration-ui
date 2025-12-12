@@ -2,6 +2,7 @@ import { Button, Flex, Select, Tooltip } from "antd";
 import { OverridableIcon } from "../../../../../icons/IconProvider";
 import { SelectProps } from "rc-select/lib/Select";
 import React, { MouseEventHandler } from "react";
+import styles from "../../ChainElementModification.module.css";
 
 export const labelStyle: React.CSSProperties = {
   display: "block",
@@ -30,8 +31,8 @@ type SelectFieldProps = {
 export const SelectAndNavigateField: React.FC<SelectFieldProps> = (props) => {
   return (
     <div>
-      <label htmlFor={props.id} style={labelStyle}>
-        {props.required ? <span style={requiredStyle}> *</span> : null}
+      <label htmlFor={props.id} className={styles["field-label"]}>
+        {props.required ? <span className={styles["field-required"]}> *</span> : null}
         {props.title}
       </label>
       <Flex gap={4}>

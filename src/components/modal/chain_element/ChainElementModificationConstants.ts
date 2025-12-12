@@ -16,6 +16,8 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "integrationSystemId",
       "integrationSpecificationId",
       "integrationOperationId",
+      "contextServiceId",
+      "contextId",
       "*",
     ],
     contextPath: {
