@@ -66,9 +66,9 @@ function exportAction(
         participantIdGetter,
       );
     case "alternatives":
-      return exportMultiGroup("alt", action.branches, participantIdGetter);
+      return exportMultiGroup("alt", "else", action.branches, participantIdGetter);
     case "parallel":
-      return exportMultiGroup("par", action.branches, participantIdGetter);
+      return exportMultiGroup("par", "and", action.branches, participantIdGetter);
   }
 }
 
@@ -101,6 +101,7 @@ function exportGroup(
 
 function exportMultiGroup(
   tag: string,
+  branchTag: string,
   branches: Branch[],
   participantIdGetter: (action: Action) => string,
 ): string[] {
@@ -112,7 +113,7 @@ function exportMultiGroup(
         ...branches
           .slice(1)
           .flatMap((branch) => [
-            `else ${_escape(branch.label)};`,
+            `${branchTag} ${_escape(branch.label)};`,
             ...exportActions(branch.actions, participantIdGetter),
           ]),
         "end;",
