@@ -4,7 +4,7 @@ import {
   Element,
   IntegrationSystem,
 } from "../api/apiTypes.ts";
-import { Action, Participant, SequenceDiagram } from "./model.ts";
+import { Action, Branch, Participant, SequenceDiagram } from "./model.ts";
 import { api } from "../api/api.ts";
 
 const EMPTY_PROPERTY_STUB = "%empty_property%";
@@ -55,47 +55,47 @@ const PARTICIPANTS_GETTERS: Record<string, ParticipantsGetter> = {
 
 const ELEMENT_ACTIONS_GETTERS: Record<string, TriggerActionsGetter> = {
   "async-api-trigger": () => [], // FIXME
-  "chain-call": () => [], // FIXME
-  "chain-call-2": () => [], // FIXME
-  "chain-trigger": () => [], // FIXME
-  "chain-trigger-2": () => [], // FIXME
+  "chain-call": getChainCallActions,
+  "chain-call-2": getChainCallActions,
+  "chain-trigger": getChainTriggerActions,
+  "chain-trigger-2": getChainTriggerActions,
   checkpoint: () => [], // FIXME
   choice: () => [], // FIXME
   "circuit-breaker": () => [], // FIXME
   "circuit-breaker-2": () => [], // FIXME
-  condition: () => [], // FIXME
+  condition: getConditionActions,
   "context-storage": () => [], // FIXME
-  "file-read": () => [], // FIXME
-  "file-write": () => [], // FIXME
+  "file-read": getFileReadActions,
+  "file-write": getFileWriteActions,
   "graphql-sender": () => [], // FIXME
   "http-sender": () => [], // FIXME
   "http-trigger": () => [], // FIXME
   kafka: () => [], // FIXME
-  "kafka-sender": () => [], // FIXME
-  "kafka-sender-2": () => [], // FIXME
+  "kafka-sender": getKafkaSenderActions,
+  "kafka-sender-2": getKafkaSenderActions,
   "kafka-trigger-2": () => [], // FIXME
-  loop: () => [], // FIXME
-  "loop-2": () => [], // FIXME
-  "mail-sender": () => [], // FIXME
-  "pubsub-sender": () => [], // FIXME
+  loop: getLoopActions,
+  "loop-2": getLoopActions,
+  "mail-sender": getMailSenderActions,
+  "pubsub-sender": getPubSubSenderActions,
   "pubsub-trigger": () => [], // FIXME
-  "quartz-scheduler": () => [], // FIXME
+  "quartz-scheduler": getSchedulerActions,
   rabbitmq: () => [], // FIXME
-  "rabbitmq-sender": () => [], // FIXME
-  "rabbitmq-sender-2": () => [], // FIXME
+  "rabbitmq-sender": getRabbitMqSenderActions,
+  "rabbitmq-sender-2": getRabbitMqSenderActions,
   "rabbitmq-trigger-2": () => [], // FIXME
   reuse: () => [], // FIXME
   "reuse-reference": () => [], // FIXME
-  scheduler: () => [], // FIXME
+  scheduler: getSchedulerActions,
   "service-call": () => [], // FIXME
-  "sftp-download": () => [], // FIXME
+  "sftp-download": getSftpDownloadActions,
   "sftp-trigger": () => [], // FIXME
   "sftp-trigger-2": () => [], // FIXME
-  "sftp-upload": () => [], // FIXME
-  split: () => [], // FIXME
-  "split-2": () => [], // FIXME
-  "split-async": () => [], // FIXME
-  "split-async-2": () => [], // FIXME
+  "sftp-upload": getSftpUploadActions,
+  split: getSplitActions,
+  "split-2": getSplitActions,
+  "split-async": getSplitAsyncActions,
+  "split-async-2": getSplitAsyncActions,
   swimlane: () => [], // FIXME
   "try-catch-finally": () => [], // FIXME
   "try-catch-finally-2": () => [], // FIXME
@@ -110,7 +110,7 @@ type DiagramBuildContext = {
   mode: DiagramMode;
   chain: Chain;
   elementMap: Map<string, Element>;
-  connections: Map<string, string>;
+  connections: Map<string, [string]>;
   dependencies: ChainDependencies;
 };
 
@@ -120,7 +120,7 @@ type ParticipantsGetter = (
 ) => Participant[];
 
 type TriggerActionsGetter = (
-  trigger: Element,
+  element: Element,
   context: DiagramBuildContext,
 ) => Action[];
 
@@ -171,18 +171,37 @@ function createBuildContext(
   chain: Chain,
   mode: DiagramMode,
 ): DiagramBuildContext {
+  const connections = new Map<string, [string]>();
+  chain.dependencies.forEach((d) => {
+    if (connections.has(d.from)) {
+      connections.get(d.from)?.push(d.to);
+    } else {
+      connections.set(d.from, [d.to]);
+    }
+  });
   return {
     mode,
     chain,
-    elementMap: new Map<string, Element>(chain.elements.map((e) => [e.id, e])),
-    connections: new Map<string, string>(
-      chain.dependencies.map((d) => [d.from, d.to]),
+    elementMap: new Map<string, Element>(
+      collectChainElements(chain.elements).map((e) => [e.id, e]),
     ),
+    connections,
     dependencies: {
       serviceMap: new Map<string, IntegrationSystem>(),
       chainMap: new Map<string, Chain>(),
     },
   };
+}
+
+function collectChainElements(elements: Element[]): Element[] {
+  if (elements.length === 0) {
+    return [];
+  }
+  const result: Element[] = [...elements];
+  result.push(
+    ...collectChainElements(elements.flatMap((e) => e.children ?? [])),
+  );
+  return result;
 }
 
 async function loadChainDependencies(
@@ -321,7 +340,8 @@ function getChainCallParticipants(
   element: Element,
   context: DiagramBuildContext,
 ): Participant[] {
-  const elementId = element.properties["elementId"] as string ?? EMPTY_PROPERTY_STUB;
+  const elementId =
+    (element.properties["elementId"] as string) ?? EMPTY_PROPERTY_STUB;
   const chain = context.dependencies.chainMap.get(elementId);
   return [
     {
@@ -363,9 +383,10 @@ function getHttpSenderParticipants(
   element: Element,
   context: DiagramBuildContext,
 ): Participant[] {
-  const uri = element.properties["uri"] as string ?? EMPTY_PROPERTY_STUB;
+  const uri = (element.properties["uri"] as string) ?? EMPTY_PROPERTY_STUB;
   const isExternalCall = element.properties["isExternalCall"];
-  const host = /^https?:\/\/[^:/]+(:\\d{1,5})?/.exec(uri)?.[0] ?? EMPTY_PROPERTY_STUB;
+  const host =
+    /^https?:\/\/[^:/]+(:\\d{1,5})?/.exec(uri)?.[0] ?? EMPTY_PROPERTY_STUB;
   const name = `${isExternalCall === undefined || isExternalCall === null || Boolean(isExternalCall) ? "External" : "Internal"} service: ${host ?? EMPTY_PROPERTY_STUB}`;
   return [createSimpleParticipant(name)];
 }
@@ -381,8 +402,11 @@ function getHttpTriggerParticipants(
   element: Element,
   context: DiagramBuildContext,
 ): Participant[] {
-  const serviceId = element.properties["integrationSystemId"] as string ?? EMPTY_PROPERTY_STUB;
-  const serviceName = context.dependencies.serviceMap.get(serviceId)?.name ?? EMPTY_PROPERTY_STUB;
+  const serviceId =
+    (element.properties["integrationSystemId"] as string) ??
+    EMPTY_PROPERTY_STUB;
+  const serviceName =
+    context.dependencies.serviceMap.get(serviceId)?.name ?? EMPTY_PROPERTY_STUB;
   const isManualSource = !element.properties["systemType"];
   const isExternal = Boolean(element.properties["externalRoute"] ?? true);
   const isPrivate = Boolean(element.properties["privateRoute"] ?? false);
@@ -437,11 +461,328 @@ function defaultElementActionsGetter(
     ? [
         {
           type: "message",
-          fromId: element.id,
-          toId: element.id,
+          fromId: context.chain.id,
+          toId: context.chain.id,
           arrowType: "arrow-solid",
           message: element.name,
         },
       ]
     : [];
+}
+
+function getSftpDownloadActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getSftpParticipants(element, context)[0];
+  const fileName =
+    (element.properties["fileName"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `Download file: ${fileName}`,
+    },
+  ];
+}
+
+function getSftpUploadActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getSftpParticipants(element, context)[0];
+  const fileName =
+    (element.properties["fileName"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `Upload file: ${fileName}`,
+    },
+  ];
+}
+
+function getFileReadActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const fileName =
+    (element.properties["fileName"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: context.chain.id,
+      arrowType: "arrow-solid",
+      message: `Read local file: ${fileName}`,
+    },
+  ];
+}
+
+function getFileWriteActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const fileName =
+    (element.properties["fileName"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: context.chain.id,
+      arrowType: "arrow-solid",
+      message: `Write local file: ${fileName}`,
+    },
+  ];
+}
+
+function getChainCallActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getChainCallParticipants(element, context)[0];
+  const elementId =
+    (element.properties["elementId"] as string) ?? EMPTY_PROPERTY_STUB;
+  const chain = context.dependencies.chainMap.get(elementId);
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `${getAppName()} chain trigger call: ${chain?.name ?? elementId}`,
+    },
+    { type: "activate", participantId: participant.id },
+    {
+      type: "message",
+      fromId: participant.id,
+      toId: context.chain.id,
+      arrowType: "arrow-dotted",
+      message: "Response",
+    },
+    { type: "deactivate", participantId: participant.id },
+  ];
+}
+
+function getChainTriggerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getChainTriggerParticipants(element, context)[0];
+  const actions: Action[] = [
+    {
+      type: "message",
+      fromId: participant.id,
+      toId: context.chain.id,
+      arrowType: "arrow-solid",
+      message: "Response",
+    },
+    { type: "activate", participantId: context.chain.id },
+  ];
+  actions.push(
+    ...(context.connections.get(element.id) ?? []).flatMap((id) =>
+      getActionsForElementTree(id, context),
+    ),
+  );
+  actions.push({
+    type: "message",
+    fromId: context.chain.id,
+    toId: participant.id,
+    arrowType: "arrow-dotted",
+    message: "Response",
+  });
+  actions.push({ type: "deactivate", participantId: context.chain.id });
+  return [{ type: "group", label: element.name, actions }];
+}
+
+function getActionsForElementTree(
+  id: string,
+  context: DiagramBuildContext,
+): Action[] {
+  const element = context.elementMap.get(id);
+  if (!element) {
+    return [];
+  }
+  const actionsGetter = getElementActionsGetter(element);
+  const actions = actionsGetter(element, context);
+  actions.push(
+    ...(context.connections.get(element.id) ?? []).flatMap((id) =>
+      getActionsForElementTree(id, context),
+    ),
+  );
+  return actions;
+}
+
+function getRabbitMqSenderActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getRabbitMqParticipants(element, context)[0];
+  const exchange =
+    (element.properties["exchange"] as string) ?? EMPTY_PROPERTY_STUB;
+  const queues =
+    (element.properties["queues"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `Put message to exchange: ${exchange}, queue: ${queues}`,
+    },
+  ];
+}
+
+function getKafkaSenderActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getKafkaParticipants(element, context)[0];
+  const connectionSourceType = element.properties[
+    "connectionSourceType"
+  ] as string;
+  const propertyName =
+    connectionSourceType === "maas" ? "topicsClassifierName" : "topics";
+  const topics =
+    (element.properties[propertyName] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `Put message to topic(s): ${topics}`,
+    },
+  ];
+}
+
+function getLoopActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const label =
+    (element.properties["expression"] as string) ?? EMPTY_PROPERTY_STUB;
+  const actions: Action[] =
+    element.children?.flatMap((e) => getActionsForElementTree(e.id, context)) ??
+    [];
+  return [{ type: "loop", label, actions }];
+}
+
+function getConditionActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const branches: Branch[] = [];
+  element.children
+    ?.map((e) => {
+      const condition =
+        (e.properties["condition"] as string) ?? EMPTY_PROPERTY_STUB;
+      const label = e.type.startsWith("if")
+        ? `${e.name}, on condition ${condition}`
+        : e.name;
+      const actions: Action[] =
+        e.children?.flatMap((el) => getActionsForElementTree(el.id, context)) ??
+        [];
+      return { type: "branch" as const, label, actions };
+    })
+    .forEach((b) => branches.push(b));
+  return [{ type: "alternatives", branches }];
+}
+
+function getMailSenderActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getMailParticipants(element, context)[0];
+  const from = (element.properties["from"] as string) ?? EMPTY_PROPERTY_STUB;
+  const to = (element.properties["to"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `Send mail from: ${from}, to: ${to}`,
+    },
+  ];
+}
+
+function getPubSubSenderActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getPubSubParticipants(element, context)[0];
+  const destinationName =
+    (element.properties["destinationName"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `Put message to ${destinationName}: ${destinationName}`,
+    },
+  ];
+}
+
+function getSplitAsyncActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const branches: Branch[] = [];
+  element.children
+    ?.map((e) => {
+      const actions: Action[] =
+        e.children?.flatMap((el) => getActionsForElementTree(el.id, context)) ??
+        [];
+      return { type: "branch" as const, label: e.name, actions };
+    })
+    .forEach((b) => branches.push(b));
+  return [{ type: "parallel", branches }];
+}
+
+function getSplitActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  return [
+    ...getSplitAsyncActions(element, context),
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: context.chain.id,
+      arrowType: "arrow-solid",
+      message: "Waiting for 'split elements' to complete",
+    },
+  ];
+}
+
+function getSchedulerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const expression =
+    ((element.properties["scheduler.cron"] ??
+      element.properties["cron"]) as string) ?? EMPTY_PROPERTY_STUB;
+  const actions: Action[] = [
+    { type: "activate", participantId: context.chain.id },
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: context.chain.id,
+      arrowType: "arrow-solid",
+      message: `Invoke by cron expression: ${expression}`,
+    },
+  ];
+  actions.push(
+    ...(context.connections.get(element.id) ?? []).flatMap((id) =>
+      getActionsForElementTree(id, context),
+    ),
+  );
+  actions.push({ type: "deactivate", participantId: context.chain.id });
+  return [{ type: "group", label: element.name, actions }];
 }
