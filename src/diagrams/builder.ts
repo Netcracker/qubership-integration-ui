@@ -321,7 +321,7 @@ function getChainCallParticipants(
   element: Element,
   context: DiagramBuildContext,
 ): Participant[] {
-  const elementId = element.properties["elementId"] as string;
+  const elementId = element.properties["elementId"] as string ?? EMPTY_PROPERTY_STUB;
   const chain = context.dependencies.chainMap.get(elementId);
   return [
     {
