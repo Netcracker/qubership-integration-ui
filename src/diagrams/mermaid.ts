@@ -143,7 +143,7 @@ function _escape(text: string): string {
   return text
     .split("")
     .map((c) =>
-      c === ";" || c.charCodeAt(0) > 127 ? `#${c.charCodeAt(0)};` : c,
+      ";%:".includes(c) || c.charCodeAt(0) > 127 ? `#${c.charCodeAt(0)};` : c,
     )
     .join("");
 }
