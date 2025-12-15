@@ -39,7 +39,7 @@ function exportAction(
     case "activate":
       return [`activate ${_escape(action.participantId)};`];
     case "deactivate":
-      return [`deactivate "${_escape(action.participantId)};`];
+      return [`deactivate ${_escape(action.participantId)};`];
     case "message":
       return [
         `${_escape(action.fromId)} ${getArrow(action.arrowType)} ${_escape(action.toId)}${action.message ? ` : ${_escape(action.message)}` : ""};`,
