@@ -8,6 +8,7 @@ import { Action, Branch, Participant, SequenceDiagram } from "./model.ts";
 import { api } from "../api/api.ts";
 
 const EMPTY_PROPERTY_STUB = "%empty_property%";
+const DEFAULT_RESPONSE_TITLE = "Response";
 
 const TRIGGERS = [
   "async-api-trigger",
@@ -32,6 +33,7 @@ const PARTICIPANTS_GETTERS: Record<string, ParticipantsGetter> = {
   "chain-trigger": getChainTriggerParticipants,
   "chain-trigger-2": getChainTriggerParticipants,
   checkpoint: getCheckpointParticipants,
+  "context-storage": getContextStorageParticipants,
   "graphql-sender": getGraphQlSenderParticipants,
   "http-trigger": getHttpTriggerParticipants,
   "http-sender": getHttpSenderParticipants,
@@ -59,16 +61,16 @@ const ELEMENT_ACTIONS_GETTERS: Record<string, TriggerActionsGetter> = {
   "chain-call-2": getChainCallActions,
   "chain-trigger": getChainTriggerActions,
   "chain-trigger-2": getChainTriggerActions,
-  checkpoint: () => [], // FIXME
-  choice: () => [], // FIXME
-  "circuit-breaker": () => [], // FIXME
-  "circuit-breaker-2": () => [], // FIXME
+  checkpoint: getCheckpointActions,
+  choice: getChoiceActions,
+  "circuit-breaker": getCircuitBreakerActions,
+  "circuit-breaker-2": getCircuitBreakerActions,
   condition: getConditionActions,
-  "context-storage": () => [], // FIXME
+  "context-storage": getContextStorageActions,
   "file-read": getFileReadActions,
   "file-write": getFileWriteActions,
-  "graphql-sender": () => [], // FIXME
-  "http-sender": () => [], // FIXME
+  "graphql-sender": getGraphQlSenderActions,
+  "http-sender": getHttpSenderActions,
   "http-trigger": () => [], // FIXME
   kafka: () => [], // FIXME
   "kafka-sender": getKafkaSenderActions,
@@ -84,21 +86,20 @@ const ELEMENT_ACTIONS_GETTERS: Record<string, TriggerActionsGetter> = {
   "rabbitmq-sender": getRabbitMqSenderActions,
   "rabbitmq-sender-2": getRabbitMqSenderActions,
   "rabbitmq-trigger-2": () => [], // FIXME
-  reuse: () => [], // FIXME
-  "reuse-reference": () => [], // FIXME
+  "reuse-reference": getReuseReferenceActions,
   scheduler: getSchedulerActions,
   "service-call": () => [], // FIXME
   "sftp-download": getSftpDownloadActions,
-  "sftp-trigger": () => [], // FIXME
-  "sftp-trigger-2": () => [], // FIXME
+  "sftp-trigger": getSftpTriggerActions,
+  "sftp-trigger-2": getSftpTriggerActions,
   "sftp-upload": getSftpUploadActions,
   split: getSplitActions,
   "split-2": getSplitActions,
   "split-async": getSplitAsyncActions,
   "split-async-2": getSplitAsyncActions,
   swimlane: () => [], // FIXME
-  "try-catch-finally": () => [], // FIXME
-  "try-catch-finally-2": () => [], // FIXME
+  "try-catch-finally": getTryCatchFinallyActions,
+  "try-catch-finally-2": getTryCatchFinallyActions,
 };
 
 type ChainDependencies = {
@@ -280,6 +281,14 @@ function getSftpParticipants(
   const connectUrl =
     (element.properties["connectUrl"] as string) ?? EMPTY_PROPERTY_STUB;
   return [createSimpleParticipant(`SFTP server: ${connectUrl}`)];
+}
+
+function getContextStorageParticipants(
+  element: Element,
+  context: DiagramBuildContext,
+): Participant[] {
+  const contextServiceId = element.properties["contextServiceId"] as string ?? EMPTY_PROPERTY_STUB;
+  return [createSimpleParticipant(`Context storage service: ${contextServiceId}`)];
 }
 
 function getGraphQlSenderParticipants(
@@ -562,7 +571,7 @@ function getChainCallActions(
       fromId: participant.id,
       toId: context.chain.id,
       arrowType: "arrow-dotted",
-      message: "Response",
+      message: DEFAULT_RESPONSE_TITLE,
     },
     { type: "deactivate", participantId: participant.id },
   ];
@@ -579,7 +588,7 @@ function getChainTriggerActions(
       fromId: participant.id,
       toId: context.chain.id,
       arrowType: "arrow-solid",
-      message: "Response",
+      message: DEFAULT_RESPONSE_TITLE,
     },
     { type: "activate", participantId: context.chain.id },
   ];
@@ -593,7 +602,7 @@ function getChainTriggerActions(
     fromId: context.chain.id,
     toId: participant.id,
     arrowType: "arrow-dotted",
-    message: "Response",
+    message: DEFAULT_RESPONSE_TITLE,
   });
   actions.push({ type: "deactivate", participantId: context.chain.id });
   return [{ type: "group", label: element.name, actions }];
@@ -660,16 +669,61 @@ function getKafkaSenderActions(
   ];
 }
 
+function getGraphQlSenderActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getGraphQlSenderParticipants(element, context)[0];
+  const operationName =
+    (element.properties["operationName"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `GraphQL request (query/mutation), operation: ${operationName}`,
+    },
+    { type: "activate", participantId: participant.id },
+    {
+      type: "message",
+      fromId: participant.id,
+      toId: context.chain.id,
+      arrowType: "arrow-dotted",
+      message: DEFAULT_RESPONSE_TITLE,
+    },
+    { type: "deactivate", participantId: participant.id },
+  ];
+}
+
 function getLoopActions(
   element: Element,
   context: DiagramBuildContext,
 ): Action[] {
   const label =
     (element.properties["expression"] as string) ?? EMPTY_PROPERTY_STUB;
-  const actions: Action[] =
-    element.children?.flatMap((e) => getActionsForElementTree(e.id, context)) ??
-    [];
+  const actions: Action[] = getActionsForChildren(element, context);
   return [{ type: "loop", label, actions }];
+}
+
+function getActionsForChildren(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  return (
+    element.children
+      ?.filter((e) => hasNoInputConnections(e, context))
+      .flatMap((e) => getActionsForElementTree(e.id, context)) ?? []
+  );
+}
+
+function hasNoInputConnections(
+  element: Element,
+  context: DiagramBuildContext,
+): boolean {
+  return !Array.from(context.connections.values())
+    .flatMap((c) => c)
+    .includes(element.id);
 }
 
 function getConditionActions(
@@ -684,9 +738,26 @@ function getConditionActions(
       const label = e.type.startsWith("if")
         ? `${e.name}, on condition ${condition}`
         : e.name;
-      const actions: Action[] =
-        e.children?.flatMap((el) => getActionsForElementTree(el.id, context)) ??
-        [];
+      const actions: Action[] = getActionsForChildren(e, context);
+      return { type: "branch" as const, label, actions };
+    })
+    .forEach((b) => branches.push(b));
+  return [{ type: "alternatives", branches }];
+}
+
+function getChoiceActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const branches: Branch[] = [];
+  element.children
+    ?.map((e) => {
+      const condition =
+        (e.properties["condition"] as string) ?? EMPTY_PROPERTY_STUB;
+      const label = e.type.startsWith("when")
+        ? `${e.name}, on condition ${condition}`
+        : e.name;
+      const actions: Action[] = getActionsForChildren(e, context);
       return { type: "branch" as const, label, actions };
     })
     .forEach((b) => branches.push(b));
@@ -736,9 +807,7 @@ function getSplitAsyncActions(
   const branches: Branch[] = [];
   element.children
     ?.map((e) => {
-      const actions: Action[] =
-        e.children?.flatMap((el) => getActionsForElementTree(el.id, context)) ??
-        [];
+      const actions: Action[] = getActionsForChildren(e, context);
       return { type: "branch" as const, label: e.name, actions };
     })
     .forEach((b) => branches.push(b));
@@ -785,4 +854,206 @@ function getSchedulerActions(
   );
   actions.push({ type: "deactivate", participantId: context.chain.id });
   return [{ type: "group", label: element.name, actions }];
+}
+
+function getTryCatchFinallyActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const branches: Branch[] = [];
+  element.children
+    ?.map((e) => {
+      const exception =
+        (e.properties["exception"] as string) ?? EMPTY_PROPERTY_STUB;
+      const label = e.type.startsWith("catch")
+        ? `${e.name}, on exception ${exception}`
+        : e.name;
+      const actions: Action[] = getActionsForChildren(e, context);
+      return { type: "branch" as const, label, actions };
+    })
+    .forEach((b) => branches.push(b));
+  return [{ type: "alternatives", branches }];
+}
+
+function getCircuitBreakerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const branches: Branch[] = [];
+  element.children
+    ?.map((e) => {
+      const failureRateThreshold =
+        (e.properties["failureRateThreshold"] as string) ?? EMPTY_PROPERTY_STUB;
+      const label = e.type.startsWith("circuit-breaker-configuration")
+        ? `Failure rate < ${failureRateThreshold}%`
+        : e.name;
+      const actions: Action[] = getActionsForChildren(e, context);
+      return { type: "branch" as const, label, actions };
+    })
+    .forEach((b) => branches.push(b));
+  return [{ type: "alternatives", branches }];
+}
+
+function getSftpTriggerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getSftpParticipants(element, context)[0];
+  const antInclude =
+    (element.properties["natInclude"] as string) ?? EMPTY_PROPERTY_STUB;
+  const actions: Action[] = [
+    { type: "activate", participantId: context.chain.id },
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message: `Download created/updated file: ${antInclude}`,
+    },
+  ];
+  actions.push(
+    ...(context.connections.get(element.id) ?? []).flatMap((id) =>
+      getActionsForElementTree(id, context),
+    ),
+  );
+  actions.push({ type: "deactivate", participantId: context.chain.id });
+  return [{ type: "group", label: element.name, actions }];
+}
+
+function getHttpSenderActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getHttpSenderParticipants(element, context)[0];
+  const methods =
+    (element.properties["httpMethod"] as string) ?? EMPTY_PROPERTY_STUB;
+  const uri = element.properties["uri"] as string;
+  const host = uri
+    ? /^https?:\/\/[^:/]+(:\\d{1,5})?/.exec(uri)?.[0]
+    : undefined;
+  const path = host ? uri.substring(host.length) : EMPTY_PROPERTY_STUB;
+  const message = `${methods}, ${path}`;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message,
+    },
+    {
+      type: "activate",
+      participantId: participant.id,
+    },
+    {
+      type: "message",
+      fromId: participant.id,
+      toId: context.chain.id,
+      arrowType: "arrow-dotted",
+      message: DEFAULT_RESPONSE_TITLE,
+    },
+    {
+      type: "deactivate",
+      participantId: participant.id,
+    },
+  ];
+}
+
+function getReuseReferenceActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const elementId = element.properties["reuseElementId"] as string;
+  const reuse = context.elementMap.get(elementId);
+  const label = `Reuse reference: ${reuse?.name ?? elementId ?? EMPTY_PROPERTY_STUB}`;
+  const actions = reuse ? getActionsForChildren(reuse, context) : [];
+  return [{ type: "group", label, actions }];
+}
+
+function getCheckpointActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getCheckpointParticipants(element, context)[0];
+  const checkpointElementId = element.properties["checkpointElementId"] as string ?? EMPTY_PROPERTY_STUB;
+  const label = `${element.name} with id ${checkpointElementId}`;
+  return [{
+    type: "group",
+    label,
+    actions: [
+      {
+        type: "alternatives",
+        branches: [
+          {
+            type: "branch",
+            label: "Trigger",
+            actions: [
+              {
+                type: "message",
+                fromId: participant.id,
+                toId: context.chain.id,
+                arrowType: "arrow-solid",
+                message: "Request to retry session"
+              },
+              {
+                type: "message",
+                fromId: context.chain.id,
+                toId: context.chain.id,
+                arrowType: "arrow-solid",
+                message: "Load context",
+              }
+            ]
+          },
+          {
+            type: "branch",
+            label: "Checkpoint",
+            actions: [
+              {
+                type: "message",
+                fromId: context.chain.id,
+                toId: context.chain.id,
+                arrowType: "arrow-solid",
+                message: "Save context",
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }];
+}
+
+function getContextStorageActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getContextStorageParticipants(element, context)[0];
+  const operation = element.properties["operation"] as string ?? "GET";
+  const contextId = element.properties["contextId"] as string;
+  const useCorrelationId = Boolean(element.properties["useCorrelationId"] as string ?? false);
+  const message = `${operation} context ${useCorrelationId ? "(use correlation ID)" : (contextId ?? EMPTY_PROPERTY_STUB)}`;
+  return [
+    {
+      type: "message",
+      fromId: context.chain.id,
+      toId: participant.id,
+      arrowType: "arrow-solid",
+      message,
+    },
+    {
+      type: "activate",
+      participantId: participant.id,
+    },
+    {
+      type: "message",
+      fromId: participant.id,
+      toId: context.chain.id,
+      arrowType: "arrow-dotted",
+      message: DEFAULT_RESPONSE_TITLE,
+    },
+    {
+      type: "deactivate",
+      participantId: participant.id,
+    },
+  ];
 }
