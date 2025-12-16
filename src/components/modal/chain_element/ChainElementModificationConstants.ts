@@ -305,6 +305,9 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     integrationSpecificationGroupId: {
       "ui:widget": "hidden",
     },
+    integrationOperationSkipEmptyQueryParameters: {
+      "ui:widget": "hidden",
+    },
     elementId: {
       "ui:field": "singleSelectField",
     },
