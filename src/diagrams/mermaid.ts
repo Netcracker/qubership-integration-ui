@@ -140,11 +140,16 @@ function getArrow(arrowType: ArrowType): string {
   }
 }
 
+function mustBeEscaped(c: string): boolean {
+  const code = c.charCodeAt(0);
+  return "#<>,-:;%".includes(c) || code > 126 || code < 32;
+}
+
 function _escape(text: string): string {
   return text
     .split("")
     .map((c) =>
-      ";%:".includes(c) || c.charCodeAt(0) > 127 ? `#${c.charCodeAt(0)};` : c,
+      mustBeEscaped(c) ? `#${c.charCodeAt(0)};` : c,
     )
     .join("");
 }

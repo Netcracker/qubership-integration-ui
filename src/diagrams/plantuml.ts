@@ -39,18 +39,18 @@ export function exportAsPlantUml(diagram: SequenceDiagram): string {
 }
 
 function exportParticipant(participant: Participant): string {
-  return `participant "${_escape(participant.name ?? participant.id)}" as ${_escape(participant.id)}`;
+  return `participant "${_escape(participant.name ?? participant.id)}" as ${escapeId(participant.id)}`;
 }
 
 function exportAction(action: Action): string[] {
   switch (action.type) {
     case "activate":
-      return [`activate "${_escape(action.participantId)}"`];
+      return [`activate ${escapeId(action.participantId)}`];
     case "deactivate":
-      return [`deactivate "${_escape(action.participantId)}"`];
+      return [`deactivate ${escapeId(action.participantId)}`];
     case "message":
       return [
-        `"${_escape(action.fromId)}" ${getArrow(action.arrowType)} "${_escape(action.toId)}"${action.message ? ` : "${_escape(action.message)}"` : ""}`,
+        `${escapeId(action.fromId)} ${getArrow(action.arrowType)} ${escapeId(action.toId)}${action.message ? ` : "${_escape(action.message)}"` : ""}`,
       ];
     case "loop":
       return exportGroup("loop", action.label, action.actions);
@@ -107,8 +107,33 @@ function getArrow(arrowType: ArrowType): string {
 }
 
 function _escape(text: string): string {
+  const substitutionMap = new Map<string, string>([
+    ['"', "<U+0022>"],
+    ["\n", "\\n"],
+    ["\r", "\\r"],
+    ["\t", "\\t"]
+  ]);
   return text
     .split("")
-    .map((c) => ('"_-/~*'.indexOf(c) >= 0 ? `~${c}` : c))
+    .map((c) => substitutionMap.get(c) ?? c)
+    .join("");
+}
+
+function escapeId(text: string): string {
+  return replaceUnsupportedCharacters(text);
+}
+
+function isAllowedInId(c: string): boolean {
+  return /[_0-9a-zA-Z]/.test(c);
+}
+
+function replaceUnsupportedCharacter(c: string): string {
+  return `_${c.charCodeAt(0)}_`;
+}
+
+function replaceUnsupportedCharacters(text: string) {
+  return text
+    .split("")
+    .map((c) => (isAllowedInId(c) ? c : replaceUnsupportedCharacter(c)))
     .join("");
 }
