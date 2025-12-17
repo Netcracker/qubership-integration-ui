@@ -2,9 +2,17 @@ import {
   Chain,
   DiagramMode,
   Element,
+  Environment,
+  EnvironmentSourceType,
   IntegrationSystem,
 } from "../api/apiTypes.ts";
-import { Action, Branch, Participant, SequenceDiagram } from "./model.ts";
+import {
+  Action,
+  Branch,
+  Message,
+  Participant,
+  SequenceDiagram,
+} from "./model.ts";
 import { api } from "../api/api.ts";
 
 const EMPTY_PROPERTY_STUB = "%empty_property%";
@@ -56,7 +64,7 @@ const PARTICIPANTS_GETTERS: Record<string, ParticipantsGetter> = {
 };
 
 const ELEMENT_ACTIONS_GETTERS: Record<string, TriggerActionsGetter> = {
-  "async-api-trigger": () => [], // FIXME
+  "async-api-trigger": getAsyncApiTriggerActions,
   "chain-call": getChainCallActions,
   "chain-call-2": getChainCallActions,
   "chain-trigger": getChainTriggerActions,
@@ -71,24 +79,24 @@ const ELEMENT_ACTIONS_GETTERS: Record<string, TriggerActionsGetter> = {
   "file-write": getFileWriteActions,
   "graphql-sender": getGraphQlSenderActions,
   "http-sender": getHttpSenderActions,
-  "http-trigger": () => [], // FIXME
-  kafka: () => [], // FIXME
+  "http-trigger": getHttpTriggerActions,
+  kafka: getKafkaTriggerActions,
   "kafka-sender": getKafkaSenderActions,
   "kafka-sender-2": getKafkaSenderActions,
-  "kafka-trigger-2": () => [], // FIXME
+  "kafka-trigger-2": getKafkaTriggerActions,
   loop: getLoopActions,
   "loop-2": getLoopActions,
   "mail-sender": getMailSenderActions,
   "pubsub-sender": getPubSubSenderActions,
-  "pubsub-trigger": () => [], // FIXME
+  "pubsub-trigger": getPubSubTriggerActions,
   "quartz-scheduler": getSchedulerActions,
-  rabbitmq: () => [], // FIXME
+  rabbitmq: getRabbitMqTriggerActions,
   "rabbitmq-sender": getRabbitMqSenderActions,
   "rabbitmq-sender-2": getRabbitMqSenderActions,
-  "rabbitmq-trigger-2": () => [], // FIXME
+  "rabbitmq-trigger-2": getRabbitMqTriggerActions,
   "reuse-reference": getReuseReferenceActions,
   scheduler: getSchedulerActions,
-  "service-call": () => [], // FIXME
+  "service-call": getServiceCallActions,
   "sftp-download": getSftpDownloadActions,
   "sftp-trigger": getSftpTriggerActions,
   "sftp-trigger-2": getSftpTriggerActions,
@@ -97,13 +105,13 @@ const ELEMENT_ACTIONS_GETTERS: Record<string, TriggerActionsGetter> = {
   "split-2": getSplitActions,
   "split-async": getSplitAsyncActions,
   "split-async-2": getSplitAsyncActions,
-  swimlane: () => [], // FIXME
   "try-catch-finally": getTryCatchFinallyActions,
   "try-catch-finally-2": getTryCatchFinallyActions,
 };
 
 type ChainDependencies = {
-  serviceMap: Map<string, IntegrationSystem>;
+  serviceMap: Map<string, IntegrationSystem>; // service ID -> service
+  environmentMap: Map<string, Environment>; // environment ID -> environments
   chainMap: Map<string, Chain>; // element ID -> chain
 };
 
@@ -190,6 +198,7 @@ function createBuildContext(
     dependencies: {
       serviceMap: new Map<string, IntegrationSystem>(),
       chainMap: new Map<string, Chain>(),
+      environmentMap: new Map<string, Environment>(),
     },
   };
 }
@@ -208,7 +217,7 @@ function collectChainElements(elements: Element[]): Element[] {
 async function loadChainDependencies(
   context: DiagramBuildContext,
 ): Promise<ChainDependencies> {
-  const elementIds: string[] = context.chain.elements
+  const elementIds: string[] = Array.from(context.elementMap.values())
     .flatMap((element) => {
       return [
         element.properties["elementId"] as string,
@@ -236,10 +245,17 @@ async function loadChainDependencies(
     serviceIds.map(async (id) => api.getService(id)),
   );
 
+  const environments = (
+    await Promise.all(serviceIds.map(async (id) => api.getEnvironments(id)))
+  ).flatMap((e) => e);
+
   return {
     chainMap,
     serviceMap: new Map<string, IntegrationSystem>(
       services.map((s) => [s.id, s]),
+    ),
+    environmentMap: new Map<string, Environment>(
+      environments.map((e) => [e.id, e]),
     ),
   };
 }
@@ -268,15 +284,18 @@ function getParticipantsGetter(elementType: string): ParticipantsGetter {
 }
 
 function getChainTriggerParticipants(
-  element: Element,
-  context: DiagramBuildContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _element: Element,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: DiagramBuildContext,
 ): Participant[] {
   return [createSimpleParticipant(`Unknown ${getAppName()} chain`)];
 }
 
 function getSftpParticipants(
   element: Element,
-  context: DiagramBuildContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: DiagramBuildContext,
 ): Participant[] {
   const connectUrl =
     (element.properties["connectUrl"] as string) ?? EMPTY_PROPERTY_STUB;
@@ -285,15 +304,20 @@ function getSftpParticipants(
 
 function getContextStorageParticipants(
   element: Element,
-  context: DiagramBuildContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: DiagramBuildContext,
 ): Participant[] {
-  const contextServiceId = element.properties["contextServiceId"] as string ?? EMPTY_PROPERTY_STUB;
-  return [createSimpleParticipant(`Context storage service: ${contextServiceId}`)];
+  const contextServiceId =
+    (element.properties["contextServiceId"] as string) ?? EMPTY_PROPERTY_STUB;
+  return [
+    createSimpleParticipant(`Context storage service: ${contextServiceId}`),
+  ];
 }
 
 function getGraphQlSenderParticipants(
   element: Element,
-  context: DiagramBuildContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: DiagramBuildContext,
 ): Participant[] {
   const uri = (element.properties["uri"] as string) ?? EMPTY_PROPERTY_STUB;
   return [createSimpleParticipant(`GraphQL server: ${uri}`)];
@@ -362,7 +386,8 @@ function getChainCallParticipants(
 
 function getMailParticipants(
   element: Element,
-  context: DiagramBuildContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: DiagramBuildContext,
 ): Participant[] {
   const url = (element.properties["url"] as string) ?? EMPTY_PROPERTY_STUB;
   return [createSimpleParticipant(`Mail server: ${url}`)];
@@ -385,12 +410,16 @@ function getAsyncApiTriggerParticipants(
   element: Element,
   context: DiagramBuildContext,
 ): Participant[] {
-  return getServiceCallParticipants(element, context);
+  return [
+    ...getServiceCallParticipants(element, context),
+    ...getIdempotencyParticipants(element, context),
+  ];
 }
 
 function getHttpSenderParticipants(
   element: Element,
-  context: DiagramBuildContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: DiagramBuildContext,
 ): Participant[] {
   const uri = (element.properties["uri"] as string) ?? EMPTY_PROPERTY_STUB;
   const isExternalCall = element.properties["isExternalCall"];
@@ -401,8 +430,10 @@ function getHttpSenderParticipants(
 }
 
 function getCheckpointParticipants(
-  element: Element,
-  context: DiagramBuildContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _element: Element,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: DiagramBuildContext,
 ): Participant[] {
   return [createSimpleParticipant("Unknown user")];
 }
@@ -447,8 +478,8 @@ function getIdempotencyParticipants(
   const elementId =
     element.properties["idempotency"]?.["chainTriggerParameters"]?.[
       "triggerElementId"
-    ] ?? EMPTY_PROPERTY_STUB;
-  return enabled && isChainCall && elementId
+    ];
+  return enabled && isChainCall
     ? [
         {
           id: elementId,
@@ -588,7 +619,7 @@ function getChainTriggerActions(
       fromId: participant.id,
       toId: context.chain.id,
       arrowType: "arrow-solid",
-      message: DEFAULT_RESPONSE_TITLE,
+      message: `${getAppName()} chain call`,
     },
     { type: "activate", participantId: context.chain.id },
   ];
@@ -975,52 +1006,56 @@ function getCheckpointActions(
   context: DiagramBuildContext,
 ): Action[] {
   const participant = getCheckpointParticipants(element, context)[0];
-  const checkpointElementId = element.properties["checkpointElementId"] as string ?? EMPTY_PROPERTY_STUB;
+  const checkpointElementId =
+    (element.properties["checkpointElementId"] as string) ??
+    EMPTY_PROPERTY_STUB;
   const label = `${element.name} with id ${checkpointElementId}`;
-  return [{
-    type: "group",
-    label,
-    actions: [
-      {
-        type: "alternatives",
-        branches: [
-          {
-            type: "branch",
-            label: "Trigger",
-            actions: [
-              {
-                type: "message",
-                fromId: participant.id,
-                toId: context.chain.id,
-                arrowType: "arrow-solid",
-                message: "Request to retry session"
-              },
-              {
-                type: "message",
-                fromId: context.chain.id,
-                toId: context.chain.id,
-                arrowType: "arrow-solid",
-                message: "Load context",
-              }
-            ]
-          },
-          {
-            type: "branch",
-            label: "Checkpoint",
-            actions: [
-              {
-                type: "message",
-                fromId: context.chain.id,
-                toId: context.chain.id,
-                arrowType: "arrow-solid",
-                message: "Save context",
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }];
+  return [
+    {
+      type: "group",
+      label,
+      actions: [
+        {
+          type: "alternatives",
+          branches: [
+            {
+              type: "branch",
+              label: "Trigger",
+              actions: [
+                {
+                  type: "message",
+                  fromId: participant.id,
+                  toId: context.chain.id,
+                  arrowType: "arrow-solid",
+                  message: "Request to retry session",
+                },
+                {
+                  type: "message",
+                  fromId: context.chain.id,
+                  toId: context.chain.id,
+                  arrowType: "arrow-solid",
+                  message: "Load context",
+                },
+              ],
+            },
+            {
+              type: "branch",
+              label: "Checkpoint",
+              actions: [
+                {
+                  type: "message",
+                  fromId: context.chain.id,
+                  toId: context.chain.id,
+                  arrowType: "arrow-solid",
+                  message: "Save context",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ];
 }
 
 function getContextStorageActions(
@@ -1028,9 +1063,11 @@ function getContextStorageActions(
   context: DiagramBuildContext,
 ): Action[] {
   const participant = getContextStorageParticipants(element, context)[0];
-  const operation = element.properties["operation"] as string ?? "GET";
+  const operation = (element.properties["operation"] as string) ?? "GET";
   const contextId = element.properties["contextId"] as string;
-  const useCorrelationId = Boolean(element.properties["useCorrelationId"] as string ?? false);
+  const useCorrelationId = Boolean(
+    (element.properties["useCorrelationId"] as string) ?? false,
+  );
   const message = `${operation} context ${useCorrelationId ? "(use correlation ID)" : (contextId ?? EMPTY_PROPERTY_STUB)}`;
   return [
     {
@@ -1056,4 +1093,490 @@ function getContextStorageActions(
       participantId: participant.id,
     },
   ];
+}
+
+function getPubSubTriggerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const [participant, idempotencyParticipant] = getContextStorageParticipants(
+    element,
+    context,
+  );
+  const destinationName =
+    (element.properties["destinationName"] as string) ?? EMPTY_PROPERTY_STUB;
+  const actions = (context.connections.get(element.id) ?? []).flatMap((id) =>
+    getActionsForElementTree(id, context),
+  );
+  const request: Message = {
+    type: "message",
+    fromId: participant.id,
+    toId: context.chain.id,
+    arrowType: "arrow-solid",
+    message: `Read message from ${destinationName}: ${destinationName}`,
+  };
+  return getActionsForIdempotentTrigger(
+    element,
+    context,
+    request,
+    undefined,
+    actions,
+    idempotencyParticipant,
+  );
+}
+
+function getAsyncApiTriggerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const [participant, idempotencyParticipant] = getAsyncApiTriggerParticipants(
+    element,
+    context,
+  );
+  const actions = [
+    ...getValidateRequestActions(element, context),
+    ...(context.connections.get(element.id) ?? []).flatMap((id) =>
+      getActionsForElementTree(id, context),
+    ),
+  ];
+  const request: Message = {
+    type: "message",
+    fromId: participant.id,
+    toId: context.chain.id,
+    arrowType: "arrow-solid",
+    message: `Pull message from ${getAsyncApiSource(element, context)}`,
+  };
+  return getActionsForIdempotentTrigger(
+    element,
+    context,
+    request,
+    undefined,
+    actions,
+    idempotencyParticipant,
+  );
+}
+
+function getAsyncApiSource(
+  element: Element,
+  context: DiagramBuildContext,
+): string {
+  const serviceId = element.properties["integrationSystemId"] as string;
+  if (!serviceId) {
+    return EMPTY_PROPERTY_STUB;
+  }
+  const service = context.dependencies.serviceMap.get(serviceId);
+  if (!service) {
+    return EMPTY_PROPERTY_STUB;
+  }
+  const environment = context.dependencies.environmentMap.get(
+    service.activeEnvironmentId,
+  );
+  if (!environment) {
+    return (
+      element.properties["integrationOperationPath"] ?? EMPTY_PROPERTY_STUB
+    );
+  }
+  const sourceType = environment.sourceType;
+
+  const protocol = element.properties[
+    "integrationOperationProtocolType"
+  ] as string;
+
+  const asyncProperties = element.properties[
+    "integrationOperationAsyncProperties"
+  ] as Record<string, unknown>;
+  switch (protocol) {
+    case "amqp": {
+      const source =
+        sourceType === EnvironmentSourceType.MANUAL
+          ? (((environment.properties?.["queues"] ??
+              asyncProperties["queues"]) as string) ?? EMPTY_PROPERTY_STUB)
+          : `by classifier ${((environment.properties?.["maas.classifier.name"] ?? asyncProperties["maas.classifier.name"]) as string) ?? EMPTY_PROPERTY_STUB}`;
+      return `queue ${source}`;
+    }
+    case "kafka": {
+      const source =
+        sourceType === EnvironmentSourceType.MANUAL
+          ? (((environment.properties?.["topic"] ??
+              asyncProperties["integrationOperationPath"]) as string) ??
+            EMPTY_PROPERTY_STUB)
+          : `by classifier ${((environment.properties?.["maas.classifier.name"] ?? asyncProperties["maas.classifier.name"]) as string) ?? EMPTY_PROPERTY_STUB}`;
+      return `topic ${source}`;
+    }
+    default: {
+      return EMPTY_PROPERTY_STUB;
+    }
+  }
+}
+
+function getKafkaTriggerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const [participant, idempotencyParticipant] = getKafkaParticipants(
+    element,
+    context,
+  );
+  const actions = (context.connections.get(element.id) ?? []).flatMap((id) =>
+    getActionsForElementTree(id, context),
+  );
+  const connectionSourceType = element.properties[
+    "connectionSourceType"
+  ] as string;
+  const source =
+    connectionSourceType === "manual"
+      ? ((element.properties["topics"] as string) ?? EMPTY_PROPERTY_STUB)
+      : `by classifier ${(element.properties["topicsClassifierName"] as string) ?? EMPTY_PROPERTY_STUB}`;
+  const request: Message = {
+    type: "message",
+    fromId: participant.id,
+    toId: context.chain.id,
+    arrowType: "arrow-solid",
+    message: `Pull message from topic(s): ${source}`,
+  };
+  return getActionsForIdempotentTrigger(
+    element,
+    context,
+    request,
+    undefined,
+    actions,
+    idempotencyParticipant,
+  );
+}
+
+function getRabbitMqTriggerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const [participant, idempotencyParticipant] = getRabbitMqParticipants(
+    element,
+    context,
+  );
+  const actions = (context.connections.get(element.id) ?? []).flatMap((id) =>
+    getActionsForElementTree(id, context),
+  );
+  const connectionSourceType = element.properties[
+    "connectionSourceType"
+  ] as string;
+  const queues =
+    (element.properties["queues"] as string) ?? EMPTY_PROPERTY_STUB;
+  const exchange =
+    (element.properties["exchange"] as string) ?? EMPTY_PROPERTY_STUB;
+  const classifier =
+    (element.properties["vhostClassifierName"] as string) ??
+    EMPTY_PROPERTY_STUB;
+  const message =
+    connectionSourceType === "manual"
+      ? `Pull message from exchange: ${exchange}, queues: ${queues}`
+      : `Pull message by classifier ${classifier}`;
+  const request: Message = {
+    type: "message",
+    fromId: participant.id,
+    toId: context.chain.id,
+    arrowType: "arrow-solid",
+    message,
+  };
+  return getActionsForIdempotentTrigger(
+    element,
+    context,
+    request,
+    undefined,
+    actions,
+    idempotencyParticipant,
+  );
+}
+
+function getHttpTriggerActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const [participant, idempotencyParticipant] = getHttpTriggerParticipants(
+    element,
+    context,
+  );
+  const isManualSource = !element.properties["systemType"];
+  const methods = (element.properties["httpMethodRestrict"] as string) ?? "ALL";
+  const uri = isManualSource
+    ? (element.properties["contextPath"] as string)
+    : (element.properties["integrationOperationPath"] as string);
+  const message = `HTTP request to ${uri ?? EMPTY_PROPERTY_STUB}, allowed methods=[${methods}]`;
+  const request: Message = {
+    type: "message",
+    fromId: participant.id,
+    toId: context.chain.id,
+    arrowType: "arrow-solid",
+    message,
+  };
+  const response: Message = {
+    type: "message",
+    fromId: context.chain.id,
+    toId: participant.id,
+    arrowType: "arrow-dotted",
+    message: DEFAULT_RESPONSE_TITLE,
+  };
+  const actions = [
+    ...(isManualSource ? [] : getValidateRequestActions(element, context)),
+    ...(context.connections.get(element.id) ?? []).flatMap((id) =>
+      getActionsForElementTree(id, context),
+    ),
+  ];
+  return getActionsForIdempotentTrigger(
+    element,
+    context,
+    request,
+    response,
+    actions,
+    idempotencyParticipant,
+  );
+}
+
+function getActionsForIdempotentTrigger(
+  element: Element,
+  context: DiagramBuildContext,
+  request: Message,
+  response: Message | undefined,
+  actions: Action[],
+  idempotencyParticipant: Participant,
+): Action[] {
+  const elementId =
+    element.properties["idempotency"]?.["chainTriggerParameters"]?.[
+      "triggerElementId"
+    ];
+  const chain = context.dependencies.chainMap.get(elementId);
+  const enabled = Boolean(
+    element.properties["idempotency"]?.["enabled"] ?? false,
+  );
+  const actionOnDuplicate = element.properties["idempotency"]?.[
+    "actionOnDuplicate"
+  ] as string;
+  return [
+    {
+      type: "group",
+      label: element.name,
+      actions: [
+        request,
+        { type: "activate", participantId: context.chain.id },
+        ...(enabled
+          ? ([
+              {
+                type: "alternatives",
+                branches:
+                  actionOnDuplicate === "execute-subchain"
+                    ? [
+                        { type: "branch", label: "on message", actions },
+                        {
+                          type: "branch",
+                          label: "on duplicate message",
+                          actions: [
+                            {
+                              type: "message",
+                              fromId: context.chain.id,
+                              toId: idempotencyParticipant.id,
+                              arrowType: "arrow-solid",
+                              message: `${getAppName()} chain trigger call: ${chain?.name ?? elementId}`,
+                            },
+                            {
+                              type: "activate",
+                              participantId: idempotencyParticipant.id,
+                            },
+                            {
+                              type: "message",
+                              fromId: idempotencyParticipant.id,
+                              toId: context.chain.id,
+                              arrowType: "arrow-dotted",
+                              message: DEFAULT_RESPONSE_TITLE,
+                            },
+                            {
+                              type: "deactivate",
+                              participantId: idempotencyParticipant.id,
+                            },
+                          ],
+                        },
+                      ]
+                    : actionOnDuplicate === "throw-exception"
+                      ? [
+                          {
+                            type: "message",
+                            fromId: context.chain.id,
+                            toId: context.chain.id,
+                            arrowType: "arrow-solid",
+                            message: "Throw exception",
+                          },
+                        ]
+                      : actionOnDuplicate === "ignore"
+                        ? [
+                            {
+                              type: "message",
+                              fromId: context.chain.id,
+                              toId: context.chain.id,
+                              arrowType: "arrow-solid",
+                              message: "Ignore",
+                            },
+                          ]
+                        : [],
+              },
+            ] as Action[])
+          : actions),
+        ...(response ? [response] : []),
+        { type: "deactivate", participantId: context.chain.id },
+      ],
+    },
+  ];
+}
+
+function getValidateRequestActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const after = element.properties["after"] as Record<string, string>[];
+  return (after?.length ?? 0) > 0
+    ? [
+        {
+          type: "alternatives",
+          branches: after.map((a) => ({
+            type: "branch",
+            label: `Schema: ${a["label"] ?? EMPTY_PROPERTY_STUB}`,
+            actions: [
+              {
+                type: "message",
+                fromId: context.chain.id,
+                toId: context.chain.id,
+                arrowType: "arrow-solid",
+                message: "Validate request",
+              },
+            ],
+          })),
+        },
+      ]
+    : [];
+}
+
+function getServiceCallActions(
+  element: Element,
+  context: DiagramBuildContext,
+): Action[] {
+  const participant = getServiceCallParticipants(element, context)[0];
+  const before = element.properties["before"] as Record<string, unknown>;
+  const after = element.properties["after"] as Record<string, unknown>[];
+  const protocol = element.properties["integrationOperationProtocolType"];
+  const actions: Action[] = [];
+  const beforeType = before?.["type"];
+
+  if (beforeType) {
+    actions.push({
+      type: "message",
+      fromId: context.chain.id,
+      toId: context.chain.id,
+      arrowType: "arrow-solid",
+      message: `Prepare request (${beforeType as string})`,
+    });
+  }
+
+  const message = getServiceCallRequestMessage(element, context);
+
+  actions.push({
+    type: "message" as const,
+    fromId: context.chain.id,
+    toId: participant.id,
+    arrowType: "arrow-solid" as const,
+    message,
+  });
+
+  if (protocol === "http") {
+    actions.push(
+      ...[
+        { type: "activate" as const, participantId: participant.id },
+        {
+          type: "message" as const,
+          fromId: participant.id,
+          toId: context.chain.id,
+          arrowType: "arrow-dotted" as const,
+          message: DEFAULT_RESPONSE_TITLE,
+        },
+        { type: "deactivate" as const, participantId: participant.id },
+      ],
+    );
+  }
+
+  if ((after?.length ?? 0) > 0) {
+    actions.push({
+      type: "alternatives",
+      branches: after.map((a) => ({
+        type: "branch",
+        label: `Code ${(a["label"] as string) ?? EMPTY_PROPERTY_STUB}`,
+        actions: [
+          {
+            type: "message",
+            fromId: context.chain.id,
+            toId: context.chain.id,
+            arrowType: "arrow-solid",
+            message: `Handle response (${(a["type"] as string) ?? EMPTY_PROPERTY_STUB})`,
+          },
+        ],
+      })),
+    });
+  }
+  return [{ type: "group", label: element.name, actions }];
+}
+
+function getServiceCallRequestMessage(
+  element: Element,
+  context: DiagramBuildContext,
+): string {
+  const serviceId = element.properties["integrationSystemId"] as string;
+  if (!serviceId) {
+    return EMPTY_PROPERTY_STUB;
+  }
+  const service = context.dependencies.serviceMap.get(serviceId);
+  if (!service) {
+    return EMPTY_PROPERTY_STUB;
+  }
+  const environment = context.dependencies.environmentMap.get(
+    service.activeEnvironmentId,
+  );
+  if (!environment) {
+    return (
+      element.properties["integrationOperationPath"] ?? EMPTY_PROPERTY_STUB
+    );
+  }
+  const sourceType = environment.sourceType;
+  const protocol = element.properties["integrationOperationProtocolType"];
+  const asyncProperties = element.properties[
+    "integrationOperationAsyncProperties"
+  ] as Record<string, unknown>;
+  switch (protocol) {
+    case "amqp": {
+      const source =
+        sourceType === EnvironmentSourceType.MANUAL
+          ? (((environment.properties?.["exchange"] ??
+              asyncProperties["integrationOperationPath"]) as string) ??
+            EMPTY_PROPERTY_STUB)
+          : `by classifier ${((environment.properties?.["maas.classifier.name"] ?? asyncProperties["maas.classifier.name"]) as string) ?? EMPTY_PROPERTY_STUB}`;
+      return `Put message to exchange ${source}`;
+    }
+    case "kafka": {
+      const source =
+        sourceType === EnvironmentSourceType.MANUAL
+          ? (((environment.properties?.["topic"] ??
+              asyncProperties["integrationOperationPath"]) as string) ??
+            EMPTY_PROPERTY_STUB)
+          : `by classifier ${((environment.properties?.["maas.classifier.name"] ?? asyncProperties["maas.classifier.name"]) as string) ?? EMPTY_PROPERTY_STUB}`;
+      return `Put message to topic ${source}`;
+    }
+    case "graphql": {
+      const operationName = element.properties[
+        "integrationGqlOperationName"
+      ] as string;
+      return `GraphQL request (query/mutation) ${operationName ? `, operation: ${operationName}` : ""}`;
+    }
+    default: {
+      const method =
+        (element.properties["integrationOperationMethod"] as string) ??
+        EMPTY_PROPERTY_STUB;
+      const path =
+        (element.properties["integrationOperationPath"] as string) ??
+        EMPTY_PROPERTY_STUB;
+      return `${method} ${path}`;
+    }
+  }
 }
