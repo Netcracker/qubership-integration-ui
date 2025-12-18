@@ -38,10 +38,7 @@ import {
 import { useChainGraph } from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
-import {
-  CreateDeploymentRequest,
-  Element,
-} from "../api/apiTypes.ts";
+import { CreateDeploymentRequest, Element } from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
@@ -516,37 +513,36 @@ const ChainGraphInner: React.FC = () => {
           </ReactFlow>
         </ElkDirectionContextProvider>
       </div>
-      {!isVsCode && (
-        <FloatButtonGroup
-          trigger="hover"
-          icon={<OverridableIcon name="more" />}
-        >
-          <FloatButton
-            icon={<>⭾</>}
-            tooltip={{
-              title: "Show sequence diagram",
-              placement: "left",
-            }}
-            onClick={openSequenceDiagram}
-          />
-          <FloatButton
-            icon={<OverridableIcon name="send" />}
-            tooltip={{
-              title: "Save and deploy",
-              placement: "left",
-            }}
-            onClick={openSaveAndDeployDialog}
-          />
-          <FloatButton
-            icon={<OverridableIcon name="cloudDownload" />}
-            tooltip={{
-              title: "Export chain",
-              placement: "left",
-            }}
-            onClick={openExportDialog}
-          />
-        </FloatButtonGroup>
-      )}
+      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+        <FloatButton
+          icon={<>⭾</>}
+          tooltip={{
+            title: "Show sequence diagram",
+            placement: "left",
+          }}
+          onClick={openSequenceDiagram}
+        />
+        {!isVsCode && (
+          <>
+            <FloatButton
+              icon={<OverridableIcon name="send" />}
+              tooltip={{
+                title: "Save and deploy",
+                placement: "left",
+              }}
+              onClick={openSaveAndDeployDialog}
+            />
+            <FloatButton
+              icon={<OverridableIcon name="cloudDownload" />}
+              tooltip={{
+                title: "Export chain",
+                placement: "left",
+              }}
+              onClick={openExportDialog}
+            />
+          </>
+        )}
+      </FloatButtonGroup>
     </Flex>
   );
 };
