@@ -19,6 +19,7 @@ import { useVSCodeTheme } from "./hooks/useVSCodeTheme.ts";
 import { getAntdThemeConfig } from "./theme/antdTokens.ts";
 import { IconProvider } from "./icons/IconProvider.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
+import { StyleConfigProvider } from "./styles/StyleConfigProvider.tsx";
 
 const router = createMemoryRouter(
   createRoutesFromElements(
@@ -89,21 +90,23 @@ const AppExtension = () => {
   }
 
   return (
-    <ConfigProvider theme={antdConfig}>
-      <AntdApp>
-        <IconProvider>
-          <Layout className={styles.layout}>
-            <EventNotification>
-              <Modals>
-                <Content className={styles.content}>
-                  <RouterProvider router={router}/>
-                </Content>
-              </Modals>
-            </EventNotification>
-          </Layout>
-        </IconProvider>
-      </AntdApp>
-    </ConfigProvider>
+    <StyleConfigProvider>
+      <ConfigProvider theme={antdConfig}>
+        <AntdApp>
+          <IconProvider>
+            <Layout className={styles.layout}>
+              <EventNotification>
+                <Modals>
+                  <Content className={styles.content}>
+                    <RouterProvider router={router}/>
+                  </Content>
+                </Modals>
+              </EventNotification>
+            </Layout>
+          </IconProvider>
+        </AntdApp>
+      </ConfigProvider>
+    </StyleConfigProvider>
   );
 };
 

@@ -9,7 +9,9 @@
     ".": {
       "import": "./dist-lib/index.es.js",
       "types": "./dist-lib/types/index.d.ts"
-    }
+    },
+    "./qip-ui.css": "./dist-lib/qip-ui.css",
+    "./dist-lib/qip-ui.css": "./dist-lib/qip-ui.css"
   },
   "files": [
     "dist-lib"

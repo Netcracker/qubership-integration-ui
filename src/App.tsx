@@ -43,6 +43,7 @@ import { IconProvider } from "./icons/IconProvider.tsx";
 import { useEffect, useMemo, useState } from "react";
 import { LiveExchanges } from "./components/admin_tools/exchanges/LiveExchanges.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
+import { StyleConfigProvider } from "./styles/StyleConfigProvider.tsx";
 
 const { Header } = Layout;
 
@@ -112,7 +113,9 @@ const router = createBrowserRouter(
 );
 
 const App = () => {
-  const [theme, setTheme] = useState<ThemeMode>(() => initializeBrowserTheme());
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    return initializeBrowserTheme();
+  });
   const [themeUpdateKey, setThemeUpdateKey] = useState(0);
 
   useEffect(() => {
@@ -144,28 +147,30 @@ const App = () => {
   );
 
   return (
-    <ConfigProvider theme={antdConfig}>
-      <AntdApp>
-        <IconProvider>
-          <Layout className={styles.layout}>
-            <EventNotification>
-              <Modals>
-                <Header className={styles.header}>
-                  <Navigation
-                    showThemeSwitcher
-                    currentTheme={theme}
-                    onThemeChange={setTheme}
-                  />
-                </Header>
-                <Content className={styles.content}>
-                  <RouterProvider router={router} />
-                </Content>
-              </Modals>
-            </EventNotification>
-          </Layout>
-        </IconProvider>
-      </AntdApp>
-    </ConfigProvider>
+    <StyleConfigProvider>
+      <ConfigProvider theme={antdConfig}>
+        <AntdApp>
+          <IconProvider>
+            <Layout className={styles.layout}>
+              <EventNotification>
+                <Modals>
+                  <Header className={styles.header}>
+                    <Navigation
+                      showThemeSwitcher
+                      currentTheme={theme}
+                      onThemeChange={setTheme}
+                    />
+                  </Header>
+                  <Content className={styles.content}>
+                    <RouterProvider router={router} />
+                  </Content>
+                </Modals>
+              </EventNotification>
+            </Layout>
+          </IconProvider>
+        </AntdApp>
+      </ConfigProvider>
+    </StyleConfigProvider>
   );
 };
 export default App;

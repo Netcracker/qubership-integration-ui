@@ -73,15 +73,16 @@ import {
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
 import qs from "qs";
-import { getAppName } from "../../appConfig.ts";
+import { getAppName, getConfig } from "../../appConfig.ts";
 
 export class RestApi implements Api {
   instance: AxiosInstance;
 
   constructor() {
+    const gateway = getConfig().apiGateway;
     this.instance = rateLimit(
       axios.create({
-        baseURL: import.meta.env.VITE_GATEWAY,
+        baseURL: gateway,
         timeout: 2000,
         headers: { "content-type": "application/json" },
       }),

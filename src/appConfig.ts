@@ -1,33 +1,69 @@
 import { IconOverrides } from "./icons/IconProvider";
 
-let appNameValue: string = import.meta.env.VITE_API_APP;
-let appIcons: IconOverrides = {};
+export interface AppConfig {
+  apiGateway?: string;
+  appName?: string;
+  icons?: IconOverrides;
+  styles?: {
+    cssVariables?: Record<string, string>;
+    additionalCss?: string[];
+  };
+}
 
-/**
- * Sets the application name once on bootstrap. Subsequent reads use getAppName().
- * If name is falsy, the current value is preserved.
- */
-function setAppName(name: string | undefined | null): void {
-  if (typeof name === "string" && name.length > 0) {
-    appNameValue = name;
-  }
+const config: Partial<AppConfig> = {};
+
+function getEnvGateway(): string | undefined {
+  return import.meta.env.VITE_GATEWAY as string | undefined;
+}
+
+function getEnvAppName(): string | undefined {
+  return import.meta.env.VITE_API_APP as string | undefined;
 }
 
 export function setIcons(icons?: IconOverrides) {
   if (icons) {
-    appIcons = icons;
+    config.icons = { ...config.icons, ...icons };
   }
 }
 
-/**
- * Returns the current application name.
- */
 export function getAppName(): string {
-  return appNameValue;
+  return config.appName ?? getEnvAppName() ?? "";
 }
 
 export function getIcons(): IconOverrides {
-  return appIcons;
+  return config.icons ?? {};
+}
+
+export function getConfig(): AppConfig {
+  return {
+    apiGateway: config.apiGateway ?? getEnvGateway(),
+    appName: config.appName ?? getEnvAppName(),
+    icons: config.icons,
+    styles: config.styles,
+  };
+}
+
+export function configure(newConfig: Partial<AppConfig>): void {
+  if (newConfig.apiGateway !== undefined) {
+    config.apiGateway = newConfig.apiGateway;
+  }
+  if (newConfig.appName !== undefined) {
+    config.appName = newConfig.appName;
+  }
+  if (newConfig.icons !== undefined) {
+    config.icons = { ...config.icons, ...newConfig.icons };
+  }
+  if (newConfig.styles !== undefined) {
+    config.styles = {
+      ...config.styles,
+      ...newConfig.styles,
+      cssVariables: {
+        ...config.styles?.cssVariables,
+        ...newConfig.styles?.cssVariables,
+      },
+      additionalCss: newConfig.styles.additionalCss ?? config.styles?.additionalCss,
+    };
+  }
 }
 
 export type AppExtensionProps = {
@@ -36,7 +72,9 @@ export type AppExtensionProps = {
 };
 
 export function configureAppExtension(message: AppExtensionProps) {
-  setAppName(message.appName);
-  setIcons(message.icons);
+  configure({
+    appName: message.appName,
+    icons: message.icons,
+  });
   console.info("Initial extension configuration succeeded");
 }
