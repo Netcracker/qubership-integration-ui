@@ -79,7 +79,8 @@ export class RestApi implements Api {
   instance: AxiosInstance;
 
   constructor() {
-    const gateway = getConfig().apiGateway;
+    const config = getConfig();
+    const gateway = config.apiGateway || import.meta.env.VITE_GATEWAY;
     this.instance = rateLimit(
       axios.create({
         baseURL: gateway,
@@ -1475,4 +1476,8 @@ export class RestApi implements Api {
       `/api/v1/${getAppName()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`,
     );
   };
+
+  reconfigure(newGateway: string): void {
+    this.instance.defaults.baseURL = newGateway;
+  }
 }

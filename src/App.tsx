@@ -43,7 +43,6 @@ import { IconProvider } from "./icons/IconProvider.tsx";
 import { useEffect, useMemo, useState } from "react";
 import { LiveExchanges } from "./components/admin_tools/exchanges/LiveExchanges.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
-import { StyleConfigProvider } from "./styles/StyleConfigProvider.tsx";
 
 const { Header } = Layout;
 
@@ -147,30 +146,28 @@ const App = () => {
   );
 
   return (
-    <StyleConfigProvider>
-      <ConfigProvider theme={antdConfig}>
-        <AntdApp>
-          <IconProvider>
-            <Layout className={styles.layout}>
-              <EventNotification>
-                <Modals>
-                  <Header className={styles.header}>
-                    <Navigation
-                      showThemeSwitcher
-                      currentTheme={theme}
-                      onThemeChange={setTheme}
-                    />
-                  </Header>
-                  <Content className={styles.content}>
-                    <RouterProvider router={router} />
-                  </Content>
-                </Modals>
-              </EventNotification>
-            </Layout>
-          </IconProvider>
-        </AntdApp>
-      </ConfigProvider>
-    </StyleConfigProvider>
+    <ConfigProvider theme={antdConfig}>
+      <AntdApp>
+        <IconProvider>
+          <Layout className={styles.layout}>
+            <EventNotification>
+              <Modals>
+                <Header className={styles.header}>
+                  <Navigation
+                    showThemeSwitcher
+                    currentTheme={theme}
+                    onThemeChange={setTheme}
+                  />
+                </Header>
+                <Content className={styles.content}>
+                  <RouterProvider router={router} />
+                </Content>
+              </Modals>
+            </EventNotification>
+          </Layout>
+        </IconProvider>
+      </AntdApp>
+    </ConfigProvider>
   );
 };
 export default App;

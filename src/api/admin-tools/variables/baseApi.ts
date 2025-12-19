@@ -1,14 +1,13 @@
 import axios, { AxiosInstance } from "axios";
 import { ApiResponse } from "./types.ts";
 import { isErrorResponse } from "../../apiTypes.ts";
-import { getConfig } from "../../../appConfig.ts";
 
 export abstract class BaseApi {
   protected readonly instance: AxiosInstance;
 
   constructor() {
     this.instance = axios.create({
-      baseURL: getConfig().apiGateway,
+      baseURL: import.meta.env.VITE_GATEWAY,
       timeout: 1000,
       headers: { "Content-Type": "application/json" },
     });

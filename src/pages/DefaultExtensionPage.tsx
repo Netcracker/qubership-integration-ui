@@ -17,13 +17,12 @@ const DefaultExtensionPage: React.FC = () => {
   // Listener for messages from extension to navigate to the start (chain_ page
   window.addEventListener(
     "message",
-    (event: MessageEvent<VSCodeResponse<AppExtensionProps>>) => {
-
-      const message: VSCodeResponse<AppExtensionProps> = event.data;
+    (event: MessageEvent<VSCodeResponse<AppExtensionProps | string>>) => {
+      const message = event.data;
       const { type, payload } = message;
-      if (type == STARTUP_EVENT && payload) {
+      if (type == STARTUP_EVENT && payload && typeof payload === "object") {
         console.log("Received startup message from vscode extension", message);
-        configureAppExtension(payload);
+        configureAppExtension(payload as AppExtensionProps);
 
         if (payload.icons) {
           setIcons(payload.icons);
@@ -33,7 +32,7 @@ const DefaultExtensionPage: React.FC = () => {
           void api.sendMessageToExtension(NAVIGATE_EVENT);
         }
       }
-      if (type == NAVIGATE_EVENT && payload) {
+      if (type == NAVIGATE_EVENT && payload && typeof payload === "string") {
         console.log("Received navigate message from vscode extension", message);
         void navigate(payload);
       }
