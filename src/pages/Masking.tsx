@@ -1,6 +1,6 @@
 import { FloatButton, Table } from "antd";
+import type { TableProps } from "antd";
 
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import React, { useCallback, useEffect, useState } from "react";
 import { MaskedField } from "../api/apiTypes";
@@ -10,10 +10,8 @@ import {
   getTextColumnFilterFn,
   TextColumnFilterDropdown,
 } from "../components/table/TextColumnFilterDropdown.tsx";
-import { TableRowSelection } from "antd/lib/table/interface";
 import { TextValueEdit } from "../components/table/TextValueEdit.tsx";
 import { InlineEdit } from "../components/InlineEdit.tsx";
-import { TableProps } from "antd/lib/table";
 import { formatTimestamp } from "../misc/format-utils.ts";
 import {
   getTimestampColumnFilterFn,
@@ -183,7 +181,7 @@ export const Masking: React.FC = () => {
     await deleteSelectedMaskedFields();
   };
 
-  const rowSelection: TableRowSelection<MaskedField> = {
+  const rowSelection: TableProps<MaskedField>['rowSelection'] = {
     type: "checkbox",
     selectedRowKeys,
     onChange: onSelectChange,
@@ -203,7 +201,7 @@ export const Masking: React.FC = () => {
         style={{ height: "100%" }}
         scroll={{ y: "" }}
       />
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+      <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           tooltip={{
             title: "Delete selected masked fields",
@@ -217,7 +215,7 @@ export const Masking: React.FC = () => {
           icon={<OverridableIcon name="plus" />}
           onClick={() => void onCreateBtnClick()}
         />
-      </FloatButtonGroup>
+      </FloatButton.Group>
     </>
   );
 };

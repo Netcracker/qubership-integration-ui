@@ -10,9 +10,9 @@ import {
   SelectProps,
   Tabs,
   Tag,
+  Upload
 } from "antd";
 import { useModalContext } from "../../ModalContextProvider";
-import Dragger from "antd/lib/upload/Dragger";
 import { Editor, Monaco } from "@monaco-editor/react";
 import { useMonacoTheme, applyVSCodeThemeToMonaco } from "../../hooks/useMonacoTheme";
 import {
@@ -788,7 +788,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                     },
                   ]}
                 >
-                  <Dragger
+                  <Upload.Dragger
                     rootClassName="flex-dragger width100"
                     multiple={false}
                     beforeUpload={() => false}
@@ -799,7 +799,7 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                     <p className="ant-upload-text">
                       Click or drag file to this area to upload
                     </p>
-                  </Dragger>
+                  </Upload.Dragger>
                 </Form.Item>
               ),
             },

@@ -1,7 +1,7 @@
 import React, { UIEvent, useCallback, useEffect, useState } from "react";
-import { Button, Flex, FloatButton, message, Modal, Table } from "antd";
+import { Button, Flex, FloatButton, Input, message, Modal, Table } from "antd";
 import { useNavigate, useParams } from "react-router";
-import { TableProps } from "antd/lib/table";
+import type { TableProps } from "antd";
 import {
   Checkpoint,
   ExecutionStatus,
@@ -18,7 +18,6 @@ import {
   formatSnakeCased,
   formatUTCSessionDate,
 } from "../misc/format-utils.ts";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import {
   FilterDropdownProps,
   TableRowSelection,
@@ -28,7 +27,6 @@ import { SessionStatus } from "../components/sessions/SessionStatus.tsx";
 import { useModalsContext } from "../Modals.tsx";
 import { downloadFile } from "../misc/download-utils.ts";
 import { ImportSessions } from "../components/modal/ImportSessions.tsx";
-import Search from "antd/lib/input/Search";
 import {
   isTimestampFilter,
   TimestampColumnFilterDropdown,
@@ -522,7 +520,7 @@ export const Sessions: React.FC = () => {
     <>
       {contextHolder}
       <Flex vertical gap={16} style={{ height: "100%" }}>
-        <Search
+        <Input.Search
           placeholder="Full text search"
           allowClear
           onSearch={(value) => setFilters({ ...filters, searchString: value })}
@@ -541,7 +539,7 @@ export const Sessions: React.FC = () => {
           onScroll={(event) => void onScroll(event)}
           onChange={(_, tableFilters) => setTableFilters(tableFilters)}
         />
-        <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+        <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
           <FloatButton
             tooltip={{ title: "Retry selected sessions", placement: "left" }}
             icon={<OverridableIcon name="redo" />}
@@ -564,7 +562,7 @@ export const Sessions: React.FC = () => {
             icon={<OverridableIcon name="delete" />}
             onClick={onDeleteBtnClick}
           />
-        </FloatButtonGroup>
+        </FloatButton.Group>
       </Flex>
     </>
   );

@@ -26,7 +26,6 @@ import { Flex, FloatButton } from "antd";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router-dom";
 import { CustomControls } from "../components/graph/CustomControls.tsx";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { useModalsContext } from "../Modals.tsx";
 import { ChainElementModification } from "../components/modal/chain_element/ChainElementModification.tsx";
 import styles from "./ChainGraph.module.css";
@@ -501,7 +500,7 @@ const ChainGraphInner: React.FC = () => {
         </ElkDirectionContextProvider>
       </div>
       {!isVsCode && (
-        <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+        <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
           <FloatButton
             icon={<>⭾</>}
             tooltip={{
@@ -526,7 +525,7 @@ const ChainGraphInner: React.FC = () => {
             }}
             onClick={openExportDialog}
           />
-        </FloatButtonGroup>
+        </FloatButton.Group>
       )}
     </Flex>
   );

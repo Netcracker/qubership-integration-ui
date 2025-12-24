@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Form, Select, SelectProps, Spin } from "antd";
+import { Button, Checkbox, Form, Select, SelectProps, Spin } from "antd";
 import { useParams } from "react-router";
-import { useForm } from "antd/lib/form/Form";
-import Checkbox from "antd/lib/checkbox";
 import {
   ChainLoggingProperties,
   ChainLoggingSettings,
@@ -25,7 +23,7 @@ export const LoggingSettings: React.FC = () => {
   const [loggingSettings, setLoggingSettings] =
     useState<ChainLoggingSettings | null>(null);
   const [isCustom, setIsCustom] = useState(false);
-  const [form] = useForm();
+  const [form] = Form.useForm();
   const notificationService = useNotificationService();
 
   const getLoggingSettings =
@@ -205,9 +203,9 @@ export const LoggingSettings: React.FC = () => {
             <Checkbox disabled={!isCustom}>Enable logging masking</Checkbox>
           </Form.Item>
           <Form.Item label={null} {...formItemStyle}>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
+            <Button
+              type="primary"
+              htmlType="submit"
               loading={isLoggingSettingsLoading}
             >
               Apply

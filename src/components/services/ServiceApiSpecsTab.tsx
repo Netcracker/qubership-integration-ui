@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Flex, Spin, Button, FloatButton, Tooltip } from "antd";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/api";
 import { SpecificationGroup, Specification } from "../../api/apiTypes";
@@ -461,7 +460,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
         <>
           <serviceGroupsTable.Table />
           {!isVsCode && (
-            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+            <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
               <FloatButton
                 tooltip={{ title: "Import Specifications", placement: "left" }}
                 icon={<OverridableIcon name="cloudUpload" />}
@@ -484,7 +483,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
                   })();
                 }}
               />
-            </FloatButtonGroup>
+            </FloatButton.Group>
           )}
         </>
       )}
@@ -492,7 +491,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
         <>
           <modelsTable.Table />
           {!isVsCode && (
-            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+            <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
               <FloatButton
                 tooltip={{ title: "Import Specification", placement: "left" }}
                 icon={<OverridableIcon name="cloudUpload" />}
@@ -517,7 +516,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
                   })();
                 }}
               />
-            </FloatButtonGroup>
+            </FloatButton.Group>
           )}
         </>
       )}
@@ -525,7 +524,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
         <>
           <operationsTable.Table />
           {!isVsCode && (
-            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+            <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
               <FloatButton
                 tooltip={{ title: "Export specification", placement: "left" }}
                 icon={<OverridableIcon name="cloudDownload" />}
@@ -549,7 +548,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
                   })();
                 }}
               />
-            </FloatButtonGroup>
+            </FloatButton.Group>
           )}
         </>
       )}

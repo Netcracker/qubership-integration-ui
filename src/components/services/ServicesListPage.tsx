@@ -6,7 +6,6 @@ import {
   message,
   Flex,
 } from "antd";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { CreateServiceModal } from "./CreateServiceModal";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
@@ -379,7 +378,7 @@ export const ServicesListPage: React.FC = () => {
           <servicesTable.Table />
           {error && <div style={{ color: "var(--vscode-errorForeground, #d73a49)" }}>Error: {error}</div>}
 
-          <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+          <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
             <FloatButton
               tooltip={{ title: "Download selected services", placement: "left" }}
               icon={<OverridableIcon name="cloudDownload" />}
@@ -409,7 +408,7 @@ export const ServicesListPage: React.FC = () => {
               tooltip={{ title: "Create service", placement: "left" }}
               icon={<OverridableIcon name="plus" />}
               onClick={() => setCreateModalOpen(true)} />
-          </FloatButtonGroup>
+          </FloatButton.Group>
         </div>
 
         <CreateServiceModal

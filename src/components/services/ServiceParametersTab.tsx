@@ -9,7 +9,6 @@ import { isVsCode } from "../../api/rest/vscodeExtensionApi.ts";
 import { useBlocker } from "react-router-dom";
 import { useModalsContext } from "../../Modals.tsx";
 import { UnsavedChangesModal } from "../modal/UnsavedChangesModal.tsx";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { downloadFile } from "../../misc/download-utils.ts";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
@@ -137,7 +136,7 @@ export const ServiceParametersTab: React.FC<ServiceParametersTabProps> = ({
     <div style={{ paddingLeft: sidePadding, maxWidth: 900 }}>
       <>
         {!isVsCode && (
-          <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
+          <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
             <FloatButton
               tooltip={{ title: "Export service", placement: "left" }}
               icon={<OverridableIcon name="cloudDownload" />}
@@ -155,7 +154,7 @@ export const ServiceParametersTab: React.FC<ServiceParametersTabProps> = ({
                 })();
               }}
             />
-          </FloatButtonGroup>
+          </FloatButton.Group>
         )}
       </>
       <Form form={form} layout="vertical" onChange={() => setHasChanges(true)}>

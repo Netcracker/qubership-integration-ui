@@ -7,7 +7,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import { Button, Flex, Form, Input, Modal, Select } from "antd";
-import Checkbox from "antd/lib/checkbox";
+import { Checkbox } from "antd";
 import { buildTypeOptions } from "./InlineTypeEdit.tsx";
 import { DataTypes } from "../../mapper/util/types.ts";
 

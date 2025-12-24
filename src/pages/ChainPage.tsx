@@ -5,7 +5,7 @@ import { useChain } from "../hooks/useChain.tsx";
 import styles from "./Chain.module.css";
 import { createContext, useCallback, useEffect, useState } from "react";
 import { Chain } from "../api/apiTypes.ts";
-import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
+import type { BreadcrumbProps } from "antd";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
 

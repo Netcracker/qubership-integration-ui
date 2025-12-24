@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Flex, FloatButton, Table } from "antd";
-import { TableProps } from "antd/lib/table";
+import type { TableProps } from "antd";
 import { Session, SessionElement } from "../api/apiTypes.ts";
 import {
   formatDuration,

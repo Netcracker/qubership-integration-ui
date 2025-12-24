@@ -1,5 +1,4 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
-import { useForm } from "antd/lib/form/Form";
 import { Form } from "antd";
 import styles from "./InlineEdit.module.css";
 
@@ -28,7 +27,7 @@ export function InlineEdit<Values>({
   onCancel,
   initialActive,
 }: InlineEditProps<Values>): ReactNode {
-  const [form] = useForm<Values>();
+  const [form] = Form.useForm<Values>();
   const [processing, setProcessing] = useState<boolean>(false);
   const [active, setActive] = useState<boolean>(initialActive ?? false);
 

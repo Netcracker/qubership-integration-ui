@@ -2,7 +2,7 @@ import React, { ReactElement, useEffect, useState } from "react";
 import { Menu, Spin } from "antd";
 import { LibraryElement, LibraryData } from "../../api/apiTypes.ts";
 import DraggableElement from "./DraggableElement.tsx";
-import Sider from "antd/lib/layout/Sider";
+import { Layout } from "antd";
 
 import styles from "./ElementsLibrarySidebar.module.css";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
@@ -89,7 +89,7 @@ export const ElementsLibrarySidebar = () => {
   };
 
   return (
-    <Sider width={230} theme="light" className={styles.sideMenu}>
+    <Layout.Sider width={230} theme="light" className={styles.sideMenu}>
       {isLibraryLoading && loading ? (
         <Spin />
       ) : (
@@ -101,6 +101,6 @@ export const ElementsLibrarySidebar = () => {
           inlineIndent={8}
         />
       )}
-    </Sider>
+    </Layout.Sider>
   );
 };

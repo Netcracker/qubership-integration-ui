@@ -1,8 +1,6 @@
 import { Button, Form, Input, Select } from "antd";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import TextArea from "antd/lib/input/TextArea";
 import { Chain } from "../api/apiTypes.ts";
-import { useForm } from "antd/lib/form/Form";
 import { ChainContext } from "./ChainPage.tsx";
 import {
   ChainExtensionProperties,
@@ -35,7 +33,7 @@ export const ChainProperties: React.FC = () => {
   const blocker = useBlocker(hasChanges);
   const { showModal } = useModalsContext();
   const notificationService = useNotificationService();
-  const [form] = useForm();
+  const [form] = Form.useForm();
 
   const chainContext = useContext(ChainContext);
 
@@ -197,16 +195,16 @@ export const ChainProperties: React.FC = () => {
             />
           </Form.Item>
           <Form.Item label="Description" name="description">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <Input.TextArea style={{ height: 120, resize: "none" }} />
           </Form.Item>
           <Form.Item label="Business Description" name="businessDescription">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <Input.TextArea style={{ height: 120, resize: "none" }} />
           </Form.Item>
           <Form.Item label="Assumptions" name="assumptions">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <Input.TextArea style={{ height: 120, resize: "none" }} />
           </Form.Item>
           <Form.Item label="Out of Scope" name="outOfScope">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <Input.TextArea style={{ height: 120, resize: "none" }} />
           </Form.Item>
           <ChainExtensionProperties onChange={() => setHasChanges(true)} />
           <Form.Item wrapperCol={{ offset: 0 }} style={{ textAlign: "right" }}>

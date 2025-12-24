@@ -1,7 +1,6 @@
 import React from "react";
 import { ExecutionStatus } from "../../api/apiTypes.ts";
-import { GlobalToken, Progress } from "antd";
-import { useToken } from "antd/es/theme/internal";
+import { theme, GlobalToken, Progress } from "antd";
 
 type SessionElementDurationProps = {
   duration: number;
@@ -31,7 +30,7 @@ export const SessionElementDuration: React.FC<SessionElementDurationProps> = ({
   sessionDuration,
   status,
 }) => {
-  const [, token] = useToken();
+  const { token } = theme.useToken();
 
   const percent = 10 + (duration * 90) / sessionDuration;
   return (

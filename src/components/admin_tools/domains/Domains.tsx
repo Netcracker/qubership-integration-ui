@@ -1,5 +1,4 @@
-import Spin from "antd/lib/spin";
-import Title from "antd/lib/typography/Title";
+import { Spin, Typography } from "antd";
 import DomainsTable from "./DomainsTable";
 import { useDomains } from "../../../hooks/useDomains";
 import commonStyles from "../CommonStyle.module.css";
@@ -12,10 +11,10 @@ export const Domains: React.FC = () => {
 
   return (
     <Flex vertical className={commonStyles["container"]}>
-      <Title level={4} className={commonStyles["title"]}>
+      <Typography.Title level={4} className={commonStyles["title"]}>
         <OverridableIcon name="appstore" className={commonStyles["icon"]} />
         Domains
-      </Title>
+      </Typography.Title>
       {isLoading ? (
         <Spin size="large" />
       ) : (
