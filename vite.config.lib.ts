@@ -23,6 +23,7 @@ export default defineConfig({
         rollupOptions: {
             input: path.resolve(__dirname, "src/index.ts"),
             external: ["react", "react-dom", "react/jsx-runtime"],
+            preserveEntrySignatures: "exports-only",
             output: {
                 format: "es",
                 entryFileNames: "index.es.js",

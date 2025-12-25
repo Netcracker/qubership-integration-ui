@@ -7,5 +7,5 @@ export type { AppExtensionProps, AppConfig } from "./appConfig";
 export type { IconOverrides, IconName, IconSource } from "./icons/IconProvider.tsx";
 export { default as App } from "./App";
 export { default as AppExtension } from "./AppExtension";
-export { configureAppExtension, loadConfigFromEnv, configure, getConfig } from "./appConfig";
+export { configureAppExtension, loadConfigFromEnv, loadConfigFromJson, configure, getConfig, mergeConfigWithEnv } from "./appConfig";
 export { isVsCode } from "./api/rest/vscodeExtensionApi";

@@ -168,3 +168,30 @@ export async function configureAppExtension(message: AppExtensionProps): Promise
   
   console.info("Initial extension configuration succeeded");
 }
+
+export function mergeConfigWithEnv(overrideConfig: Partial<AppConfig>): Partial<AppConfig> {
+  const envConfig = loadConfigFromEnv();
+  
+  return {
+    ...envConfig,
+    ...overrideConfig,
+    cssVariables: (envConfig.cssVariables || overrideConfig.cssVariables)
+      ? {
+          ...(envConfig.cssVariables || {}),
+          ...(overrideConfig.cssVariables || {}),
+        }
+      : undefined,
+    additionalCss: (envConfig.additionalCss || overrideConfig.additionalCss)
+      ? [
+          ...(envConfig.additionalCss || []),
+          ...(overrideConfig.additionalCss || []),
+        ]
+      : undefined,
+    themeOverrides: (envConfig.themeOverrides || overrideConfig.themeOverrides)
+      ? {
+          ...(envConfig.themeOverrides || {}),
+          ...(overrideConfig.themeOverrides || {}),
+        }
+      : undefined,
+  };
+}
