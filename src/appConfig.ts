@@ -143,21 +143,27 @@ export type AppExtensionProps = {
   themeOverrides?: Partial<ThemeConfig>;
 };
 
-export function configureAppExtension(message: AppExtensionProps) {
+export async function configureAppExtension(message: AppExtensionProps): Promise<void> {
   configure(message);
   
   if (message.cssVariables) {
-    void import("./config/cssInjector").then(({ injectCssVariables }) => {
-      injectCssVariables(message.cssVariables!);
-    });
+    const { injectCssVariables } = await import("./config/cssInjector");
+    injectCssVariables(message.cssVariables);
   }
   
   if (message.additionalCss && message.additionalCss.length > 0) {
-    void import("./config/cssInjector").then(({ loadCssFiles }) => {
-      loadCssFiles(message.additionalCss!).catch(error => {
-        console.warn("Some CSS files failed to load:", error);
-      });
+    const { loadCssFiles } = await import("./config/cssInjector");
+    await loadCssFiles(message.additionalCss).catch(error => {
+      console.warn("Some CSS files failed to load:", error);
     });
+  }
+  
+  if (message.apiGateway) {
+    const { api } = await import("./api/api");
+    const { RestApi } = await import("./api/rest/restApi");
+    if (api instanceof RestApi) {
+      api.reconfigure(message.apiGateway);
+    }
   }
   
   console.info("Initial extension configuration succeeded");

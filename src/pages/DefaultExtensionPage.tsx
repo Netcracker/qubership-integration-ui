@@ -22,7 +22,9 @@ const DefaultExtensionPage: React.FC = () => {
       const { type, payload } = message;
       if (type == STARTUP_EVENT && payload && typeof payload === "object") {
         console.log("Received startup message from vscode extension", message);
-        configureAppExtension(payload as AppExtensionProps);
+        void configureAppExtension(payload as AppExtensionProps).catch(error => {
+          console.warn("Failed to configure app extension:", error);
+        });
 
         if (payload.icons) {
           setIcons(payload.icons);
