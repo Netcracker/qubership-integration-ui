@@ -11,6 +11,19 @@
     border: 1px solid var(--vscode-border);
 }
 
+.modal-fullscreen {
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--vscode-modal-background, var(--vscode-panel-background));
+    color: var(--vscode-modal-foreground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-border);
+}
+
 .modal-header {
     background: var(--vscode-modal-background, var(--vscode-panel-background));
     color: var(--vscode-modal-foreground, var(--vscode-foreground));
@@ -24,6 +37,15 @@
     overflow-y: auto;
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--vscode-modal-background, var(--vscode-panel-background));
+    color: var(--vscode-modal-foreground, var(--vscode-foreground));
+}
+
+.modal-body-fullscreen {
+    flex: 1;
+    height: calc(100vh - 130px);
     display: flex;
     flex-direction: column;
     background: var(--vscode-modal-background, var(--vscode-panel-background));

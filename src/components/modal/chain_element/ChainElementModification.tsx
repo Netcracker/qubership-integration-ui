@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { Button, Modal, Tabs } from "antd";
+import { Button, Modal, Tabs, Tooltip } from "antd";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
 import { Element, PatchElementRequest } from "../../../api/apiTypes.ts";
@@ -49,6 +49,7 @@ import {
 import CustomOneOfField from "./field/CustomOneOfField.tsx";
 import SingleSelectField from "./field/select/SingleSelectField.tsx";
 import ContextServiceField from "./field/select/ContextServiceField.tsx";
+import { FullscreenExitOutlined, FullscreenOutlined } from "@ant-design/icons";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -107,10 +108,6 @@ export type FormContext = {
   updateContext?: (newContext: Record<string, unknown>) => void;
 };
 
-function constructTitle(name: string, type?: string): string {
-  return type ? `${name} (${type})` : `${name}`;
-}
-
 function ErrorListTemplate() {
   return <div></div>;
 }
@@ -133,7 +130,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const { closeContainingModal } = useModalContext();
   const { updateElement } = useElement();
   const notificationService = useNotificationService();
-  const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
+  const [title, setTitle] = useState<React.JSX.Element>();
   const [schema, setSchema] = useState<JSONSchema7>({});
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [formContext, setFormContext] = useState<FormContext>({});
@@ -141,10 +138,39 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const [activeKey, setActiveKey] = useState<string>();
   const { showModal } = useModalsContext();
   const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  const handleFullscreen = useCallback(() => {
+    setIsFullscreen((prevValue) => !prevValue);
+  }, []);
+
+  const constructTitle = useCallback(
+    (name: string, type?: string) => {
+      return (
+        <span style={{ width: "100vw" }}>
+          {type ? `${name} (${type})` : `${name}`}
+          <Tooltip title="Full Screen">
+            <Button
+              type="text"
+              icon={
+                isFullscreen ? (
+                  <FullscreenExitOutlined />
+                ) : (
+                  <FullscreenOutlined />
+                )
+              }
+              onClick={handleFullscreen}
+            />
+          </Tooltip>
+        </span>
+      );
+    },
+    [handleFullscreen, isFullscreen],
+  );
 
   useEffect(() => {
     setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
-  }, [libraryElement, node]);
+  }, [libraryElement, node.data.label, constructTitle]);
 
   const enrichProperties = useCallback(
     (
@@ -628,6 +654,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       onCancel={handleCheckUnsavedAndClose}
       maskClosable={false}
       loading={libraryElementIsLoading}
+      style={isFullscreen ? { top: 0, margin: 0, padding: 0 } : {}}
       footer={[
         <Button
           key="submit"
@@ -645,8 +672,8 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       ]}
       classNames={{
         footer: styles["modal-footer"],
-        content: styles["modal"],
-        body: styles["modal-body"],
+        content: isFullscreen ? styles["modal-fullscreen"] : styles["modal"],
+        body: isFullscreen ? styles["modal-body-fullscreen"] : styles["modal-body"],
         header: styles["modal-header"],
       }}
     >
