@@ -56,14 +56,50 @@ export function getThemeTokens(isDark: boolean): Partial<AliasToken> {
   };
 }
 
-export function getAntdThemeConfig(isDark: boolean): ThemeConfig {
+export function deepMergeThemeConfig(
+  base: ThemeConfig,
+  overrides: Partial<ThemeConfig>
+): ThemeConfig {
+  const merged: ThemeConfig = {
+    ...base,
+    ...overrides,
+  };
+
+  if (overrides.token) {
+    merged.token = {
+      ...base.token,
+      ...overrides.token,
+    } as typeof base.token;
+  }
+
+  if (overrides.components) {
+    merged.components = {
+      ...base.components,
+    };
+    
+    for (const [componentName, componentOverrides] of Object.entries(overrides.components)) {
+      if (componentOverrides && base.components?.[componentName as keyof typeof base.components]) {
+        merged.components[componentName as keyof typeof merged.components] = {
+          ...base.components[componentName as keyof typeof base.components],
+          ...componentOverrides,
+        } as any;
+      } else if (componentOverrides) {
+        merged.components[componentName as keyof typeof merged.components] = componentOverrides as any;
+      }
+    }
+  }
+
+  return merged;
+}
+
+export function getAntdThemeConfig(isDark: boolean, themeOverrides?: Partial<ThemeConfig>): ThemeConfig {
   const tokens = getThemeTokens(isDark);
   const modalBg = getCSSVariable('--vscode-modal-background', tokens.colorBgElevated ?? tokens.colorBgBase ?? (isDark ? '#1f1f1f' : '#fafafa'));
   const modalForeground = getCSSVariable('--vscode-modal-foreground', tokens.colorText ?? (isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(0, 0, 0, 0.88)'));
   const borderColor = getCSSVariable('--vscode-border', isDark ? '#303030' : '#d9d9d9');
   const iconHover = getCSSVariable('--vscode-button-hoverBackground', '#106ebe');
 
-  return {
+  const baseConfig: ThemeConfig = {
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: tokens,
     components: {
@@ -162,5 +198,11 @@ export function getAntdThemeConfig(isDark: boolean): ThemeConfig {
       },
     },
   };
+
+  if (themeOverrides) {
+    return deepMergeThemeConfig(baseConfig, themeOverrides);
+  }
+
+  return baseConfig;
 }
 

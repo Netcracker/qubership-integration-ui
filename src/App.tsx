@@ -11,6 +11,9 @@ import ChainPage from "./pages/ChainPage.tsx";
 import { App as AntdApp, ConfigProvider, Layout } from "antd";
 
 import styles from "./App.module.css";
+import "./styles/theme-variables.css";
+import "./index.css";
+import "./styles/reactflow-theme.css";
 import { Modals } from "./Modals.tsx";
 import { Snapshots } from "./pages/Snapshots.tsx";
 import { Deployments } from "./pages/Deployments.tsx";
@@ -37,10 +40,13 @@ import {
   initializeBrowserTheme,
   setupThemeListener,
   ThemeMode,
+  applyThemeToDOM,
 } from "./theme/themeInit.ts";
 import { getAntdThemeConfig } from "./theme/antdTokens.ts";
 import { IconProvider } from "./icons/IconProvider.tsx";
 import { useEffect, useMemo, useState } from "react";
+import { getConfig } from "./appConfig.ts";
+import { reapplyCssVariables } from "./config/initConfig.ts";
 import { LiveExchanges } from "./components/admin_tools/exchanges/LiveExchanges.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
 
@@ -113,9 +119,18 @@ const router = createBrowserRouter(
 
 const App = () => {
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    return initializeBrowserTheme();
+    const initialTheme = initializeBrowserTheme();
+    return initialTheme;
   });
   const [themeUpdateKey, setThemeUpdateKey] = useState(0);
+
+  useEffect(() => {
+    applyThemeToDOM(theme);
+    const timeoutId = setTimeout(() => {
+      setThemeUpdateKey((prev) => prev + 1);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [theme]);
 
   useEffect(() => {
     return setupThemeListener(setTheme);
@@ -124,6 +139,7 @@ const App = () => {
   useEffect(() => {
     const handleThemeVariablesUpdated = () => {
       setThemeUpdateKey((prev) => prev + 1);
+      reapplyCssVariables();
     };
 
     window.addEventListener(
@@ -136,13 +152,26 @@ const App = () => {
         handleThemeVariablesUpdated,
       );
     };
-  }, []);
+  }, [theme, themeUpdateKey]);
 
   const isDark = theme === "dark" || theme === "high-contrast";
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const config = getConfig();
+  
+  useEffect(() => {
+    if (config.themeOverrides) {
+      setThemeUpdateKey((prev) => prev + 1);
+    }
+    if (config.cssVariables) {
+      reapplyCssVariables();
+    }
+  }, [config.themeOverrides, config.cssVariables]);
+  
   const antdConfig = useMemo(
-    () => getAntdThemeConfig(isDark),
-    [isDark, themeUpdateKey],
+    () => {
+      return getAntdThemeConfig(isDark, config.themeOverrides);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isDark, themeUpdateKey, config.themeOverrides],
   );
 
   return (
@@ -156,7 +185,9 @@ const App = () => {
                   <Navigation
                     showThemeSwitcher
                     currentTheme={theme}
-                    onThemeChange={setTheme}
+                    onThemeChange={(newTheme) => {
+                      setTheme(newTheme);
+                    }}
                   />
                 </Header>
                 <Content className={styles.content}>

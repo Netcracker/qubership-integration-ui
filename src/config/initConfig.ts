@@ -41,3 +41,12 @@ export async function initializeConfiguration(): Promise<void> {
   }
 }
 
+export function reapplyCssVariables(): void {
+  const config = getConfig();
+  if (config.cssVariables) {
+    const varCount = Object.keys(config.cssVariables).length;
+    injectCssVariables(config.cssVariables);
+    console.log(`[QIP UI Config] Reapplied ${varCount} CSS variable(s)`);
+  }
+}
+

@@ -106,19 +106,23 @@ export function applyThemeToDOM(theme: ThemeMode): void {
   document.body.classList.remove('theme-light', 'theme-dark', 'theme-high-contrast');
   document.body.classList.add(`theme-${theme}`);
 
-  const applyInlineVariables = () => {
-    const computedStyle = getComputedStyle(root);
-    let hasChanges = false;
+    const applyInlineVariables = () => {
+      const computedStyle = getComputedStyle(root);
+      let hasChanges = false;
+      const appliedVars: Record<string, string> = {};
+      const missingVars: string[] = [];
 
-    importantVariables.forEach((cssVariable) => {
-      const value = computedStyle.getPropertyValue(cssVariable).trim();
-      if (value) {
-        root.style.setProperty(cssVariable, value);
-        hasChanges = true;
-      } else {
-        root.style.removeProperty(cssVariable);
-      }
-    });
+      importantVariables.forEach((cssVariable) => {
+        const value = computedStyle.getPropertyValue(cssVariable).trim();
+        if (value) {
+          root.style.setProperty(cssVariable, value);
+          appliedVars[cssVariable] = value;
+          hasChanges = true;
+        } else {
+          root.style.removeProperty(cssVariable);
+          missingVars.push(cssVariable);
+        }
+      });
 
     root.classList.add('theme-switching');
     setTimeout(() => {
@@ -146,9 +150,7 @@ export function applyThemeToDOM(theme: ThemeMode): void {
 }
 
 export function initializeBrowserTheme(): ThemeMode {
-  // Always start with system theme, ignore saved theme on first load
   const theme = getSystemTheme();
-  
   applyThemeToDOM(theme);
   
   return theme;

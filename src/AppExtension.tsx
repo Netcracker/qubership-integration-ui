@@ -19,6 +19,8 @@ import { useVSCodeTheme } from "./hooks/useVSCodeTheme.ts";
 import { getAntdThemeConfig } from "./theme/antdTokens.ts";
 import { IconProvider } from "./icons/IconProvider.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
+import { getConfig } from "./appConfig.ts";
+import { reapplyCssVariables } from "./config/initConfig.ts";
 
 const router = createMemoryRouter(
   createRoutesFromElements(
@@ -67,15 +69,16 @@ const router = createMemoryRouter(
 const AppExtension = () => {
   const { isDark } = useVSCodeTheme();
   const [themeUpdateKey, setThemeUpdateKey] = useState(0);
+  const config = getConfig();
   const antdConfig = useMemo(
-    () => getAntdThemeConfig(isDark),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isDark, themeUpdateKey],
+    () => getAntdThemeConfig(isDark, config.themeOverrides),
+    [isDark, themeUpdateKey, config.themeOverrides],
   );
 
   useEffect(() => {
     const handleThemeVariablesUpdated = () => {
       setThemeUpdateKey(prev => prev + 1);
+      reapplyCssVariables();
     };
 
     window.addEventListener("theme-variables-updated", handleThemeVariablesUpdated);
@@ -83,6 +86,15 @@ const AppExtension = () => {
       window.removeEventListener("theme-variables-updated", handleThemeVariablesUpdated);
     };
   }, []);
+  
+  useEffect(() => {
+    if (config.themeOverrides) {
+      setThemeUpdateKey((prev) => prev + 1);
+    }
+    if (config.cssVariables) {
+      reapplyCssVariables();
+    }
+  }, [config.themeOverrides, config.cssVariables]);
 
   if (api instanceof VSCodeExtensionApi) {
     void api.sendMessageToExtension(STARTUP_EVENT);

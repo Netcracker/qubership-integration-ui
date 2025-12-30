@@ -3,7 +3,7 @@ const loadedCssFiles = new Set<string>();
 
 export function injectCssVariables(variables: Record<string, string>): void {
   let styleElement = document.getElementById(CSS_VARIABLES_STYLE_ID) as HTMLStyleElement;
-  
+
   if (!styleElement) {
     styleElement = document.createElement("style");
     styleElement.id = CSS_VARIABLES_STYLE_ID;
@@ -47,4 +47,3 @@ export function loadCssFiles(urls: string[]): Promise<void> {
     console.warn(`Failed to load CSS file ${url}:`, error);
   }))).then(() => undefined);
 }
-

@@ -8,15 +8,15 @@ export type AppConfig = {
   cssVariables?: Record<string, string>;
   additionalCss?: string[];
   themeOverrides?: Partial<ThemeConfig>;
+  dev?: boolean;
 };
 
 const appConfigValue: AppConfig = {
   appName: import.meta.env.VITE_API_APP,
   apiGateway: import.meta.env.VITE_GATEWAY,
   icons: {},
+  dev: import.meta.env.DEV,
 };
-
-let appIcons: IconOverrides = {};
 
 function setAppName(name: string | undefined | null): void {
   if (typeof name === "string" && name.length > 0) {
@@ -26,7 +26,6 @@ function setAppName(name: string | undefined | null): void {
 
 export function setIcons(icons?: IconOverrides) {
   if (icons) {
-    appIcons = icons;
     appConfigValue.icons = icons;
   }
 }
@@ -36,11 +35,15 @@ export function getAppName(): string {
 }
 
 export function getIcons(): IconOverrides {
-  return appIcons;
+  return appConfigValue.icons || {};
 }
 
 export function getConfig(): AppConfig {
   return { ...appConfigValue };
+}
+
+export function isDev(): boolean {
+  return appConfigValue.dev ?? import.meta.env.DEV;
 }
 
 export function configure(config: Partial<AppConfig>): void {
@@ -73,6 +76,11 @@ export function configure(config: Partial<AppConfig>): void {
   if (config.themeOverrides !== undefined) {
     appConfigValue.themeOverrides = config.themeOverrides;
     overrides.push(`themeOverrides: theme configuration overridden`);
+  }
+  if (config.dev !== undefined) {
+    const oldValue = appConfigValue.dev;
+    appConfigValue.dev = config.dev;
+    overrides.push(`dev: ${oldValue} -> ${config.dev}`);
   }
 
   if (overrides.length > 0) {
@@ -141,6 +149,7 @@ export type AppExtensionProps = {
   cssVariables?: Record<string, string>;
   additionalCss?: string[];
   themeOverrides?: Partial<ThemeConfig>;
+  dev?: boolean;
 };
 
 export async function configureAppExtension(message: AppExtensionProps): Promise<void> {
