@@ -2,7 +2,6 @@ import {
   Breadcrumb,
   Button,
   Dropdown,
-  Input,
   Flex,
   FloatButton,
   MenuProps,
@@ -23,13 +22,15 @@ import {
 } from "../api/apiTypes.ts";
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
-import type { TableProps } from "antd";
+import { TableProps } from "antd/lib/table";
 import { TextColumnFilterDropdown } from "../components/table/TextColumnFilterDropdown.tsx";
 import { formatTimestamp } from "../misc/format-utils.ts";
 import { TimestampColumnFilterDropdown } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import { TableRowSelection } from "antd/lib/table/interface";
-import type { BreadcrumbProps } from "antd";
+import Search from "antd/lib/input/Search";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
+import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { DeploymentsCumulativeState } from "../components/deployment_runtime_states/DeploymentsCumulativeState.tsx";
 import { FolderEdit, FolderEditMode } from "../components/modal/FolderEdit.tsx";
 import { ChainCreate } from "../components/modal/ChainCreate.tsx";
@@ -928,7 +929,7 @@ const Chains = () => {
           <Breadcrumb items={pathItems} />
         ) : null}
         <Flex vertical={false} gap={8}>
-          <Input.Search
+          <Search
             placeholder="Full text search"
             allowClear
             onSearch={(value) => setSearchString(value)}
@@ -970,7 +971,7 @@ const Chains = () => {
             },
           }}
         />
-        <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
+        <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
           <FloatButton
             tooltip={{ title: "Deploy selected chains", placement: "left" }}
             icon={<OverridableIcon name="send" />}
@@ -1014,7 +1015,7 @@ const Chains = () => {
             icon={<OverridableIcon name="fileAdd" />}
             onClick={() => onCreateChainBtnClick(getFolderId())}
           />
-        </FloatButton.Group>
+        </FloatButtonGroup>
       </Flex>
     </>
   );

@@ -19,7 +19,6 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
-  Checkbox,
   Dropdown,
   Flex,
   Modal,
@@ -29,15 +28,16 @@ import {
   Table,
   Tabs,
   Tag,
-  Upload,
   UploadFile,
 } from "antd";
+import Dragger from "antd/es/upload/Dragger";
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import { api } from "../../api/api.ts";
-import type { TableProps } from "antd";
+import { TableProps } from "antd/lib/table";
 import { InlineEdit } from "../InlineEdit.tsx";
 import { capitalize } from "../../misc/format-utils.ts";
 import { SelectEdit } from "../table/SelectEdit.tsx";
+import Checkbox from "antd/lib/checkbox";
 import { ImportStatus } from "../labels/ImportStatus.tsx";
 import { useNotificationService } from "../../hooks/useNotificationService.tsx";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
@@ -607,7 +607,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
         />
         {
           [
-            <Upload.Dragger
+            <Dragger
               key={1}
               rootClassName="flex-dragger"
               multiple={false}
@@ -621,7 +621,7 @@ export const ImportChains: React.FC<ImportChainsProps> = ({ onSuccess }) => {
               <p className="ant-upload-text">
                 Click or drag file to this area to upload
               </p>
-            </Upload.Dragger>,
+            </Dragger>,
             <Tabs
               key={2}
               className="flex-tabs"

@@ -2,7 +2,7 @@ import React from "react";
 import { FloatButton, Table, Tooltip } from "antd";
 import { useDeployments } from "../hooks/useDeployments.tsx";
 import { useParams } from "react-router";
-import type { TableProps } from "antd";
+import { TableProps } from "antd/lib/table";
 import { CreateDeploymentRequest, Deployment } from "../api/apiTypes.ts";
 import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";

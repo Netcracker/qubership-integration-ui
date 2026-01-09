@@ -19,6 +19,7 @@ import {
   isKafkaProtocol,
   normalizeProtocol,
 } from "../../misc/protocol-utils";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { downloadFile } from "../../misc/download-utils.ts";
 
 interface ServiceEnvironmentsTabProps {
@@ -316,7 +317,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       )}
       <>
         {!isVsCode && (
-          <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
+          <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
             <FloatButton
               tooltip={{ title: "Export service", placement: "left" }}
               icon={<OverridableIcon name="cloudDownload" />}
@@ -334,7 +335,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
                 })();
               }}
             />
-          </FloatButton.Group>
+          </FloatButtonGroup>
         )}
       </>
       <Table

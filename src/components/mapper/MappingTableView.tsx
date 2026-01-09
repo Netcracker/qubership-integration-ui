@@ -21,8 +21,8 @@ import {
   Space,
   Table,
   TableProps,
-  Input
 } from "antd";
+import Search from "antd/lib/input/Search";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   exportAsMarkdown,
@@ -1734,7 +1734,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               setSelectedSchema(event.target.value as SchemaKind)
             }
           />
-          <Input.Search
+          <Search
             placeholder="Full text search"
             allowClear
             value={searchString}

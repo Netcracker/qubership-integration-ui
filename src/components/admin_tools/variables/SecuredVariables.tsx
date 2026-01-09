@@ -23,6 +23,7 @@ import {
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { LongActionButton } from "../../LongActionButton.tsx";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
@@ -431,7 +432,7 @@ export const SecuredVariables: React.FC = () => {
         sticky
         scroll={{ y: "" }}
       />
-      <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
+      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           tooltip={{
             title: "Delete selected variables",
@@ -452,7 +453,7 @@ export const SecuredVariables: React.FC = () => {
           icon={<OverridableIcon name="plus" />}
           onClick={() => setCreateModalVisible(true)}
         />
-      </FloatButton.Group>
+      </FloatButtonGroup>
     </Flex>
   );
 };

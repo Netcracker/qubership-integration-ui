@@ -3,10 +3,11 @@ import { Button, Dropdown, FloatButton, Modal, Table } from "antd";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
-import type { TableProps } from "antd";
+import { TableProps } from "antd/lib/table";
 import { DiagramMode, EntityLabel, Snapshot } from "../api/apiTypes.ts";
 import { formatTimestamp } from "../misc/format-utils.ts";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { TableRowSelection } from "antd/lib/table/interface";
 import { api } from "../api/api.ts";
 import { SnapshotXmlView } from "../components/modal/SnapshotXml.tsx";
@@ -322,7 +323,7 @@ export const Snapshots: React.FC = () => {
         style={{ height: "100%" }}
         scroll={{ y: "" }}
       />
-      <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
+      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           tooltip={{ title: "Compare selected snapshots", placement: "left" }}
           icon={<>⇄</>}
@@ -338,7 +339,7 @@ export const Snapshots: React.FC = () => {
           icon={<OverridableIcon name="plus" />}
           onClick={onCreateBtnClick}
         />
-      </FloatButton.Group>
+      </FloatButtonGroup>
     </>
   );
 };

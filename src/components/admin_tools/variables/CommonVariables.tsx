@@ -9,6 +9,7 @@ import { variablesApi } from "../../../api/admin-tools/variables/variablesApi.ts
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { ApiResponse, Variable } from "../../../api/admin-tools/variables/types.ts";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
@@ -115,7 +116,7 @@ export const CommonVariables = () => {
         columnsWidth={columnsWidth}
         onResize={handleResize}
       />
-      <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
+      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           tooltip={{ title: "Import variables", placement: "left" }}
           icon={<OverridableIcon name="cloudUpload" />}
@@ -155,7 +156,7 @@ export const CommonVariables = () => {
           icon={<OverridableIcon name="plus" />}
           onClick={() => setIsAddingNew(true)}
         />
-      </FloatButton.Group>
+      </FloatButtonGroup>
     </Flex>
   );
 };

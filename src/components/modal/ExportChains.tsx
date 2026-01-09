@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useModalContext } from "../../ModalContextProvider.tsx";
-import { Button, Checkbox, Form, Modal } from "antd";
+import { Button, Form, Modal } from "antd";
+import Checkbox from "antd/lib/checkbox";
 import styles from "./ExportChains.module.css";
 
 export type ExportChainOptions = {

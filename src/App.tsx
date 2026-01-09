@@ -16,6 +16,7 @@ import { Snapshots } from "./pages/Snapshots.tsx";
 import { Deployments } from "./pages/Deployments.tsx";
 import { ChainGraph } from "./pages/ChainGraph.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
+import { Content } from "antd/es/layout/layout";
 import { LoggingSettings } from "./pages/LoggingSettings.tsx";
 import { Sessions } from "./pages/Sessions.tsx";
 import { SessionPage } from "./pages/SessionPage.tsx";
@@ -141,9 +142,9 @@ const App = () => {
                     onThemeChange={setTheme}
                   />
                 </Header>
-                <Layout.Content className={styles.content}>
+                <Content className={styles.content}>
                   <RouterProvider router={router} />
-                </Layout.Content>
+                </Content>
               </Modals>
             </EventNotification>
           </Layout>

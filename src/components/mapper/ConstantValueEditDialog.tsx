@@ -5,7 +5,7 @@ import {
   ValueGenerator,
   ValueSupplier,
 } from "../../mapper/model/model";
-import { Checkbox } from "antd";
+import Checkbox from "antd/lib/checkbox";
 import React, { useEffect, useState } from "react";
 import { getGeneratorsForType } from "../../mapper/model/generators";
 import { TransformationInfo } from "../../mapper/model/transformations";

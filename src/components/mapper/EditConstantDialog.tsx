@@ -6,7 +6,7 @@ import {
 } from "../../mapper/model/model.ts";
 import { Button, Flex, Form, Input, Modal, Select, SelectProps } from "antd";
 import { DataTypes } from "../../mapper/util/types.ts";
-import { Checkbox } from "antd";
+import Checkbox from "antd/lib/checkbox";
 import React, { useEffect, useMemo, useState } from "react";
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import { buildTypeOptions } from "./InlineTypeEdit.tsx";

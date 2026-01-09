@@ -5,6 +5,7 @@ import { App as AntdApp, ConfigProvider, Layout } from "antd";
 import styles from "./App.module.css";
 import { Modals } from "./Modals.tsx";
 import { ChainGraph } from "./pages/ChainGraph.tsx";
+import { Content } from "antd/es/layout/layout";
 import { ChainProperties } from "./pages/ChainProperties.tsx";
 import { EventNotification } from "./components/notifications/EventNotification.tsx";
 import DefaultExtensionPage from "./pages/DefaultExtensionPage.tsx";
@@ -105,9 +106,9 @@ const AppExtension = () => {
           <Layout className={styles.layout}>
             <EventNotification>
               <Modals>
-                <Layout.Content className={styles.content}>
+                <Content className={styles.content}>
                   <RouterProvider router={router}/>
-                </Layout.Content>
+                </Content>
               </Modals>
             </EventNotification>
           </Layout>

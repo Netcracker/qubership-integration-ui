@@ -1,6 +1,7 @@
-import { Button, Modal, Upload, UploadFile } from "antd";
+import { Button, Modal, UploadFile } from "antd";
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import React, { useState } from "react";
+import Dragger from "antd/es/upload/Dragger";
 import styles from "./ImportSessions.module.css";
 import { api } from "../../api/api.ts";
 import { Session } from "../../api/apiTypes.ts";
@@ -61,7 +62,7 @@ export const ImportSessions: React.FC<ImportSessionsProps> = ({
         </Button>,
       ]}
     >
-      <Upload.Dragger
+      <Dragger
         multiple
         className={styles.uploadDialog}
         fileList={fileList}
@@ -81,7 +82,7 @@ export const ImportSessions: React.FC<ImportSessionsProps> = ({
           references to the chain elements, as well as navigation buttons,
           won&apos;t be available.
         </p>
-      </Upload.Dragger>
+      </Dragger>
     </Modal>
   );
 };

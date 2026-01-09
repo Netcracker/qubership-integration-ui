@@ -11,7 +11,7 @@ import {
   Table,
   Typography,
 } from "antd";
-import type { TableProps } from "antd";
+import { TableProps } from "antd/lib/table";
 import React, { UIEvent, useRef, useState } from "react";
 import { useActionLog } from "../../hooks/useActionLog.tsx";
 import {capitalize, formatSnakeCased, formatTimestamp} from "../../misc/format-utils.ts";
@@ -29,6 +29,7 @@ import {
 import { makeEnumColumnFilterDropdown } from "../EnumColumnFilterDropdown.tsx";
 import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
 import { ResizableTitle } from "../ResizableTitle.tsx";
+import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import commonStyles from "./CommonStyle.module.css";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
@@ -576,7 +577,7 @@ export const ActionsLog: React.FC = () => {
                 };
               }}
             />
-            <FloatButton.Group trigger="hover" icon={<OverridableIcon name="more" />}>
+            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
               <FloatButton
                 tooltip={{ title: "Refresh", placement: "left" }}
                 icon={<OverridableIcon name="redo" />}
@@ -600,7 +601,7 @@ export const ActionsLog: React.FC = () => {
                   }}
                 />
               )}
-            </FloatButton.Group>
+            </FloatButtonGroup>
             <div ref={observerRef} style={{ height: 1 }} />
           </div>
         </Flex>

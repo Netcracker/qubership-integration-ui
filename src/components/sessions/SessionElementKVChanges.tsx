@@ -1,6 +1,6 @@
 import React, { ReactNode, useEffect, useState } from "react";
 import { Flex, Switch, Table } from "antd";
-import type { TableProps } from "antd";
+import { TableProps } from "antd/lib/table";
 import { PLACEHOLDER } from "../../misc/format-utils.ts";
 
 type ValueRenderer<ValueType = unknown> = (value: ValueType) => ReactNode;

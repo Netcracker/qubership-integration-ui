@@ -1,7 +1,9 @@
-import { Button, Checkbox, Flex, Form, Input, InputRef, Modal, Select, Tabs } from "antd";
+import { Button, Flex, Form, Input, InputRef, Modal, Select, Tabs } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import { ChainCreationRequest } from "../../api/apiTypes.ts";
+import TextArea from "antd/lib/input/TextArea";
+import Checkbox from "antd/lib/checkbox";
 import { FieldData } from "rc-field-form/lib/interface";
 
 export type ChainCreateProps = {
@@ -119,7 +121,7 @@ export const ChainCreate: React.FC<ChainCreateProps> = ({ onSubmit }) => {
                     />
                   </Form.Item>
                   <Form.Item label="Description" name="description">
-                    <Input.TextArea style={{ height: 120, resize: "none" }} />
+                    <TextArea style={{ height: 120, resize: "none" }} />
                   </Form.Item>
                 </>
               ),
@@ -133,13 +135,13 @@ export const ChainCreate: React.FC<ChainCreateProps> = ({ onSubmit }) => {
                     label="Business Description"
                     name="businessDescription"
                   >
-                    <Input.TextArea style={{ height: 120, resize: "none" }} />
+                    <TextArea style={{ height: 120, resize: "none" }} />
                   </Form.Item>
                   <Form.Item label="Assumptions" name="assumptions">
-                    <Input.TextArea style={{ height: 120, resize: "none" }} />
+                    <TextArea style={{ height: 120, resize: "none" }} />
                   </Form.Item>
                   <Form.Item label="Out of Scope" name="outOfScope">
-                    <Input.TextArea style={{ height: 120, resize: "none" }} />
+                    <TextArea style={{ height: 120, resize: "none" }} />
                   </Form.Item>
                 </>
               ),
