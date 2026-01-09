@@ -76,12 +76,12 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
 
   const handleRolesChange = (roles: string[] | []) => {
     const rolesArray = Array.isArray(roles) ? roles : [];
-    
+
     if (!isDeleteMode && rolesArray.length < selectedRoles.length) {
       form.setFieldsValue({ roles: selectedRoles });
       return;
     }
-    
+
     setSelectedRoles(rolesArray);
     form.setFieldsValue({ roles: rolesArray });
   };
@@ -118,9 +118,9 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
         labelCol={{ flex: "23px" }}
         wrapperCol={{ flex: "auto" }}
         labelWrap
-        initialValues={{ 
+        initialValues={{
           roles: isDeleteMode ? [] : (record?.properties?.roles || []),
-          redeploy: false 
+          redeploy: false
         }}
       >
         <Form.Item name="roles">
@@ -136,7 +136,7 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
         </Form.Item>
         <Form.Item name="redeploy" valuePropName="checked">
           <Checkbox>
-            Redeploy selected chain to apply changes
+            Redeploy selected chain
           </Checkbox>
         </Form.Item>
       </Form>
