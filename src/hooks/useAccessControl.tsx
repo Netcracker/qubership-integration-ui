@@ -32,7 +32,7 @@ export const useAccessControl = () => {
     );
 
     const updateAccessControl = useCallback(
-        async (searchRequest: AccessControlUpdateRequest) => {
+        async (searchRequest: AccessControlUpdateRequest[]) => {
             try {
                 const elementChange = await api.updateHttpTriggerAccessControl(searchRequest);
                 setAccessControlData(elementChange);

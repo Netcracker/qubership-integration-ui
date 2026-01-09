@@ -17,11 +17,16 @@ import commonStyles from "../CommonStyle.module.css";
 import {OverridableIcon} from "../../../icons/IconProvider.tsx";
 import {makeEnumColumnFilterDropdown} from "../../EnumColumnFilterDropdown.tsx";
 import {AccessControlType, AccessControlProperty, AccessControlResponse, AccessControl as AccessControlData} from "../../../api/apiTypes.ts";
+import type { FilterDropdownProps } from "antd/lib/table/interface";
+import {
+    getTextColumnFilterFn,
+    TextColumnFilterDropdown,
+} from "../../table/TextColumnFilterDropdown.tsx";
 import {useAccessControl} from "../../../hooks/useAccessControl.tsx";
 import {ColumnsType} from "antd/es/table";
 import {useModalsContext} from "../../../Modals.tsx";
 import {AbacAttributesPopUp} from "./AbacAttributesPopUp.tsx";
-import {ModificationPopUp} from "./ModificationPopUp.tsx";
+import {AddDeleteRolesPopUp} from "./AddDeleteRolesPopUp.tsx";
 import {useNavigate} from "react-router";
 import {DeploymentsCumulativeState} from "../../deployment_runtime_states/DeploymentsCumulativeState.tsx";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
@@ -37,6 +42,20 @@ const columnVisibilityMenuItems: MenuProps["items"] = [
     {label: "Attributes", key: "attributes"},
     {label: "Chain", key: "chain"},
     {label: "Chain Status", key: "chainStatus"},
+];
+
+const typeOptions = [
+    { label: "External", value: "External" },
+    { label: "Private", value: "Private" },
+    { label: "Internal", value: "Internal" },
+    { label: "External, Private", value: "External, Private" },
+];
+
+const chainStatusOptions = [
+    { label: "Draft", value: "DRAFT" },
+    { label: "Deployed", value: "DEPLOYED" },
+    { label: "Failed", value: "FAILED" },
+    { label: "Processing", value: "PROCESSING" },
 ];
 
 const accessControlTypeOptions = Object.values(AccessControlType).map(
@@ -89,17 +108,16 @@ export const AccessControl: React.FC = () => {
         0,
     );
 
-    const {filterDropdown: accessControlTypeFilter} =
+    const {filterDropdown: accessControlTypeFilter, onFilter: accessControlTypeOnFilter} =
         makeEnumColumnFilterDropdown(accessControlTypeOptions, "accessControlType", true);
 
-    const accessControlTypeOnFilter = (
-        value: AccessControlType | React.Key | number | boolean,
-        record: AccessControlProperty,
-    ) => record.accessControlType === value;
+    const {filterDropdown: typeFilter, onFilter: typeOnFilter} =
+        makeEnumColumnFilterDropdown(typeOptions, "type", true);
 
-    const onScroll = async (event: UIEvent<HTMLDivElement>) => {
+    const {filterDropdown: chainStatusFilter, onFilter: chainStatusOnFilter} =
+        makeEnumColumnFilterDropdown(chainStatusOptions, "chainStatus", true);
 
-    };
+    const onScroll = async (event: UIEvent<HTMLDivElement>) => {};
 
     const showDrawer = (record: AccessControlData) => {
         setCurrentRecord(record);
@@ -116,6 +134,13 @@ export const AccessControl: React.FC = () => {
             title: "Endpoint",
             dataIndex: "endpoint",
             key: "endpoint",
+            sorter: {
+                compare: (a: AccessControlData, b: AccessControlData) => {
+                    const aPath = (a.properties as any)?.contextPath || "";
+                    const bPath = (b.properties as any)?.contextPath || "";
+                    return String(aPath).localeCompare(String(bPath));
+                },
+            },
             render: (_, record: AccessControlData) => {
                 if (record.chainId) {
                     return (
@@ -130,6 +155,15 @@ export const AccessControl: React.FC = () => {
         {
             title: "Type",
             key: "type",
+            filterDropdown: typeFilter,
+            onFilter: (value: React.Key | boolean, record: AccessControlData) => {
+                const { externalRoute, privateRoute } = (record.properties as any) || {};
+                const recordType = externalRoute && privateRoute ? "External, Private" :
+                    externalRoute ? "External" :
+                        privateRoute ? "Private" :
+                            "Internal";
+                return recordType === value;
+            },
             render: (_, record: AccessControlData) => {
                 const { externalRoute, privateRoute } = record.properties || {};
                 return <>{
@@ -145,6 +179,11 @@ export const AccessControl: React.FC = () => {
             key: "accessControlType",
             dataIndex: "accessControlType",
             hidden: !selectedKeys.includes("accessControlType"),
+            filterDropdown: accessControlTypeFilter,
+            onFilter: (value: React.Key | boolean, record: AccessControlData) => {
+                const recordValue = (record.properties as any)?.accessControlType;
+                return recordValue === value;
+            },
             render: (_, record: AccessControlData) => {
                 return <>{record.properties?.accessControlType || "—"}</>;
             }
@@ -152,6 +191,16 @@ export const AccessControl: React.FC = () => {
         {
             title: "Roles",
             key: "roles",
+            filterDropdown: (props: FilterDropdownProps) => (
+                <TextColumnFilterDropdown {...props} />
+            ),
+            onFilter: getTextColumnFilterFn((record: AccessControlData) => {
+                const roles = (record.properties as any)?.roles;
+                if (roles && Array.isArray(roles) && roles.length > 0) {
+                    return roles.join(" ");
+                }
+                return "";
+            }),
             render: (_, record: AccessControlData) => {
                 const roles = record.properties?.roles;
                 if (roles && Array.isArray(roles) && roles.length > 0) {
@@ -191,6 +240,12 @@ export const AccessControl: React.FC = () => {
         {
             title: "Chain",
             key: "chain",
+            filterDropdown: (props: FilterDropdownProps) => (
+                <TextColumnFilterDropdown {...props} />
+            ),
+            onFilter: getTextColumnFilterFn((record: AccessControlData) =>
+                record?.chainName ? record.chainName : "",
+            ),
             render: (_, record: AccessControlData) => {
                 if (record.chainId) {
                     return (
@@ -205,6 +260,26 @@ export const AccessControl: React.FC = () => {
         {
             title: "Chain Status",
             key: "chainStatus",
+            filterDropdown: chainStatusFilter,
+            onFilter: (value: React.Key | boolean, record: AccessControlData) => {
+                if (!record.chainId || !record.deploymentStatus || record.deploymentStatus.length === 0) {
+                    return value === "DRAFT";
+                }
+                const statuses = new Set(record.deploymentStatus.map(s => s.toUpperCase()));
+                if (statuses.size === 0) {
+                    return value === "DRAFT";
+                } else if (statuses.size === 1) {
+                    return statuses.has(value as string);
+                } else {
+                    const priority = ["PROCESSING", "FAILED", "DEPLOYED", "DRAFT"];
+                    for (const status of priority) {
+                        if (statuses.has(status)) {
+                            return status === value;
+                        }
+                    }
+                    return false;
+                }
+            },
             render: (_, record: AccessControlData) => {
                 if (record.chainId) {
                     return <DeploymentsCumulativeState chainId={record.chainId} />;
@@ -253,7 +328,7 @@ export const AccessControl: React.FC = () => {
             >
                 {currentRecord && (
                     <Drawer
-                        title="Access Control Details"
+                        title="Endpoint Details"
                         placement="right"
                         open={openSidebar}
                         closable={false}
@@ -400,11 +475,7 @@ export const AccessControl: React.FC = () => {
             </Flex>
             <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
                 <FloatButton
-                    tooltip={{ title: "Redeploy", placement: "left" }}
-                    icon={<OverridableIcon name="send" />}
-                />
-                <FloatButton
-                    tooltip={{ title: "Add", placement: "left" }}
+                    tooltip={{ title: "Add Roles", placement: "left" }}
                     icon={<OverridableIcon name="plus" />}
                     onClick={() => {
                         if (selectedRowKeys.length === 0) {
@@ -423,7 +494,7 @@ export const AccessControl: React.FC = () => {
                             }
                             showModal({
                                 component: (
-                                    <ModificationPopUp
+                                    <AddDeleteRolesPopUp
                                         record={selectedRecord}
                                         onSuccess={() => void getAccessControl()}
                                     />
@@ -435,7 +506,7 @@ export const AccessControl: React.FC = () => {
                     }}
                 />
                 <FloatButton
-                    tooltip={{ title: "Delete", placement: "left" }}
+                    tooltip={{ title: "Delete Roles", placement: "left" }}
                     icon={<OverridableIcon name="minus" />}
                     onClick={() => {
                         if (selectedRowKeys.length === 0) {
@@ -454,7 +525,7 @@ export const AccessControl: React.FC = () => {
                             }
                             showModal({
                                 component: (
-                                    <ModificationPopUp
+                                    <AddDeleteRolesPopUp
                                         record={selectedRecord}
                                         mode="delete"
                                         onSuccess={() => void getAccessControl()}

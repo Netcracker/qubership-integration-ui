@@ -463,7 +463,7 @@ export interface Api {
   ): Promise<AccessControlResponse>;
 
   updateHttpTriggerAccessControl(
-      searchRequest: AccessControlUpdateRequest,
+      searchRequest: AccessControlUpdateRequest[],
   ): Promise<AccessControlResponse>;
 }
 

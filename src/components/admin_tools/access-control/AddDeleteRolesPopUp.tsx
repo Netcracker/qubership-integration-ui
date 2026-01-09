@@ -3,17 +3,18 @@ import React, { useState, useEffect } from "react";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import { AccessControl as AccessControlData, AccessControlUpdateRequest } from "../../../api/apiTypes.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
-import { api } from "../../../api/api.ts";
+import { useAccessControl } from "../../../hooks/useAccessControl.tsx";
 
-export type ModificationPopUpProps = {
+export type AddDeleteRolesPopUpProps = {
   record?: AccessControlData;
   onSuccess?: () => void;
   mode?: "add" | "delete";
 };
 
-export const ModificationPopUp: React.FC<ModificationPopUpProps> = ({ record, onSuccess, mode = "add" }) => {
+export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record, onSuccess, mode = "add" }) => {
   const { closeContainingModal } = useModalContext();
   const notificationService = useNotificationService();
+  const { updateAccessControl } = useAccessControl();
   const [form] = Form.useForm();
   const getInitialRoles = (): string[] => {
     const roles = record?.properties?.roles;
@@ -24,17 +25,16 @@ export const ModificationPopUp: React.FC<ModificationPopUpProps> = ({ record, on
   const [selectedRoles, setSelectedRoles] = useState<string[]>(
     isDeleteMode ? [] : getInitialRoles()
   );
-  const [isRedeploy, setIsRedeploy] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isDeleteMode) {
       setSelectedRoles([]);
-      form.setFieldsValue({ roles: [] });
+      form.setFieldsValue({ roles: [], redeploy: false });
     } else {
       const roles = getInitialRoles();
       setSelectedRoles(roles);
-      form.setFieldsValue({ roles });
+      form.setFieldsValue({ roles, redeploy: false });
     }
   }, [record, form, isDeleteMode]);
 
@@ -51,24 +51,19 @@ export const ModificationPopUp: React.FC<ModificationPopUpProps> = ({ record, on
 
     try {
       setIsLoading(true);
-      const elementIdNumber = parseInt(record.elementId, 10);
-      if (isNaN(elementIdNumber)) {
-        notificationService.info("Error", "Invalid Element ID");
-        return;
-      }
 
-      // For delete mode, calculate remaining roles after deletion
+      const formValues = form.getFieldsValue();
       const finalRoles = isDeleteMode
         ? currentRoles.filter(role => !selectedRoles.includes(role))
         : selectedRoles;
 
       const updateRequest: AccessControlUpdateRequest = {
-        elementId: elementIdNumber,
-        isRedeploy: isRedeploy,
+        elementId: record.elementId,
+        isRedeploy: formValues.redeploy || false,
         roles: finalRoles,
       };
 
-      await api.updateHttpTriggerAccessControl(updateRequest);
+      await updateAccessControl([updateRequest]);
       notificationService.info("Success", isDeleteMode ? "Roles deleted successfully" : "Roles updated successfully");
       onSuccess?.();
       closeContainingModal();
@@ -81,6 +76,12 @@ export const ModificationPopUp: React.FC<ModificationPopUpProps> = ({ record, on
 
   const handleRolesChange = (roles: string[] | []) => {
     const rolesArray = Array.isArray(roles) ? roles : [];
+    
+    if (!isDeleteMode && rolesArray.length < selectedRoles.length) {
+      form.setFieldsValue({ roles: selectedRoles });
+      return;
+    }
+    
     setSelectedRoles(rolesArray);
     form.setFieldsValue({ roles: rolesArray });
   };
@@ -117,7 +118,10 @@ export const ModificationPopUp: React.FC<ModificationPopUpProps> = ({ record, on
         labelCol={{ flex: "23px" }}
         wrapperCol={{ flex: "auto" }}
         labelWrap
-        initialValues={{ roles: isDeleteMode ? [] : (record?.properties?.roles || []) }}
+        initialValues={{ 
+          roles: isDeleteMode ? [] : (record?.properties?.roles || []),
+          redeploy: false 
+        }}
       >
         <Form.Item name="roles">
           <Select
@@ -131,10 +135,7 @@ export const ModificationPopUp: React.FC<ModificationPopUpProps> = ({ record, on
           />
         </Form.Item>
         <Form.Item name="redeploy" valuePropName="checked">
-          <Checkbox
-            checked={isRedeploy}
-            onChange={(e) => setIsRedeploy(e.target.checked)}
-          >
+          <Checkbox>
             Redeploy selected chain to apply changes
           </Checkbox>
         </Form.Item>
@@ -142,4 +143,3 @@ export const ModificationPopUp: React.FC<ModificationPopUpProps> = ({ record, on
     </Modal>
   );
 };
-

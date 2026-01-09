@@ -1161,7 +1161,7 @@ export type AccessControlSearchRequest = {
 };
 
 export type AccessControlUpdateRequest = {
-    elementId: number;
+    elementId: string;
     isRedeploy: boolean;
     roles: string[];
 };

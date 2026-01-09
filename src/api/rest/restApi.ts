@@ -1488,7 +1488,7 @@ export class RestApi implements Api {
   };
 
   updateHttpTriggerAccessControl = async (
-      searchRequest: AccessControlUpdateRequest
+      searchRequest: AccessControlUpdateRequest[]
   ): Promise<AccessControlResponse> => {
       const response = await this.instance.put<AccessControlResponse>(
           `/api/v1/${getAppName()}/catalog/chains/roles`,
