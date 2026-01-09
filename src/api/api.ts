@@ -63,7 +63,8 @@ import {
     ContextSystem,
     IntegrationSystemType,
     AccessControlSearchRequest,
-    AccessControlResponse, AccessControlUpdateRequest,
+    AccessControlResponse,
+    AccessControlUpdateRequest,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";

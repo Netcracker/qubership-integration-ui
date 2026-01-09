@@ -70,7 +70,8 @@ import {
     ContextSystem,
     IntegrationSystemType,
     AccessControlSearchRequest,
-    AccessControlResponse, AccessControlUpdateRequest, AccessControlProperty,
+    AccessControlResponse,
+    AccessControlUpdateRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
