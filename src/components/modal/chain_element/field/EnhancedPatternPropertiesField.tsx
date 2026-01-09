@@ -5,6 +5,7 @@ import styles from "./EnhancedPatternPropertiesField.module.css";
 import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
 import { api } from "../../../../api/api";
+import { QueryParametersCheckbox } from "./QueryParametersCheckbox";
 import {
   isAmqpProtocol,
   isKafkaProtocol,
@@ -224,14 +225,25 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   const [isEnvironmentLoaded, setIsEnvironmentLoaded] = useState<boolean>(false);
   const formContext = registry.formContext;
 
+  const paramType = useMemo(() => determineParamType(fieldPathId.$id), [fieldPathId.$id]);
+  const updateContext = registry.formContext.updateContext;
+
   const emitChange = useCallback(
     (value: Record<string, string>) => {
-      onChange(value, fieldPathId.path);
+      if (paramType === "query") {
+        updateContext?.({
+          integrationOperationQueryParameters: { ...value },
+        });
+      } else if (paramType == "path") {
+        updateContext?.({
+          integrationOperationPathParameters: { ...value },
+        });
+      } else {
+        onChange(value, fieldPathId.path);
+      }
     },
-    [fieldPathId.path, onChange],
+    [fieldPathId.path, onChange, updateContext, paramType],
   );
-
-  const paramType = useMemo(() => determineParamType(fieldPathId.$id), [fieldPathId.$id]);
 
   const title = useMemo(() => {
     if (paramType === 'async') {
@@ -245,7 +257,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       }
     }
     return schema?.title || uiSchema?.["ui:title"] || "Items";
-  }, [paramType, formContext, schema?.title, uiSchema]);
+  }, [paramType, formContext.integrationOperationProtocolType, schema?.title, uiSchema]);
 
   const rowCount = Object.entries(formData).length;
   const [collapsed, setCollapsed] = useState(!(rowCount > 0));
@@ -318,7 +330,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       setIsMaasEnvironment(false);
       setIsEnvironmentLoaded(true);
     }
-  }, [formContext]);
+  }, [formContext.integrationSystemId]);
 
   useEffect(() => {
     void loadOperationSpecification();
@@ -592,82 +604,91 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
             No entries. Click <b>+</b> to add.
           </div>
         ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.th}>Name</th>
-                <th className={styles.th}>Value</th>
-                <th className={styles.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {mergedParameters.map((param, idx) => {
-                const displayedValue = localValues[param.name] ?? param.value;
-                const hasValue =
-                  displayedValue !== undefined &&
-                  String(displayedValue).trim().length > 0;
-                const rowClass =
-                  param.required && !hasValue ? styles.requiredRow : '';
+          <>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.th}>Name</th>
+                  <th className={styles.th}>Value</th>
+                  <th className={styles.th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {mergedParameters.map((param, idx) => {
+                  const displayedValue = localValues[param.name] ?? param.value;
+                  const hasValue =
+                    displayedValue !== undefined &&
+                    String(displayedValue).trim().length > 0;
+                  const rowClass =
+                    param.required && !hasValue ? styles.requiredRow : '';
 
-                return (
-                  <tr key={idx} className={rowClass}>
-                  <td className={styles.td}>
-                    <div className={styles.nameCell}>
-                      {param.canDelete && param.source === 'custom' ? (
-                        <Input
-                          value={param.name}
-                          onChange={(e) => handleKeyChange(param.name, e.target.value)}
-                          disabled={disabled || readonly}
-                          placeholder="Name"
-                        />
-                      ) : (
-                        <span className={styles.paramName}>{param.name}</span>
-                      )}
-                      {(param.isOverridden || param.deprecated) && (
-                        <div className={styles.labels}>
-                          {param.isOverridden && <Tag className={styles.overriddenTag}>Overridden</Tag>}
-                          {param.deprecated && <Tag className={styles.deprecatedTag}>Deprecated</Tag>}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className={styles.td}>
-                    <Input
-                      value={localValues[param.name] ?? param.value}
-                      onChange={(e) => handleValueChange(param.name, e.target.value)}
-                      disabled={disabled || readonly}
-                      placeholder="Value"
-                    />
-                  </td>
-                  <td className={styles.td}>
-                    <div className={styles.actions}>
-                      {param.isOverridden && !disabled && !readonly && (
-                        <Tooltip title="Restore default value">
+                  return (
+                    <tr key={idx} className={rowClass}>
+                    <td className={styles.td}>
+                      <div className={styles.nameCell}>
+                        {param.canDelete && param.source === 'custom' ? (
+                          <Input
+                            value={param.name}
+                            onChange={(e) => handleKeyChange(param.name, e.target.value)}
+                            disabled={disabled || readonly}
+                            placeholder="Name"
+                          />
+                        ) : (
+                          <span className={styles.paramName}>{param.name}</span>
+                        )}
+                        {(param.isOverridden || param.deprecated) && (
+                          <div className={styles.labels}>
+                            {param.isOverridden && <Tag className={styles.overriddenTag}>Overridden</Tag>}
+                            {param.deprecated && <Tag className={styles.deprecatedTag}>Deprecated</Tag>}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className={styles.td}>
+                      <Input
+                        value={localValues[param.name] ?? param.value}
+                        onChange={(e) => handleValueChange(param.name, e.target.value)}
+                        disabled={disabled || readonly}
+                        placeholder="Value"
+                      />
+                    </td>
+                    <td className={styles.td}>
+                      <div className={styles.actions}>
+                        {param.isOverridden && !disabled && !readonly && (
+                          <Tooltip title="Restore default value">
+                            <Button
+                              size="small"
+                              type="text"
+                              icon={<OverridableIcon name="rollback" />}
+                              onClick={() => restoreDefaultValue(param.name)}
+                              className={styles.restoreBtn}
+                            />
+                          </Tooltip>
+                        )}
+                        {param.canDelete && !disabled && !readonly && (
                           <Button
                             size="small"
                             type="text"
-                            icon={<OverridableIcon name="rollback" />}
-                            onClick={() => restoreDefaultValue(param.name)}
-                            className={styles.restoreBtn}
+                            icon={<OverridableIcon name="delete" />}
+                            onClick={() => handleDelete(param.name)}
+                            className={styles.deleteBtn}
                           />
-                        </Tooltip>
-                      )}
-                      {param.canDelete && !disabled && !readonly && (
-                        <Button
-                          size="small"
-                          type="text"
-                          icon={<OverridableIcon name="delete" />}
-                          onClick={() => handleDelete(param.name)}
-                          className={styles.deleteBtn}
-                        />
-                      )}
-                    </div>
-                  </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        )}
+                      </div>
+                    </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {paramType === 'query' && formContext?.integrationOperationProtocolType?.toLowerCase() === 'http' && (
+              <QueryParametersCheckbox
+                formContext={formContext}
+                disabled={disabled}
+                readonly={readonly}
+              />
+            )}
+          </>
         ))}
     </div>
   );

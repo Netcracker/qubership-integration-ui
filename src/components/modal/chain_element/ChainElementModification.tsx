@@ -48,6 +48,7 @@ import {
 } from "../../../misc/protocol-utils.ts";
 import CustomOneOfField from "./field/CustomOneOfField.tsx";
 import SingleSelectField from "./field/select/SingleSelectField.tsx";
+import ContextServiceField from "./field/select/ContextServiceField.tsx";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -87,15 +88,19 @@ const validateKafkaGroupId = (
 };
 
 export type FormContext = {
+  contextServiceId?: string;
   integrationOperationId?: string;
   integrationOperationPath?: string;
   integrationOperationMethod?: string;
+  integrationOperationPathParameters?: Record<string, string>;
+  integrationOperationQueryParameters?: Record<string, string>;
   integrationOperationProtocolType?: string;
   elementType?: string;
   integrationSystemId?: string;
   integrationSpecificationGroupId?: string;
   integrationSpecificationId?: string;
   systemType?: string;
+  integrationOperationSkipEmptyQueryParameters?: boolean;
   bodyFormData?: BodyFormEntry[];
   synchronousGrpcCall?: boolean;
   chainId?: string;
@@ -122,7 +127,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   onSubmit,
   onClose,
 }) => {
-
   const { isLoading: libraryElementIsLoading, libraryElement } =
     useLibraryElement(node.data.elementType);
   const [isLoading, setIsLoading] = useState(false);
@@ -202,6 +206,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       >;
 
       setFormContext({
+        contextServiceId: getOptionalString(
+          formProperties.contextServiceId,
+        ),
         integrationOperationId: getOptionalString(
           formProperties.integrationOperationId,
         ),
@@ -225,9 +232,20 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         integrationOperationMethod: getOptionalString(
           formProperties.integrationOperationMethod,
         ),
+        integrationOperationPathParameters:
+          formProperties.integrationOperationPathParameters as Record<
+            string,
+            string
+          >,
+        integrationOperationQueryParameters:
+          formProperties.integrationOperationQueryParameters as Record<
+            string,
+            string
+          >,
         bodyFormData: toBodyFormData(formProperties.bodyFormData),
         synchronousGrpcCall: Boolean(formProperties.synchronousGrpcCall),
         chainId: chainId,
+        integrationOperationSkipEmptyQueryParameters: formProperties.integrationOperationSkipEmptyQueryParameters as boolean | undefined,
         updateContext: (updatedProperties: Record<string, unknown>) => {
           if (
             updatedProperties.integrationOperationProtocolType !== undefined
@@ -265,6 +283,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     notificationService,
     schemaModules,
     enrichProperties,
+    chainId,
   ]);
 
   const handleClose = useCallback(() => {
@@ -636,10 +655,10 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           <Tabs
             activeKey={activeKey}
             onChange={handleTabChange}
-            className={"flex-tabs"}
             items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
           />
           <Form
+            className={styles["parameters-form"]}
             schema={schema}
             formData={formData}
             validator={validator}
@@ -665,7 +684,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               ErrorListTemplate,
             }}
             fields={{
-              OneOfField: CustomOneOfField,  //Rewrite default oneOfField
+              OneOfField: CustomOneOfField, //Rewrite default oneOfField
               oneOfAsSingleInputField: OneOfAsSingleInputField,
               anyOfAsSingleSelectField: AnyOfAsSingleSelectField,
               patternPropertiesField: PatternPropertiesField,
@@ -679,6 +698,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               systemOperationField: SystemOperationField,
               bodyMimeTypeField: BodyMimeTypeField,
               singleSelectField: SingleSelectField,
+              contextServiceField: ContextServiceField,
             }}
             widgets={widgets}
             onChange={(e) => {

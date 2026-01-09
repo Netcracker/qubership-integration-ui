@@ -154,11 +154,11 @@ export enum LibraryInputQuantity {
 }
 
 export enum ElementColorType {
-  TRIGGER = 'trigger',
-  COMPOSITE_TRIGGER = 'composite-trigger',
-  SENDER = 'sender',
-  CHAIN_CALL = 'chain-call',
-  UNSUPPORTED = 'unsupported'
+  TRIGGER = "trigger",
+  COMPOSITE_TRIGGER = "composite-trigger",
+  SENDER = "sender",
+  CHAIN_CALL = "chain-call",
+  UNSUPPORTED = "unsupported",
 }
 
 export type ElementWithChainName = BaseEntity & {
@@ -973,10 +973,21 @@ export type IntegrationSystem = {
   modifiedWhen?: string;
 };
 
+export type ContextSystem = {
+  id: string;
+  name: string;
+  type: IntegrationSystemType;
+  description?: string;
+  createdWhen?: string;
+  createdBy?: User;
+  modifiedWhen?: string;
+};
+
 export enum IntegrationSystemType {
   INTERNAL = "INTERNAL",
   EXTERNAL = "EXTERNAL",
   IMPLEMENTED = "IMPLEMENTED",
+  CONTEXT = "CONTEXT",
 }
 
 export type SystemRequest = {
@@ -1142,3 +1153,17 @@ export interface SpecApiFile {
   specificationFilePath: string;
   fileUri: string;
 }
+
+export type LiveExchange = {
+  exchangeId: string;
+  deploymentId: string;
+  sessionId?: string;
+  chainId: string;
+  chainName?: string;
+  duration?: number;
+  sessionDuration?: number;
+  sessionStartTime?: number;
+  sessionLogLevel: SessionsLoggingLevel;
+  main: boolean;
+  podIp: string;
+};

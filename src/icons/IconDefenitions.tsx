@@ -98,6 +98,8 @@ import {
   CheckCircleOutlined,
   DeliveredProcedureOutlined,
   DeleteRowOutlined,
+  DatabaseOutlined,
+  ContainerOutlined,
 } from "@ant-design/icons";
 
 export const commonIcons = {
@@ -172,6 +174,7 @@ export const commonIcons = {
   solution: SolutionOutlined,
   columnHeight: ColumnHeightOutlined,
   verticalAlignMiddle: VerticalAlignMiddleOutlined,
+  database: DatabaseOutlined,
 };
 
 export const elementIcons = {
@@ -221,4 +224,5 @@ export const elementIcons = {
   "finally-2": QuestionCircleOutlined,
   "circuit-breaker-configuration-2": DeliveredProcedureOutlined,
   "on-fallback-2": DeleteRowOutlined,
+  container: ContainerOutlined,
 };
