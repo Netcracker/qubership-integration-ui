@@ -457,4 +457,4 @@ export interface Api {
   ): Promise<void>;
 }
 
-export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();
+export const api: Api = new VSCodeExtensionApi();

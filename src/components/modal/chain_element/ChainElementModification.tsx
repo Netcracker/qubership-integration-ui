@@ -15,7 +15,7 @@ import {
   UiSchema,
 } from "@rjsf/utils";
 import type { JSONSchema7 } from "json-schema";
-import validator from "@rjsf/validator-ajv8";
+import { createCSPCompliantValidator, noOpValidator } from "../../../validators/csp-compliant-validator";
 import StringAsMultipleSelectWidget from "./widget/StringAsMultipleSelectWidget.tsx";
 import MultipleSelectWidget from "./widget/MultipleSelectWidget.tsx";
 import { DebouncedTextareaWidget } from "./widget/DebouncedTextareaWidget.tsx";
@@ -141,6 +141,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const [activeKey, setActiveKey] = useState<string>();
   const { showModal } = useModalsContext();
   const [hasChanges, setHasChanges] = useState<boolean>(false);
+
+  // Create CSP-compliant validator based on element type
+  const validator = useMemo(() => {
+    if (!node.data.elementType) return noOpValidator;
+    return createCSPCompliantValidator(node.data.elementType);
+  }, [node.data.elementType]);
 
   useEffect(() => {
     setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));

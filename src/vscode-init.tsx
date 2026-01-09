@@ -5,7 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Initialize React app for VS Code extension
 export function initializeVSCodeApp() {
-  const rootElement = document.getElementById("app-root");
+  const rootElement = document.getElementById("root");
   if (rootElement) {
     createRoot(rootElement).render(
       <StrictMode>
@@ -15,7 +15,7 @@ export function initializeVSCodeApp() {
       </StrictMode>,
     );
   } else {
-    console.error("Element with id 'app-root' not found");
+    console.error("Element with id 'root' not found");
   }
 }
 

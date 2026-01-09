@@ -1,6 +1,6 @@
-import Search from "antd/lib/input/Search";
 import React, { useCallback } from "react";
 import { MenuItem } from "./ElementsLibrarySidebar";
+import { Input } from "antd";
 
 type SidebarSearchProps = {
   items: readonly MenuItem[];
@@ -58,7 +58,7 @@ export const SidebarSearch: React.FC<SidebarSearchProps> = ({
     return !search || name.toLowerCase().includes(search.toLowerCase());
   };
   return (
-    <Search
+    <Input.Search
       allowClear
       onSearch={handleSearch}
       onChange={(event) => {

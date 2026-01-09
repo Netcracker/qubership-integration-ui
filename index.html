@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'nonce-123' 'self'; style-src 'nonce-123' 'self'; img-src 'self' data:; connect-src 'self' ws://localhost:4200 http://localhost:4200; font-src 'self'; worker-src 'self' blob:;">
     <title>Vite + React</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx" nonce="123"></script>
   </body>
 </html>
