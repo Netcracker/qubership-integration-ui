@@ -72,6 +72,7 @@ import {
     AccessControlSearchRequest,
     AccessControlResponse,
     AccessControlUpdateRequest,
+    AccessControlBulkDeployRequest
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1493,6 +1494,17 @@ export class RestApi implements Api {
   ): Promise<AccessControlResponse> => {
       const response = await this.instance.put<AccessControlResponse>(
           `/api/v1/${getAppName()}/catalog/chains/roles`,
+          searchRequest,
+      );
+
+      return response.data;
+  };
+
+  bulkDeployChainsAccessControl = async (
+      searchRequest: AccessControlBulkDeployRequest[]
+  ): Promise<AccessControlResponse>=> {
+      const response = await this.instance.put<AccessControlResponse>(
+          `/api/v1/${getAppName()}/catalog/chains/roles/redeploy`,
           searchRequest,
       );
 

@@ -65,6 +65,7 @@ import {
     AccessControlSearchRequest,
     AccessControlResponse,
     AccessControlUpdateRequest,
+    AccessControlBulkDeployRequest
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -465,6 +466,10 @@ export interface Api {
 
   updateHttpTriggerAccessControl(
       searchRequest: AccessControlUpdateRequest[],
+  ): Promise<AccessControlResponse>;
+
+  bulkDeployChainsAccessControl(
+      searchRequest: AccessControlBulkDeployRequest[],
   ): Promise<AccessControlResponse>;
 }
 

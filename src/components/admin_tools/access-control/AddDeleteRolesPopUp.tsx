@@ -7,17 +7,34 @@ import { useAccessControl } from "../../../hooks/useAccessControl.tsx";
 
 export type AddDeleteRolesPopUpProps = {
   record?: AccessControlData;
+  records?: AccessControlData[];
   onSuccess?: () => void;
   mode?: "add" | "delete";
 };
 
-export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record, onSuccess, mode = "add" }) => {
+export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record, records, onSuccess, mode = "add" }) => {
+  const recordsToProcess = records && records.length > 0 ? records : (record ? [record] : []);
   const { closeContainingModal } = useModalContext();
   const notificationService = useNotificationService();
   const { updateAccessControl } = useAccessControl();
   const [form] = Form.useForm();
+  const getAllUniqueRoles = (): string[] => {
+    const allRoles = new Set<string>();
+    recordsToProcess.forEach(rec => {
+      const roles = rec?.properties?.roles;
+      if (Array.isArray(roles)) {
+        roles.forEach(role => allRoles.add(role));
+      }
+    });
+    return Array.from(allRoles);
+  };
+
   const getInitialRoles = (): string[] => {
-    const roles = record?.properties?.roles;
+    if (recordsToProcess.length === 0) return [];
+    if (recordsToProcess.length > 1) {
+      return getAllUniqueRoles();
+    }
+    const roles = recordsToProcess[0]?.properties?.roles;
     return Array.isArray(roles) ? roles : [];
   };
   const isDeleteMode = mode === "delete";
@@ -36,10 +53,10 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
       setSelectedRoles(roles);
       form.setFieldsValue({ roles, redeploy: false });
     }
-  }, [record, form, isDeleteMode]);
+  }, [recordsToProcess, form, isDeleteMode]);
 
   const handleSubmit = async () => {
-    if (!record?.elementId) {
+    if (recordsToProcess.length === 0) {
       notificationService.info("Error", "Element ID is required");
       return;
     }
@@ -53,17 +70,29 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
       setIsLoading(true);
 
       const formValues = form.getFieldsValue();
-      const finalRoles = isDeleteMode
-        ? currentRoles.filter(role => !selectedRoles.includes(role))
-        : selectedRoles;
+      const updateRequests: AccessControlUpdateRequest[] = recordsToProcess.map(rec => {
+        if (!rec.elementId) {
+          throw new Error("Element ID is required");
+        }
 
-      const updateRequest: AccessControlUpdateRequest = {
-        elementId: record.elementId,
-        isRedeploy: formValues.redeploy || false,
-        roles: finalRoles,
-      };
+        const existingRoles = Array.isArray(rec.properties?.roles) ? rec.properties.roles : [];
+        let finalRoles: string[];
 
-      await updateAccessControl([updateRequest]);
+        if (isDeleteMode) {
+          finalRoles = existingRoles.filter(role => !selectedRoles.includes(role));
+        } else {
+          const mergedRoles = [...existingRoles, ...selectedRoles];
+          finalRoles = Array.from(new Set(mergedRoles));
+        }
+
+        return {
+          elementId: rec.elementId,
+          isRedeploy: formValues.redeploy || false,
+          roles: finalRoles,
+        };
+      });
+
+      await updateAccessControl(updateRequests);
       notificationService.info("Success", isDeleteMode ? "Roles deleted successfully" : "Roles updated successfully");
       onSuccess?.();
       closeContainingModal();
@@ -87,7 +116,7 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
   };
 
   const roleOptions = isDeleteMode
-    ? currentRoles.map(role => ({ label: role, value: role }))
+    ? getAllUniqueRoles().map(role => ({ label: role, value: role }))
     : [];
 
   return (
@@ -119,7 +148,7 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
         wrapperCol={{ flex: "auto" }}
         labelWrap
         initialValues={{
-          roles: isDeleteMode ? [] : (record?.properties?.roles || []),
+          roles: isDeleteMode ? [] : getInitialRoles(),
           redeploy: false
         }}
       >
@@ -136,7 +165,7 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({ record
         </Form.Item>
         <Form.Item name="redeploy" valuePropName="checked">
           <Checkbox>
-            Redeploy selected chain
+              Redeploy selected chain to apply changes
           </Checkbox>
         </Form.Item>
       </Form>
