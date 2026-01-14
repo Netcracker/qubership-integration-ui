@@ -16,7 +16,11 @@ import {ResizableTitle} from "../../ResizableTitle.tsx";
 import commonStyles from "../CommonStyle.module.css";
 import {OverridableIcon} from "../../../icons/IconProvider.tsx";
 import {makeEnumColumnFilterDropdown} from "../../EnumColumnFilterDropdown.tsx";
-import {AccessControlType, AccessControlProperty, AccessControlResponse, AccessControl as AccessControlData} from "../../../api/apiTypes.ts";
+import {
+    AccessControlType,
+    AccessControl as AccessControlData,
+    AccessControlBulkDeployRequest
+} from "../../../api/apiTypes.ts";
 import type { FilterDropdownProps } from "antd/lib/table/interface";
 import {
     getTextColumnFilterFn,
@@ -71,7 +75,8 @@ export const AccessControl: React.FC = () => {
         accessControlData,
         setAccessControlData,
         getAccessControl,
-        updateAccessControl
+        updateAccessControl,
+        bulkDeployAccessControl
     } = useAccessControl();
     const { showModal } = useModalsContext();
     const navigate = useNavigate();
@@ -81,6 +86,7 @@ export const AccessControl: React.FC = () => {
     const [containerRef, containerHeight] = useResizeHeight<HTMLElement>();
     const [currentRecord, setCurrentRecord] = useState<AccessControlData | null>(null);
     const [openSidebar, setOpenSidebar] = useState(false);
+    const [deployedChainIds, setDeployedChainIds] = useState<Set<string>>(new Set());
 
     const [selectedKeys, setSelectedKeys] = useState<string[]>([
         "endpoint",
@@ -127,6 +133,52 @@ export const AccessControl: React.FC = () => {
     const onClose = () => {
         setOpenSidebar(false);
         setCurrentRecord(null);
+    };
+
+    const handleBulkDeploy = async(records: AccessControlData[]) => {
+        if (records.length === 0) {
+            notificationService.info("Error", "No chains to deploy");
+            return;
+        }
+
+
+        const recordsToDeploy = records.filter(record =>
+            record.chainId && record.unsavedChanges
+        );
+
+        if (recordsToDeploy.length === 0) {
+            notificationService.info("Error", "No changes to apply");
+            return;
+        }
+
+        try {
+            const bulkDeployRequests: AccessControlBulkDeployRequest[] = recordsToDeploy.map(record => ({
+                chainId: record.chainId!,
+                unsavedChanges: record.unsavedChanges
+            }));
+
+            await bulkDeployAccessControl(bulkDeployRequests);
+
+            const chainToDeploy = new Set(recordsToDeploy.map(r => r.chainId!));
+            setDeployedChainIds(new Set(chainToDeploy));
+
+            if (accessControlData?.roles) {
+                const deployedChainIds = new Set(recordsToDeploy.map(r => `${r.chainId}-${r.elementId}`));
+                const updatedRoles = accessControlData.roles.map((role) => {
+                    const rowKey = `${role.chainId}-${role.elementId}`;
+                    if (deployedChainIds.has(rowKey)) {
+                        return { ...role, unsavedChanges: false };
+                    }
+                    return role;
+                });
+                setAccessControlData({ ...accessControlData, roles: updatedRoles });
+            }
+
+            notificationService.info("Success", `Selected chains are deployed.`);
+            return;
+        } catch (error) {
+            notificationService.requestFailed("Failed to deploy chains", error);
+        }
     };
 
     const columns: ColumnsType<AccessControlData>["columns"] = [
@@ -282,7 +334,7 @@ export const AccessControl: React.FC = () => {
             },
             render: (_, record: AccessControlData) => {
                 if (record.chainId) {
-                    return <DeploymentsCumulativeState chainId={record.chainId} />;
+                    return <DeploymentsCumulativeState chainId={record.chainId} isNotificationEnabled={!deployedChainIds.has(record.chainId)} />;
                 }
                 return <>—</>;
             }
@@ -396,7 +448,7 @@ export const AccessControl: React.FC = () => {
                             </Descriptions.Item>
                             <Descriptions.Item label="Chain Status">
                                 {currentRecord.chainId ? (
-                                    <DeploymentsCumulativeState chainId={currentRecord.chainId} />
+                                    <DeploymentsCumulativeState chainId={currentRecord.chainId} isNotificationEnabled={!deployedChainIds.has(currentRecord.chainId)} />
                                 ) : (
                                     "—"
                                 )}
@@ -451,6 +503,7 @@ export const AccessControl: React.FC = () => {
                                     cell: ResizableTitle,
                                 },
                             }}
+                            rowClassName={(row) => row.unsavedChanges ? "highlight-row" : ""}
                             onRow={(row) => {
                                 return {
                                     onClick: (event: React.MouseEvent<HTMLElement>) => {
@@ -475,6 +528,27 @@ export const AccessControl: React.FC = () => {
             </Flex>
             <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
                 <FloatButton
+                    tooltip={{ title: "Redeploy", placement: "left" }}
+                    icon={<OverridableIcon name="send" />}
+                    onClick={() => {
+                        if (selectedRowKeys.length === 0) {
+                            notificationService.info("No selection", "Please select at least one row to modify");
+                            return;
+                        }
+
+                        const selectedRecords = accessControlData?.roles?.filter((record) => {
+                            const rowKey = `${record.chainId}-${record.elementId}`;
+                            return selectedRowKeys.includes(rowKey);
+                        }) || [];
+
+                        if (selectedRecords.length > 0) {
+                            handleBulkDeploy(selectedRecords);
+                        } else {
+                            notificationService.info("Error", "Selected records not found");
+                        }
+                    }}
+                />
+                <FloatButton
                     tooltip={{ title: "Add Roles", placement: "left" }}
                     icon={<OverridableIcon name="plus" />}
                     onClick={() => {
@@ -482,20 +556,23 @@ export const AccessControl: React.FC = () => {
                             notificationService.info("No selection", "Please select at least one row to modify");
                             return;
                         }
-                        const selectedRecord = accessControlData?.roles?.find((record) => {
+                        const selectedRecords = accessControlData?.roles?.filter((record) => {
                             const rowKey = `${record.chainId}-${record.elementId}`;
                             return selectedRowKeys.includes(rowKey);
-                        });
-                        if (selectedRecord) {
-                            const accessControlType = (selectedRecord.properties as any)?.accessControlType;
-                            if (accessControlType === "ABAC") {
+                        }) || [];
+                        if (selectedRecords.length > 0) {
+                            const validRecords = selectedRecords.filter(record => {
+                                const accessControlType = (record.properties as any)?.accessControlType;
+                                return accessControlType !== "ABAC";
+                            });
+                            if (validRecords.length === 0) {
                                 notificationService.info("Error", "Can't apply roles to ABAC endpoint");
                                 return;
                             }
                             showModal({
                                 component: (
                                     <AddDeleteRolesPopUp
-                                        record={selectedRecord}
+                                        records={validRecords}
                                         onSuccess={() => void getAccessControl()}
                                     />
                                 ),
@@ -513,20 +590,23 @@ export const AccessControl: React.FC = () => {
                             notificationService.info("No selection", "Please select at least one row to delete roles");
                             return;
                         }
-                        const selectedRecord = accessControlData?.roles?.find((record) => {
+                        const selectedRecords = accessControlData?.roles?.filter((record) => {
                             const rowKey = `${record.chainId}-${record.elementId}`;
                             return selectedRowKeys.includes(rowKey);
-                        });
-                        if (selectedRecord) {
-                            const accessControlType = (selectedRecord.properties as any)?.accessControlType;
-                            if (accessControlType === "ABAC") {
+                        }) || [];
+                        if (selectedRecords.length > 0) {
+                            const validRecords = selectedRecords.filter(record => {
+                                const accessControlType = (record.properties as any)?.accessControlType;
+                                return accessControlType !== "ABAC";
+                            });
+                            if (validRecords.length === 0) {
                                 notificationService.info("Error", "Can't apply roles to ABAC endpoint");
                                 return;
                             }
                             showModal({
                                 component: (
                                     <AddDeleteRolesPopUp
-                                        record={selectedRecord}
+                                        records={validRecords}
                                         mode="delete"
                                         onSuccess={() => void getAccessControl()}
                                     />

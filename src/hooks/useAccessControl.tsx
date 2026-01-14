@@ -1,7 +1,9 @@
 import { api } from "../api/api.ts";
 import {
     AccessControlResponse,
-    AccessControlSearchRequest, AccessControlUpdateRequest,
+    AccessControlSearchRequest,
+    AccessControlUpdateRequest,
+    AccessControlBulkDeployRequest
 } from "../api/apiTypes.ts";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useNotificationService } from "./useNotificationService.tsx";
@@ -45,10 +47,24 @@ export const useAccessControl = () => {
         [notificationService],
     );
 
+    const bulkDeployAccessControl = useCallback(
+        async (searchRequest: AccessControlBulkDeployRequest[]) => {
+            try {
+                const bulkDeployResponse = await api.bulkDeployChainsAccessControl(searchRequest);
+                setAccessControlData(bulkDeployResponse);
+            } catch (error) {
+                notificationService.requestFailed("Failed to bulk deploy chains", error);
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [notificationService],
+    );
+
     useEffect(() => {
         void getAccessControl();
     }, [getAccessControl]);
 
-    return { isLoading, accessControlData, setAccessControlData, getAccessControl, updateAccessControl };
+    return { isLoading, accessControlData, setAccessControlData, getAccessControl, updateAccessControl, bulkDeployAccessControl};
 };
 

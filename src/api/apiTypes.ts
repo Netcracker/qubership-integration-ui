@@ -1171,6 +1171,11 @@ export type AccessControlResponse = {
     roles: AccessControl[];
 };
 
+export type AccessControlBulkDeployRequest = {
+    chainId: string;
+    unsavedChanges: boolean;
+};
+
 export type AccessControl = {
     chainId: string;
     chainName: string;
