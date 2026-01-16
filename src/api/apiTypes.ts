@@ -1167,3 +1167,54 @@ export type LiveExchange = {
   main: boolean;
   podIp: string;
 };
+
+export enum ValidationEntityType {
+  CHAIN = "CHAIN",
+  CHAIN_ELEMENT = "CHAIN_ELEMENT",
+}
+
+export enum ValidationImplementationType {
+  BUILT_IN = "BUILT_IN",
+  PLUGIN = "PLUGIN",
+}
+
+export enum ValidationSeverity {
+  WARNING = "WARNING",
+  ERROR = "ERROR",
+}
+
+export enum ValidationState {
+  OK = "OK",
+  NOT_STARTED = "NOT_STARTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  FAILED = "FAILED",
+}
+
+export interface ValidationChainEntity {
+  chainId: string;
+  chainName: string;
+  elementId: string;
+  elementName: string;
+  elementType: string;
+  properties: { [key: string]: unknown };
+}
+
+export interface DiagnosticValidation {
+  id: string;
+  title: string;
+  description: string;
+  suggestion: string;
+  entityType: ValidationEntityType;
+  implementationType: ValidationImplementationType;
+  severity: ValidationSeverity;
+  properties: { [key: string]: unknown };
+  alertsCount: number;
+  chainEntities: ValidationChainEntity[];
+  status: ValidationStatus;
+}
+
+export interface ValidationStatus {
+  state: ValidationState;
+  startedWhen?: string;
+  message?: string;
+}
