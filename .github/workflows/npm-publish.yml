@@ -59,7 +59,7 @@
 
       steps:
         - name: Checkout repository
-          uses: actions/checkout@v4
+          uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
           with:
             ref: ${{ inputs.ref}}
             fetch-depth: 0
@@ -99,7 +99,7 @@
         publish_version: ${{ steps.set_version.outputs.publish_version }}
         is_dev: ${{ steps.set_version.outputs.is_dev }}
       steps:
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
         - name: Get package version
           id: get_version
