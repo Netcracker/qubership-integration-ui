@@ -30,3 +30,44 @@
     background-color: var(--vscode-list-activeSelectionBackground, #e6f7ff) !important;
     color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground, rgba(0, 0, 0, 0.88))) !important;
 }
+
+.spacedTabs :global(.ant-tabs-nav-list) {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    gap: 70px;
+    margin-left: 20px;
+}
+
+.spacedTabs :global(.ant-tabs-tab) {
+    position: relative;
+}
+
+.spacedTabs :global(.ant-tabs-tab:not(:last-child)::after) {
+    content: '';
+    position: absolute;
+    right: -90px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 20px;
+    background-color: var(--vscode-border, rgba(0, 0, 0, 0.15));
+}
+
+.spacedTabs {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.spacedTabs :global(.ant-tabs-nav) {
+    width: 100%;
+    margin: 0;
+    padding: 1px;
+    border-top: 1px solid var(--vscode-border, rgba(0, 0, 0, 0.15)) !important;
+}
+
+.spacedTabs :global(.ant-tabs-nav::before) {
+    width: 100% !important;
+    left: 0 !important;
+}
+
