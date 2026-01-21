@@ -46,6 +46,11 @@
           required: false
           type: string
           default: 'latest'
+        update-extension:
+          description: 'Update schemas version in UI'
+          required: false
+          type: boolean
+          default: true
 
   permissions:
     contents: write
@@ -120,16 +125,32 @@
             fi
 
     npm-publish:
-      needs: prepare-version
-      uses: ./.github/workflows/re-npm-publish.yml
+      uses: Netcracker/qubership-workflow-hub/.github/workflows/re-npm-publish.yml@8af13ac7ea017b87a8501e9b119a5c86c532a5b2
+      permissions:
+        contents: write
+        packages: write
       with:
-        version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || needs.prepare-version.outputs.publish_version }}
+        version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
         scope: ${{ github.event_name == 'workflow_dispatch' && inputs.scope || '@netcracker' }}
         node-version: ${{ github.event_name == 'workflow_dispatch' && inputs.node-version || '22.x' }}
         registry-url: ${{ github.event_name == 'workflow_dispatch' && inputs.registry-url || 'https://npm.pkg.github.com' }}
         update-nc-dependency: ${{ github.event_name == 'workflow_dispatch' && inputs.update-nc-dependency || false }}
-        dry-run: ${{ (github.event_name == 'push' && needs.prepare-version.outputs.is_dev != 'true') || (github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
-        dist-tag: ${{ github.event_name == 'push' && needs.prepare-version.outputs.is_dev == 'true' && 'dev' || (github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag != '' && inputs.npm-dist-tag) || 'latest' }}
+        dry-run: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
+        dist-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag || 'latest' }}
         ref: ${{ github.ref_name }}
-        is_dev: ${{ needs.prepare-version.outputs.is_dev == 'true' }}
-      secrets: inherit
+      secrets:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    update-version-in-extension:
+      if: inputs.update-schemas == true
+      runs-on: ubuntu-latest
+      steps:
+        - name: Trigger extension event
+          uses: netcracker/qubership-workflow-hub/actions/custom-event@c1a5c8c2d9c2a79f548134db1d095f36ee0f28e7 #v2.0.7
+          with:
+            event-type: "ui-dependency-update"
+            client-payload: '{"version": "${{ inputs.version }}"}'
+            github-token: ${{ secrets.GH_ACCESS_TOKEN }}
+            repo: "qubership-integration-vscode-extension"
+            owner: "Netcracker"
+
