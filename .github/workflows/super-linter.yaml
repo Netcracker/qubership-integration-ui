@@ -92,3 +92,5 @@ jobs:
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: ${{ github.event.pull_request.base.ref || github.event.push.ref }}
+          FILTER_REGEX_EXCLUDE: |
+            .*vite\.config.*\.ts
