@@ -47,7 +47,7 @@ on:
         type: string
         default: 'latest'
       update-extension:
-        description: 'Update schemas version in UI'
+        description: 'Update UI version in extension'
         required: false
         type: boolean
         default: true
@@ -143,7 +143,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   update-version-in-extension:
-    if: inputs.update-schemas == true
+    if: inputs.update-extension == true
     runs-on: ubuntu-latest
     steps:
       - name: Trigger extension event
