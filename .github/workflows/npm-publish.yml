@@ -113,8 +113,9 @@ jobs:
 
       - name: Set publish version
         id: set_version
+        env:
+          VERSION: ${{ steps.get_version.outputs.package_version }}
         run: |
-          VERSION=${{ steps.get_version.outputs.package_version }}
           if [[ "$VERSION" == *"-dev" ]]; then
             TIMESTAMP=$(date +'%Y%m%d%H%M%S')
             NEW_VERSION="${VERSION}.${TIMESTAMP}"
