@@ -56,9 +56,10 @@ export default [
     },
   },
   {
-    files: ["vite.config.{ts,lib.ts}"],
+    files: ["**/vite.config*.ts", "**/eslint.config.*.ts", "**/jest.config*.ts"],
     rules: {
-      "n/no-missing-import": "off"
+      "n/no-missing-import": "off",
+      "import/no-extraneous-dependencies": "off"
     }
   }
 ];
