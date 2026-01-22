@@ -1,4 +1,4 @@
-@import "./variables.module.css";
+@import url("./variables.module.css");
 
 .secret-content {
   display: flex;
@@ -48,6 +48,7 @@
     transform: translateY(-10px);
     opacity: 0;
   }
+
   100% {
     transform: translateY(0);
     opacity: 1;

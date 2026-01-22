@@ -69,18 +69,19 @@
 }
 
 /* Container nodes - use editor background instead of panel background */
+
 /* Override any inline styles that React Flow might apply */
 .react-flow__node.container-node,
 .react-flow__node.container-node[style*="background"],
 .react-flow__node.container-node[style*="backgroundColor"] {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
+  background-color: var(--vscode-editor-background, #fff) !important;
   border: 1px solid var(--container-border-color, #dedacd) !important;
 }
 
 .vscode-webview .react-flow__node.container-node,
 .vscode-webview .react-flow__node.container-node[style*="background"],
 .vscode-webview .react-flow__node.container-node[style*="backgroundColor"] {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
+  background-color: var(--vscode-editor-background, #fff) !important;
   border: 1px solid var(--container-border-color, #dedacd) !important;
 }
 
@@ -108,7 +109,7 @@
   .react-flow__node.container-node[style*="background"],
 .vscode-webview[data-theme="high-contrast"]
   .react-flow__node.container-node[style*="backgroundColor"] {
-  background-color: var(--vscode-editor-background, #000000) !important;
+  background-color: var(--vscode-editor-background, #000) !important;
   border-color: var(--container-border-color, #fff9e6) !important;
 }
 
@@ -118,8 +119,11 @@
 }
 
 /* Container node specific styling - for try-catch-finally and other containers */
+
 /* Override inline backgroundColor style from getElementColor with !important */
+
 /* Target ReactFlow wrapper that contains container nodes */
+
 /* Use CSS variables for proper theme support in webview */
 .react-flow__node-container:has([data-node-type="container"]),
 .react-flow__node-container[data-type="container"],
@@ -129,7 +133,7 @@
 .vscode-webview .react-flow__node-container[data-type="container"],
 .vscode-webview .react-flow__node[data-node-type="container"],
 .vscode-webview .react-flow__node[data-type="container"] {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
+  background-color: var(--vscode-editor-background, #fff) !important;
   border: 1px solid var(--container-border-color, #dedacd) !important;
   border-radius: 5px;
 }
@@ -206,7 +210,7 @@
   .react-flow__node[data-node-type="container"],
 .vscode-webview[data-theme="high-contrast"]
   .react-flow__node[data-type="container"] {
-  background-color: var(--vscode-editor-background, #000000) !important;
+  background-color: var(--vscode-editor-background, #000) !important;
   border-color: var(--container-border-color, #fff9e6) !important;
 }
 
@@ -244,10 +248,11 @@
 .vscode-webview[data-theme="high-contrast"]
   .react-flow__node[data-type="container"]
   > div {
-  background-color: var(--vscode-editor-background, #000000) !important;
+  background-color: var(--vscode-editor-background, #000) !important;
 }
 
 /* Target the inner container div directly - override inline styles */
+
 /* Use CSS variables for proper theme support */
 .react-flow__node-container:has([data-node-type="container"]) > div,
 .react-flow__node-container[data-type="container"] > div,
@@ -267,13 +272,13 @@
   .react-flow__node[data-type="container"]
   > div[class*="container"],
 .vscode-webview .react-flow__node[data-type="container"] > div {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
+  background-color: var(--vscode-editor-background, #fff) !important;
 }
 
 /* Node text styling - adapt to theme */
 .react-flow__node,
 .react-flow__node *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgb(0 0 0 / 88%) !important;
 }
 
 /* Container node text - same color as regular nodes */
@@ -288,7 +293,7 @@
 .react-flow__node[data-type="container"] *:not(.react-flow__handle),
 .react-flow__node.container-node,
 .react-flow__node.container-node *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgb(0 0 0 / 88%) !important;
 }
 
 /* Container node text - dark theme - same color as regular nodes */
@@ -334,7 +339,7 @@
 .vscode-webview[data-theme="dark"]
   .react-flow__node.container-node
   *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgb(0 0 0 / 88%) !important;
 }
 
 /* Container node text - high contrast theme - same color as regular nodes */
@@ -383,7 +388,7 @@
 .vscode-webview[data-theme="high-contrast"]
   .react-flow__node.container-node
   *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgb(0 0 0 / 88%) !important;
 }
 
 /* Container node header - use CSS variables for proper theme support */
@@ -393,7 +398,7 @@
 .react-flow__node[data-type="container"] [class*="header"],
 .react-flow__node.container-node [class*="header"] {
   background: var(--container-header-background, #fff9e6) !important;
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgb(0 0 0 / 88%) !important;
   font-weight: normal !important;
 }
 
@@ -425,7 +430,7 @@
   .react-flow__node.container-node
   [class*="header"] {
   background: var(--container-header-background, #fff9e6) !important;
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgb(0 0 0 / 88%) !important;
   font-weight: normal !important;
 }
 
@@ -459,7 +464,7 @@
   .react-flow__node.container-node
   [class*="header"] {
   background: var(--container-header-background, #fff9e6) !important;
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgb(0 0 0 / 88%) !important;
   font-weight: normal !important;
 }
 
@@ -498,11 +503,11 @@
 
 /* Dark theme - more visible edges */
 [data-theme="dark"] .react-flow__edge {
-  stroke: rgba(255, 255, 255, 0.4);
+  stroke: rgb(255 255 255 / 40%);
 }
 
 [data-theme="dark"] .react-flow__edge-path {
-  stroke: rgba(255, 255, 255, 0.4);
+  stroke: rgb(255 255 255 / 40%);
 }
 
 [data-theme="dark"] .react-flow__edge.selected {
@@ -545,7 +550,7 @@
   background-color: var(--vscode-panel-background);
   border: 1px solid var(--vscode-border);
   border-radius: 4px;
-  color: rgba(0, 0, 0, 0.88);
+  color: rgb(0 0 0 / 88%);
   padding: 10px;
 }
 
@@ -584,7 +589,7 @@
 }
 
 [data-theme="light"] .react-flow__minimap {
-  background-color: #ffffff !important;
+  background-color: #fff !important;
 }
 
 .react-flow__minimap-mask {

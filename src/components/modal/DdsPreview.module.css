@@ -3,13 +3,13 @@
   overflow-y: auto;
 
   hr {
-    margin: 0 0 10px 0;
+    margin: 0 0 10px;
   }
 
   h1,
   h2,
   h3 {
-    margin: 10px 0 20px 0;
+    margin: 10px 0 20px;
   }
 
   h1 {
@@ -29,7 +29,7 @@
   }
 
   table {
-    margin: 10px 0 20px 0;
+    margin: 10px 0 20px;
     border-collapse: collapse;
   }
 
@@ -55,7 +55,7 @@
   img {
     width: auto;
     max-width: 100%;
-    border: 1px solid #ffffff;
+    border: 1px solid #fff;
     vertical-align: middle;
 
     &:hover {
@@ -70,7 +70,7 @@
   }
 
   pre {
-    background-color: #eeeeee;
+    background-color: #eee;
   }
 
   code {

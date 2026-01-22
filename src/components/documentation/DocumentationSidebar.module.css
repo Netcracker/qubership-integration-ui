@@ -32,7 +32,7 @@
 .sidebar :global(.ant-tree .ant-tree-node-content-wrapper:hover) {
   background-color: var(
     --vscode-list-hoverBackground,
-    rgba(0, 0, 0, 0.04)
+    rgb(0 0 0 / 4%)
   ) !important;
 }
 
@@ -104,7 +104,7 @@
   bottom: 0;
   left: 0;
   border-inline-end: 1px solid
-    var(--vscode-editorIndentGuide-background, rgba(0, 0, 0, 0.15)) !important;
+    var(--vscode-editorIndentGuide-background, rgb(0 0 0 / 15%)) !important;
   height: 100%;
   content: "";
   z-index: 0;
@@ -117,7 +117,7 @@
       .ant-tree-switcher-leaf-line::before
   ) {
   border-inline-end: 1px solid
-    var(--vscode-editorIndentGuide-background, rgba(0, 0, 0, 0.15)) !important;
+    var(--vscode-editorIndentGuide-background, rgb(0 0 0 / 15%)) !important;
 }
 
 .sidebar
@@ -125,7 +125,7 @@
     .ant-tree-show-line .ant-tree-child-tree .ant-tree-switcher-leaf-line::after
   ) {
   border-bottom: 1px solid
-    var(--vscode-editorIndentGuide-background, rgba(0, 0, 0, 0.15)) !important;
+    var(--vscode-editorIndentGuide-background, rgb(0 0 0 / 15%)) !important;
 }
 
 /* Override any z-index issues */

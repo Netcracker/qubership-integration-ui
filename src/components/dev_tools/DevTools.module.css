@@ -8,9 +8,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 16px 0;
+  margin: 0 0 16px;
   font-size: 20px;
-  color: var(--vscode-foreground, rgba(0, 0, 0, 0.85)) !important;
+  color: var(--vscode-foreground, rgb(0 0 0 / 85%)) !important;
   transition: color var(--transition-duration) var(--transition-easing);
 }
 
@@ -30,13 +30,13 @@
   color: var(--vscode-textLink-foreground, #1890ff);
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .title {
     font-size: 18px;
   }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .container {
     padding: 16px;
   }

@@ -4,35 +4,35 @@
   border-radius: 0 0 0 15px;
   background: var(
     --vscode-sideBar-background,
-    var(--vscode-editor-background, #ffffff)
+    var(--vscode-editor-background, #fff)
   ) !important;
 }
 
 .sideMenu :global(.ant-layout-sider-children) {
   background: var(
     --vscode-sideBar-background,
-    var(--vscode-editor-background, #ffffff)
+    var(--vscode-editor-background, #fff)
   ) !important;
 }
 
 .libraryElements {
   border: none !important;
   background: transparent !important;
-  color: var(--vscode-foreground, rgba(0, 0, 0, 0.88)) !important;
+  color: var(--vscode-foreground, rgb(0 0 0 / 88%)) !important;
 }
 
 .libraryElements :global(.ant-menu-item),
 .libraryElements :global(.ant-menu-submenu-title) {
-  color: var(--vscode-foreground, rgba(0, 0, 0, 0.88)) !important;
+  color: var(--vscode-foreground, rgb(0 0 0 / 88%)) !important;
 }
 
 .libraryElements :global(.ant-menu-item:hover),
 .libraryElements :global(.ant-menu-submenu-title:hover) {
   background-color: var(
     --vscode-list-hoverBackground,
-    rgba(0, 0, 0, 0.04)
+    rgb(0 0 0 / 4%)
   ) !important;
-  color: var(--vscode-foreground, rgba(0, 0, 0, 0.88)) !important;
+  color: var(--vscode-foreground, rgb(0 0 0 / 88%)) !important;
 }
 
 .libraryElements :global(.ant-menu-item-selected) {
@@ -42,6 +42,6 @@
   ) !important;
   color: var(
     --vscode-list-activeSelectionForeground,
-    var(--vscode-foreground, rgba(0, 0, 0, 0.88))
+    var(--vscode-foreground, rgb(0 0 0 / 88%))
   ) !important;
 }
