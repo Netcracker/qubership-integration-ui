@@ -7,7 +7,7 @@ import * as reactHooks from "eslint-plugin-react-hooks";
 
 /** @type {import("eslint").Linter.Config[]} */
 export default [
-  { ignores: ["dist/*", "node_modules/*",  "vite.config.ts", "vite.config.*.ts"] },
+  { ignores: ["dist/*", "node_modules/*"] },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   pluginReact.configs.flat.recommended,
