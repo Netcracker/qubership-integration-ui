@@ -56,7 +56,7 @@ export default [
     },
   },
   {
-    files: ["vite.config.*"],
+    files: ["vite.config.{ts,lib.ts}"],
     rules: {
       "n/no-missing-import": "off"
     }
