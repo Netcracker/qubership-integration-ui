@@ -55,4 +55,10 @@ export default [
       'jest/prefer-to-have-length': 'warn',
     },
   },
+  {
+    files: ["vite.config.*"],
+    rules: {
+      "n/no-missing-import": "off"
+    }
+  }
 ];
