@@ -1,5 +1,5 @@
-import './lunr-init';
-import './vscode-entry';
+import "./lunr-init";
+import "./vscode-entry";
 
 export type * from "./api/apiTypes";
 export type {

@@ -192,7 +192,6 @@ const CustomArrayField: React.FC<
     return () => {
       cancelled = true;
     };
-     
   }, [operationId, readOnlyMode]);
 
   const handleAdd = () => {
