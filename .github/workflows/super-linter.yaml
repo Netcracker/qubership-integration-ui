@@ -32,8 +32,8 @@ jobs:
       - name: "Get the common linters configuration"
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
-          ref: main # fix/superlinter-config
-          repository: netcracker/.github
+          ref: ${{ github.ref }}
+          repository: netcracker/qubership-integration-ui/.github
           persist-credentials: false
           sparse-checkout: |
             config/linters
