@@ -2,70 +2,70 @@
 
 /* Layout container styles for proper React Flow display */
 .ant-layout-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .ant-row.stretched {
-  flex: 1;
-  min-height: 0;
+    flex: 1;
+    min-height: 0;
 }
 
 .ant-col.stretched {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .graph-wrapper {
-  flex: 1;
-  min-height: 600px;
-  display: flex;
+    flex: 1;
+    min-height: 600px;
+    display: flex;
 }
 
 /* Container styling - flat design */
 .react-flow-container {
-  height: 100%;
-  min-height: 400px;
-  flex-grow: 1;
-  display: flex;
-  border-radius: 4px;
-  border: 1px solid var(--vscode-border);
-  background-color: var(--vscode-panel-background);
-  position: relative;
+    height: 100%;
+    min-height: 400px;
+    flex-grow: 1;
+    display: flex;
+    border-radius: 4px;
+    border: 1px solid var(--vscode-border);
+    background-color: var(--vscode-panel-background);
+    position: relative;
 }
 
 .react-flow {
-  width: 100%;
-  height: 100%;
-  min-height: 600px;
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
 }
 
 .chain-layout {
-  all: unset;
-  display: flex;
-  height: 100vh;
-  border-radius: 4px;
-  border: 1px solid var(--vscode-border);
-  background-color: var(--vscode-panel-background);
+    all: unset;
+    display: flex;
+    height: 100vh;
+    border-radius: 4px;
+    border: 1px solid var(--vscode-border);
+    background-color: var(--vscode-panel-background);
 }
 
 /* ReactFlow viewport styling - transparent to show background */
 .react-flow__viewport {
-  background-color: transparent;
+    background-color: transparent;
 }
 
 /* Node styling with theme support - flat design */
 .react-flow__node {
-  background-color: var(--vscode-panel-background);
-  border: 1px solid var(--vscode-foreground);
-  color: var(--vscode-foreground);
-  font-family: var(--vscode-font-family);
-  border-radius: 4px;
-  box-shadow: none;
+    background-color: var(--vscode-panel-background);
+    border: 1px solid var(--vscode-foreground);
+    color: var(--vscode-foreground);
+    font-family: var(--vscode-font-family);
+    border-radius: 4px;
+    box-shadow: none;
 }
 
 /* Container nodes - use editor background instead of panel background */
@@ -73,15 +73,15 @@
 .react-flow__node.container-node,
 .react-flow__node.container-node[style*="background"],
 .react-flow__node.container-node[style*="backgroundColor"] {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
-  border: 1px solid var(--container-border-color, #dedacd) !important;
+    background-color: var(--vscode-editor-background, #ffffff) !important;
+    border: 1px solid var(--container-border-color, #dedacd) !important;
 }
 
 .vscode-webview .react-flow__node.container-node,
 .vscode-webview .react-flow__node.container-node[style*="background"],
 .vscode-webview .react-flow__node.container-node[style*="backgroundColor"] {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
-  border: 1px solid var(--container-border-color, #dedacd) !important;
+    background-color: var(--vscode-editor-background, #ffffff) !important;
+    border: 1px solid var(--container-border-color, #dedacd) !important;
 }
 
 /* Dark theme for container nodes */
@@ -91,8 +91,8 @@
 .vscode-webview[data-theme="dark"] .react-flow__node.container-node,
 .vscode-webview[data-theme="dark"] .react-flow__node.container-node[style*="background"],
 .vscode-webview[data-theme="dark"] .react-flow__node.container-node[style*="backgroundColor"] {
-  background-color: var(--vscode-editor-background, #1f1f1f) !important;
-  border-color: var(--container-border-color, #fff9e6) !important;
+    background-color: var(--vscode-editor-background, #1f1f1f) !important;
+    border-color: var(--container-border-color, #fff9e6) !important;
 }
 
 /* High contrast theme for container nodes */
@@ -102,13 +102,13 @@
 .vscode-webview[data-theme="high-contrast"] .react-flow__node.container-node,
 .vscode-webview[data-theme="high-contrast"] .react-flow__node.container-node[style*="background"],
 .vscode-webview[data-theme="high-contrast"] .react-flow__node.container-node[style*="backgroundColor"] {
-  background-color: var(--vscode-editor-background, #000000) !important;
-  border-color: var(--container-border-color, #fff9e6) !important;
+    background-color: var(--vscode-editor-background, #000000) !important;
+    border-color: var(--container-border-color, #fff9e6) !important;
 }
 
 .react-flow__node.selected {
-  border-color: var(--vscode-focusBorder);
-  box-shadow: none;
+    border-color: var(--vscode-focusBorder);
+    box-shadow: none;
 }
 
 /* Container node specific styling - for try-catch-finally and other containers */
@@ -123,17 +123,17 @@
 .vscode-webview .react-flow__node-container[data-type="container"],
 .vscode-webview .react-flow__node[data-node-type="container"],
 .vscode-webview .react-flow__node[data-type="container"] {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
-  border: 1px solid var(--container-border-color, #dedacd) !important;
-  border-radius: 5px;
+    background-color: var(--vscode-editor-background, #ffffff) !important;
+    border: 1px solid var(--container-border-color, #dedacd) !important;
+    border-radius: 5px;
 }
 
 .react-flow__node-container:has([data-node-type="container"]).selected,
 .react-flow__node-container[data-type="container"].selected,
 .react-flow__node[data-node-type="container"].selected,
 .react-flow__node[data-type="container"].selected {
-  border-color: var(--vscode-focusBorder) !important;
-  border-width: 2px;
+    border-color: var(--vscode-focusBorder) !important;
+    border-width: 2px;
 }
 
 /* Dark theme adjustments for container nodes */
@@ -145,8 +145,8 @@
 .vscode-webview[data-theme="dark"] .react-flow__node-container[data-type="container"],
 .vscode-webview[data-theme="dark"] .react-flow__node[data-node-type="container"],
 .vscode-webview[data-theme="dark"] .react-flow__node[data-type="container"] {
-  background-color: var(--vscode-editor-background, #1f1f1f) !important;
-  border-color: var(--container-border-color, #fff9e6) !important;
+    background-color: var(--vscode-editor-background, #1f1f1f) !important;
+    border-color: var(--container-border-color, #fff9e6) !important;
 }
 
 [data-theme="dark"] .react-flow__node-container:has([data-node-type="container"]) > div,
@@ -161,7 +161,7 @@
 .vscode-webview[data-theme="dark"] .react-flow__node[data-node-type="container"] > div,
 .vscode-webview[data-theme="dark"] .react-flow__node[data-type="container"] > div[class*="container"],
 .vscode-webview[data-theme="dark"] .react-flow__node[data-type="container"] > div {
-  background-color: var(--vscode-editor-background, #1f1f1f) !important;
+    background-color: var(--vscode-editor-background, #1f1f1f) !important;
 }
 
 /* High contrast theme adjustments for container nodes */
@@ -173,8 +173,8 @@
 .vscode-webview[data-theme="high-contrast"] .react-flow__node-container[data-type="container"],
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-node-type="container"],
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-type="container"] {
-  background-color: var(--vscode-editor-background, #000000) !important;
-  border-color: var(--container-border-color, #fff9e6) !important;
+    background-color: var(--vscode-editor-background, #000000) !important;
+    border-color: var(--container-border-color, #fff9e6) !important;
 }
 
 [data-theme="high-contrast"] .react-flow__node-container:has([data-node-type="container"]) > div,
@@ -189,7 +189,7 @@
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-node-type="container"] > div,
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-type="container"] > div[class*="container"],
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-type="container"] > div {
-  background-color: var(--vscode-editor-background, #000000) !important;
+    background-color: var(--vscode-editor-background, #000000) !important;
 }
 
 /* Target the inner container div directly - override inline styles */
@@ -206,13 +206,13 @@
 .vscode-webview .react-flow__node[data-node-type="container"] > div,
 .vscode-webview .react-flow__node[data-type="container"] > div[class*="container"],
 .vscode-webview .react-flow__node[data-type="container"] > div {
-  background-color: var(--vscode-editor-background, #ffffff) !important;
+    background-color: var(--vscode-editor-background, #ffffff) !important;
 }
 
 /* Node text styling - adapt to theme */
 .react-flow__node,
 .react-flow__node *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
 }
 
 /* Container node text - same color as regular nodes */
@@ -226,7 +226,7 @@
 .react-flow__node[data-type="container"] *:not(.react-flow__handle),
 .react-flow__node.container-node,
 .react-flow__node.container-node *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
 }
 
 /* Container node text - dark theme - same color as regular nodes */
@@ -250,7 +250,7 @@
 .vscode-webview[data-theme="dark"] .react-flow__node[data-type="container"] *:not(.react-flow__handle),
 .vscode-webview[data-theme="dark"] .react-flow__node.container-node,
 .vscode-webview[data-theme="dark"] .react-flow__node.container-node *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
 }
 
 /* Container node text - high contrast theme - same color as regular nodes */
@@ -274,7 +274,7 @@
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-type="container"] *:not(.react-flow__handle),
 .vscode-webview[data-theme="high-contrast"] .react-flow__node.container-node,
 .vscode-webview[data-theme="high-contrast"] .react-flow__node.container-node *:not(.react-flow__handle) {
-  color: rgba(0, 0, 0, 0.88) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
 }
 
 /* Container node header - use CSS variables for proper theme support */
@@ -283,9 +283,9 @@
 .react-flow__node[data-node-type="container"] [class*="header"],
 .react-flow__node[data-type="container"] [class*="header"],
 .react-flow__node.container-node [class*="header"] {
-  background: var(--container-header-background, #fff9e6) !important;
-  color: rgba(0, 0, 0, 0.88) !important;
-  font-weight: normal !important;
+    background: var(--container-header-background, #fff9e6) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
+    font-weight: normal !important;
 }
 
 /* Container node header - dark theme */
@@ -299,9 +299,9 @@
 .vscode-webview[data-theme="dark"] .react-flow__node[data-node-type="container"] [class*="header"],
 .vscode-webview[data-theme="dark"] .react-flow__node[data-type="container"] [class*="header"],
 .vscode-webview[data-theme="dark"] .react-flow__node.container-node [class*="header"] {
-  background: var(--container-header-background, #fff9e6) !important;
-  color: rgba(0, 0, 0, 0.88) !important;
-  font-weight: normal !important;
+    background: var(--container-header-background, #fff9e6) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
+    font-weight: normal !important;
 }
 
 /* Container node header - high contrast theme */
@@ -315,9 +315,9 @@
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-node-type="container"] [class*="header"],
 .vscode-webview[data-theme="high-contrast"] .react-flow__node[data-type="container"] [class*="header"],
 .vscode-webview[data-theme="high-contrast"] .react-flow__node.container-node [class*="header"] {
-  background: var(--container-header-background, #fff9e6) !important;
-  color: rgba(0, 0, 0, 0.88) !important;
-  font-weight: normal !important;
+    background: var(--container-header-background, #fff9e6) !important;
+    color: rgba(0, 0, 0, 0.88) !important;
+    font-weight: normal !important;
 }
 
 /* Container node badge - light theme: no border to match dark theme size */
@@ -325,183 +325,183 @@
 [data-theme="light"] .react-flow__node-container[data-type="container"] .ant-badge-count,
 [data-theme="light"] .react-flow__node[data-node-type="container"] .ant-badge-count,
 [data-theme="light"] .react-flow__node[data-type="container"] .ant-badge-count {
-  border: none !important;
+    border: none !important;
 }
 
 /* Edge styling */
 .react-flow__edge {
-  stroke: var(--vscode-foreground);
-  stroke-width: 2px;
+    stroke: var(--vscode-foreground);
+    stroke-width: 2px;
 }
 
 .react-flow__edge.selected {
-  stroke: var(--vscode-focusBorder);
-  stroke-width: 3px;
+    stroke: var(--vscode-focusBorder);
+    stroke-width: 3px;
 }
 
 .react-flow__edge-path {
-  stroke: var(--vscode-foreground);
+    stroke: var(--vscode-foreground);
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--vscode-focusBorder);
+    stroke: var(--vscode-focusBorder);
 }
 
 /* Dark theme - more visible edges */
 [data-theme="dark"] .react-flow__edge {
-  stroke: rgba(255, 255, 255, 0.4);
+    stroke: rgba(255, 255, 255, 0.4);
 }
 
 [data-theme="dark"] .react-flow__edge-path {
-  stroke: rgba(255, 255, 255, 0.4);
+    stroke: rgba(255, 255, 255, 0.4);
 }
 
 [data-theme="dark"] .react-flow__edge.selected {
-  stroke: var(--vscode-focusBorder);
+    stroke: var(--vscode-focusBorder);
 }
 
 [data-theme="dark"] .react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--vscode-focusBorder);
+    stroke: var(--vscode-focusBorder);
 }
 
 /* Connection line */
 .react-flow__connectionline {
-  stroke: var(--vscode-focusBorder);
-  stroke-width: 2px;
-  stroke-dasharray: 5;
+    stroke: var(--vscode-focusBorder);
+    stroke-width: 2px;
+    stroke-dasharray: 5;
 }
 
 /* Handle styling */
 .react-flow__handle {
-  background-color: var(--vscode-button-background);
-  border: 2px solid var(--vscode-editor-background);
-  width: 8px;
-  height: 8px;
+    background-color: var(--vscode-button-background);
+    border: 2px solid var(--vscode-editor-background);
+    width: 8px;
+    height: 8px;
 }
 
 .react-flow__handle:hover {
-  background-color: var(--vscode-button-hoverBackground);
+    background-color: var(--vscode-button-hoverBackground);
 }
 
 .react-flow__handle.valid {
-  background-color: var(--vscode-terminal-ansiGreen);
+    background-color: var(--vscode-terminal-ansiGreen);
 }
 
 .react-flow__handle.connecting {
-  background-color: var(--vscode-focusBorder);
+    background-color: var(--vscode-focusBorder);
 }
 
 /* Custom node styles - flat design */
 .trigger-node {
-  background-color: var(--vscode-panel-background);
-  border: 1px solid var(--vscode-border);
-  border-radius: 4px;
-  color: rgba(0, 0, 0, 0.88);
-  padding: 10px;
+    background-color: var(--vscode-panel-background);
+    border: 1px solid var(--vscode-border);
+    border-radius: 4px;
+    color: rgba(0, 0, 0, 0.88);
+    padding: 10px;
 }
 
 .dndnode {
-  border: 1px solid var(--vscode-border);
-  border-radius: 4px;
-  cursor: grab;
-  background-color: var(--vscode-panel-background);
-  color: var(--vscode-foreground);
-  padding: 8px;
+    border: 1px solid var(--vscode-border);
+    border-radius: 4px;
+    cursor: grab;
+    background-color: var(--vscode-panel-background);
+    color: var(--vscode-foreground);
+    padding: 8px;
 }
 
 .dndnode:hover {
-  border-color: var(--vscode-focusBorder);
-  background-color: var(--vscode-sideBar-background);
+    border-color: var(--vscode-focusBorder);
+    background-color: var(--vscode-sideBar-background);
 }
 
 /* Background patterns - dots with theme support */
 .react-flow__background {
-  background-color: var(--vscode-panel-background) !important;
+    background-color: var(--vscode-panel-background) !important;
 }
 
 /* ReactFlow background pattern */
 .react-flow__background .react-flow__background-pattern {
-  fill: var(--vscode-foreground) !important;
+    fill: var(--vscode-foreground) !important;
 }
 
 /* MiniMap theming - only colors, standard ReactFlow style */
 .react-flow__minimap {
-  background-color: var(--vscode-editor-background) !important;
-  border: 1px solid var(--vscode-foreground) !important;
+    background-color: var(--vscode-editor-background) !important;
+    border: 1px solid var(--vscode-foreground) !important;
 }
 
 [data-theme="dark"] .react-flow__minimap {
-  background-color: #141414 !important;
+    background-color: #141414 !important;
 }
 
 [data-theme="light"] .react-flow__minimap {
-  background-color: #ffffff !important;
+    background-color: #ffffff !important;
 }
 
 .react-flow__minimap-mask {
-  fill: var(--vscode-panel-background) !important;
+    fill: var(--vscode-panel-background) !important;
 }
 
 /* Controls theming - only colors, standard ReactFlow style */
 .react-flow__controls {
-  background-color: var(--vscode-panel-background);
+    background-color: var(--vscode-panel-background);
 }
 
 .react-flow__controls-button {
-  background-color: var(--vscode-panel-background);
-  color: var(--vscode-foreground);
-  border-bottom-color: var(--vscode-border);
+    background-color: var(--vscode-panel-background);
+    color: var(--vscode-foreground);
+    border-bottom-color: var(--vscode-border);
 }
 
 .react-flow__controls-button:hover {
-  background-color: var(--vscode-sideBar-background);
+    background-color: var(--vscode-sideBar-background);
 }
 
 /* Panel theming - only colors, standard ReactFlow style */
 .react-flow__panel {
-  background-color: var(--vscode-panel-background);
-  border-color: var(--vscode-border);
-  color: var(--vscode-foreground);
+    background-color: var(--vscode-panel-background);
+    border-color: var(--vscode-border);
+    color: var(--vscode-foreground);
 }
 
 /* Node highlighting for selection and hover - flat design */
 [class~="react-flow__node"]:not(.highlight) > div {
-  background: unset;
-  border: unset;
-  box-shadow: none;
+    background: unset;
+    border: unset;
+    box-shadow: none;
 }
 
 [class~="react-flow__node"].highlight > div {
-  border: 1.5px solid var(--vscode-focusBorder) !important;
-  background: unset !important;
-  box-shadow: none !important;
+    border: 1.5px solid var(--vscode-focusBorder) !important;
+    background: unset !important;
+    box-shadow: none !important;
 }
 
 [class~="react-flow__node"].highlight > div > div:first-child {
-  background: unset !important;
-  border-bottom: unset !important;
+    background: unset !important;
+    border-bottom: unset !important;
 }
 
 [class~="react-flow__node"].highlight [class~="react-flow__handle"] {
-  box-shadow: none !important;
-  border: 2px solid var(--vscode-focusBorder) !important;
+    box-shadow: none !important;
+    border: 2px solid var(--vscode-focusBorder) !important;
 }
 
 /* Tooltips - flat design */
 .trigger-node-input .tooltiptext {
-  visibility: hidden;
-  background-color: var(--vscode-panel-background);
-  color: var(--vscode-foreground);
-  border: 1px solid var(--vscode-border);
-  border-radius: 4px;
-  padding: 5px;
-  position: absolute;
-  z-index: 1000;
-  box-shadow: none;
+    visibility: hidden;
+    background-color: var(--vscode-panel-background);
+    color: var(--vscode-foreground);
+    border: 1px solid var(--vscode-border);
+    border-radius: 4px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1000;
+    box-shadow: none;
 }
 
 .trigger-node-input:hover .tooltiptext {
-  visibility: visible;
+    visibility: visible;
 }
 
 /* Smooth transitions for theme changes */
@@ -514,8 +514,7 @@
 .react-flow__panel,
 .dndnode,
 .trigger-node {
-  transition: 
-    background-color var(--transition-duration) ease,
+    transition: background-color var(--transition-duration) ease,
     border-color var(--transition-duration) ease,
     color var(--transition-duration) ease,
     box-shadow var(--transition-duration) ease;
@@ -531,7 +530,7 @@
 .theme-switching .react-flow__panel,
 .theme-switching .dndnode,
 .theme-switching .trigger-node {
-  transition: none !important;
+    transition: none !important;
 }
 
 
