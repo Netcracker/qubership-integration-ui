@@ -84,7 +84,6 @@ export function useAsyncRequest<
     if (immediate) {
       void execute(...([] as unknown as Args));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [immediate]);
 
   return { value, loading, error, execute, reset };

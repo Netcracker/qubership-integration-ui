@@ -1,117 +1,116 @@
 
 .container {
-  min-height: 0;
-  height: 100%;
-  overflow: auto;
+    min-height: 0;
+    height: 100%;
+    overflow: auto;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
 }
 
 .title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 16px 0;
-  font-size: 20px;
-  color: var(--vscode-foreground, rgba(0, 0, 0, 0.85)) !important;
-  transition: color var(--transition-duration) var(--transition-easing);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    color: var(--vscode-foreground, rgba(0, 0, 0, 0.85)) !important;
+    transition: color var(--transition-duration) var(--transition-easing);
 }
 
 .title:hover {
-  color: var(--vscode-textLink-foreground, #1890ff);
+    color: var(--vscode-textLink-foreground, #1890ff);
 }
 
 .icon {
-  margin-right: 12px;
-  transition:
-    transform 0.2s var(--transition-easing),
+    margin-right: 12px;
+    transition: transform 0.2s var(--transition-easing),
     color var(--transition-duration) var(--transition-easing);
 }
 
 .icon:hover {
-  transform: scale(1.1);
-  color: var(--vscode-textLink-foreground, #1890ff);
+    transform: scale(1.1);
+    color: var(--vscode-textLink-foreground, #1890ff);
 }
 
 .actions {
-  display: flex;
-  gap: 12px;
+    display: flex;
+    gap: 12px;
 }
 
 .actions .ant-btn {
-  transition: all var(--transition-duration) var(--transition-easing);
+    transition: all var(--transition-duration) var(--transition-easing);
 }
 
 .actions .ant-btn-primary {
-  background-color: var(--vscode-button-background, #1890ff);
-  border-color: var(--vscode-button-background, #1890ff);
+    background-color: var(--vscode-button-background, #1890ff);
+    border-color: var(--vscode-button-background, #1890ff);
 }
 
 .actions .ant-btn-primary:hover {
-  background-color: var(--vscode-button-hoverBackground, #40a9ff);
-  border-color: var(--vscode-button-hoverBackground, #40a9ff);
-  transform: translateY(-1px);
+    background-color: var(--vscode-button-hoverBackground, #40a9ff);
+    border-color: var(--vscode-button-hoverBackground, #40a9ff);
+    transform: translateY(-1px);
 }
 
 .actions .ant-btn-dangerous {
-  background-color: var(--vscode-errorForeground, #ff4d4f);
-  border-color: var(--vscode-errorForeground, #ff4d4f);
+    background-color: var(--vscode-errorForeground, #ff4d4f);
+    border-color: var(--vscode-errorForeground, #ff4d4f);
 }
 
 .actions .ant-btn-dangerous:hover {
-  background-color: var(--vscode-errorForeground, #ff7875);
-  border-color: var(--vscode-errorForeground, #ff7875);
-  transform: translateY(-1px);
+    background-color: var(--vscode-errorForeground, #ff7875);
+    border-color: var(--vscode-errorForeground, #ff7875);
+    transform: translateY(-1px);
 }
 
 .table-wrapper {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
 }
 
 .edit-button,
 .delete-button {
-  border: none !important;
-  background: none !important;
-  box-shadow: none !important;
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
 }
 
 @media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
 
-  .actions {
-    width: 100%;
-    flex-direction: column;
-  }
+    .actions {
+        width: 100%;
+        flex-direction: column;
+    }
 
-  .actions button {
-    width: 100%;
-    margin-bottom: 8px;
-  }
+    .actions button {
+        width: 100%;
+        margin-bottom: 8px;
+    }
 
-  .title {
-    font-size: 18px;
-  }
+    .title {
+        font-size: 18px;
+    }
 }
 
 @media (max-width: 480px) {
-  .container {
-    padding: 16px;
-  }
+    .container {
+        padding: 16px;
+    }
 
-  .title {
-    font-size: 16px;
-  }
+    .title {
+        font-size: 16px;
+    }
 }

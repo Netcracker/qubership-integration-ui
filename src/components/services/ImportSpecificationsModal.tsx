@@ -167,7 +167,7 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
 
   React.useEffect(() => {
     void fetchChainsWithHttpTriggers(externalRoutesOnly);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [externalRoutesOnly]);
 
   const fetchSpecApiFiles = async () => {
@@ -187,7 +187,7 @@ const ImportSpecificationsModal: React.FC<Props> = ({ systemId, specificationGro
     if (isVsCodeContext) {
       void fetchSpecApiFiles();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isVsCodeContext]);
 
   React.useEffect(() => {

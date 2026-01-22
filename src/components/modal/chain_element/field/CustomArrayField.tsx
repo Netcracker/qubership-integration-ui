@@ -192,7 +192,7 @@ const CustomArrayField: React.FC<
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [operationId, readOnlyMode]);
 
   const handleAdd = () => {

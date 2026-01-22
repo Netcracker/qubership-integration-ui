@@ -80,7 +80,7 @@ export const ServiceParametersTab: React.FC<ServiceParametersTabProps> = ({
         setLabelsAndForm(data);
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [systemId, activeTab]);
 
   useEffect(() => {

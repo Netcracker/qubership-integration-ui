@@ -60,8 +60,8 @@
 }
 
 .parameters-form {
-  min-height: 0;
-  overflow-y: auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .field-label {

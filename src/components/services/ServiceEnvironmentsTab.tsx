@@ -36,7 +36,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   const normalizedProtocol = normalizeProtocol(protocol);
   const systemId = system?.id || "";
   const activeEnvironmentId = system?.activeEnvironmentId;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const chains = useChainsContext() || [];
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(false);

@@ -102,7 +102,7 @@ export const ServicesListPage: React.FC = () => {
 
   useEffect(() => {
     void loadServices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const getServicesByTab = useCallback((): IntegrationSystem[] | ContextSystem[] => {

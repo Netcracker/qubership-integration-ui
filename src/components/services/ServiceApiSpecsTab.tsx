@@ -253,13 +253,13 @@ export const ServiceApiSpecsTab: React.FC = () => {
   useEffect(() => {
     if (!systemId) return;
     void loadGroups(systemId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [systemId]);
 
   useEffect(() => {
     if (!systemId || !groupId) return;
     void loadModels(systemId, groupId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [systemId, groupId]);
 
   useEffect(() => {
