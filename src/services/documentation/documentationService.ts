@@ -301,10 +301,7 @@ export class DocumentationService {
     const searchConfiguration = {
       fields: { body: { boost: 1, bool: "OR" as const, expand: false } },
     };
-    const result = index.search(
-      query,
-      searchConfiguration,
-    ) as Array<{
+    const result = index.search(query, searchConfiguration) as Array<{
       ref: string;
       score: number;
     }>;
