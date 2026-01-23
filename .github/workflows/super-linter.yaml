@@ -65,16 +65,22 @@ jobs:
         with:
           name: linter-config
           path: /tmp/linter-config
-      - name: "Apply common linters configuration"
+      - name: Show linters BEFORE apply
+        run: |
+          echo "===== BEFORE ====="
+          if [ -d .github/linters ]; then
+            find .github/linters -type f
+          else
+            echo "No local linters"
+          fi
+      - name: Apply common linters configuration (do not override local)
         run: |
           mkdir -p .github/linters
-          cp -vRT /tmp/linter-config/linters .github/linters
-
-      - name: "Apply local linters overrides"
+          cp --update=none -vRT /tmp/linter-config/linters ./.github/linters
+      - name: Show linters AFTER apply
         run: |
-          if [ -d "${GITHUB_WORKSPACE}/.github/linters" ]; then
-            cp -vRT "${GITHUB_WORKSPACE}/.github/linters" .github/linters
-          fi
+          echo "===== AFTER ====="
+          find .github/linters -type f
       - name: "Load super-linter environment file"
         shell: bash
         run: |
