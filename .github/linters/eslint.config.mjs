@@ -39,7 +39,6 @@ export default defineConfig([
       "n/no-missing-import": "off",
       "n/no-unsupported-features/node-builtins": "off",
       "react-hooks/exhaustive-deps": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "warn"
     }
