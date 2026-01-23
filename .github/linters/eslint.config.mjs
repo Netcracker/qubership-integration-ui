@@ -1,8 +1,6 @@
-import globals from "globals";
 import pluginJs from "@eslint/js";
 import pluginReact from "eslint-plugin-react";
 import pluginJest from "eslint-plugin-jest";
-import * as reactHooks from "eslint-plugin-react-hooks";
 import { defineConfig, globalIgnores } from "eslint/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,35 +18,6 @@ export default defineConfig([
 
   pluginJs.configs.recommended,
   pluginReact.configs.flat.recommended,
-  reactHooks.configs["recommended-latest"],
-
-  {
-    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
-    plugins: {
-      "react-hooks": reactHooks
-    },
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node
-      },
-      parserOptions: {
-        projectService: {
-          allowDefaultProject: ["eslint.config.mjs"],
-          defaultProject: "./tsconfig.json"
-        },
-        tsconfigRootDir: __dirname
-      }
-    },
-    settings: {
-      react: {
-        version: "detect"
-      }
-    },
-    rules: {
-      "react/react-in-jsx-scope": "off"
-    }
-  },
 
   {
     files: ["**/*.{spec,test}.{js,ts,tsx}"],
