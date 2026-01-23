@@ -73,10 +73,10 @@ jobs:
           else
             echo "No local linters"
           fi
-      - name: Apply common linters configuration (do not override local)
-        run: |
-          mkdir -p .github/linters
-          cp --update=none -vRT /tmp/linter-config/linters ./.github/linters
+#      - name: Apply common linters configuration (do not override local)
+#        run: |
+#          mkdir -p .github/linters
+#          cp --update=none -vRT /tmp/linter-config/linters ./.github/linters
       - name: Show linters AFTER apply
         run: |
           echo "===== AFTER ====="
