@@ -64,25 +64,7 @@ export default [
     },
   },
   {
-    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
-    languageOptions: {
-      ecmaVersion: 2021,
-      sourceType: "module",
-      globals: {
-        // Browser globals
-        window: "readonly",
-        document: "readonly",
-        navigator: "readonly",
-        console: "readonly",
-        // Node globals
-        process: "readonly",
-        Buffer: "readonly",
-        __dirname: "readonly",
-        __filename: "readonly",
-      }
-    },
     rules: {
-      // Отключаем проблемные правила
       "n/no-missing-import": "off",
       "n/no-unsupported-features/node-builtins": "off",
       "react-hooks/exhaustive-deps": "off",
