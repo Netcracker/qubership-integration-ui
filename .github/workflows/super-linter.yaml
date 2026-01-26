@@ -65,6 +65,10 @@ jobs:
         with:
           name: linter-config
           path: /tmp/linter-config
+      - name: Apply common linters configuration (do not override local)
+        run: |
+          mkdir -p .github/linters
+          cp --update=none -vRT /tmp/linter-config/linters ./.github/linters
       - name: "Load super-linter environment file"
         shell: bash
         run: |
