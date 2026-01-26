@@ -166,7 +166,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref }}
       - name: Run Release Drafter
-        uses: netcracker/release-drafter@86f4276a3894b5af70480e826c32fe3648ac6a70 #v1.0.0
+        uses: netcracker/release-drafter@86f4276a3894b5af70480e826c32fe3648ac6a70 # v1.0.0
         with:
           config-name: "release-drafter-config.yml"
           publish: true
