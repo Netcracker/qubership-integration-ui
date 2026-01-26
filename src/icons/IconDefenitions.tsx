@@ -102,7 +102,8 @@ import {
   ContainerOutlined,
   FullscreenOutlined,
   FullscreenExitOutlined,
-  RightSquareOutlined
+  RightSquareOutlined,
+  MenuUnfoldOutlined
 } from "@ant-design/icons";
 import {BookLockIcon} from "lucide-react";
 
@@ -182,7 +183,8 @@ export const commonIcons = {
   fullscreen: FullscreenOutlined,
   fullscreenExit: FullscreenExitOutlined,
   rightPanel: RightSquareOutlined,
-  block: BlockOutlined
+  block: BlockOutlined,
+  menuUnfold: MenuUnfoldOutlined
 };
 
 export const elementIcons = {

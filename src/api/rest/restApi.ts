@@ -69,6 +69,7 @@ import {
   LiveExchange,
   ContextSystem,
   IntegrationSystemType,
+  UsedProperty
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1480,4 +1481,14 @@ export class RestApi implements Api {
   reconfigure(newGateway: string): void {
     this.instance.defaults.baseURL = newGateway;
   }
+
+  getUsedProperties = async (
+      chainId: string,
+  ): Promise<UsedProperty[]> => {
+     const response = await this.instance.get<UsedProperty[]>(
+         `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/properties/used`
+     );
+
+     return response.data;
+  };
 }

@@ -35,23 +35,11 @@
     width: 100%;
     display: flex;
     justify-content: flex-start;
-    gap: 70px;
     margin-left: 20px;
 }
 
 .spacedTabs :global(.ant-tabs-tab) {
     position: relative;
-}
-
-.spacedTabs :global(.ant-tabs-tab:not(:last-child)::after) {
-    content: '';
-    position: absolute;
-    right: -90px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1px;
-    height: 20px;
-    background-color: var(--vscode-border, rgba(0, 0, 0, 0.15));
 }
 
 .spacedTabs {

@@ -1167,3 +1167,36 @@ export type LiveExchange = {
   main: boolean;
   podIp: string;
 };
+
+export enum UsedPropertySource {
+    HEADER = 'HEADER',
+    EXCHANGE_PROPERTY = 'EXCHANGE_PROPERTY'
+}
+
+export enum UsedPropertyType {
+    STRING = 'STRING',
+    NUMBER = 'NUMBER',
+    BOOLEAN = 'BOOLEAN',
+    OBJECT = 'OBJECT',
+    UNKNOWN_TYPE = 'UNKNOWN_TYPE',
+}
+
+export enum UsedPropertyElementOperation {
+    GET = 'GET',
+    SET = 'SET',
+}
+
+export type UsedProperty = {
+    name: string;
+    source: UsedPropertySource;
+    type: UsedPropertyType;
+    isArray: boolean;
+    relatedElements: { [id: string]: UsedPropertyElement };
+};
+
+export interface UsedPropertyElement {
+    id: string;
+    name: string;
+    type: string;
+    operations: UsedPropertyElementOperation[];
+}

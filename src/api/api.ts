@@ -62,6 +62,7 @@ import {
   LiveExchange,
   ContextSystem,
   IntegrationSystemType,
+  UsedProperty
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -455,6 +456,8 @@ export interface Api {
     deploymentId: string,
     exchangeId: string,
   ): Promise<void>;
+
+  getUsedProperties(chainId: string): Promise<UsedProperty[]>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();
