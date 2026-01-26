@@ -7,12 +7,9 @@
 
 name: Publish NPM package
 
-run-name: NPM Package${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run)) && ' - Test' || ' - Publish' }}${{ (github.event_name == 'workflow_dispatch' && !inputs.dry-run && inputs.version) && format(' {0}', inputs.version) || '' }}
+run-name: NPM Package${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch')) && ' - Test' || ' - Publish' }}${{ (github.event_name == 'workflow_dispatch' && inputs.version) && format(' {0}', inputs.version) || '' }}
 
 on:
-  push:
-    branches:
-      - '**'
   workflow_dispatch:
     inputs:
       version:
@@ -36,11 +33,6 @@ on:
         required: false
         type: boolean
         default: false
-      dry-run:
-        description: 'Run in dry-run mode (no actual publishing)'
-        required: false
-        type: boolean
-        default: true
       npm-dist-tag:
         description: 'NPM distribution tag'
         required: false
@@ -109,7 +101,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       publish_version: ${{ steps.set_version.outputs.publish_version }}
-      is_dev: ${{ steps.set_version.outputs.is_dev }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
@@ -128,10 +119,8 @@ jobs:
             TIMESTAMP=$(date +'%Y%m%d%H%M%S')
             NEW_VERSION="${VERSION}.${TIMESTAMP}"
             echo "publish_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-            echo "is_dev=true" >> $GITHUB_OUTPUT
           else
             echo "publish_version=$VERSION" >> $GITHUB_OUTPUT
-            echo "is_dev=false" >> $GITHUB_OUTPUT
           fi
 
   npm-publish:
@@ -146,8 +135,7 @@ jobs:
       node-version: ${{ github.event_name == 'workflow_dispatch' && inputs.node-version || '22.x' }}
       registry-url: ${{ github.event_name == 'workflow_dispatch' && inputs.registry-url || 'https://npm.pkg.github.com' }}
       update-nc-dependency: ${{ github.event_name == 'workflow_dispatch' && inputs.update-nc-dependency || false }}
-      dry-run: ${{ (github.event_name == 'push' && needs.prepare-version.outputs.is_dev != 'true') || (github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
-      dist-tag: ${{ github.event_name == 'push' && needs.prepare-version.outputs.is_dev == 'true' && 'dev' || (github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag != '' && inputs.npm-dist-tag) || 'latest' }}
+      dist-tag: ${{(github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag != '' && inputs.npm-dist-tag) || 'latest' }}
       ref: ${{ github.ref_name }}
 
   update-version-in-extension:
