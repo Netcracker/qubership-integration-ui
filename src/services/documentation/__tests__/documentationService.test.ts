@@ -230,9 +230,7 @@ describe("DocumentationService - Element Type Mapping", () => {
 
       const pathTry = await service.mapPathByElementType("try");
       const pathCatch = await service.mapPathByElementType("catch");
-      const pathFinally = await service.mapPathByElementType(
-        "finally",
-      );
+      const pathFinally = await service.mapPathByElementType("finally");
 
       expect(pathTry).toContain("try-catch-finally");
       expect(pathCatch).toContain("try-catch-finally");
@@ -254,9 +252,7 @@ describe("DocumentationService - Element Type Mapping", () => {
     test("returns not-found for unknown elements", async () => {
       jest.spyOn(service, "loadPaths").mockResolvedValue([]);
 
-      const path = await service.mapPathByElementType(
-        "non-existent-element",
-      );
+      const path = await service.mapPathByElementType("non-existent-element");
 
       expect(path).toContain("not-found");
     });
