@@ -51,6 +51,11 @@ on:
         required: false
         type: boolean
         default: false
+      create-github-release:
+        description: 'Create release'
+        required: false
+        default: false
+        type: boolean
 
 permissions: {}
 
@@ -147,6 +152,7 @@ jobs:
 
   update-version-in-extension:
     if: inputs.update-extension == true
+    needs: npm-publish
     runs-on: ubuntu-latest
     steps:
       - name: Trigger extension event
@@ -158,3 +164,27 @@ jobs:
           repo: "qubership-integration-vscode-extension"
           owner: "Netcracker"
 
+  create-release:
+    if: ${{ github.event.inputs.create-github-release == 'true' }}
+    needs: npm-publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+      - name: Run Release Drafter
+        uses: netcracker/release-drafter@86f4276a3894b5af70480e826c32fe3648ac6a70 #v1.0.0
+        with:
+          config-name: "release-drafter-config.yml"
+          publish: true
+          prerelease: ${{ github.ref_name != 'main' }}
+          name: ${{ inputs.version }}
+          tag: 'v${{ inputs.version }}'
+          version: 'v${{ inputs.version }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
