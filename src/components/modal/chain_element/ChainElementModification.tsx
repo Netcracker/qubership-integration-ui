@@ -177,31 +177,63 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     [],
   );
 
-  const schemaModules = useMemo(
-    () =>
-      import.meta.glob(
-        "/node_modules/@netcracker/qip-schemas/assets/*.schema.yaml",
-        { as: "raw", eager: true },
-      ),
-    [],
-  );
-
   useEffect(() => {
-    const path = `/node_modules/@netcracker/qip-schemas/assets/${node.data.elementType}.schema.yaml`;
-    const raw = schemaModules[path];
+    const loadSchema = async () => {
+      let raw: string | undefined;
 
-    if (!raw) {
-      notificationService.errorWithDetails(
-        "Schema not found",
-        `Schema for elementType "${node.data.elementType}" was not found.`,
-        undefined,
-      );
-      return;
-    }
+      if (import.meta.env?.DEV) {
+        try {
+          const schemaModules = import.meta.glob(
+            "/node_modules/@netcracker/qip-schemas/assets/*.schema.yaml",
+            { as: "raw", eager: true },
+          );
+          const path = `/node_modules/@netcracker/qip-schemas/assets/${node.data.elementType}.schema.yaml`;
+          raw = schemaModules[path] as string | undefined;
+        } catch (e) {
+          // Fall through to fetch if import.meta.glob fails
+        }
+      }
 
-    try {
-      const parsed = yaml.load(raw) as JSONSchema7;
-      setSchema(parsed);
+      if (!raw) {
+        try {
+          let basePath = '/node_modules/@netcracker/qip-schemas/assets/';
+
+          if (typeof window !== 'undefined' && window.location.protocol === 'vscode-webview:') {
+            // In webview, files are served from extension root
+            basePath = '/node_modules/@netcracker/qip-schemas/assets/';
+          } else if (typeof import.meta !== 'undefined' && import.meta.url) {
+            // Try to derive base path from current script location
+            try {
+              const scriptUrl = new URL(import.meta.url);
+              const baseUrl = new URL('.', scriptUrl);
+              basePath = new URL('node_modules/@netcracker/qip-schemas/assets/', baseUrl).pathname;
+            } catch (e) {
+              basePath = '/node_modules/@netcracker/qip-schemas/assets/';
+            }
+          }
+
+          const schemaPath = `${basePath}${node.data.elementType}.schema.yaml`;
+          const response = await fetch(schemaPath);
+          if (response.ok) {
+            raw = await response.text();
+          }
+        } catch (e) {
+          // Fall through to error handling
+        }
+      }
+
+      if (!raw) {
+        notificationService.errorWithDetails(
+          "Schema not found",
+          `Schema for elementType "${node.data.elementType}" was not found.`,
+          undefined,
+        );
+        return;
+      }
+
+      try {
+        const parsed = yaml.load(raw) as JSONSchema7;
+        setSchema(parsed);
 
       const initialFormData = {
         ...node.data,
@@ -279,19 +311,22 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           setHasChanges(true);
         },
       });
-    } catch (err) {
-      console.error("Failed to parse schema:", err);
-      notificationService.errorWithDetails(
-        "Failed to load schema",
-        `Error while parsing schema for "${node.data.elementType}"`,
-        err,
-      );
-    }
+      } catch (err) {
+        console.error("Failed to parse schema:", err);
+        notificationService.errorWithDetails(
+          "Failed to load schema",
+          `Error while parsing schema for "${node.data.elementType}"`,
+          err,
+        );
+      }
+    };
+
+    loadSchema();
   }, [
     node.data,
     node.id,
+    node.data.elementType,
     notificationService,
-    schemaModules,
     enrichProperties,
     chainId,
   ]);
