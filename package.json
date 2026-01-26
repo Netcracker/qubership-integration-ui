@@ -21,7 +21,7 @@
     "predev": "npm run fetch-docs",
     "build": "vite build",
     "prebuild": "npm run fetch-docs",
-    "build:lib": "vite build --config vite.config.lib.ts",
+    "build:lib": "vite build --config vite.config.lib.ts && node scripts/fix-preload.js",
     "fetch-docs": "ts-node --project scripts/tsconfig.json scripts/fetch-documentation.ts",
     "build:doc-index": "node scripts/build-doc-index.js",
     "check-types": "tsc --noEmit",
