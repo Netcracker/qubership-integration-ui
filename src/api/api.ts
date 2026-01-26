@@ -62,7 +62,7 @@ import {
   LiveExchange,
   ContextSystem,
   IntegrationSystemType,
-  UsedProperty
+  UsedProperty,
   DiagnosticValidation,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";

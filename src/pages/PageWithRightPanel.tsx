@@ -122,10 +122,7 @@ export const PageWithRightPanel = () => {
         }
     }, [elements, handleElementDoubleClick]);
 
-    const handleElementSingleClick = useCallback((elementId: string) => {
-        // Single click handler - could be used for selection/highlighting
-        // For now, we'll just do nothing or could navigate to the element
-    }, []);
+    const handleElementSingleClick = useCallback((elementId: string) => {}, []);
 
     const elementMenuItems: MenuProps['items'] = useMemo(() => {
         if (!elements.length || !libraryElements) {

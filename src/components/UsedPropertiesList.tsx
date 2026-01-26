@@ -26,10 +26,10 @@ const usedPropertyElementOperationColorMapping: { [key: string]: 'green' | 'blue
 };
 
 interface ParsedProperty {
-  id: string; // property.name + property.source
+  id: string;
   name: string;
   source: string;
-  sourceCode: string; // 'H' or 'P'
+  sourceCode: string;
   type: string;
   isArray: boolean;
   childrenCount: number;
@@ -37,7 +37,7 @@ interface ParsedProperty {
 }
 
 interface ParsedElement {
-  id: string; // propertyName + source + elementId
+  id: string;
   elementId: string;
   name: string;
   type: string;
@@ -62,17 +62,14 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
   const { properties, isLoading } = useUsedProperties(chainId);
   const { libraryElements } = useLibraryContext();
 
-  // Track which properties are expanded
   const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
 
-  // Helper function to get element template
   const getElementTemplate = useCallback((type: string): { title: string } | null => {
     if (!libraryElements) return null;
     const libraryElement = libraryElements.find(el => el.name === type);
     return libraryElement ? { title: libraryElement.title } : null;
   }, [libraryElements]);
 
-  // Helper functions
   const buildUsedPropMapKey = (property: UsedProperty): string => {
     return property.name + property.source;
   };
@@ -85,7 +82,6 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
     return propertyName + propertySource + elementId;
   };
 
-  // Parse properties into tree structure
   const parsedProperties = useMemo(() => {
     if (!properties || properties.length === 0) {
       return [];
@@ -98,7 +94,6 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
     return sortedProperties.map(property => {
       const propertyId = buildUsedPropMapKey(property);
 
-      // Parse related elements
       const children: ParsedElement[] = Object.values(property.relatedElements)
         .sort((a, b) => a.name.localeCompare(b.name))
         .map(element => {
@@ -130,7 +125,6 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
     });
   }, [properties, getElementTemplate]);
 
-  // Toggle property expansion
   const toggleProperty = (propertyId: string) => {
     setExpandedProperties(prev => {
       const next = new Set(prev);
@@ -184,8 +178,8 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
                   {property.childrenCount > 99 ? '99+' : property.childrenCount}
                 </span>
                 <span className={styles.expandIcon}>
-                  <OverridableIcon 
-                    name={isExpanded ? "caretDownFilled" : "caretRightFilled"} 
+                  <OverridableIcon
+                    name={isExpanded ? "caretDownFilled" : "caretRightFilled"}
                     style={{ fontSize: 10 }}
                   />
                 </span>
