@@ -266,6 +266,15 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  getAllElementsByType = async (
+    elementType: string,
+  ): Promise<ElementWithChainName[]> => {
+    const response = await this.instance.get<ElementWithChainName[]>(
+      `/api/v1/${getAppName()}/catalog/chains/any-chain/elements/type/${elementType}`,
+    );
+    return response.data;
+  };
+
   createElement = async (
     elementRequest: CreateElementRequest,
     chainId: string,

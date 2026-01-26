@@ -211,9 +211,23 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:title": "Variables Header",
     },
     idempotency: {
+      "ui:order": [
+        "*",
+        "actionOnDuplicate",
+        "chainTriggerParameters",
+      ],
       keyExpiry: {
         "ui:fieldReplacesAnyOrOneOf": true,
         "ui:field": "oneOfAsSingleInputField",
+      },
+      chainTriggerParameters: {
+        triggerElementId: {
+          "ui:field": "chainTriggerSelectField",
+        },
+        chainCallTimeout: {
+          "ui:fieldReplacesAnyOrOneOf": true,
+          "ui:field": "oneOfAsSingleInputField",
+        },
       },
     },
     connectTimeout: {
@@ -428,7 +442,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.before": "Prepare Request",
   "properties.after": "Handle Response",
   "properties.afterValidation": "Validation",
-  "properties.requestFilterHeaderAllowlist": "Filer Request",
+  "properties.requestFilterHeaderAllowlist": "Filter Request",
 };
 
 export const desiredTabOrder = [
@@ -442,7 +456,7 @@ export const desiredTabOrder = [
   "Handle Response",
   "Failure Response Mapping",
   "Access Control",
-  "Filer Request",
+  "Filter Request",
   "Parameters",
   "Idempotency",
 ];

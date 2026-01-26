@@ -104,6 +104,10 @@ export interface Api {
     elementType: string,
   ): Promise<ElementWithChainName[]>;
 
+  getAllElementsByType(
+    elementType: string,
+  ): Promise<ElementWithChainName[]>;
+
   createElement(
     elementRequest: CreateElementRequest,
     chainId: string,
