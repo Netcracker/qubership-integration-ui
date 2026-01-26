@@ -4,7 +4,7 @@ import sassDts from "vite-plugin-sass-dts";
 import dts from "vite-plugin-dts";
 import * as path from "node:path";
 
-// Library build config for web applications - React is external (smaller bundle)
+// Library build config for web applications - React is external
 // This is the default version published to npm for use in Vite/Webpack projects
 export default defineConfig({
   plugins: [
