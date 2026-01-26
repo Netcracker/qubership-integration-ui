@@ -50,7 +50,7 @@ on:
         description: 'Update UI version in extension'
         required: false
         type: boolean
-        default: true
+        default: false
 
 permissions: {}
 
@@ -140,8 +140,7 @@ jobs:
       dry-run: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry-run) }}
       dist-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag || 'latest' }}
       ref: ${{ github.ref_name }}
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    secrets: inherit
 
   update-version-in-extension:
     if: inputs.update-extension == true
