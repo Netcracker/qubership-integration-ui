@@ -40,7 +40,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
-          ref: ${{ inputs.ref}}
+          ref: ${{ github.ref }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -56,13 +56,11 @@ jobs:
 
       - name: Update npm version for dev version
         run: |
-          REQUESTED_VERSION="${{ inputs.version }}"
-
           CURRENT_VERSION=$(jq -r '.version' package.json)
 
-          if [ "$CURRENT_VERSION" != "$REQUESTED_VERSION" ]; then
-            echo "Updating version from $CURRENT_VERSION to $REQUESTED_VERSION"
-            npm version "$REQUESTED_VERSION" --no-git-tag-version
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            echo "Updating version from $CURRENT_VERSION to $VERSION"
+            npm version "$VERSION" --no-git-tag-version
           else
             echo "Version already $CURRENT_VERSION, skipping"
           fi
