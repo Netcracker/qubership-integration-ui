@@ -65,26 +65,6 @@ jobs:
         with:
           name: linter-config
           path: /tmp/linter-config
-      - name: Show linters BEFORE apply
-        run: |
-          echo "===== BEFORE ====="
-          if [ -d .github/linters ]; then
-            find .github/linters -type f
-          else
-            echo "No local linters"
-          fi
-      - name: Apply common linters configuration (do not override local)
-        run: |
-          mkdir -p .github/linters
-          cp --update=none -vRT /tmp/linter-config/linters ./.github/linters
-      - name: "Prepare ESLint flat config for super-linter"
-        run: |
-          mkdir -p .github/linters
-          cp -v eslint.config.js .github/linters/eslint.config.js
-      - name: Show linters AFTER apply
-        run: |
-          echo "===== AFTER ====="
-          find .github/linters -type f
       - name: "Load super-linter environment file"
         shell: bash
         run: |
