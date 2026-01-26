@@ -36,6 +36,7 @@ import Services from "./pages/Services.tsx";
 import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
 import AdminTools from "./pages/AdminTools.tsx";
 import { Masking } from "./pages/Masking.tsx";
+import { DocumentationPage } from "./pages/DocumentationPage.tsx";
 import {
   initializeBrowserTheme,
   setupThemeListener,
@@ -49,12 +50,18 @@ import { getConfig } from "./appConfig.ts";
 import { reapplyCssVariables } from "./config/initConfig.ts";
 import { LiveExchanges } from "./components/admin_tools/exchanges/LiveExchanges.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
+import DevTools from "./pages/DevTools.tsx";
+import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValidationPage.tsx";
 
 const { Header } = Layout;
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
+      <Route path="/devtools" element={<DevTools />}>
+        <Route path="" element={<Navigate to="diagnostic/validations" />} />
+        <Route path="diagnostic/validations" element={<DiagnosticValidationPage />} />
+      </Route>
       <Route path="/admintools" element={<AdminTools />}>
         <Route path="" element={<Navigate to="domains" />} />
         <Route path="domains" element={<Domains />} />
@@ -111,6 +118,7 @@ const router = createBrowserRouter(
         path="/services/context/:systemId/parameters"
         element={<ContextServiceParametersPage />}
       />
+      <Route path="/doc/*" element={<DocumentationPage />} />
       <Route path="*" element={<NotFound />} />
       <Route path="/not-implemented" element={<NotImplemented />} />
     </>,
@@ -156,7 +164,7 @@ const App = () => {
 
   const isDark = theme === "dark" || theme === "high-contrast";
   const config = getConfig();
-  
+
   useEffect(() => {
     if (config.themeOverrides) {
       setThemeUpdateKey((prev) => prev + 1);
@@ -165,7 +173,7 @@ const App = () => {
       reapplyCssVariables();
     }
   }, [config.themeOverrides, config.cssVariables]);
-  
+
   const antdConfig = getAntdThemeConfig(isDark, config.themeOverrides);
 
   return (
