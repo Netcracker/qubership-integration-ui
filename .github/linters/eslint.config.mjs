@@ -40,7 +40,6 @@ export default defineConfig([
       "n/no-unsupported-features/node-builtins": "off",
       "react-hooks/exhaustive-deps": "off",
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": "warn"
     }
   }
 ]);
