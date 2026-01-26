@@ -40,7 +40,7 @@ on:
         description: 'Run in dry-run mode (no actual publishing)'
         required: false
         type: boolean
-        default: false
+        default: true
       npm-dist-tag:
         description: 'NPM distribution tag'
         required: false
