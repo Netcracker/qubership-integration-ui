@@ -2,8 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const distLibDir = path.join(__dirname, "..", "dist-lib");
-const externalFile = path.join(distLibDir, "index.es.js");
-const bundledFile = path.join(distLibDir, "index.bundled.es.js");
+const bundleFile = path.join(distLibDir, "index.es.js");
 
 function fixPreloadInFile(filePath, fileName) {
   if (!fs.existsSync(filePath)) {
@@ -40,6 +39,5 @@ function fixPreloadInFile(filePath, fileName) {
   }
 }
 
-// Fix both external and bundled versions
-fixPreloadInFile(externalFile, "index.es.js");
-fixPreloadInFile(bundledFile, "index.bundled.es.js");
+// Fix unified bundle
+fixPreloadInFile(bundleFile, "index.es.js");

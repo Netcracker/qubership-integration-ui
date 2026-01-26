@@ -5,8 +5,8 @@ import AppExtension from "./AppExtension.tsx";
 import "./styles/theme-variables.css";
 import "./styles/antd-overrides.css";
 
-// Auto-initialize React app for VS Code extension
-const initializeVSCodeApp = () => {
+// Initialize React app for VS Code extension
+export function initializeVSCodeApp() {
   if (typeof window !== "undefined" && document.getElementById("app-root")) {
     console.log("QIP UI: Auto-initializing React app for VS Code");
 
@@ -22,9 +22,11 @@ const initializeVSCodeApp = () => {
       console.error("QIP UI: Element with id 'app-root' not found");
     }
   }
-};
+}
 
-// Auto-initialize when module loads
-initializeVSCodeApp();
+// Auto-initialize only if running in VS Code webview context
+if (typeof window !== "undefined" && window.location.protocol === "vscode-webview:") {
+  initializeVSCodeApp();
+}
 
 export default initializeVSCodeApp;

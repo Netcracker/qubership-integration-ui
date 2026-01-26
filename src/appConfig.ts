@@ -153,6 +153,16 @@ export function loadConfigFromEnv(): Partial<AppConfig> {
     }
   }
 
+  const devMode =
+    (import.meta.env.VITE_DEV_MODE as string | undefined) ||
+    (import.meta.env.VITE_DEV as string | undefined);
+  if (devMode !== undefined) {
+    config.dev =
+      devMode === "true" ||
+      devMode === "1" ||
+      devMode.toLowerCase() === "yes";
+  }
+
   return config;
 }
 

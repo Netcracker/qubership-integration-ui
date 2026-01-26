@@ -24,3 +24,4 @@ export {
   isDev,
 } from "./appConfig";
 export { isVsCode } from "./api/rest/vscodeExtensionApi";
+export { initializeVSCodeApp } from "./vscode-entry";

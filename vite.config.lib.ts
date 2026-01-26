@@ -4,8 +4,6 @@ import sassDts from "vite-plugin-sass-dts";
 import dts from "vite-plugin-dts";
 import * as path from "node:path";
 
-// Library build config for web applications - React is external (smaller bundle)
-// This is the default version published to npm for use in Vite/Webpack projects
 export default defineConfig({
   plugins: [
     react(),
@@ -22,14 +20,19 @@ export default defineConfig({
     emptyOutDir: true,
     minify: true,
     sourcemap: false,
+    cssCodeSplit: false, // Combine all CSS into single file
+    commonjsOptions: {
+      include: [/lunr/, /elasticlunr/, /node_modules/],
+      transformMixedEsModules: true,
+    },
     rollupOptions: {
       input: path.resolve(__dirname, "src/index.ts"),
-      external: ["react", "react-dom", "react/jsx-runtime"],
+      external: ["react", "react-dom", "react/jsx-runtime"], // React is external to avoid conflicts
       preserveEntrySignatures: "exports-only",
       output: {
         format: "es",
         entryFileNames: "index.es.js",
-        inlineDynamicImports: true,
+        inlineDynamicImports: true, // Single bundle file
         assetFileNames: (assetInfo) => {
           if (assetInfo.name?.endsWith(".css")) {
             return "qip-ui.css";
