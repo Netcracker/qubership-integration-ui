@@ -7,15 +7,7 @@ import * as reactHooks from "eslint-plugin-react-hooks";
 
 /** @type {import("eslint").Linter.Config[]} */
 export default [
-  {
-    ignores: [
-      "dist/*",
-      "node_modules/*",
-      "**/vite.config*.ts",
-      "**/jest.config*.ts",
-      "**/eslint.config*.js"
-    ]
-  },
+  { ignores: ["dist/*", "node_modules/*"] },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   pluginReact.configs.flat.recommended,
@@ -45,7 +37,7 @@ export default [
   },
   {
     // update this to match your test files
-    files: ['**/*.spec.js', '**/*.test.js'],
+    files: ["**/*.spec.js", "**/*.test.js"],
     plugins: { jest: pluginJest },
     languageOptions: {
       globals: pluginJest.environments.globals.globals,
@@ -57,19 +49,10 @@ export default [
           maxArgs: 2,
         },
       ],
-      'jest/no-disabled-tests': 'warn',
-      'jest/no-focused-tests': 'error',
-      'jest/no-identical-title': 'error',
-      'jest/prefer-to-have-length': 'warn',
+      "jest/no-disabled-tests": "warn",
+      "jest/no-focused-tests": "error",
+      "jest/no-identical-title": "error",
+      "jest/prefer-to-have-length": "warn",
     },
   },
-  {
-    rules: {
-      "n/no-missing-import": "off",
-      "n/no-unsupported-features/node-builtins": "off",
-      "react-hooks/exhaustive-deps": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "no-unused-vars": "warn"
-    }
-  }
 ];

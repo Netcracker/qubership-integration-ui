@@ -7,6 +7,7 @@
     "custom-property-pattern": null,
     "selector-id-pattern": null,
     "keyframes-name-pattern": null,
+    "no-descending-specificity": null,
     "selector-pseudo-class-no-unknown": [
       true,
       {
