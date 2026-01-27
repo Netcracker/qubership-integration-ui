@@ -1,8 +1,15 @@
-import React, { createContext, useContext, ReactNode, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+} from "react";
 import Icon from "@ant-design/icons";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
 import parse from "html-react-parser";
 import { commonIcons, elementIcons } from "./IconDefenitions";
+import { getConfig } from "../appConfig.ts";
 
 export type IconSource =
   | React.ComponentType<AntdIconProps>
@@ -13,6 +20,50 @@ const allIcons = {
   ...commonIcons,
   ...elementIcons,
 };
+
+function normalizeSvgForTheme(svgString: string): string {
+  let normalized = svgString;
+
+  normalized = normalized.replace(
+    /fill\s*=\s*["']#[0-9a-fA-F]{3,8}["']/gi,
+    'fill="currentColor"',
+  );
+
+  normalized = normalized.replace(
+    /stroke\s*=\s*["']#[0-9a-fA-F]{3,8}["']/gi,
+    'stroke="currentColor"',
+  );
+
+  normalized = normalized.replace(
+    /style\s*=\s*["']([^"']*)["']/gi,
+    (_match: string, styleContent: string): string => {
+      const newStyle = styleContent
+        .replace(/fill:\s*#[0-9a-fA-F]{3,8}/gi, "fill: currentColor")
+        .replace(/stroke:\s*#[0-9a-fA-F]{3,8}/gi, "stroke: currentColor");
+      return `style="${newStyle}"`;
+    },
+  );
+
+  const elementsWithFill = ["path", "circle", "rect", "ellipse", "polygon"];
+  elementsWithFill.forEach((tag: string) => {
+    const regex = new RegExp(`<${tag}([^>]*)>`, "gi");
+    normalized = normalized.replace(
+      regex,
+      (match: string, attributes: string): string => {
+        if (
+          !attributes.includes("fill=") &&
+          !attributes.includes("fill:") &&
+          !attributes.includes('fill="none"')
+        ) {
+          return `<${tag}${attributes} fill="currentColor">`;
+        }
+        return match;
+      },
+    );
+  });
+
+  return normalized;
+}
 
 export interface IconContextType {
   icons: IconOverrides;
@@ -27,7 +78,17 @@ export const IconContext = createContext<IconContextType>({
 export const IconProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [icons, setIconsState] = useState<IconOverrides>(allIcons);
+  const [icons, setIconsState] = useState<IconOverrides>(() => {
+    const config = getConfig();
+    return config.icons ? { ...allIcons, ...config.icons } : allIcons;
+  });
+
+  useEffect(() => {
+    const config = getConfig();
+    if (config.icons) {
+      setIconsState((prev) => ({ ...allIcons, ...prev, ...config.icons }));
+    }
+  }, []);
 
   const setIcons = (overrides: IconOverrides) => {
     setIconsState((prev) => ({
@@ -78,7 +139,8 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
   }
 
   if (typeof IconComponent === "string") {
-    const parsed = parse(IconComponent);
+    const normalizedSvg = normalizeSvgForTheme(IconComponent);
+    const parsed = parse(normalizedSvg);
     if (!React.isValidElement(parsed)) {
       console.warn("Parsed icon is not a React element:", parsed);
       return null;

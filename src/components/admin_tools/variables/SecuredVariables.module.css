@@ -1,4 +1,4 @@
-@import "./variables.module.css";
+@import url("./variables.module.css");
 
 .secret-content {
   display: flex;
@@ -6,8 +6,6 @@
   align-items: center;
   width: 100%;
 }
-
-.secret-actions {}
 
 .secret-label {
   display: flex;
@@ -47,6 +45,7 @@
     transform: translateY(-10px);
     opacity: 0;
   }
+
   100% {
     transform: translateY(0);
     opacity: 1;

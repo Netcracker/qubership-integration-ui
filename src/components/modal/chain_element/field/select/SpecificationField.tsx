@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { FieldProps } from "@rjsf/utils";
-import { Button, Flex, Select, SelectProps, Tooltip } from "antd";
-import { FormContext } from "../ChainElementModification";
-import { api } from "../../../../api/api";
-import { useNotificationService } from "../../../../hooks/useNotificationService";
-import { Specification, SpecificationGroup } from "../../../../api/apiTypes";
+import { SelectProps } from "antd";
+import { FormContext } from "../../ChainElementModification.tsx";
+import { api } from "../../../../../api/api.ts";
+import { useNotificationService } from "../../../../../hooks/useNotificationService.tsx";
+import { Specification, SpecificationGroup } from "../../../../../api/apiTypes.ts";
 import { JSONSchema7 } from "json-schema";
-import { VSCodeExtensionApi } from "../../../../api/rest/vscodeExtensionApi";
-import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
+import { VSCodeExtensionApi } from "../../../../../api/rest/vscodeExtensionApi.ts";
+import { SelectAndNavigateField } from "./SelectAndNavigateField.tsx";
+import { SelectTag } from "./SelectTag.tsx";
 
 const SpecificationField: React.FC<
   FieldProps<string, JSONSchema7, FormContext>
@@ -24,15 +25,21 @@ const SpecificationField: React.FC<
   );
   const [specificationGroupId, setSpecificationGroupId] = useState<
     string | undefined
-  >(props.formContext?.integrationSpecificationGroupId);
-  const systemId = props.formContext!.integrationSystemId;
+  >(props.registry.formContext?.integrationSpecificationGroupId);
+  const systemId = props.registry.formContext?.integrationSystemId as string;
 
   const buildSpecificationOptions = (
+    groupName: string,
     specifications: Specification[] | undefined,
   ): SelectProps["options"] => {
     return (
       specifications?.map((spec) => ({
         label: spec.name,
+        selectedLabel: (
+          <>
+            <SelectTag value={groupName} width={200} /> {spec.name}
+          </>
+        ),
         value: spec.id,
       })) ?? []
     );
@@ -61,7 +68,7 @@ const SpecificationField: React.FC<
             groups?.map((group) => ({
               label: <span>{group.name}</span>,
               title: group.name,
-              options: buildSpecificationOptions(group.specifications),
+              options: buildSpecificationOptions(group.name, group.specifications),
             })) ?? [];
           setSpecIdToGroupIdMap(buildSpecToGroupMap(groups));
           setOptions(groupOptions);
@@ -86,17 +93,6 @@ const SpecificationField: React.FC<
 
   const title = props.uiSchema?.["ui:title"] ?? props.schema?.title ?? "";
 
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 500,
-  };
-
-  const requiredStyle: React.CSSProperties = {
-    color: "#ff4d4f",
-    marginRight: 4,
-  };
-
   const handleChange = useCallback(
     (newValue: string) => {
       const specGroupId = specIdToGroupIdMap.get(newValue);
@@ -110,9 +106,9 @@ const SpecificationField: React.FC<
         integrationOperationMethod: null,
       };
 
-      props.formContext!.updateContext(context);
+      props.registry.formContext.updateContext?.(context);
     },
-    [props.formContext, specIdToGroupIdMap],
+    [props.registry.formContext, specIdToGroupIdMap],
   );
 
   const onNavigationButtonClick = useCallback(() => {
@@ -125,27 +121,19 @@ const SpecificationField: React.FC<
   }, [systemId, specificationGroupId, specificationId]);
 
   return (
-    <div>
-      <label htmlFor={props.id} style={labelStyle}>
-        {props.required ? <span style={requiredStyle}> *</span> : null}
-        {title}
-      </label>
-      <Flex gap={4}>
-        <Select
-          value={props.formData}
-          options={options}
-          onChange={handleChange}
-          disabled={isLoading}
-        />
-        <Tooltip title="Go to specification">
-          <Button
-            icon={<OverridableIcon name="send" />}
-            disabled={!(specificationGroupId && specificationId)}
-            onClick={onNavigationButtonClick}
-          />
-        </Tooltip>
-      </Flex>
-    </div>
+    <SelectAndNavigateField
+      id={props.id}
+      title={title}
+      required={props.required}
+      selectValue={props.formData}
+      selectOptions={options}
+      selectOnChange={handleChange}
+      selectDisabled={isLoading}
+      selectOptionLabelProp="selectedLabel"
+      buttonTitle="Go to specification"
+      buttonDisabled={!(specificationGroupId && specificationId)}
+      buttonOnClick={onNavigationButtonClick}
+    />
   );
 };
 

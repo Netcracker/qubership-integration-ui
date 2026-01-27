@@ -17,7 +17,6 @@ import {
   ChainItem,
   CustomResourceBuildRequest,
   CustomResourceOptions,
-  FolderFilter,
   FolderItem,
   ListFolderRequest,
   UpdateFolderRequest,
@@ -46,10 +45,7 @@ import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
-import { Filter } from "../components/table/filter/Filter.tsx";
 import { useChainFilters } from "../hooks/useChainFilter.ts";
-import { FilterButton } from "../components/table/filter/FilterButton.tsx";
-import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
 import styles from "./Chains.module.css";
@@ -150,9 +146,7 @@ const Chains = () => {
   const [operation, setOperation] = useState<Operation | undefined>(undefined);
   const [searchString, setSearchString] = useState<string>("");
   const notificationService = useNotificationService();
-  const { filterColumns, filterItemStates, setFilterItemStates } =
-    useChainFilters();
-  const [filters, setFilters] = useState<FolderFilter[]>([]);
+  const { filters, filterButton } = useChainFilters();
 
   const getFolderId = useCallback((): string | undefined => {
     return searchParams.get("folder") ?? undefined;
@@ -623,31 +617,6 @@ const Chains = () => {
     }
   };
 
-  const addFilter = () => {
-    showModal({
-      component: (
-        <Filter
-          filterColumns={filterColumns}
-          filterItemStates={filterItemStates}
-          onApplyFilters={applyFilters}
-        />
-      ),
-    });
-  };
-
-  const applyFilters = (filterItems: FilterItemState[]) => {
-    setFilterItemStates(filterItems);
-
-    const f = filterItems.map(
-      (filterItem): FolderFilter => ({
-        column: filterItem.columnValue!,
-        condition: filterItem.conditionValue!,
-        value: filterItem.value,
-      }),
-    );
-    setFilters(f);
-  };
-
   const onImportBtnClick = () => {
     showModal({
       component: <ImportChains onSuccess={() => void updateFolderItems()} />,
@@ -976,7 +945,7 @@ const Chains = () => {
           >
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
-          <FilterButton count={filterItemStates.length} onClick={addFilter} />
+          {filterButton}
         </Flex>
         <Table<ChainTableItem>
           className="flex-table"

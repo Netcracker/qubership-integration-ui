@@ -1,3 +1,5 @@
+import { EntityFilterModel } from "../components/table/filter/filter";
+
 export type BaseEntity = {
   id: string;
   name: string;
@@ -101,6 +103,7 @@ export type Element = BaseEntity & {
   children?: Element[];
   swimlaneId?: string;
   mandatoryChecksPassed: boolean;
+  chainName?: string;
 };
 
 export type LibraryElement = {
@@ -153,11 +156,11 @@ export enum LibraryInputQuantity {
 }
 
 export enum ElementColorType {
-  TRIGGER = 'trigger',
-  COMPOSITE_TRIGGER = 'composite-trigger',
-  SENDER = 'sender',
-  CHAIN_CALL = 'chain-call',
-  UNSUPPORTED = 'unsupported'
+  TRIGGER = "trigger",
+  COMPOSITE_TRIGGER = "composite-trigger",
+  SENDER = "sender",
+  CHAIN_CALL = "chain-call",
+  UNSUPPORTED = "unsupported",
 }
 
 export type ElementWithChainName = BaseEntity & {
@@ -795,14 +798,8 @@ export type MoveFolderRequest = {
 
 export type ListFolderRequest = {
   folderId?: string;
-  filters?: FolderFilter[];
+  filters?: EntityFilterModel[];
   searchString?: string;
-};
-
-export type FolderFilter = {
-  column: string;
-  condition: string;
-  value?: string;
 };
 
 export type CatalogItem = BaseEntity & {
@@ -972,10 +969,21 @@ export type IntegrationSystem = {
   modifiedWhen?: string;
 };
 
+export type ContextSystem = {
+  id: string;
+  name: string;
+  type: IntegrationSystemType;
+  description?: string;
+  createdWhen?: string;
+  createdBy?: User;
+  modifiedWhen?: string;
+};
+
 export enum IntegrationSystemType {
   INTERNAL = "INTERNAL",
   EXTERNAL = "EXTERNAL",
   IMPLEMENTED = "IMPLEMENTED",
+  CONTEXT = "CONTEXT",
 }
 
 export type SystemRequest = {
@@ -1067,7 +1075,7 @@ export interface SystemOperation {
 
 export interface OperationInfo {
   id: string;
-  specification: unknown;
+  specification: Record<string, unknown>;
   requestSchema: Record<string, unknown>;
   responseSchemas: Record<string, unknown>;
 }
@@ -1157,4 +1165,69 @@ export type CustomResourceOptions = {
 export type ContainerOptions = {
   image?: string;
   imagePoolPolicy?: "Always" | "Never" | "IfNotPresent";
+}
+
+export type LiveExchange = {
+  exchangeId: string;
+  deploymentId: string;
+  sessionId?: string;
+  chainId: string;
+  chainName?: string;
+  duration?: number;
+  sessionDuration?: number;
+  sessionStartTime?: number;
+  sessionLogLevel: SessionsLoggingLevel;
+  main: boolean;
+  podIp: string;
+};
+
+export enum ValidationEntityType {
+  CHAIN = "CHAIN",
+  CHAIN_ELEMENT = "CHAIN_ELEMENT",
+}
+
+export enum ValidationImplementationType {
+  BUILT_IN = "BUILT_IN",
+  PLUGIN = "PLUGIN",
+}
+
+export enum ValidationSeverity {
+  WARNING = "WARNING",
+  ERROR = "ERROR",
+}
+
+export enum ValidationState {
+  OK = "OK",
+  NOT_STARTED = "NOT_STARTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  FAILED = "FAILED",
+}
+
+export interface ValidationChainEntity {
+  chainId: string;
+  chainName: string;
+  elementId: string;
+  elementName: string;
+  elementType: string;
+  properties: { [key: string]: unknown };
+}
+
+export interface DiagnosticValidation {
+  id: string;
+  title: string;
+  description: string;
+  suggestion: string;
+  entityType: ValidationEntityType;
+  implementationType: ValidationImplementationType;
+  severity: ValidationSeverity;
+  properties: { [key: string]: unknown };
+  alertsCount: number;
+  chainEntities: ValidationChainEntity[];
+  status: ValidationStatus;
+}
+
+export interface ValidationStatus {
+  state: ValidationState;
+  startedWhen?: string;
+  message?: string;
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { Select } from "antd";
 import { FieldProps } from "@rjsf/utils";
 import { JSONSchema7 } from "json-schema";
+import styles from "../../ChainElementModification.module.css";
 
 const AnyOfAsSingleSelectField: React.FC<FieldProps<string>> = ({
   id,
@@ -10,18 +11,9 @@ const AnyOfAsSingleSelectField: React.FC<FieldProps<string>> = ({
   schema,
   uiSchema,
   required,
+  fieldPathId,
 }) => {
   const title = uiSchema?.["ui:title"] ?? schema?.title ?? "";
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    marginBottom: 6,
-    fontWeight: 500,
-  };
-  const requiredStyle: React.CSSProperties = {
-    color: "#ff4d4f",
-    marginRight: 4,
-  };
 
   function collectOptions(schema: JSONSchema7): { value: string }[] {
     const values: string[] = [];
@@ -42,14 +34,14 @@ const AnyOfAsSingleSelectField: React.FC<FieldProps<string>> = ({
   }
 
   const handleChange = (selected: string[]) => {
-    onChange(selected[0] ?? "");
+    onChange(selected[0] ?? "", fieldPathId.path);
   };
 
   return (
     <div>
       {title ? (
-        <label htmlFor={id} style={labelStyle}>
-          {required ? <span style={requiredStyle}> *</span> : null}
+        <label htmlFor={id} className={styles["field-label"]}>
+          {required ? <span className={styles["field-required"]}> *</span> : null}
           {title}
         </label>
       ) : null}

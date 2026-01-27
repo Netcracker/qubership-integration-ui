@@ -97,7 +97,15 @@ import {
   SisternodeOutlined,
   CheckCircleOutlined,
   DeliveredProcedureOutlined,
-  DeleteRowOutlined, KubernetesOutlined
+  DeleteRowOutlined,
+  DatabaseOutlined,
+  ContainerOutlined,
+  FullscreenOutlined,
+  FullscreenExitOutlined,
+  BulbOutlined,
+  BarChartOutlined,
+  ToolOutlined,
+  KubernetesOutlined
 } from "@ant-design/icons";
 
 export const commonIcons = {
@@ -173,6 +181,12 @@ export const commonIcons = {
   columnHeight: ColumnHeightOutlined,
   verticalAlignMiddle: VerticalAlignMiddleOutlined,
   kubernetes: KubernetesOutlined,
+  database: DatabaseOutlined,
+  fullscreen: FullscreenOutlined,
+  fullscreenExit: FullscreenExitOutlined,
+  bulb: BulbOutlined,
+  barChart: BarChartOutlined,
+  tool: ToolOutlined,
 };
 
 export const elementIcons = {
@@ -222,4 +236,5 @@ export const elementIcons = {
   "finally-2": QuestionCircleOutlined,
   "circuit-breaker-configuration-2": DeliveredProcedureOutlined,
   "on-fallback-2": DeleteRowOutlined,
+  container: ContainerOutlined,
 };

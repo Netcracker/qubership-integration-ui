@@ -12,10 +12,11 @@ import {
   ListValue,
   StringFilterConditions,
   FilterColumn,
+  EntityFilterModel,
 } from "../components/table/filter/filter";
 import { useFilter } from "../components/table/filter/useFilter";
 import { capitalize } from "../misc/format-utils.ts";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useServiceFilterValues } from "./useServices.ts";
 
 export const LabelsStringTableFilter: FilterConditions = {
@@ -49,7 +50,14 @@ export const methodValues: ListValue[] = [
 ];
 
 function buildDomainValues(domains: EngineDomain[]): ListValue[] {
-  return domains.map((domain) => ({ value: domain.id, label: domain.name }));
+  if (!Array.isArray(domains)) {
+    return [];
+  }
+  try {
+    return domains.map((domain) => ({ value: domain.id, label: domain.name }));
+  } catch {
+    return [];
+  }
 }
 
 function buildLoggingValues(): ListValue[] {
@@ -62,18 +70,13 @@ function buildLoggingValues(): ListValue[] {
   return result;
 }
 
-export const useChainFilters = () => {
+export const useChainFilters = (): {
+  filters: EntityFilterModel[];
+  filterButton: JSX.Element;
+} => {
   const { domains } = useDomains();
-  const { elementTypes } = useElementTypes();
-  const [filterItemStates, setFilterItemStates] = useFilter();
+  const { buildFilterValues } = useElementTypes();
   const { services } = useServiceFilterValues();
-
-  const buildElementTypes = useCallback((): ListValue[] => {
-    return elementTypes.map((item) => ({
-      value: item.elementType,
-      label: `${item.elementTitle} (${item.elementType})`,
-    }));
-  }, [elementTypes]);
 
   const filterColumns: FilterColumn[] = useMemo(
     () => [
@@ -95,13 +98,13 @@ export const useChainFilters = () => {
         id: "ELEMENT",
         name: "Element",
         conditions: ListFilterConditions,
-        allowedValues: buildElementTypes(),
+        allowedValues: buildFilterValues(),
       },
       {
         id: "DOMAINS",
         name: "Domains",
         conditions: ListFilterConditions,
-        allowedValues: buildDomainValues(domains ?? []),
+        allowedValues: buildDomainValues(Array.isArray(domains) ? domains : []),
       },
       {
         id: "LOGGING",
@@ -130,8 +133,8 @@ export const useChainFilters = () => {
         conditions: ListFilterConditions,
       },
     ],
-    [buildElementTypes, domains, services],
+    [buildFilterValues, domains, services],
   );
 
-  return { filterColumns, filterItemStates, setFilterItemStates };
+  return useFilter(filterColumns);
 };

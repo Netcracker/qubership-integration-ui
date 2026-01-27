@@ -6,8 +6,6 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
   },
   "ui:order": ["*", "name", "description"],
   properties: {
-    "ui:fieldReplacesAnyOrOneOf": true,
-    "ui:field": "hidden",
     "ui:order": [
       "contextPath",
       "httpBinding",
@@ -18,6 +16,8 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "integrationSystemId",
       "integrationSpecificationId",
       "integrationOperationId",
+      "contextServiceId",
+      "contextId",
       "*",
     ],
     contextPath: {
@@ -118,7 +118,7 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:field": "jsonField",
     },
     roles: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     script: {
       "ui:field": "scriptField",
@@ -127,28 +127,28 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:field": "mappingField",
     },
     allowedContentTypes: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     httpMethodRestrict: {
       "ui:widget": "stringAsMultipleSelectWidget",
     },
     replyTo: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     cc: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     bcc: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     to: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     headerModificationToRemove: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     synchronousPullRetryableCodes: {
-      "ui:widget": "customSelectWidget",
+      "ui:widget": "multipleSelectWidget",
     },
     overrideContextParams: {
       "ui:field": "patternPropertiesField",
@@ -244,6 +244,10 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:fieldReplacesAnyOrOneOf": true,
       "ui:field": "oneOfAsSingleInputField",
     },
+    connectionTimeout: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
     maxMessagesPerPoll: {
       "ui:fieldReplacesAnyOrOneOf": true,
       "ui:field": "oneOfAsSingleInputField",
@@ -276,6 +280,10 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:fieldReplacesAnyOrOneOf": true,
       "ui:field": "oneOfAsSingleInputField",
     },
+    contextServiceId: {
+      "ui:title": "Context Storage",
+      "ui:field": "contextServiceField",
+    },
     integrationSystemId: {
       "ui:title": "Service",
       "ui:field": "serviceField",
@@ -303,12 +311,42 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     integrationSpecificationGroupId: {
       "ui:widget": "hidden",
     },
+    integrationOperationSkipEmptyQueryParameters: {
+      "ui:widget": "hidden",
+    },
+    elementId: {
+      "ui:field": "singleSelectField",
+    },
+    reuseElementId: {
+      "ui:field": "singleSelectField",
+    },
     abacParameters: {
       resourceMap: {
         "ui:fieldReplacesAnyOrOneOf": true,
         "ui:field": "enhancedPatternPropertiesField",
         "ui:title": "Resource Map",
       },
+    },
+    queryHeader: {
+      "ui:widget": "hidden",
+    },
+    variablesHeader: {
+      "ui:widget": "hidden",
+    },
+    query: {
+      "ui:widget": "debouncedTextareaWidget",
+      "ui:options": {
+        rows: 10,
+      },
+    },
+    variablesJSON: {
+      "ui:widget": "debouncedTextareaWidget",
+      "ui:options": {
+        rows: 6,
+      },
+    },
+    exchangePattern: {
+      "ui:widget": "hidden",
     },
   },
   id: { "ui:widget": "hidden" },
@@ -321,6 +359,17 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
 };
 
 export const pathToTabMap: Record<string, string> = {
+  "properties.contextServiceId": "Operation",
+  "properties.useCorrelationId": "Operation",
+  "properties.contextId": "Operation",
+  "properties.operation": "Operation",
+  "properties.ttl": "Operation",
+  "properties.key": "Operation",
+  "properties.value": "Operation",
+  "properties.keys": "Operation",
+  "properties.target": "Operation",
+  "properties.targetName": "Operation",
+  "properties.unwrap": "Operation",
   "properties.contextPath": "Endpoint",
   "properties.integrationOperationId": "Endpoint",
   "properties.integrationSpecificationGroupId": "Endpoint",
@@ -383,6 +432,7 @@ export const pathToTabMap: Record<string, string> = {
 };
 
 export const desiredTabOrder = [
+  "Operation",
   "Endpoint",
   "Prepare Request",
   "Authorization",

@@ -1,3 +1,4 @@
+import { EntityFilterModel } from "../components/table/filter/filter.ts";
 import {
   Chain,
   ChainCreationRequest,
@@ -59,6 +60,10 @@ import {
   Element,
   SystemOperation,
   SpecApiFile,
+  LiveExchange,
+  ContextSystem,
+  IntegrationSystemType,
+  DiagnosticValidation,
   CustomResourceBuildRequest,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
@@ -68,6 +73,8 @@ export interface Api {
   getChains(): Promise<Chain[]>;
 
   getChain(id: string): Promise<Chain>;
+
+  findChainByElementId(elementId: string): Promise<Chain>;
 
   updateChain(id: string, chain: Partial<Chain>): Promise<Chain>;
 
@@ -320,6 +327,7 @@ export interface Api {
 
   importSystems(
     file: File,
+    systemType: IntegrationSystemType,
     systemIds?: string[],
     deployLabel?: string,
     packageName?: string,
@@ -352,6 +360,23 @@ export interface Api {
     id: string,
     data: Partial<IntegrationSystem>,
   ): Promise<IntegrationSystem>;
+
+  getContextServices(): Promise<ContextSystem[]>;
+
+  getContextService(id: string): Promise<ContextSystem>;
+
+  createContextService(
+    system: Pick<ContextSystem, "name" | "description">,
+  ): Promise<ContextSystem>;
+
+  updateContextService(
+    id: string,
+    data: Partial<ContextSystem>,
+  ): Promise<ContextSystem>;
+
+  deleteContextService(serviceId: string): Promise<void>;
+
+  exportContextServices(serviceIds: string[]): Promise<File>;
 
   getEnvironments(systemId: string): Promise<Environment[]>;
 
@@ -421,18 +446,29 @@ export interface Api {
 
   readSpecificationFileContent(
     fileUri: string,
-    specificationFilePath: string
+    specificationFilePath: string,
   ): Promise<string>;
 
-  groupElements(
-    chainId: string,
-    elementIds: string[],
-  ): Promise<Element>;
+  groupElements(chainId: string, elementIds: string[]): Promise<Element>;
 
-  ungroupElements(
-    chainId: string,
-    groupId: string,
-  ): Promise<Element[]>;
+  ungroupElements(chainId: string, groupId: string): Promise<Element[]>;
+
+  getExchanges(limit: number): Promise<LiveExchange[]>;
+
+  terminateExchange(
+    podIp: string,
+    deploymentId: string,
+    exchangeId: string,
+  ): Promise<void>;
+
+  getValidations(
+    filters: EntityFilterModel[],
+    searchString: string,
+  ): Promise<DiagnosticValidation[]>;
+
+  getValidation(validationId: string): Promise<DiagnosticValidation>;
+
+  runValidations(ids: string[]): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

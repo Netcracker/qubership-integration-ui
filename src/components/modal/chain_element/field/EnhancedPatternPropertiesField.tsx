@@ -5,6 +5,7 @@ import styles from "./EnhancedPatternPropertiesField.module.css";
 import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
 import { FormContext } from "../ChainElementModification";
 import { api } from "../../../../api/api";
+import { QueryParametersCheckbox } from "./QueryParametersCheckbox";
 import {
   isAmqpProtocol,
   isKafkaProtocol,
@@ -14,7 +15,6 @@ import {
 type ParamType = 'path' | 'query' | 'additional' | 'async' | 'custom';
 
 type EnhancedFieldProps = FieldProps<Record<string, string>, RJSFSchema, FormContext>;
-type EnhancedIdSchema = EnhancedFieldProps['idSchema'];
 
 interface ParameterMetadata {
   name: string;
@@ -76,18 +76,17 @@ function isDeprecatedParameter(name: string): boolean {
   return DEPRECATED_PARAMS.includes(name);
 }
 
-function determineParamType(idSchema?: EnhancedIdSchema | null): ParamType {
-  const fieldId = idSchema?.$id ?? '';
+function determineParamType(idSchema: string): ParamType {
 
-  if (fieldId.includes('PathParameters')) return 'path';
-  if (fieldId.includes('QueryParameters')) return 'query';
-  if (fieldId.includes('AdditionalParameters')) return 'additional';
-  if (fieldId.includes('AsyncProperties')) return 'async';
+  if (idSchema.includes('PathParameters')) return 'path';
+  if (idSchema.includes('QueryParameters')) return 'query';
+  if (idSchema.includes('AdditionalParameters')) return 'additional';
+  if (idSchema.includes('AsyncProperties')) return 'async';
 
   return 'custom';
 }
 
-function parseParametersFromSpec(specification: SpecificationNode, paramType: ParamType, protocolType?: string, elementType?: string): ParameterMetadata[] {
+function parseParametersFromSpec(specification: SpecificationNode, paramType: ParamType, protocolType: string, elementType?: string): ParameterMetadata[] {
   if (paramType === 'async') {
     return parseAsyncAPIParameters(protocolType, elementType);
   }
@@ -123,7 +122,7 @@ function parseOpenAPIParameters(spec: OperationSpecFragment, paramType: ParamTyp
     });
 }
 
-function parseAsyncAPIParameters(protocolType?: string, elementType?: string): ParameterMetadata[] {
+function parseAsyncAPIParameters(protocolType: string, elementType?: string): ParameterMetadata[] {
   const params: ParameterMetadata[] = [];
   const isAsyncApiTrigger = elementType === 'async-api-trigger';
 
@@ -214,8 +213,8 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   uiSchema,
   disabled,
   readonly,
-  idSchema,
-  formContext,
+  registry,
+  fieldPathId,
 }) => {
   const [specParameters, setSpecParameters] = useState<ParameterMetadata[]>([]);
   const [envParameters, setEnvParameters] = useState<Map<string, string>>(new Map());
@@ -224,13 +223,32 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   const [loadedSpecOperationId, setLoadedSpecOperationId] = useState<string | null>(null);
   const [autoFilledOperationId, setAutoFilledOperationId] = useState<string | null>(null);
   const [isEnvironmentLoaded, setIsEnvironmentLoaded] = useState<boolean>(false);
+  const formContext = registry.formContext;
 
-  const paramType = useMemo(() => determineParamType(idSchema), [idSchema]);
+  const paramType = useMemo(() => determineParamType(fieldPathId.$id), [fieldPathId.$id]);
+  const updateContext = registry.formContext.updateContext;
+
+  const emitChange = useCallback(
+    (value: Record<string, string>) => {
+      if (paramType === "query") {
+        updateContext?.({
+          integrationOperationQueryParameters: { ...value },
+        });
+      } else if (paramType == "path") {
+        updateContext?.({
+          integrationOperationPathParameters: { ...value },
+        });
+      } else {
+        onChange(value, fieldPathId.path);
+      }
+    },
+    [fieldPathId.path, onChange, updateContext, paramType],
+  );
 
   const title = useMemo(() => {
     if (paramType === 'async') {
       const protocolType = normalizeProtocol(
-        formContext?.integrationOperationProtocolType,
+        formContext.integrationOperationProtocolType as string,
       );
       if (protocolType) {
         const protocolName =
@@ -239,15 +257,15 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       }
     }
     return schema?.title || uiSchema?.["ui:title"] || "Items";
-  }, [paramType, formContext?.integrationOperationProtocolType, schema?.title, uiSchema]);
+  }, [paramType, formContext.integrationOperationProtocolType, schema?.title, uiSchema]);
 
   const rowCount = Object.entries(formData).length;
   const [collapsed, setCollapsed] = useState(!(rowCount > 0));
 
   const loadOperationSpecification = useCallback(async () => {
-    const operationId = formContext?.integrationOperationId;
+    const operationId = formContext.integrationOperationId;
     const protocolType = normalizeProtocol(
-      formContext?.integrationOperationProtocolType,
+      formContext.integrationOperationProtocolType as string,
     );
 
     if (!operationId) {
@@ -264,7 +282,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       const params = parseParametersFromSpec(
         specFragment,
         paramType,
-        protocolType ?? undefined,
+        protocolType,
         formContext?.elementType,
       );
       setSpecParameters(params);
@@ -279,10 +297,10 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       setLoadedSpecOperationId(null);
       setAutoFilledOperationId(null);
     }
-  }, [formContext?.integrationOperationId, formContext?.integrationOperationProtocolType, formContext?.elementType, paramType]);
+  }, [formContext.integrationOperationId, formContext.integrationOperationProtocolType, formContext.elementType, paramType]);
 
   const loadEnvironmentParameters = useCallback(async () => {
-    const systemId = formContext?.integrationSystemId;
+    const systemId = formContext.integrationSystemId;
 
     setIsEnvironmentLoaded(false);
 
@@ -312,7 +330,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       setIsMaasEnvironment(false);
       setIsEnvironmentLoaded(true);
     }
-  }, [formContext?.integrationSystemId]);
+  }, [formContext.integrationSystemId]);
 
   useEffect(() => {
     void loadOperationSpecification();
@@ -327,7 +345,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       return;
     }
 
-    const elementType = formContext?.elementType;
+    const elementType = formContext.elementType;
     const isAsyncApiTrigger = elementType === 'async-api-trigger';
 
     let updatedData: Record<string, string> | null = null;
@@ -348,20 +366,20 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     }
 
     if (updatedData) {
-      onChange(updatedData);
+      emitChange(updatedData);
     }
-  }, [formData, isMaasEnvironment, onChange, paramType, isEnvironmentLoaded, formContext?.elementType]);
+  }, [formData, isMaasEnvironment, onChange, paramType, isEnvironmentLoaded, formContext.elementType, emitChange]);
 
   useEffect(() => {
     if (!loadedSpec) return;
 
-    const operationId = formContext?.integrationOperationId;
+    const operationId = formContext.integrationOperationId;
     if (!operationId || operationId !== loadedSpecOperationId || operationId === autoFilledOperationId) {
       return;
     }
 
     const protocolType = normalizeProtocol(
-      formContext?.integrationOperationProtocolType,
+      formContext.integrationOperationProtocolType ?? "",
     );
     const updates: Record<string, string> = {};
 
@@ -403,12 +421,12 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     }
 
     if (Object.keys(updates).length > 0) {
-      onChange({ ...formData, ...updates });
+      emitChange({ ...formData, ...updates });
       setAutoFilledOperationId(operationId);
     }
-  }, [loadedSpec, loadedSpecOperationId, formContext?.integrationOperationProtocolType, formContext?.integrationOperationId, formContext?.elementType, paramType, autoFilledOperationId, formData, onChange, isMaasEnvironment]);
+  }, [loadedSpec, loadedSpecOperationId, formContext.integrationOperationProtocolType, formContext.integrationOperationId, formContext?.elementType, paramType, autoFilledOperationId, formData, onChange, isMaasEnvironment, emitChange]);
 
-  const elementType = formContext?.elementType;
+  const elementType = formContext.elementType;
   const isAsyncApiTrigger = elementType === 'async-api-trigger';
 
   const mergedParameters = useMemo((): EnhancedParameter[] => {
@@ -505,7 +523,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   const handleAdd = () => {
     const newKey = "";
     const newData = { ...formData, [newKey]: "" };
-    onChange(newData);
+    emitChange(newData);
   };
 
   const handleKeyChange = (oldKey: string, newKey: string) => {
@@ -514,7 +532,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     const value = updated[oldKey];
     delete updated[oldKey];
     updated[newKey] = value;
-    onChange(updated);
+    emitChange(updated);
   };
 
   const [localValues, setLocalValues] = useState<Record<string, string>>({});
@@ -535,7 +553,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     }
 
     debounceTimersRef.current[key] = setTimeout(() => {
-      onChange({ ...formData, [key]: value });
+      emitChange({ ...formData, [key]: value });
       setLocalValues(prev => {
         const updated = { ...prev };
         delete updated[key];
@@ -547,12 +565,12 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   const handleDelete = (key: string) => {
     const updated = { ...formData };
     delete updated[key];
-    onChange(updated);
+    emitChange(updated);
   };
 
   const restoreDefaultValue = (key: string) => {
     const defaultValue = envParameters.get(key) || '';
-    onChange({ ...formData, [key]: defaultValue });
+    emitChange({ ...formData, [key]: defaultValue });
   };
 
   return (
@@ -586,86 +604,94 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
             No entries. Click <b>+</b> to add.
           </div>
         ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.th}>Name</th>
-                <th className={styles.th}>Value</th>
-                <th className={styles.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {mergedParameters.map((param, idx) => {
-                const displayedValue = localValues[param.name] ?? param.value;
-                const hasValue =
-                  displayedValue !== undefined &&
-                  String(displayedValue).trim().length > 0;
-                const rowClass =
-                  param.required && !hasValue ? styles.requiredRow : '';
+          <>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.th}>Name</th>
+                  <th className={styles.th}>Value</th>
+                  <th className={styles.th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {mergedParameters.map((param, idx) => {
+                  const displayedValue = localValues[param.name] ?? param.value;
+                  const hasValue =
+                    displayedValue !== undefined &&
+                    String(displayedValue).trim().length > 0;
+                  const rowClass =
+                    param.required && !hasValue ? styles.requiredRow : '';
 
-                return (
-                  <tr key={idx} className={rowClass}>
-                  <td className={styles.td}>
-                    <div className={styles.nameCell}>
-                      {param.canDelete && param.source === 'custom' ? (
-                        <Input
-                          value={param.name}
-                          onChange={(e) => handleKeyChange(param.name, e.target.value)}
-                          disabled={disabled || readonly}
-                          placeholder="Name"
-                        />
-                      ) : (
-                        <span className={styles.paramName}>{param.name}</span>
-                      )}
-                      {(param.isOverridden || param.deprecated) && (
-                        <div className={styles.labels}>
-                          {param.isOverridden && <Tag className={styles.overriddenTag}>Overridden</Tag>}
-                          {param.deprecated && <Tag className={styles.deprecatedTag}>Deprecated</Tag>}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className={styles.td}>
-                    <Input
-                      value={localValues[param.name] ?? param.value}
-                      onChange={(e) => handleValueChange(param.name, e.target.value)}
-                      disabled={disabled || readonly}
-                      placeholder="Value"
-                    />
-                  </td>
-                  <td className={styles.td}>
-                    <div className={styles.actions}>
-                      {param.isOverridden && !disabled && !readonly && (
-                        <Tooltip title="Restore default value">
+                  return (
+                    <tr key={idx} className={rowClass}>
+                    <td className={styles.td}>
+                      <div className={styles.nameCell}>
+                        {param.canDelete && param.source === 'custom' ? (
+                          <Input
+                            value={param.name}
+                            onChange={(e) => handleKeyChange(param.name, e.target.value)}
+                            disabled={disabled || readonly}
+                            placeholder="Name"
+                          />
+                        ) : (
+                          <span className={styles.paramName}>{param.name}</span>
+                        )}
+                        {(param.isOverridden || param.deprecated) && (
+                          <div className={styles.labels}>
+                            {param.isOverridden && <Tag className={styles.overriddenTag}>Overridden</Tag>}
+                            {param.deprecated && <Tag className={styles.deprecatedTag}>Deprecated</Tag>}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className={styles.td}>
+                      <Input
+                        value={localValues[param.name] ?? param.value}
+                        onChange={(e) => handleValueChange(param.name, e.target.value)}
+                        disabled={disabled || readonly}
+                        placeholder="Value"
+                      />
+                    </td>
+                    <td className={styles.td}>
+                      <div className={styles.actions}>
+                        {param.isOverridden && !disabled && !readonly && (
+                          <Tooltip title="Restore default value">
+                            <Button
+                              size="small"
+                              type="text"
+                              icon={<OverridableIcon name="rollback" />}
+                              onClick={() => restoreDefaultValue(param.name)}
+                              className={styles.restoreBtn}
+                            />
+                          </Tooltip>
+                        )}
+                        {param.canDelete && !disabled && !readonly && (
                           <Button
                             size="small"
                             type="text"
-                            icon={<OverridableIcon name="rollback" />}
-                            onClick={() => restoreDefaultValue(param.name)}
-                            className={styles.restoreBtn}
+                            icon={<OverridableIcon name="delete" />}
+                            onClick={() => handleDelete(param.name)}
+                            className={styles.deleteBtn}
                           />
-                        </Tooltip>
-                      )}
-                      {param.canDelete && !disabled && !readonly && (
-                        <Button
-                          size="small"
-                          type="text"
-                          icon={<OverridableIcon name="delete" />}
-                          onClick={() => handleDelete(param.name)}
-                          className={styles.deleteBtn}
-                        />
-                      )}
-                    </div>
-                  </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        )}
+                      </div>
+                    </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {paramType === 'query' && formContext?.integrationOperationProtocolType?.toLowerCase() === 'http' && (
+              <QueryParametersCheckbox
+                formContext={formContext}
+                disabled={disabled}
+                readonly={readonly}
+              />
+            )}
+          </>
         ))}
     </div>
   );
 };
 
 export default EnhancedPatternPropertiesField;
-
