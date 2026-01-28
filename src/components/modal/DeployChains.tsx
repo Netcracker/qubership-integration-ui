@@ -39,6 +39,9 @@ export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
       ]}
     >
       <Form<DeployOptions>
+        labelWrap
+        labelCol={{ flex: "150px" }}
+        wrapperCol={{ flex: "auto" }}
         id="deployOptionsForm"
         initialValues={{
           domains: ["default"],
@@ -55,7 +58,6 @@ export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
         }}
       >
         <Form.Item
-          style={{ marginLeft: 150 }}
           name="domains"
           label={"Engine domains"}
           rules={[{ required: true }]}
@@ -71,7 +73,6 @@ export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
           />
         </Form.Item>
         <Form.Item
-          style={{ marginLeft: 150 }}
           name="snapshotAction"
           label={"Snapshot action"}
         >
