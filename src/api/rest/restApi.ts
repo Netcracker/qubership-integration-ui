@@ -70,6 +70,8 @@ import {
   ContextSystem,
   IntegrationSystemType,
   DiagnosticValidation,
+  BulkDeploymentRequest,
+  BulkDeploymentResult,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1265,9 +1267,10 @@ export class RestApi implements Api {
     if (packageVersion) headers["X-SR-PACKAGE-VERSION"] = packageVersion;
     if (packagePartOf) headers["X-SR-PACKAGE-PART-OF"] = packagePartOf;
 
-    const url = systemType === IntegrationSystemType.CONTEXT
-      ? `/api/v1/${getAppName()}/catalog/context-system/import`
-      : `/api/v1/${getAppName()}/systems-catalog/import/system`;
+    const url =
+      systemType === IntegrationSystemType.CONTEXT
+        ? `/api/v1/${getAppName()}/catalog/context-system/import`
+        : `/api/v1/${getAppName()}/systems-catalog/import/system`;
     const response = await this.instance.post<ImportSystemResult[]>(
       url,
       formData,
@@ -1508,5 +1511,15 @@ export class RestApi implements Api {
         params: { validationIds: ids },
       },
     );
+  };
+
+  bulkDeploy = async (
+    request: BulkDeploymentRequest,
+  ): Promise<BulkDeploymentResult[]> => {
+    const response = await this.instance.post<BulkDeploymentResult[]>(
+      `/api/v1/${getAppName()}/catalog/chains/deployments/bulk`,
+      request,
+    );
+    return response.data;
   };
 }
