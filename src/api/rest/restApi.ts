@@ -1501,7 +1501,6 @@ export class RestApi implements Api {
     );
     return response.data;
   };
-  };
 
   getValidation = async (
     validationId: string,
