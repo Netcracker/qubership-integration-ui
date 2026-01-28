@@ -52,7 +52,7 @@ import {
   IntegrationSystemType,
   ContextSystem,
   DiagnosticValidation,
-  BulkDeploymentResult
+  BulkDeploymentResult,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
