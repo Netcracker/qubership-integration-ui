@@ -1,6 +1,6 @@
 name: Publish test package
 
-run-name: NPM Test Package${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch')) && ' - Test' || ' - Publish' }}${{ (github.event_name == 'workflow_dispatch') || '' }}
+run-name: NPM Test Package publish
 on:
   workflow_dispatch:
     inputs:
@@ -10,15 +10,17 @@ on:
         type: string
         default: '@netcracker'
       node-version:
+        description: 'Node version'
         required: false
         type: string
         default: "22.x"
       registry-url:
+        description: 'Registry URL'
         required: false
         type: string
         default: "https://npm.pkg.github.com"
 
-permissions: {}
+permissions: { }
 
 env:
   DIST_TAG: 'test'
@@ -49,17 +51,6 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Get package version
-        id: get_version
-        run: echo "package_version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-
-      - name: Set publish version
-        id: set_version
-        run: |
-          TIMESTAMP=$(date +'%Y%m%d%H%M%S')
-          NEW_VERSION="${{ steps.get_version.outputs.package_version }}-dev.${TIMESTAMP}"
-          echo "publish_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-
       - name: Build Project
         run: |
           if npm run | grep -q "prepublishOnly"; then
@@ -73,8 +64,16 @@ jobs:
       - name: Run tests
         run: npm test --if-present
 
-      - name: Publish Package
+      - name: Set version and publish package
         run: |
-          npm config get registry
-          echo "Publishing with npm..."
-          npm publish --tag "dev"
+          set -e
+
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+          PUBLISH_VERSION="${BASE_VERSION}-dev.${TIMESTAMP}"
+
+          echo "Base version: $BASE_VERSION"
+          echo "Publishing version: $PUBLISH_VERSION"
+
+          npm version "$PUBLISH_VERSION" --no-git-tag-version
+          npm publish --tag dev
