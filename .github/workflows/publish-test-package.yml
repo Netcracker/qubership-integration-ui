@@ -20,7 +20,7 @@ on:
         type: string
         default: "https://npm.pkg.github.com"
 
-permissions: { }
+permissions: {}
 
 env:
   DIST_TAG: 'test'
