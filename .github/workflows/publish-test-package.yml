@@ -1,13 +1,13 @@
 name: Publish test package
 
-run-name: NPM Test Package${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch')) && ' - Test' || ' - Publish' }}${{ (github.event_name == 'workflow_dispatch' && inputs.version) && format(' {0}', inputs.version) || '' }}
+run-name: NPM Test Package${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch')) && ' - Test' || ' - Publish' }}${{ (github.event_name == 'workflow_dispatch') || '' }}
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version for NPM (e.g., 1.0.0)'
-        required: false
-        type: string
+#      version:
+#        description: 'Release version for NPM (e.g., 1.0.0)'
+#        required: false
+#        type: string
       scope:
         description: 'NPM scope for the package'
         required: false
@@ -25,7 +25,7 @@ on:
 permissions: {}
 
 env:
-  VERSION: ${{ inputs.version }}
+#  VERSION: ${{ inputs.version }}
   DIST_TAG: 'test'
 
 jobs:
@@ -53,17 +53,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-
-      - name: Update npm version for dev version
-        run: |
-          CURRENT_VERSION=$(jq -r '.version' package.json)
-
-          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
-            echo "Updating version from $CURRENT_VERSION to $VERSION"
-            npm version "$VERSION" --no-git-tag-version
-          else
-            echo "Version already $CURRENT_VERSION, skipping"
-          fi
+#
+#      - name: Update npm version for dev version
+#        run: |
+#          CURRENT_VERSION=$(jq -r '.version' package.json)
+#
+#          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+#            echo "Updating version from $CURRENT_VERSION to $VERSION"
+#            npm version "$VERSION" --no-git-tag-version
+#          else
+#            echo "Version already $CURRENT_VERSION, skipping"
+#          fi
 
       - name: Build Project
         run: |
