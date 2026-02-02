@@ -18,15 +18,34 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "integrationOperationId",
       "contextServiceId",
       "contextId",
+      /* rabbitmq/kafka trigger */
       "connectionSourceType",
       "addresses",
       "username",
       "password",
       "vhostClassifierName",
+      "topicsClassifierName",
       "maasClassifierNamespace",
+      "maasClassifierTenantEnabled",
+      "maasClassifierTenantId",
       "exchange",
       "queues",
       "routingKey",
+      /* kafka trigger - manual*/
+      "brokers",
+      "securityProtocol",
+      "saslMechanism",
+      "saslJaasConfig",
+      "topics",
+      "groupId",
+      "reconnectBackoffMaxMs",
+      "sslProtocol",
+      "sslEndpointAlgorithm",
+      "autoOffsetReset",
+      "consumersCount",
+      /* kafka trigger - maas*/
+      "maxPollRecords",
+      "maxPollIntervalMs",
       "*",
     ],
     contextPath: {
@@ -281,11 +300,9 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     },
     keyDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     valueDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     retryCount: {
       "ui:fieldReplacesAnyOrOneOf": true,
