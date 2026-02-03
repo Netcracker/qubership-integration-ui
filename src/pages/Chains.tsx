@@ -43,7 +43,6 @@ import {
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { useChainFilters } from "../hooks/useChainFilter.ts";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
@@ -107,7 +106,10 @@ function compareChainTableItemsByTypeAndName(
 function buildPathItems(path: FolderItem[]): BreadcrumbProps["items"] {
   const items = path.map((folder, index) => ({
     title: folder.name,
-    href: index < path.length - 1 ? `/chains?folder=${folder.id}` : undefined,
+    href:
+      index < path.length - 1
+        ? `/chains?folder=${folder.id}`
+        : undefined,
   }));
   return [
     {
@@ -508,10 +510,7 @@ const Chains = () => {
       }
 
       if (options.exportVariables) {
-        const variablesData = await commonVariablesApi.exportVariables(
-          [],
-          true,
-        );
+        const variablesData = await api.exportVariables([], true);
         data.push(variablesData);
       }
 

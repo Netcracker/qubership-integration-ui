@@ -4,7 +4,7 @@ import { useNotificationService } from "../../../hooks/useNotificationService";
 import {
   ApiResponse,
   Variable,
-} from "../../../api/admin-tools/variables/types.ts";
+} from "../../../api/apiTypes.ts";
 
 export const NEW_VARIABLE_KEY = "__new__";
 
