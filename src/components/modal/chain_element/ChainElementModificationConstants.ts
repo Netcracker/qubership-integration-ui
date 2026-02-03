@@ -486,7 +486,10 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
   children: { "ui:widget": "hidden" },
 };
 
-export const contextPathAndHttpMethodRestrictTabMapping: Record<string, string> = {
+export const contextPathAndHttpMethodRestrictTabMapping: Record<
+  string,
+  string
+> = {
   checkpoint: "Parameters",
   "http-trigger": "Endpoint",
 };
@@ -601,7 +604,11 @@ export function getTabForPath(
   path: string,
   elementType?: string,
 ): string | undefined {
-  if ((path === "properties.contextPath" || path === "properties.httpMethodRestrict") && elementType) {
+  if (
+    (path === "properties.contextPath" ||
+      path === "properties.httpMethodRestrict") &&
+    elementType
+  ) {
     const customTab = contextPathAndHttpMethodRestrictTabMapping[elementType];
     if (customTab) {
       return customTab;
