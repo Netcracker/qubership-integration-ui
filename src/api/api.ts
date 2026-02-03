@@ -67,6 +67,7 @@ import {
   BulkDeploymentRequest,
   BulkDeploymentResult,
   CustomResourceBuildRequest,
+  CamelKDeployRequest,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -475,6 +476,8 @@ export interface Api {
   runValidations(ids: string[]): Promise<void>;
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
+
+  deployCamelK(request: CamelKDeployRequest): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

@@ -54,7 +54,7 @@ import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { ExportCRDialog } from "../components/modal/ExportCRDialog.tsx";
 import {
   DeployChains,
-  DeployOptions,
+  DeployRequest,
 } from "../components/modal/DeployChains.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
@@ -387,6 +387,23 @@ const Chains = () => {
     }
   };
 
+  const deployChainsToCamelKDomain = async (
+    chainIds: string[],
+    name: string,
+  ) => {
+    if (chainIds.length === 0) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await api.deployCamelK({ name, chainIds });
+    } catch (error) {
+      notificationService.requestFailed("Failed to deploy chains", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const duplicateChain = async (chainId: string) => {
     setIsLoading(true);
     try {
@@ -455,7 +472,7 @@ const Chains = () => {
     try {
       const request: CustomResourceBuildRequest = {
         options,
-        chainIds: ids
+        chainIds: ids,
       };
       const text = await api.buildCR(request);
       const blob = new Blob([text], { type: "application/yaml" });
@@ -468,13 +485,13 @@ const Chains = () => {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const onExportCRBtnClick = () => {
     showModal({
-      component: <ExportCRDialog onSubmit={(options) => exportCR(options)}/>
+      component: <ExportCRDialog onSubmit={(options) => exportCR(options)} />,
     });
-  }
+  };
 
   const pasteItem = async (destinationFolderId?: string) => {
     if (!operation) {
@@ -651,8 +668,8 @@ const Chains = () => {
       showModal({
         component: (
           <DeployChains
-            onSubmit={(options: DeployOptions) =>
-              void deploySelectedChains(options)
+            onSubmit={(request: DeployRequest) =>
+              void deploySelectedChains(request)
             }
           />
         ),
@@ -703,7 +720,7 @@ const Chains = () => {
     await deleteChains(chainIds);
   };
 
-  const deploySelectedChains = async (options: DeployOptions) => {
+  const deploySelectedChains = async (request: DeployRequest) => {
     const chainIds = folderItems
       .filter(
         (i) =>
@@ -711,7 +728,18 @@ const Chains = () => {
           i.itemType === CatalogItemType.CHAIN,
       )
       .map((i) => i.id);
-    await deployChains(chainIds, options.domains, options.snapshotAction);
+    if (request.nativeDeploy) {
+      await deployChains(
+        chainIds,
+        request.nativeDeploy.domains,
+        request.nativeDeploy.snapshotAction,
+      );
+    }
+    await Promise.all(
+      request.camelKDeploys.map((camelKDeploy) =>
+        deployChainsToCamelKDomain(chainIds, camelKDeploy.name),
+      ),
+    );
   };
 
   const onContextMenuItemClick = async (item: FolderItem, key: React.Key) => {
@@ -1040,7 +1068,10 @@ const Chains = () => {
             onClick={onDeployBtnClick}
           />
           <FloatButton
-            tooltip={{ title: "Export selected chains as Camel K CR", placement: "left" }}
+            tooltip={{
+              title: "Export selected chains as Camel K CR",
+              placement: "left",
+            }}
             icon={<OverridableIcon name="kubernetes" />}
             onClick={() => onExportCRBtnClick()}
           />

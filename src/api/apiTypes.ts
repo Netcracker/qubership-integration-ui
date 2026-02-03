@@ -283,7 +283,13 @@ export type EngineDomain = {
   replicas: number;
   namespace: string;
   version?: string;
+  type: DomainType;
 };
+
+export enum DomainType {
+  NATIVE = "NATIVE",
+  MICRO = "MICRO",
+}
 
 export type ChainLoggingSettings = {
   fallbackDefault: ChainLoggingProperties;
@@ -1153,7 +1159,7 @@ export interface SpecApiFile {
 export type CustomResourceBuildRequest = {
   options: CustomResourceOptions;
   chainIds: string[];
-}
+};
 
 export type CustomResourceOptions = {
   language?: string;
@@ -1165,7 +1171,7 @@ export type CustomResourceOptions = {
 export type ContainerOptions = {
   image?: string;
   imagePoolPolicy?: "Always" | "Never" | "IfNotPresent";
-}
+};
 
 export type LiveExchange = {
   exchangeId: string;
@@ -1242,6 +1248,11 @@ export type BulkDeploymentRequest = {
   snapshotAction: BulkDeploymentSnapshotAction;
   chainIds: string[];
 };
+
+export type CamelKDeployRequest = {
+  name: string;
+  chainIds: string[];
+}
 
 export type BulkDeploymentResult = {
   chainId: string;
