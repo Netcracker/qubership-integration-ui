@@ -72,6 +72,8 @@ import {
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
+  ImportVariablesResult,
+  VariableImportPreview,
   UsedProperty
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
@@ -79,13 +81,21 @@ import { getFileFromResponse } from "../../misc/download-utils.ts";
 import qs from "qs";
 import { getAppName, getConfig } from "../../appConfig.ts";
 import { EntityFilterModel } from "../../components/table/filter/filter.ts";
+import { registerRestAxiosInstance } from "./requestHeadersInterceptor.ts";
+import type {
+  ApiError,
+  ApiResponse,
+  SecretResponse,
+  SecretWithVariables,
+  Variable,
+} from "../apiTypes.ts";
 
 export class RestApi implements Api {
   instance: AxiosInstance;
 
   constructor() {
     const config = getConfig();
-    const gateway = config.apiGateway || import.meta.env.VITE_GATEWAY;
+    const gateway = config.apiGateway;
     this.instance = rateLimit(
       axios.create({
         baseURL: gateway,
@@ -97,6 +107,8 @@ export class RestApi implements Api {
         perMilliseconds: 1000,
       },
     );
+
+    registerRestAxiosInstance(this.instance);
 
     this.instance.interceptors.response.use(
       (response) => response,
@@ -132,11 +144,382 @@ export class RestApi implements Api {
     );
   }
 
+  private v1 = (): string => `/api/v1/${getAppName()}`;
+  private v2 = (): string => `/api/v2/${getAppName()}`;
+  private v3 = (): string => `/api/${getAppName()}/v3`;
+
+  private toApiError = (
+    serviceName: string,
+    message: string,
+    errorDate: string,
+    stacktrace?: string,
+  ): ApiError => {
+    return {
+      responseBody: {
+        serviceName,
+        errorMessage: message,
+        errorDate,
+        stacktrace,
+      },
+    };
+  };
+
+  private wrapApiResponse = async <T>(
+    serviceName: string,
+    fallbackMessage: string,
+    fn: () => Promise<T>,
+  ): Promise<ApiResponse<T>> => {
+    try {
+      const data = await fn();
+      return { success: true, data };
+    } catch (error) {
+      // RestApi converts axios errors into RestApiError with responseBody when possible.
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        (error as { name?: unknown }).name === "RestApiError"
+      ) {
+        const e = error as RestApiError;
+        const body = e.responseBody;
+        if (body?.serviceName && body?.errorMessage && body?.errorDate) {
+          return {
+            success: false,
+            error: this.toApiError(
+              body.serviceName,
+              body.errorMessage,
+              body.errorDate,
+              body.stackTrace,
+            ),
+          };
+        }
+        if (e.message) {
+          return {
+            success: false,
+            error: this.toApiError(
+              serviceName,
+              e.message,
+              new Date().toISOString(),
+            ),
+          };
+        }
+      }
+
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          fallbackMessage,
+          new Date().toISOString(),
+        ),
+      };
+    }
+  };
+
+  private wrapBoolean = async (
+    fallbackMessage: string,
+    fn: () => Promise<void>,
+  ): Promise<boolean> => {
+    try {
+      await fn();
+      return true;
+    } catch (error) {
+      // keep parity with old BaseApi.wrapBoolean(): no throw
+      console.error(fallbackMessage, error);
+      return false;
+    }
+  };
+
   getChains = async (): Promise<Chain[]> => {
     const response = await this.instance.get<Chain[]>(
-      `/api/v1/${getAppName()}/catalog/chains`,
+      `${this.v1()}/catalog/chains`,
     );
     return response.data;
+  };
+
+  // Admin Tools: Variables Management
+  getCommonVariables = async (): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch common variables",
+      async () => {
+        const response = await this.instance.get<unknown>(
+          `${prefix}/common-variables`,
+        );
+        const rawData = response.data;
+        if (rawData && typeof rawData === "object" && !Array.isArray(rawData)) {
+          return Object.entries(rawData as Record<string, unknown>).map(
+            ([key, value]) => ({
+              key,
+              value: String(value),
+            }),
+          );
+        }
+        throw new Error("Unexpected response format");
+      },
+    );
+  };
+
+  createCommonVariable = async (
+    variable: Variable,
+  ): Promise<ApiResponse<string[]>> => {
+    return this.createCommonVariables({ [variable.key]: variable.value });
+  };
+
+  private createCommonVariables = async (
+    variables: Record<string, string>,
+  ): Promise<ApiResponse<string[]>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create variables",
+      async () => {
+        const response = await this.instance.post<string[]>(
+          `${prefix}/common-variables`,
+          variables,
+        );
+        return response.data;
+      },
+    );
+  };
+
+  updateCommonVariable = async (
+    variable: Variable,
+  ): Promise<ApiResponse<Variable>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update variable",
+      async () => {
+        const response = await this.instance.patch<Variable>(
+          `${prefix}/common-variables/${variable.key}`,
+          variable.value,
+          { headers: { "Content-Type": "text/plain" } },
+        );
+        return response.data;
+      },
+    );
+  };
+
+  deleteCommonVariables = async (keys: string[]): Promise<boolean> => {
+    const prefix = `${this.v1()}/variables-management`;
+    return this.wrapBoolean("Failed to delete variables", async () => {
+      const params = new URLSearchParams();
+      keys.forEach((key) => params.append("variablesNames", key));
+      await this.instance.delete(`${prefix}/common-variables?${params}`);
+    });
+  };
+
+  exportVariables = async (keys: string[], asArchive = true): Promise<File> => {
+    const prefix = `${this.v1()}/variables-management`;
+    const params = new URLSearchParams();
+    keys.forEach((key) => params.append("variablesNames", key));
+    params.append("asArchive", String(asArchive));
+
+    const response = await this.instance.get<Blob>(
+      `${prefix}/common-variables/export?${params}`,
+      { responseType: "blob" },
+    );
+    return getFileFromResponse(response);
+  };
+
+  importVariablesPreview = async (
+    formData: FormData,
+  ): Promise<ApiResponse<VariableImportPreview[]>> => {
+    const serviceName = "Common Variables API";
+    if (!formData) {
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          "No file selected or form data is empty.",
+          new Date().toISOString(),
+        ),
+      };
+    }
+    const path = `${this.v1()}/variables-management/common-variables/preview`;
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to get import variables preview",
+      async () => {
+        const response = await this.instance.post<VariableImportPreview[]>(
+          path,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+        return response.data;
+      },
+    );
+  };
+
+  importVariables = async (
+    formData: FormData,
+  ): Promise<ApiResponse<ImportVariablesResult>> => {
+    const serviceName = "Common Variables API";
+    if (!formData) {
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          "No file selected or form data is empty.",
+          new Date().toISOString(),
+        ),
+      };
+    }
+    const path = `${this.v2()}/variables-management/common-variables/import`;
+    return this.wrapApiResponse(serviceName, "Failed to import", async () => {
+      const response = await this.instance.post<ImportVariablesResult>(
+        path,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      return response.data;
+    });
+  };
+
+  getSecuredVariables = async (): Promise<
+    ApiResponse<SecretWithVariables[]>
+  > => {
+    const serviceName = "Secured Variables API";
+    const prefix = `${this.v2()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch secured variables",
+      async () => {
+        const response = await this.instance.get<SecretResponse[]>(
+          `${prefix}/secured-variables`,
+        );
+        return response.data.map(
+          ({ secretName, variablesNames, defaultSecret }) => ({
+            secretName,
+            variables: variablesNames.map((key: string) => ({
+              key,
+              value: "******",
+            })),
+            isDefaultSecret: defaultSecret,
+          }),
+        );
+      },
+    );
+  };
+
+  getSecuredVariablesForSecret = async (
+    secretName: string,
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+    const prefix = `${this.v2()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch variables for secret",
+      async () => {
+        const response = await this.instance.get<string[]>(
+          `${prefix}/secured-variables/${secretName}`,
+        );
+        return response.data.map((key: string) => ({ key, value: "******" }));
+      },
+    );
+  };
+
+  createSecuredVariables = async (
+    secretName: string,
+    variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+    const keyRegex = /^[a-zA-Z0-9_-]+$/;
+    for (const v of variables) {
+      if (!keyRegex.test(v.key)) {
+        return {
+          success: false,
+          error: this.toApiError(
+            serviceName,
+            `Invalid key: ${v.key}`,
+            new Date().toISOString(),
+          ),
+        };
+      }
+    }
+    const prefix = `${this.v2()}/variables-management`;
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secured variables",
+      async () => {
+        await this.instance.post(`${prefix}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
+        });
+        return variables;
+      },
+    );
+  };
+
+  updateSecuredVariables = async (
+    secretName: string,
+    variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+    const prefix = `${this.v2()}/variables-management`;
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update secured variables",
+      async () => {
+        await this.instance.patch(`${prefix}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
+        });
+        return variables;
+      },
+    );
+  };
+
+  deleteSecuredVariables = async (
+    secretName: string,
+    keys: string[],
+  ): Promise<ApiResponse<boolean>> => {
+    const serviceName = "Secured Variables API";
+    const prefix = `${this.v2()}/variables-management`;
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to delete secured variables",
+      async () => {
+        const params = new URLSearchParams();
+        keys.forEach((key) => params.append("variablesNames", key));
+        await this.instance.delete(
+          `${prefix}/secured-variables/${secretName}?${params}`,
+        );
+        return true;
+      },
+    );
+  };
+
+  createSecret = async (secretName: string): Promise<ApiResponse<boolean>> => {
+    const serviceName = "Secured Variables API";
+    const prefix = `${this.v2()}/variables-management`;
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secret",
+      async () => {
+        await this.instance.post(`${prefix}/secret/${secretName}`);
+        return true;
+      },
+    );
+  };
+
+  downloadHelmChart = async (secretName: string): Promise<File> => {
+    const prefix = `${this.v2()}/variables-management`;
+    const response = await this.instance.get<Blob>(
+      `${prefix}/secret/template/${secretName}`,
+      { responseType: "blob" },
+    );
+    return getFileFromResponse(response);
   };
 
   getChain = async (id: string): Promise<Chain> => {
@@ -148,14 +531,14 @@ export class RestApi implements Api {
 
   findChainByElementId = async (elementId: string): Promise<Chain> => {
     const response = await this.instance.get<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/find-by-element/${elementId}`,
+      `${this.v1()}/catalog/chains/find-by-element/${elementId}`,
     );
     return response.data;
   };
 
   updateChain = async (id: string, chain: Partial<Chain>): Promise<Chain> => {
     const response = await this.instance.put<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${id}`,
+      `${this.v1()}/catalog/chains/${id}`,
       chain,
     );
     return response.data;
@@ -163,35 +546,33 @@ export class RestApi implements Api {
 
   createChain = async (chain: ChainCreationRequest): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains`,
+      `${this.v1()}/catalog/chains`,
       chain,
     );
     return response.data;
   };
 
   deleteChain = async (chainId: string): Promise<void> => {
-    await this.instance.delete<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}`,
-    );
+    await this.instance.delete<Chain>(`${this.v1()}/catalog/chains/${chainId}`);
   };
 
   deleteChains = async (chainIds: string[]): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/bulk-delete`,
+      `${this.v1()}/catalog/chains/bulk-delete`,
       chainIds,
     );
   };
 
   duplicateChain = async (chainId: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/duplicate`,
+      `${this.v1()}/catalog/chains/${chainId}/duplicate`,
     );
     return response.data;
   };
 
   copyChain = async (chainId: string, folderId?: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/copy`,
+      `${this.v1()}/catalog/chains/${chainId}/copy`,
       null,
       {
         params: { targetFolderId: folderId },
@@ -202,7 +583,7 @@ export class RestApi implements Api {
 
   moveChain = async (chainId: string, folder?: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/move`,
+      `${this.v1()}/catalog/chains/${chainId}/move`,
       null,
       {
         params: { targetFolderId: folder },
@@ -213,7 +594,7 @@ export class RestApi implements Api {
 
   exportAllChains = async (): Promise<File> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export`,
+      `${this.v1()}/catalog/export`,
       {
         responseType: "blob",
       },
@@ -226,7 +607,7 @@ export class RestApi implements Api {
     exportSubchains: boolean,
   ): Promise<File> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export/chains`,
+      `${this.v1()}/catalog/export/chains`,
       {
         params: { chainIds, exportWithSubChains: exportSubchains },
         paramsSerializer: {
@@ -240,21 +621,21 @@ export class RestApi implements Api {
 
   getLibrary = async (): Promise<LibraryData> => {
     const response = await this.instance.get<LibraryData>(
-      `/api/v1/${getAppName()}/catalog/library`,
+      `${this.v1()}/catalog/library`,
     );
     return response.data;
   };
 
   getElementTypes = async (): Promise<ElementFilter[]> => {
     const response = await this.instance.get<ElementFilter[]>(
-      `/api/v1/${getAppName()}/catalog/library/elements/types`,
+      `${this.v1()}/catalog/library/elements/types`,
     );
     return response.data;
   };
 
   getElements = async (chainId: string): Promise<Element[]> => {
     const response = await this.instance.get<Element[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
     );
     return response.data;
   };
@@ -264,7 +645,7 @@ export class RestApi implements Api {
     elementType: string,
   ): Promise<ElementWithChainName[]> => {
     const response = await this.instance.get<ElementWithChainName[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/type/${elementType}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/type/${elementType}`,
     );
     return response.data;
   };
@@ -274,7 +655,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
       elementRequest,
     );
     return response.data;
@@ -286,7 +667,7 @@ export class RestApi implements Api {
     elementId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.patch<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/${elementId}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/${elementId}`,
       elementRequest,
     );
     return response.data;
@@ -297,7 +678,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/transfer`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/transfer`,
       transferElementRequest,
     );
     return response.data;
@@ -309,7 +690,7 @@ export class RestApi implements Api {
   ): Promise<ActionDifference> => {
     const elementsIdsParam = elementIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
       {
         params: { elementsIds: elementsIdsParam },
       },
@@ -323,7 +704,7 @@ export class RestApi implements Api {
     httpTriggerIds: string[],
   ): Promise<void> => {
     await this.instance.put(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/properties-modification`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/properties-modification`,
       {},
       {
         params: {
@@ -338,7 +719,7 @@ export class RestApi implements Api {
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
     const response = await this.instance.get<Connection[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
     );
     return response.data;
   };
@@ -348,7 +729,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
       connectionRequest,
     );
     return response.data;
@@ -360,7 +741,7 @@ export class RestApi implements Api {
   ): Promise<ActionDifference> => {
     const connectionIdsParam = connectionIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
       {
         params: { dependenciesIds: connectionIdsParam },
       },
@@ -370,34 +751,34 @@ export class RestApi implements Api {
 
   createSnapshot = async (chainId: string): Promise<Snapshot> => {
     const response = await this.instance.post<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots`,
     );
     return response.data;
   };
 
   getSnapshots = async (chainId: string): Promise<Snapshot[]> => {
     const response = await this.instance.get<Snapshot[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots`,
     );
     return response.data;
   };
 
   getSnapshot = async (snapshotId: string): Promise<Snapshot> => {
     const response = await this.instance.get<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`,
     );
     return response.data;
   };
 
   deleteSnapshot = async (snapshotId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`,
     );
   };
 
   deleteSnapshots = async (snapshotIds: string[]): Promise<void> => {
     await this.instance.post(
-      `/api/v2/${getAppName()}/catalog/snapshots/bulk-delete`,
+      `${this.v2()}/catalog/snapshots/bulk-delete`,
       snapshotIds,
     );
   };
@@ -407,7 +788,7 @@ export class RestApi implements Api {
     snapshotId: string,
   ): Promise<Snapshot> => {
     const response = await this.instance.post<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots/${snapshotId}/revert`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots/${snapshotId}/revert`,
     );
     return response.data;
   };
@@ -418,7 +799,7 @@ export class RestApi implements Api {
     labels: EntityLabel[],
   ): Promise<Snapshot> => {
     const response = await this.instance.put<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`,
       {
         name,
         labels,
@@ -429,14 +810,14 @@ export class RestApi implements Api {
 
   getLibraryElementByType = async (type: string): Promise<LibraryElement> => {
     const response = await this.instance.get<LibraryElement>(
-      `/api/v1/${getAppName()}/catalog/library/${type}`,
+      `${this.v1()}/catalog/library/${type}`,
     );
     return response.data;
   };
 
   getDeployments = async (chainId: string): Promise<Deployment[]> => {
     const response = await this.instance.get<Deployment[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/deployments`,
+      `${this.v1()}/catalog/chains/${chainId}/deployments`,
     );
     return response.data;
   };
@@ -446,7 +827,7 @@ export class RestApi implements Api {
     request: CreateDeploymentRequest,
   ): Promise<Deployment> => {
     const response = await this.instance.post<Deployment>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/deployments`,
+      `${this.v1()}/catalog/chains/${chainId}/deployments`,
       request,
     );
     return response.data;
@@ -454,13 +835,13 @@ export class RestApi implements Api {
 
   deleteDeployment = async (deploymentId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/deployments/${deploymentId}`,
+      `${this.v1()}/catalog/chains/chainId/deployments/${deploymentId}`,
     );
   };
 
   getDomains = async (): Promise<EngineDomain[]> => {
     const response = await this.instance.get<EngineDomain[]>(
-      `/api/v1/${getAppName()}/catalog/domains`,
+      `${this.v1()}/catalog/domains`,
     );
     return response.data;
   };
@@ -469,7 +850,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ChainLoggingSettings> => {
     const response = await this.instance.get<ChainLoggingSettings>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`,
     );
     return response.data;
   };
@@ -479,20 +860,20 @@ export class RestApi implements Api {
     properties: ChainLoggingProperties,
   ): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`,
       properties,
     );
   };
 
   deleteLoggingSettings = async (chainId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`,
     );
   };
 
   getMaskedFields = async (chainId: string): Promise<MaskedField[]> => {
     const response = await this.instance.get<MaskedFields>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking`,
+      `${this.v1()}/catalog/chains/${chainId}/masking`,
     );
     return response.data.fields;
   };
@@ -502,7 +883,7 @@ export class RestApi implements Api {
     maskedField: Partial<Omit<MaskedField, "id">>,
   ): Promise<MaskedField> => {
     const response = await this.instance.post<MaskedField>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking`,
+      `${this.v1()}/catalog/chains/${chainId}/masking`,
       maskedField,
     );
     return response.data;
@@ -513,7 +894,7 @@ export class RestApi implements Api {
     maskedFieldIds: string[],
   ): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking/field`,
+      `${this.v1()}/catalog/chains/${chainId}/masking/field`,
       maskedFieldIds,
     );
   };
@@ -1536,15 +1917,5 @@ export class RestApi implements Api {
       request,
     );
     return response.data;
-  };
-
-  getUsedProperties = async (
-      chainId: string,
-  ): Promise<UsedProperty[]> => {
-     const response = await this.instance.get<UsedProperty[]>(
-         `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/properties/used`
-     );
-
-     return response.data;
   };
 }

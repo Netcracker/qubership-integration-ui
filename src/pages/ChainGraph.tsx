@@ -58,7 +58,6 @@ import {
   ExportChainOptions,
   ExportChains,
 } from "../components/modal/ExportChains.tsx";
-import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
 
@@ -298,10 +297,7 @@ const ChainGraphInner: React.FC = () => {
       }
 
       if (options.exportVariables) {
-        const variablesData = await commonVariablesApi.exportVariables(
-          [],
-          true,
-        );
+        const variablesData = await api.exportVariables([], true);
         data.push(variablesData);
       }
 
