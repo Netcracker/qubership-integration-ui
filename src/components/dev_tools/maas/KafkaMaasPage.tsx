@@ -3,12 +3,10 @@ import { Form, Input, Flex } from "antd";
 import { useForm } from "antd/lib/form/Form";
 import { MaasFormActions } from "./MaasFormActions.tsx";
 import { MaasPageHeader } from "./MaasPageHeader.tsx";
-import { KafkaMaasFormData } from "./types.ts";
+import { NamespaceField } from "./NamespaceField.tsx";
+import { KafkaMaasFormData, NON_WHITESPACE_PATTERN } from "./types.ts";
 import sharedStyles from "../DevTools.module.css";
 import styles from "./Maas.module.css";
-
-// Non-whitespace pattern validator
-const nonWhiteSpacePattern = /^\S+$/;
 
 export const KafkaMaasPage: React.FC = () => {
   const [form] = useForm<KafkaMaasFormData>();
@@ -67,8 +65,8 @@ export const KafkaMaasPage: React.FC = () => {
       return (
         namespace &&
         topicClassifierName &&
-        nonWhiteSpacePattern.test(namespace) &&
-        nonWhiteSpacePattern.test(topicClassifierName)
+        NON_WHITESPACE_PATTERN.test(namespace) &&
+        NON_WHITESPACE_PATTERN.test(topicClassifierName)
       );
     } catch {
       return false;
@@ -93,17 +91,7 @@ export const KafkaMaasPage: React.FC = () => {
           layout="vertical"
           onFinish={handleCreate}
         >
-          <Form.Item
-            label="Namespace"
-            name="namespace"
-            required
-            rules={[
-              { required: true, message: "Namespace is required" },
-              { pattern: nonWhiteSpacePattern, message: "Namespace cannot be empty" },
-            ]}
-          >
-            <Input disabled />
-          </Form.Item>
+          <NamespaceField />
 
           <Form.Item
             label="Topic Classifier Name"
@@ -111,7 +99,7 @@ export const KafkaMaasPage: React.FC = () => {
             required
             rules={[
               { required: true, message: "Topic Classifier Name is required" },
-              { pattern: nonWhiteSpacePattern, message: "Topic Classifier Name cannot be empty" },
+              { pattern: NON_WHITESPACE_PATTERN, message: "Topic Classifier Name cannot be empty" },
             ]}
           >
             <Input placeholder="Enter topic classifier name" />

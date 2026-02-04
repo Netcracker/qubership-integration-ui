@@ -1,3 +1,24 @@
+/**
+ * Non-whitespace pattern validator for MaaS form fields.
+ * Ensures the field contains at least one non-whitespace character.
+ */
+export const NON_WHITESPACE_PATTERN = /^\S+$/;
+
+/**
+ * Default vhost value for RabbitMQ MaaS forms.
+ */
+export const DEFAULT_VHOST = "public";
+
+/**
+ * Form field names for RabbitMQ MaaS.
+ */
+export const RABBITMQ_FIELD_NAMES = {
+  NAMESPACE: "namespace",
+  VHOST: "vhost",
+  EXCHANGE: "exchange",
+  QUEUE: "queue",
+  ROUTING_KEY: "routingKey",
+} as const;
 
 export interface KafkaMaasFormData {
   namespace: string;
