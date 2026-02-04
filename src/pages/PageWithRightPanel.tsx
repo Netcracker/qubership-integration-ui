@@ -23,6 +23,7 @@ import {ChainElementModification} from "../components/modal/chain_element/ChainE
 import {ChainGraphNode} from "../components/graph/nodes/ChainGraphNodeTypes.ts";
 import {useElkDirectionContext} from "./ElkDirectionContext.tsx";
 import {UsedPropertiesList} from "../components/UsedPropertiesList.tsx";
+import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 
 export const PageWithRightPanel = () => {
     const allItems = useRef<MenuItem[]>([]);
@@ -125,7 +126,7 @@ export const PageWithRightPanel = () => {
     const handleElementSingleClick = useCallback((elementId: string) => {}, []);
 
     const elementMenuItems: MenuProps['items'] = useMemo(() => {
-        if (!elements.length || !libraryElements) {
+        if (!elements?.length || !libraryElements) {
             return [];
         }
 
@@ -168,9 +169,9 @@ export const PageWithRightPanel = () => {
     );
 
     const applyFilters = (filterItems: FilterItemState[]) => {
-        setFilterItemStates(filterItems);
+        setFilterItemStates?.(filterItems);
 
-        const f = filterItems.map(
+        const f = (filterItems ?? []).map(
             (filterItem): FolderFilter => ({
                 column: filterItem.columnValue!,
                 condition: filterItem.conditionValue!,
@@ -184,8 +185,8 @@ export const PageWithRightPanel = () => {
         showModal({
             component: (
                 <Filter
-                    filterColumns={filterColumns}
-                    filterItemStates={filterItemStates}
+                    filterColumns={filterColumns ?? []}
+                    filterItemStates={filterItemStates ?? []}
                     onApplyFilters={applyFilters}
                 />
             ),
@@ -204,10 +205,10 @@ export const PageWithRightPanel = () => {
                     key: "listElements",
                     label: <OverridableIcon name="unorderedList" />
                   },
-                  {
+                  ...(!isVsCode ? [{
                     key: "elementProperties",
                     label: <OverridableIcon name="menuUnfold" />
-                  },
+                  }] : []),
                 ]}
             ></Tabs>
             </Flex>
@@ -222,7 +223,7 @@ export const PageWithRightPanel = () => {
                             setOpenKeysState(openKeysBeforeSearch.current);
                         }}
                     />
-                    <FilterButton count={filterItemStates.length} onClick={addFilter} />
+                    <FilterButton count={filterItemStates?.length ?? 0} onClick={addFilter} />
                 </Flex>
                 {activeTab === "listElements" && (
                     <Menu
