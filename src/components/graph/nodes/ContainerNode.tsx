@@ -37,14 +37,9 @@ export function ContainerNode({
   const actionsRef = useRef<HTMLDivElement>(null);
   const actionsWidth = useElementWidth(actionsRef);
 
-  const borderStyle = selected
-    ? "2px solid var(--vscode-focusBorder, #007acc)"
-    : "1px solid var(--container-border-color, #dedacd)";
-
   return (
-    <div 
-      className={styles.container}
-      style={{ border: borderStyle }}
+    <div
+      className={`${styles.container} ${selected ? styles.containerSelected : ""}`}
       data-node-type="container"
     >
       <div
@@ -56,7 +51,13 @@ export function ContainerNode({
             <Button
               size="small"
               type="text"
-              icon={isCollapsed ? <OverridableIcon name="caretRightFilled" /> : <OverridableIcon name="caretDownFilled" />}
+              icon={
+                isCollapsed ? (
+                  <OverridableIcon name="caretRightFilled" />
+                ) : (
+                  <OverridableIcon name="caretDownFilled" />
+                )
+              }
               onClick={() => data.onToggleCollapse?.()}
               tabIndex={-1}
             />
@@ -64,7 +65,10 @@ export function ContainerNode({
         </div>
 
         <div className={styles.labelWrapper}>
-          <OverridableIcon name={data.elementType as IconName} style={{ fontSize: 16 }} />
+          <OverridableIcon
+            name={data.elementType as IconName}
+            style={{ fontSize: 16 }}
+          />
 
           <EllipsisLabel
             text={trimmedLabel}

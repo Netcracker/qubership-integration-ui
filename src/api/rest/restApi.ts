@@ -1,91 +1,97 @@
 import axios, { AxiosHeaders, AxiosInstance } from "axios";
 import rateLimit from "axios-rate-limit";
 import {
-    Chain,
-    ChainCreationRequest,
-    Connection,
-    CreateElementRequest,
-    LibraryData,
-    LibraryElement,
-    Snapshot,
-    ConnectionRequest,
-    ActionDifference,
-    Deployment,
-    CreateDeploymentRequest,
-    EngineDomain,
-    EntityLabel,
-    ChainLoggingSettings,
-    ChainLoggingProperties,
-    MaskedField,
-    MaskedFields,
-    SessionFilterAndSearchRequest,
-    PaginationOptions,
-    SessionSearchResponse,
-    Session,
-    CheckpointSession,
-    FolderItem,
-    PatchElementRequest,
-    UsedService,
-    ImportPreview,
-    ImportRequest,
-    ImportCommitResponse,
-    ImportStatusResponse,
-    EventsUpdate,
-    ErrorResponse,
-    RestApiError,
-    CreateFolderRequest,
-    UpdateFolderRequest,
-    MoveFolderRequest,
-    ListFolderRequest,
-    ChainItem,
-    Engine,
-    ChainDeployment,
-    isErrorResponse,
-    ElementFilter,
-    ActionLogSearchRequest,
-    ActionLogResponse,
-    LogExportRequestParams,
-    IntegrationSystem,
-    SystemRequest,
-    EnvironmentRequest,
-    Environment,
-    Specification,
-    SpecificationGroup,
-    OperationInfo,
-    ImportSystemResult,
-    ImportSpecificationResult,
-    BaseEntity,
-    DetailedDesignTemplate,
-    ChainDetailedDesign,
-    ElementsSequenceDiagrams,
-    DiagramMode,
-    ElementWithChainName,
-    ApiSpecificationType,
-    ApiSpecificationFormat,
-    TransferElementRequest,
-    Element,
-    SystemOperation,
-    SpecApiFile,
-    LiveExchange,
-    ContextSystem,
-    IntegrationSystemType,
-    AccessControlSearchRequest,
-    AccessControlResponse,
-    AccessControlUpdateRequest,
-    AccessControlBulkDeployRequest
+  Chain,
+  ChainCreationRequest,
+  Connection,
+  CreateElementRequest,
+  LibraryData,
+  LibraryElement,
+  Snapshot,
+  ConnectionRequest,
+  ActionDifference,
+  Deployment,
+  CreateDeploymentRequest,
+  EngineDomain,
+  EntityLabel,
+  ChainLoggingSettings,
+  ChainLoggingProperties,
+  MaskedField,
+  MaskedFields,
+  SessionFilterAndSearchRequest,
+  PaginationOptions,
+  SessionSearchResponse,
+  Session,
+  CheckpointSession,
+  FolderItem,
+  PatchElementRequest,
+  UsedService,
+  ImportPreview,
+  ImportRequest,
+  ImportCommitResponse,
+  ImportStatusResponse,
+  EventsUpdate,
+  ErrorResponse,
+  RestApiError,
+  CreateFolderRequest,
+  UpdateFolderRequest,
+  MoveFolderRequest,
+  ListFolderRequest,
+  ChainItem,
+  Engine,
+  ChainDeployment,
+  isErrorResponse,
+  ElementFilter,
+  ActionLogSearchRequest,
+  ActionLogResponse,
+  LogExportRequestParams,
+  IntegrationSystem,
+  SystemRequest,
+  EnvironmentRequest,
+  Environment,
+  Specification,
+  SpecificationGroup,
+  OperationInfo,
+  ImportSystemResult,
+  ImportSpecificationResult,
+  BaseEntity,
+  DetailedDesignTemplate,
+  ChainDetailedDesign,
+  ElementsSequenceDiagrams,
+  DiagramMode,
+  ElementWithChainName,
+  ApiSpecificationType,
+  ApiSpecificationFormat,
+  TransferElementRequest,
+  Element,
+  SystemOperation,
+  SpecApiFile,
+  LiveExchange,
+  ContextSystem,
+  IntegrationSystemType,
+  DiagnosticValidation,
+  BulkDeploymentRequest,
+  BulkDeploymentResult,
+  AccessControlSearchRequest,
+  AccessControlResponse,
+  AccessControlUpdateRequest,
+  AccessControlBulkDeployRequest
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
 import qs from "qs";
-import { getAppName } from "../../appConfig.ts";
+import { getAppName, getConfig } from "../../appConfig.ts";
+import { EntityFilterModel } from "../../components/table/filter/filter.ts";
 
 export class RestApi implements Api {
   instance: AxiosInstance;
 
   constructor() {
+    const config = getConfig();
+    const gateway = config.apiGateway || import.meta.env.VITE_GATEWAY;
     this.instance = rateLimit(
       axios.create({
-        baseURL: import.meta.env.VITE_GATEWAY,
+        baseURL: gateway,
         timeout: 2000,
         headers: { "content-type": "application/json" },
       }),
@@ -148,7 +154,7 @@ export class RestApi implements Api {
       `/api/v1/${getAppName()}/catalog/chains/find-by-element/${elementId}`,
     );
     return response.data;
-  }
+  };
 
   updateChain = async (id: string, chain: Partial<Chain>): Promise<Chain> => {
     const response = await this.instance.put<Chain>(
@@ -1154,6 +1160,20 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  getLatestApiSpecification = async (
+    systemId: string,
+  ): Promise<Specification> => {
+    const response = await this.instance.get<Specification>(
+      `/api/v1/${getAppName()}/systems-catalog/models/latest`,
+      {
+        params: {
+          systemId: systemId,
+        },
+      },
+    );
+    return response.data;
+  };
+
   updateApiSpecificationGroup = async (
     id: string,
     data: Partial<SpecificationGroup>,
@@ -1251,10 +1271,7 @@ export class RestApi implements Api {
     packagePartOf?: string,
   ): Promise<ImportSystemResult[]> => {
     const formData = new FormData();
-    formData.append(
-      systemType == IntegrationSystemType.CONTEXT ? "file" : "files",
-      file,
-    );
+    formData.append("file", file);
     if (systemIds && systemIds.length > 0) {
       for (const id of systemIds) {
         formData.append("systemIds", id);
@@ -1268,9 +1285,10 @@ export class RestApi implements Api {
     if (packageVersion) headers["X-SR-PACKAGE-VERSION"] = packageVersion;
     if (packagePartOf) headers["X-SR-PACKAGE-PART-OF"] = packagePartOf;
 
-    const url = IntegrationSystemType.CONTEXT
-      ? `/api/v1/${getAppName()}/catalog/context-system/import`
-      : `/api/v1/${getAppName()}/systems-catalog/import/system`;
+    const url =
+      systemType === IntegrationSystemType.CONTEXT
+        ? `/api/v1/${getAppName()}/catalog/context-system/import`
+        : `/api/v1/${getAppName()}/systems-catalog/import/system`;
     const response = await this.instance.post<ImportSystemResult[]>(
       url,
       formData,
@@ -1466,7 +1484,7 @@ export class RestApi implements Api {
         },
       },
     );
-    return (response.status === 204) ? [] : response.data;
+    return response.status === 204 ? [] : response.data;
   };
 
   terminateExchange = async (
@@ -1477,6 +1495,50 @@ export class RestApi implements Api {
     await this.instance.delete<void>(
       `/api/v1/${getAppName()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`,
     );
+  };
+
+  reconfigure(newGateway: string): void {
+    this.instance.defaults.baseURL = newGateway;
+  }
+
+  getValidations = async (
+    filters: EntityFilterModel[],
+    searchString: string,
+  ): Promise<DiagnosticValidation[]> => {
+    const response = await this.instance.post<DiagnosticValidation[]>(
+      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
+      { searchString, filters },
+    );
+    return response.data;
+  };
+
+  getValidation = async (
+    validationId: string,
+  ): Promise<DiagnosticValidation> => {
+    const response = await this.instance.get<DiagnosticValidation>(
+      `/api/v1/${getAppName()}/catalog/diagnostic/validations/${validationId}`,
+    );
+    return response.data;
+  };
+
+  runValidations = async (ids: string[]): Promise<void> => {
+    await this.instance.patch<void>(
+      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
+      undefined,
+      {
+        params: { validationIds: ids },
+      },
+    );
+  };
+
+  bulkDeploy = async (
+    request: BulkDeploymentRequest,
+  ): Promise<BulkDeploymentResult[]> => {
+    const response = await this.instance.post<BulkDeploymentResult[]>(
+      `/api/v1/${getAppName()}/catalog/chains/deployments/bulk`,
+      request,
+    );
+    return response.data;
   };
 
   loadHttpTriggerAccessControl = async (

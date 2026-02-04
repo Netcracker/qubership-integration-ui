@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { Route, createMemoryRouter, createRoutesFromElements, RouterProvider } from "react-router";
+import { useEffect, useState } from "react";
+import {
+  Route,
+  createMemoryRouter,
+  createRoutesFromElements,
+  RouterProvider,
+} from "react-router";
 import ChainPage from "./pages/ChainPage.tsx";
 import { App as AntdApp, ConfigProvider, Layout } from "antd";
 import styles from "./App.module.css";
@@ -11,7 +16,10 @@ import { EventNotification } from "./components/notifications/EventNotification.
 import DefaultExtensionPage from "./pages/DefaultExtensionPage.tsx";
 import { NotImplemented } from "./pages/NotImplemented.tsx";
 import { Masking } from "./pages/Masking.tsx";
-import { STARTUP_EVENT, VSCodeExtensionApi } from "./api/rest/vscodeExtensionApi.ts";
+import {
+  STARTUP_EVENT,
+  VSCodeExtensionApi,
+} from "./api/rest/vscodeExtensionApi.ts";
 import { api } from "./api/api.ts";
 
 import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
@@ -19,6 +27,8 @@ import { useVSCodeTheme } from "./hooks/useVSCodeTheme.ts";
 import { getAntdThemeConfig } from "./theme/antdTokens.ts";
 import { IconProvider } from "./icons/IconProvider.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
+import { getConfig } from "./appConfig.ts";
+import { reapplyCssVariables } from "./config/initConfig.ts";
 
 const router = createMemoryRouter(
   createRoutesFromElements(
@@ -66,23 +76,36 @@ const router = createMemoryRouter(
 
 const AppExtension = () => {
   const { isDark } = useVSCodeTheme();
-  const [themeUpdateKey, setThemeUpdateKey] = useState(0);
-  const antdConfig = useMemo(
-    () => getAntdThemeConfig(isDark),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isDark, themeUpdateKey],
-  );
+  const [, setThemeUpdateKey] = useState(0);
+  const config = getConfig();
+  const antdConfig = getAntdThemeConfig(isDark, config.themeOverrides);
 
   useEffect(() => {
     const handleThemeVariablesUpdated = () => {
-      setThemeUpdateKey(prev => prev + 1);
+      setThemeUpdateKey((prev) => prev + 1);
+      reapplyCssVariables();
     };
 
-    window.addEventListener("theme-variables-updated", handleThemeVariablesUpdated);
+    window.addEventListener(
+      "theme-variables-updated",
+      handleThemeVariablesUpdated,
+    );
     return () => {
-      window.removeEventListener("theme-variables-updated", handleThemeVariablesUpdated);
+      window.removeEventListener(
+        "theme-variables-updated",
+        handleThemeVariablesUpdated,
+      );
     };
   }, []);
+
+  useEffect(() => {
+    if (config.themeOverrides) {
+      setThemeUpdateKey((prev) => prev + 1);
+    }
+    if (config.cssVariables) {
+      reapplyCssVariables();
+    }
+  }, [config.themeOverrides, config.cssVariables]);
 
   if (api instanceof VSCodeExtensionApi) {
     void api.sendMessageToExtension(STARTUP_EVENT);
@@ -96,7 +119,7 @@ const AppExtension = () => {
             <EventNotification>
               <Modals>
                 <Content className={styles.content}>
-                  <RouterProvider router={router}/>
+                  <RouterProvider router={router} />
                 </Content>
               </Modals>
             </EventNotification>

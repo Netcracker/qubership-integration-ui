@@ -1,8 +1,15 @@
-import React, { createContext, useContext, ReactNode, useState } from "react";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import Icon from "@ant-design/icons";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
 import parse from "html-react-parser";
 import { commonIcons, elementIcons } from "./IconDefenitions";
+import { getConfig, onConfigChange } from "../appConfig.ts";
 
 export type IconSource =
   | React.ComponentType<AntdIconProps>
@@ -16,17 +23,17 @@ const allIcons = {
 
 function normalizeSvgForTheme(svgString: string): string {
   let normalized = svgString;
-  
+
   normalized = normalized.replace(
     /fill\s*=\s*["']#[0-9a-fA-F]{3,8}["']/gi,
-    'fill="currentColor"'
+    'fill="currentColor"',
   );
-  
+
   normalized = normalized.replace(
     /stroke\s*=\s*["']#[0-9a-fA-F]{3,8}["']/gi,
-    'stroke="currentColor"'
+    'stroke="currentColor"',
   );
-  
+
   normalized = normalized.replace(
     /style\s*=\s*["']([^"']*)["']/gi,
     (_match: string, styleContent: string): string => {
@@ -36,7 +43,7 @@ function normalizeSvgForTheme(svgString: string): string {
       return `style="${newStyle}"`;
     },
   );
-  
+
   const elementsWithFill = ["path", "circle", "rect", "ellipse", "polygon"];
   elementsWithFill.forEach((tag: string) => {
     const regex = new RegExp(`<${tag}([^>]*)>`, "gi");
@@ -54,7 +61,7 @@ function normalizeSvgForTheme(svgString: string): string {
       },
     );
   });
-  
+
   return normalized;
 }
 
@@ -71,7 +78,23 @@ export const IconContext = createContext<IconContextType>({
 export const IconProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [icons, setIconsState] = useState<IconOverrides>(allIcons);
+  const [icons, setIconsState] = useState<IconOverrides>(() => {
+    const config = getConfig();
+    return config.icons ? { ...allIcons, ...config.icons } : allIcons;
+  });
+
+  useEffect(() => {
+    const applyConfig = (cfg: ReturnType<typeof getConfig>) => {
+      if (cfg.icons) {
+        setIconsState(() => ({ ...allIcons, ...cfg.icons }));
+      } else {
+        setIconsState(() => allIcons);
+      }
+    };
+
+    applyConfig(getConfig());
+    return onConfigChange((cfg) => applyConfig(cfg));
+  }, []);
 
   const setIcons = (overrides: IconOverrides) => {
     setIconsState((prev) => ({
@@ -99,7 +122,7 @@ interface OverridableIconProps extends Omit<AntdIconProps, "name"> {
   name: IconName;
 }
 
-export type IconName = keyof typeof allIcons;
+export type IconName = keyof typeof allIcons | (string & {});
 
 export type IconOverrides = {
   [K in IconName]?: IconSource;
@@ -113,7 +136,6 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
   const IconComponent = icons.icons[name];
 
   if (!IconComponent) {
-    console.warn(`Icon "${name}" not found in IconProvider`);
     return null;
   }
 

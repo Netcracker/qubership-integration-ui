@@ -1,3 +1,5 @@
+import { EntityFilterModel } from "../components/table/filter/filter";
+
 export type BaseEntity = {
   id: string;
   name: string;
@@ -796,14 +798,8 @@ export type MoveFolderRequest = {
 
 export type ListFolderRequest = {
   folderId?: string;
-  filters?: FolderFilter[];
+  filters?: EntityFilterModel[];
   searchString?: string;
-};
-
-export type FolderFilter = {
-  column: string;
-  condition: string;
-  value?: string;
 };
 
 export type CatalogItem = BaseEntity & {
@@ -1224,3 +1220,79 @@ export type LiveExchange = {
   main: boolean;
   podIp: string;
 };
+
+export enum ValidationEntityType {
+  CHAIN = "CHAIN",
+  CHAIN_ELEMENT = "CHAIN_ELEMENT",
+}
+
+export enum ValidationImplementationType {
+  BUILT_IN = "BUILT_IN",
+  PLUGIN = "PLUGIN",
+}
+
+export enum ValidationSeverity {
+  WARNING = "WARNING",
+  ERROR = "ERROR",
+}
+
+export enum ValidationState {
+  OK = "OK",
+  NOT_STARTED = "NOT_STARTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  FAILED = "FAILED",
+}
+
+export interface ValidationChainEntity {
+  chainId: string;
+  chainName: string;
+  elementId: string;
+  elementName: string;
+  elementType: string;
+  properties: { [key: string]: unknown };
+}
+
+export interface DiagnosticValidation {
+  id: string;
+  title: string;
+  description: string;
+  suggestion: string;
+  entityType: ValidationEntityType;
+  implementationType: ValidationImplementationType;
+  severity: ValidationSeverity;
+  properties: { [key: string]: unknown };
+  alertsCount: number;
+  chainEntities: ValidationChainEntity[];
+  status: ValidationStatus;
+}
+
+export interface ValidationStatus {
+  state: ValidationState;
+  startedWhen?: string;
+  message?: string;
+}
+
+export enum BulkDeploymentSnapshotAction {
+  CREATE_NEW = "CREATE_NEW",
+  LAST_CREATED = "LAST_CREATED",
+}
+
+export type BulkDeploymentRequest = {
+  domains: string[];
+  snapshotAction: BulkDeploymentSnapshotAction;
+  chainIds: string[];
+};
+
+export type BulkDeploymentResult = {
+  chainId: string;
+  chainName: string;
+  status: BulkDeploymentStatus;
+  errorMessage: string;
+};
+
+export enum BulkDeploymentStatus {
+  FAILED_DEPLOY = "FAILED_DEPLOY",
+  FAILED_SNAPSHOT = "FAILED_SNAPSHOT",
+  CREATED = "CREATED",
+  IGNORED = "IGNORED",
+}

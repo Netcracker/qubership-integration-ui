@@ -1,6 +1,6 @@
 {
   "name": "@netcracker/qip-ui",
-  "version": "0.0.0-dev",
+  "version": "0.0.35",
   "license": "Apache-2.0",
   "description": "Qubership Integration Platform - UI",
   "module": "./dist-lib/index.es.js",
@@ -9,37 +9,55 @@
     ".": {
       "import": "./dist-lib/index.es.js",
       "types": "./dist-lib/types/index.d.ts"
-    }
+    },
+    "./external": {
+      "import": "./dist-lib/index.es.js",
+      "types": "./dist-lib/types/index.d.ts"
+    },
+    "./bundled": {
+      "import": "./dist-lib/index.bundled.es.js",
+      "types": "./dist-lib/types/index.d.ts"
+    },
+    "./qip-ui.css": "./dist-lib/qip-ui.css",
+    "./dist-lib/qip-ui.css": "./dist-lib/qip-ui.css"
   },
   "files": [
     "dist-lib"
   ],
   "scripts": {
     "dev": "vite",
+    "predev": "npm run fetch-docs",
     "build": "vite build",
+    "prebuild": "npm run fetch-docs",
     "build:lib": "vite build --config vite.config.lib.ts",
+    "build:lib:external": "vite build --config vite.config.lib.ts",
+    "build:lib:bundled": "vite build --config vite.config.lib.bundled.ts",
+    "build:lib:all": "npm run build:lib:external && npm run build:lib:bundled && node scripts/fix-preload.js",
+    "fetch-docs": "ts-node --project scripts/tsconfig.json scripts/fetch-documentation.ts",
+    "build:doc-index": "node scripts/build-doc-index.js",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "preview": "vite preview",
     "test": "jest",
-    "prepublishOnly": "rimraf dist-lib && npm run build:lib",
+    "prepublishOnly": "rimraf dist-lib && npm run build:lib:all && node scripts/fix-preload.js",
     "postpublish": "rimraf dist-lib"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
     "@lightenna/react-mermaid-diagram": "^1.0.21",
     "@monaco-editor/react": "^4.7.0",
-    "@netcracker/qip-schemas": "0.2.14",
+    "@netcracker/qip-schemas": "0.2.15",
     "@rjsf/antd": "^6.1.2",
     "@rjsf/core": "^6.1.2",
     "@rjsf/utils": "^6.1.2",
     "@rjsf/validator-ajv8": "^6.1.2",
     "@tanstack/react-query": "^5.76.0",
     "@xyflow/react": "^12.4.2",
-    "@ant-design/icons": "^6.1.0",
     "ajv": "^8.17.1",
     "antd": "^5.27.0",
     "axios": "^1.7.9",
     "axios-rate-limit": "1.4.0",
+    "elasticlunr": "^0.9.5",
     "elkjs": "^0.10.0",
     "exceljs": "4.4.0",
     "fast-xml-parser": "^5.2.5",
@@ -47,24 +65,27 @@
     "graphql": "^16.11.0",
     "graphql-2-json-schema": "^0.10.0",
     "he": "^1.2.0",
+    "html-react-parser": "^5.2.10",
     "jszip": "^3.10.1",
     "lucide-react": "^0.483.0",
+    "lunr": "^2.3.9",
     "marked": "^16.1.1",
     "mermaid": "^11.9.0",
     "pegjs": "^0.10.0",
-    "qs": "^6.14.0",
+    "qs": "^6.14.1",
     "react": "^18.3.1",
     "react-archer": "^4.4.0",
     "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-resizable": "^3.0.5",
-    "react-router": "^7.1.3",
+    "react-router": "^7.12.0",
     "react-router-dom": "^7.1.3",
     "react-sortablejs": "^6.1.4",
     "react-syntax-highlighter": "^15.6.1",
     "react-transition-group": "^4.4.5",
     "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "sortablejs": "^1.15.6",
     "tailwindcss": "^4.0.14",
@@ -72,8 +93,7 @@
     "ts-markdown": "^1.3.0",
     "uuid": "^11.1.0",
     "xsdlibrary": "^1.3.6",
-    "yaml": "^2.8.0",
-    "html-react-parser": "^5.2.10"
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
@@ -81,6 +101,7 @@
     "@types/he": "^1.2.3",
     "@types/jest": "^29.5.14",
     "@types/json-schema": "^7.0.15",
+    "@types/node": "^22.19.7",
     "@types/pegjs": "^0.10.6",
     "@types/qs": "^6.14.0",
     "@types/react": "^18.3.18",
@@ -98,6 +119,7 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.15.0",
     "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "jest-expect-message": "^1.1.3",
     "js-yaml": "^4.1.0",
     "prettier": "3.5.3",
@@ -107,6 +129,7 @@
     "typescript-eslint": "^8.26.1",
     "vite": "^6.2.6",
     "vite-plugin-dts": "^4.5.4",
-    "vite-plugin-sass-dts": "^1.3.31"
+    "vite-plugin-sass-dts": "^1.3.31",
+    "yargs": "^17.4.1"
   }
 }

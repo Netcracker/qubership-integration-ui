@@ -2,23 +2,17 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import sassDts from "vite-plugin-sass-dts";
 
-// https://vite.dev/config/
+// Dev server config - uses same base as lib build
 export default defineConfig({
   plugins: [react(), sassDts()],
-  build: {
-    minify: true,
-    sourcemap: false,
-    rollupOptions: {
-      output: {
-        inlineDynamicImports: true,
-      },
-    },
-  },
   server: {
     host: true,
     port: 4200,
     hmr: {
-      clientPort: 4200
-    }
+      clientPort: 4200,
+    },
+  },
+  optimizeDeps: {
+    include: ["lunr", "elasticlunr"],
   },
 });
