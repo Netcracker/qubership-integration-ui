@@ -37,6 +37,8 @@
     "build:doc-index": "node scripts/build-doc-index.js",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css,scss,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,css,scss,json,md}\"",
     "preview": "vite preview",
     "test": "jest",
     "prepublishOnly": "rimraf dist-lib && npm run build:lib:all && node scripts/fix-preload.js",

@@ -15,10 +15,7 @@ import {
 import commonStyles from "../CommonStyle.module.css";
 import styles from "./SecuredVariables.module.css";
 import VariablesTable from "./VariablesTable";
-import {
-  SecretWithVariables,
-  Variable,
-} from "../../../api/apiTypes.ts";
+import { SecretWithVariables, Variable } from "../../../api/apiTypes.ts";
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
@@ -347,7 +344,7 @@ export const SecuredVariables: React.FC = () => {
         onCancel={() => setCreateModalVisible(false)}
         footer={null}
       >
-        <Form<{secretName: string }>
+        <Form<{ secretName: string }>
           layout="vertical"
           form={createForm}
           onFinish={(values) => void handleCreateSecret(values)}

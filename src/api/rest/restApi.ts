@@ -241,17 +241,25 @@ export class RestApi implements Api {
     const serviceName = "Common Variables API";
     const prefix = `${this.v1()}/variables-management`;
 
-    return this.wrapApiResponse(serviceName, "Failed to fetch common variables", async () => {
-      const response = await this.instance.get<unknown>(`${prefix}/common-variables`);
-      const rawData = response.data;
-      if (rawData && typeof rawData === "object" && !Array.isArray(rawData)) {
-        return Object.entries(rawData as Record<string, unknown>).map(([key, value]) => ({
-          key,
-          value: String(value),
-        }));
-      }
-      throw new Error("Unexpected response format");
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch common variables",
+      async () => {
+        const response = await this.instance.get<unknown>(
+          `${prefix}/common-variables`,
+        );
+        const rawData = response.data;
+        if (rawData && typeof rawData === "object" && !Array.isArray(rawData)) {
+          return Object.entries(rawData as Record<string, unknown>).map(
+            ([key, value]) => ({
+              key,
+              value: String(value),
+            }),
+          );
+        }
+        throw new Error("Unexpected response format");
+      },
+    );
   };
 
   createCommonVariable = async (
@@ -266,13 +274,17 @@ export class RestApi implements Api {
     const serviceName = "Common Variables API";
     const prefix = `${this.v1()}/variables-management`;
 
-    return this.wrapApiResponse(serviceName, "Failed to create variables", async () => {
-      const response = await this.instance.post<string[]>(
-        `${prefix}/common-variables`,
-        variables,
-      );
-      return response.data;
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create variables",
+      async () => {
+        const response = await this.instance.post<string[]>(
+          `${prefix}/common-variables`,
+          variables,
+        );
+        return response.data;
+      },
+    );
   };
 
   updateCommonVariable = async (
@@ -281,14 +293,18 @@ export class RestApi implements Api {
     const serviceName = "Common Variables API";
     const prefix = `${this.v1()}/variables-management`;
 
-    return this.wrapApiResponse(serviceName, "Failed to update variable", async () => {
-      const response = await this.instance.patch<Variable>(
-        `${prefix}/common-variables/${variable.key}`,
-        variable.value,
-        { headers: { "Content-Type": "text/plain" } },
-      );
-      return response.data;
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update variable",
+      async () => {
+        const response = await this.instance.patch<Variable>(
+          `${prefix}/common-variables/${variable.key}`,
+          variable.value,
+          { headers: { "Content-Type": "text/plain" } },
+        );
+        return response.data;
+      },
+    );
   };
 
   deleteCommonVariables = async (keys: string[]): Promise<boolean> => {
@@ -367,20 +383,31 @@ export class RestApi implements Api {
     });
   };
 
-  getSecuredVariables = async (): Promise<ApiResponse<SecretWithVariables[]>> => {
+  getSecuredVariables = async (): Promise<
+    ApiResponse<SecretWithVariables[]>
+  > => {
     const serviceName = "Secured Variables API";
     const prefix = `${this.v2()}/variables-management`;
 
-    return this.wrapApiResponse(serviceName, "Failed to fetch secured variables", async () => {
-      const response = await this.instance.get<SecretResponse[]>(
-        `${prefix}/secured-variables`,
-      );
-      return response.data.map(({ secretName, variablesNames, defaultSecret }) => ({
-        secretName,
-        variables: variablesNames.map((key: string) => ({ key, value: "******" })),
-        isDefaultSecret: defaultSecret,
-      }));
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch secured variables",
+      async () => {
+        const response = await this.instance.get<SecretResponse[]>(
+          `${prefix}/secured-variables`,
+        );
+        return response.data.map(
+          ({ secretName, variablesNames, defaultSecret }) => ({
+            secretName,
+            variables: variablesNames.map((key: string) => ({
+              key,
+              value: "******",
+            })),
+            isDefaultSecret: defaultSecret,
+          }),
+        );
+      },
+    );
   };
 
   getSecuredVariablesForSecret = async (
@@ -389,12 +416,16 @@ export class RestApi implements Api {
     const serviceName = "Secured Variables API";
     const prefix = `${this.v2()}/variables-management`;
 
-    return this.wrapApiResponse(serviceName, "Failed to fetch variables for secret", async () => {
-      const response = await this.instance.get<string[]>(
-        `${prefix}/secured-variables/${secretName}`,
-      );
-      return response.data.map((key: string) => ({ key, value: "******" }));
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch variables for secret",
+      async () => {
+        const response = await this.instance.get<string[]>(
+          `${prefix}/secured-variables/${secretName}`,
+        );
+        return response.data.map((key: string) => ({ key, value: "******" }));
+      },
+    );
   };
 
   createSecuredVariables = async (
@@ -416,13 +447,17 @@ export class RestApi implements Api {
       }
     }
     const prefix = `${this.v2()}/variables-management`;
-    return this.wrapApiResponse(serviceName, "Failed to create secured variables", async () => {
-      await this.instance.post(`${prefix}/secured-variables`, {
-        secretName,
-        variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
-      });
-      return variables;
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secured variables",
+      async () => {
+        await this.instance.post(`${prefix}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
+        });
+        return variables;
+      },
+    );
   };
 
   updateSecuredVariables = async (
@@ -431,13 +466,17 @@ export class RestApi implements Api {
   ): Promise<ApiResponse<Variable[]>> => {
     const serviceName = "Secured Variables API";
     const prefix = `${this.v2()}/variables-management`;
-    return this.wrapApiResponse(serviceName, "Failed to update secured variables", async () => {
-      await this.instance.patch(`${prefix}/secured-variables`, {
-        secretName,
-        variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
-      });
-      return variables;
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update secured variables",
+      async () => {
+        await this.instance.patch(`${prefix}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
+        });
+        return variables;
+      },
+    );
   };
 
   deleteSecuredVariables = async (
@@ -446,21 +485,31 @@ export class RestApi implements Api {
   ): Promise<ApiResponse<boolean>> => {
     const serviceName = "Secured Variables API";
     const prefix = `${this.v2()}/variables-management`;
-    return this.wrapApiResponse(serviceName, "Failed to delete secured variables", async () => {
-      const params = new URLSearchParams();
-      keys.forEach((key) => params.append("variablesNames", key));
-      await this.instance.delete(`${prefix}/secured-variables/${secretName}?${params}`);
-      return true;
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to delete secured variables",
+      async () => {
+        const params = new URLSearchParams();
+        keys.forEach((key) => params.append("variablesNames", key));
+        await this.instance.delete(
+          `${prefix}/secured-variables/${secretName}?${params}`,
+        );
+        return true;
+      },
+    );
   };
 
   createSecret = async (secretName: string): Promise<ApiResponse<boolean>> => {
     const serviceName = "Secured Variables API";
     const prefix = `${this.v2()}/variables-management`;
-    return this.wrapApiResponse(serviceName, "Failed to create secret", async () => {
-      await this.instance.post(`${prefix}/secret/${secretName}`);
-      return true;
-    });
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secret",
+      async () => {
+        await this.instance.post(`${prefix}/secret/${secretName}`);
+        return true;
+      },
+    );
   };
 
   downloadHelmChart = async (secretName: string): Promise<File> => {
@@ -503,9 +552,7 @@ export class RestApi implements Api {
   };
 
   deleteChain = async (chainId: string): Promise<void> => {
-    await this.instance.delete<Chain>(
-      `${this.v1()}/catalog/chains/${chainId}`,
-    );
+    await this.instance.delete<Chain>(`${this.v1()}/catalog/chains/${chainId}`);
   };
 
   deleteChains = async (chainIds: string[]): Promise<void> => {
@@ -1031,9 +1078,7 @@ export class RestApi implements Api {
   };
 
   deleteFolder = async (folderId: string): Promise<void> => {
-    await this.instance.delete(
-      `${this.v2()}/catalog/folders/${folderId}`,
-    );
+    await this.instance.delete(`${this.v2()}/catalog/folders/${folderId}`);
   };
 
   deleteFolders = async (folderIds: string[]): Promise<void> => {
@@ -1514,9 +1559,7 @@ export class RestApi implements Api {
   };
 
   deleteSpecificationModel = async (id: string): Promise<void> => {
-    await this.instance.delete(
-      `${this.v1()}/systems-catalog/models/${id}`,
-    );
+    await this.instance.delete(`${this.v1()}/systems-catalog/models/${id}`);
   };
 
   getSpecificationModel = async (

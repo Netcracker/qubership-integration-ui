@@ -119,6 +119,11 @@ export const useNotificationService = (): NotificationService => {
         notificationApi.info(item);
       },
     }),
-    [addToHistory, buildErrorNotification, buildInfoNotification, notificationApi],
+    [
+      addToHistory,
+      buildErrorNotification,
+      buildInfoNotification,
+      notificationApi,
+    ],
   );
 };

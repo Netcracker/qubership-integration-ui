@@ -106,10 +106,7 @@ function compareChainTableItemsByTypeAndName(
 function buildPathItems(path: FolderItem[]): BreadcrumbProps["items"] {
   const items = path.map((folder, index) => ({
     title: folder.name,
-    href:
-      index < path.length - 1
-        ? `/chains?folder=${folder.id}`
-        : undefined,
+    href: index < path.length - 1 ? `/chains?folder=${folder.id}` : undefined,
   }));
   return [
     {

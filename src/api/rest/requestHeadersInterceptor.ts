@@ -164,4 +164,3 @@ export function installBearerAuth(
     return { Authorization: `${tokenType} ${token}` };
   });
 }
-
