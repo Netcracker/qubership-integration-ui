@@ -2,14 +2,8 @@ import React from "react";
 import { Button, Flex } from "antd";
 import Title from "antd/lib/typography/Title";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import { MaasPageHeaderProps } from "./types.ts";
 import styles from "./Maas.module.css";
-
-interface MaasPageHeaderProps {
-  title: string;
-  exportInProgress: boolean;
-  isFormValid: boolean;
-  onExport: () => void;
-}
 
 export const MaasPageHeader: React.FC<MaasPageHeaderProps> = ({
   title,

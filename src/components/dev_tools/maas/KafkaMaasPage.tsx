@@ -3,13 +3,9 @@ import { Form, Input, Flex } from "antd";
 import { useForm } from "antd/lib/form/Form";
 import { MaasFormActions } from "./MaasFormActions.tsx";
 import { MaasPageHeader } from "./MaasPageHeader.tsx";
+import { KafkaMaasFormData } from "./types.ts";
 import sharedStyles from "../DevTools.module.css";
 import styles from "./Maas.module.css";
-
-type KafkaMaasFormData = {
-  namespace: string;
-  topicClassifierName: string;
-};
 
 // Non-whitespace pattern validator
 const nonWhiteSpacePattern = /^\S+$/;

@@ -1,13 +1,7 @@
 import React from "react";
 import { Button, Flex } from "antd";
+import { MaasFormActionsProps } from "./types.ts";
 import styles from "./Maas.module.css";
-
-interface MaasFormActionsProps {
-  createInProgress: boolean;
-  isFormValid: boolean;
-  onCreate: () => void;
-  onReset: () => void;
-}
 
 export const MaasFormActions: React.FC<MaasFormActionsProps> = ({
   createInProgress,
