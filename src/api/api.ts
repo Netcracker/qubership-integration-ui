@@ -64,6 +64,8 @@ import {
   IntegrationSystemType,
   UsedProperty,
   DiagnosticValidation,
+  BulkDeploymentRequest,
+  BulkDeploymentResult,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -379,6 +381,8 @@ export interface Api {
 
   getApiSpecifications(systemId: string): Promise<SpecificationGroup[]>;
 
+  getLatestApiSpecification(systemId: string): Promise<Specification>;
+
   updateApiSpecificationGroup(
     id: string,
     data: Partial<SpecificationGroup>,
@@ -466,6 +470,8 @@ export interface Api {
   getValidation(validationId: string): Promise<DiagnosticValidation>;
 
   runValidations(ids: string[]): Promise<void>;
+
+  bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
 
   getUsedProperties(chainId: string): Promise<UsedProperty[]>;
 }

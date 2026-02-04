@@ -1,15 +1,15 @@
 import React, {
   createContext,
-  useContext,
   ReactNode,
-  useState,
+  useContext,
   useEffect,
+  useState,
 } from "react";
 import Icon from "@ant-design/icons";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
 import parse from "html-react-parser";
 import { commonIcons, elementIcons } from "./IconDefenitions";
-import { getConfig } from "../appConfig.ts";
+import { getConfig, onConfigChange } from "../appConfig.ts";
 
 export type IconSource =
   | React.ComponentType<AntdIconProps>
@@ -84,10 +84,16 @@ export const IconProvider: React.FC<{ children: ReactNode }> = ({
   });
 
   useEffect(() => {
-    const config = getConfig();
-    if (config.icons) {
-      setIconsState((prev) => ({ ...allIcons, ...prev, ...config.icons }));
-    }
+    const applyConfig = (cfg: ReturnType<typeof getConfig>) => {
+      if (cfg.icons) {
+        setIconsState(() => ({ ...allIcons, ...cfg.icons }));
+      } else {
+        setIconsState(() => allIcons);
+      }
+    };
+
+    applyConfig(getConfig());
+    return onConfigChange((cfg) => applyConfig(cfg));
   }, []);
 
   const setIcons = (overrides: IconOverrides) => {
@@ -116,7 +122,7 @@ interface OverridableIconProps extends Omit<AntdIconProps, "name"> {
   name: IconName;
 }
 
-export type IconName = keyof typeof allIcons;
+export type IconName = keyof typeof allIcons | (string & {});
 
 export type IconOverrides = {
   [K in IconName]?: IconSource;
@@ -130,7 +136,6 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
   const IconComponent = icons.icons[name];
 
   if (!IconComponent) {
-    console.warn(`Icon "${name}" not found in IconProvider`);
     return null;
   }
 

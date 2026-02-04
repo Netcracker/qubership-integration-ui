@@ -52,6 +52,7 @@ import {
   IntegrationSystemType,
   ContextSystem,
   DiagnosticValidation,
+  BulkDeploymentResult,
   UsedProperty
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
@@ -527,6 +528,15 @@ export class VSCodeExtensionApi implements Api {
     );
   };
 
+  getLatestApiSpecification = async (
+    systemId: string,
+  ): Promise<Specification> => {
+    return <Specification>(
+      (await this.sendMessageToExtension("getLatestApiSpecification", systemId))
+        .payload
+    );
+  };
+
   updateApiSpecificationGroup = async (
     groupId: string,
     group: Partial<SpecificationGroup>,
@@ -940,6 +950,9 @@ export class VSCodeExtensionApi implements Api {
   }
   runValidations(): Promise<void> {
     throw new Error("Method runValidations not implemented.");
+  }
+  bulkDeploy(): Promise<BulkDeploymentResult[]> {
+    throw new Error("Method bulkDeploy not implemented.");
   }
 
   getUsedProperties(chainId: string): Promise<UsedProperty[]>  {

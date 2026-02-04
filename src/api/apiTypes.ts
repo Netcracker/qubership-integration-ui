@@ -1215,6 +1215,31 @@ export interface ValidationStatus {
   message?: string;
 }
 
+export enum BulkDeploymentSnapshotAction {
+  CREATE_NEW = "CREATE_NEW",
+  LAST_CREATED = "LAST_CREATED",
+}
+
+export type BulkDeploymentRequest = {
+  domains: string[];
+  snapshotAction: BulkDeploymentSnapshotAction;
+  chainIds: string[];
+};
+
+export type BulkDeploymentResult = {
+  chainId: string;
+  chainName: string;
+  status: BulkDeploymentStatus;
+  errorMessage: string;
+};
+
+export enum BulkDeploymentStatus {
+  FAILED_DEPLOY = "FAILED_DEPLOY",
+  FAILED_SNAPSHOT = "FAILED_SNAPSHOT",
+  CREATED = "CREATED",
+  IGNORED = "IGNORED",
+}
+
 export enum UsedPropertySource {
     HEADER = 'HEADER',
     EXCHANGE_PROPERTY = 'EXCHANGE_PROPERTY'
