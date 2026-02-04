@@ -9,7 +9,7 @@ import { FilterButton } from "../components/table/filter/FilterButton.tsx";
 import {useChainFilters} from "../hooks/useChainFilter.ts";
 import {Filter} from "../components/table/filter/Filter.tsx";
 import {FilterItemState} from "../components/table/filter/FilterItem.tsx";
-import {Element, FolderFilter} from "../api/apiTypes.ts";
+import {Element} from "../api/apiTypes.ts";
 import {useModalsContext} from "../Modals.tsx";
 import {useParams, useNavigate} from "react-router-dom";
 import {useLibraryContext} from "../components/LibraryContext.tsx";
@@ -24,6 +24,7 @@ import {ChainGraphNode} from "../components/graph/nodes/ChainGraphNodeTypes.ts";
 import {useElkDirectionContext} from "./ElkDirectionContext.tsx";
 import {UsedPropertiesList} from "../components/UsedPropertiesList.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
+import {EntityFilterModel} from "../components/table/filter/filter.ts";
 
 export const PageWithRightPanel = () => {
     const allItems = useRef<MenuItem[]>([]);
@@ -34,7 +35,7 @@ export const PageWithRightPanel = () => {
     const openKeysBeforeSearch = useRef<string[]>();
     const [items, setItems] = useState<MenuItem[]>([]);
     const { showModal } = useModalsContext();
-    const [filters, setFilters] = useState<FolderFilter[]>([]);
+    const [filters, setFilters] = useState<EntityFilterModel[]>([]);
     const [activeTab, setActiveTab] = useState<string>("listElements");
 
     const { chainId } = useParams<string>();
@@ -172,7 +173,7 @@ export const PageWithRightPanel = () => {
         setFilterItemStates?.(filterItems);
 
         const f = (filterItems ?? []).map(
-            (filterItem): FolderFilter => ({
+            (filterItem): EntityFilterModel => ({
                 column: filterItem.columnValue!,
                 condition: filterItem.conditionValue!,
                 value: filterItem.value,
