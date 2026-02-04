@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import Icon from "@ant-design/icons";
 import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
+import type { CustomIconComponentProps } from "@ant-design/icons/lib/components/Icon";
 import parse from "html-react-parser";
 import { commonIcons, elementIcons } from "./IconDefenitions";
 import { getConfig, onConfigChange } from "../appConfig.ts";
@@ -144,20 +145,46 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
   }
 
   if (typeof IconComponent === "string") {
-    const normalizedSvg = normalizeSvgForTheme(IconComponent);
+    const normalizedSvg = normalizeSvgForTheme(IconComponent.trim());
     const parsed = parse(normalizedSvg);
-    if (!React.isValidElement(parsed)) {
-      console.warn("Parsed icon is not a React element:", parsed);
+
+    // Handle case where parse returns an array (text nodes + SVG element)
+    let svgElement: string | React.JSX.Element | React.JSX.Element[] | undefined = parsed;
+    if (Array.isArray(parsed)) {
+      // Find the first React element in the array (skip text nodes)
+      svgElement = parsed.find((el) => React.isValidElement(el));
+    }
+
+    if (!React.isValidElement(svgElement)) {
+      console.warn(
+        `[IconProvider] Failed to parse icon "${name}". Parse result:`,
+        parsed,
+      );
       return null;
     }
-    const sizedSvg = React.cloneElement(parsed, {
+
+    const sizedSvg = React.cloneElement(svgElement, {
       width: "1em",
       height: "1em",
       ...props,
     });
-    return <Icon component={() => sizedSvg} />;
+    return <Icon component={() => sizedSvg} {...props} />;
   }
 
-  // @ts-expect-error all cases covered
-  return <IconComponent {...props} />;
+  // If it's a React component, wrap it in Icon for proper prop handling
+  if (typeof IconComponent === "function") {
+    return (
+      <Icon
+        component={
+          IconComponent as React.ComponentType<
+            CustomIconComponentProps | React.SVGProps<SVGSVGElement>
+          >
+        }
+        {...props}
+      />
+    );
+  }
+
+  console.warn(`[IconProvider] Unknown icon type for "${name}":`, IconComponent);
+  return null;
 };
