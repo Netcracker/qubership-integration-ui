@@ -43,6 +43,7 @@ const Navigation = ({ showThemeSwitcher = false, currentTheme, onThemeChange }: 
   const devMode = isDev();
   const shouldShowDevTools = devMode;
   const { openContextDoc } = useDocumentation();
+  const selectedKey = window.location.pathname.split('/')[1] || 'chains';
 
   return (
     <nav className={styles.navigation}>
@@ -52,6 +53,7 @@ const Navigation = ({ showThemeSwitcher = false, currentTheme, onThemeChange }: 
         key="menu"
         mode="horizontal"
         className={styles.menu}
+        selectedKeys={[selectedKey]}
       ></Menu>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         {!isVsCode && (
