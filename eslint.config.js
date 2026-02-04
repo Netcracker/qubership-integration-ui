@@ -30,7 +30,7 @@ export default [
       "react/react-in-jsx-scope": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { "argsIgnorePattern": "^_" },
+        { argsIgnorePattern: "^_" },
       ],
     },
     settings: {

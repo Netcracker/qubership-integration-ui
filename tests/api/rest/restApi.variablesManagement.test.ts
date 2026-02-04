@@ -42,7 +42,10 @@ describe("RestApi variables-management", () => {
         status: 200,
         statusText: "OK",
         headers: {},
-        config: { ...config, headers: config.headers ?? {} } as AxiosRequestConfig,
+        config: {
+          ...config,
+          headers: config.headers ?? {},
+        } as AxiosRequestConfig,
         request: {},
       } as never;
     }) as AxiosAdapter;
@@ -68,7 +71,10 @@ describe("RestApi variables-management", () => {
         status: 200,
         statusText: "OK",
         headers: {},
-        config: { ...config, headers: config.headers ?? {} } as AxiosRequestConfig,
+        config: {
+          ...config,
+          headers: config.headers ?? {},
+        } as AxiosRequestConfig,
         request: {},
       } as never;
     }) as AxiosAdapter;
@@ -107,6 +113,8 @@ describe("RestApi variables-management", () => {
     expect(result.success).toBe(false);
     expect(result.error?.responseBody.serviceName).toBe("variables-management");
     expect(result.error?.responseBody.errorMessage).toBe("Bad request");
-    expect(result.error?.responseBody.errorDate).toBe("2020-01-01T00:00:00.000Z");
+    expect(result.error?.responseBody.errorDate).toBe(
+      "2020-01-01T00:00:00.000Z",
+    );
   });
 });
