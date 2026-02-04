@@ -52,6 +52,8 @@ import { LiveExchanges } from "./components/admin_tools/exchanges/LiveExchanges.
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
 import DevTools from "./pages/DevTools.tsx";
 import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValidationPage.tsx";
+import { KafkaMaasPage } from "./components/dev_tools/maas/KafkaMaasPage.tsx";
+import { RabbitMQMaasPage } from "./components/dev_tools/maas/RabbitMQMaasPage.tsx";
 
 const { Header } = Layout;
 
@@ -59,7 +61,9 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       <Route path="/devtools" element={<DevTools />}>
-        <Route path="" element={<Navigate to="diagnostic/validations" />} />
+        <Route path="" element={<Navigate to="maas/kafka" />} />
+        <Route path="maas/kafka" element={<KafkaMaasPage />} />
+        <Route path="maas/rabbitmq" element={<RabbitMQMaasPage />} />
         <Route path="diagnostic/validations" element={<DiagnosticValidationPage />} />
       </Route>
       <Route path="/admintools" element={<AdminTools />}>
