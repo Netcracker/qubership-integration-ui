@@ -52,6 +52,7 @@ import {
   IntegrationSystemType,
   ContextSystem,
   DiagnosticValidation,
+  UsedProperty
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -939,6 +940,10 @@ export class VSCodeExtensionApi implements Api {
   }
   runValidations(): Promise<void> {
     throw new Error("Method runValidations not implemented.");
+  }
+
+  getUsedProperties(chainId: string): Promise<UsedProperty[]>  {
+      throw new Error("Method loadHttpTriggerAccessControl not implemented.");
   }
 }
 
