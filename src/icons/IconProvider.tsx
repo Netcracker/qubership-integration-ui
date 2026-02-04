@@ -171,20 +171,6 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
     return <Icon component={() => sizedSvg} {...props} />;
   }
 
-  // If it's a React component, wrap it in Icon for proper prop handling
-  if (typeof IconComponent === "function") {
-    return (
-      <Icon
-        component={
-          IconComponent as React.ComponentType<
-            CustomIconComponentProps | React.SVGProps<SVGSVGElement>
-          >
-        }
-        {...props}
-      />
-    );
-  }
-
-  console.warn(`[IconProvider] Unknown icon type for "${name}":`, IconComponent);
-  return null;
+  /// @ts-expect-error all cases covered
+  return <IconComponent {...props} />;
 };
