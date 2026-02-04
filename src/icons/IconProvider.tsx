@@ -171,6 +171,19 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
     return <Icon component={() => sizedSvg} {...props} />;
   }
 
+  if (typeof IconComponent === "function") {
+    return (
+      <Icon
+        component={
+          IconComponent as React.ComponentType<
+            CustomIconComponentProps | React.SVGProps<SVGSVGElement>
+          >
+        }
+        {...props}
+      />
+    );
+  }
+
   /// @ts-expect-error all cases covered
   return <IconComponent {...props} />;
 };
