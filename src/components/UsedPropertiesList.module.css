@@ -1,6 +1,6 @@
 .usedPropertiesTree {
   padding: 8px;
-  color: var(--vscode-foreground, rgba(0, 0, 0, 0.88));
+  color: var(--vscode-foreground, rgb(0 0 0 / 88%));
 }
 
 .propertyItem {
@@ -19,7 +19,7 @@
 }
 
 .menuItemContainer:hover {
-  background-color: var(--vscode-list-hoverBackground, rgba(0, 0, 0, 0.04));
+  background-color: var(--vscode-list-hoverBackground, rgb(0 0 0 / 4%));
 }
 
 .propertyRow {
@@ -64,7 +64,7 @@
 
 .propertyType {
   font-size: 11px;
-  color: var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45));
+  color: var(--vscode-descriptionForeground, rgb(0 0 0 / 45%));
   font-style: italic;
 }
 
@@ -91,7 +91,7 @@
 
 .elementsContainer {
   margin-left: 28px;
-  border-left: 1px solid var(--vscode-border, rgba(0, 0, 0, 0.15));
+  border-left: 1px solid var(--vscode-border, rgb(0 0 0 / 15%));
   padding-left: 8px;
 }
 
@@ -117,7 +117,7 @@
 
 .elementType {
   font-size: 11px;
-  color: var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45));
+  color: var(--vscode-descriptionForeground, rgb(0 0 0 / 45%));
 }
 
 .operationChip {
