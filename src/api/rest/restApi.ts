@@ -75,6 +75,10 @@ import {
   ImportVariablesResult,
   VariableImportPreview,
   UsedProperty,
+  AccessControlSearchRequest,
+  AccessControlResponse,
+  AccessControlUpdateRequest,
+  AccessControlBulkDeployRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1881,6 +1885,38 @@ export class RestApi implements Api {
   ): Promise<UsedProperty[]> => {
     const response = await this.instance.get<UsedProperty[]>(
         `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`
+    );
+
+    return response.data;
+  };
+
+  loadHttpTriggerAccessControl = async (
+    searchRequest: AccessControlSearchRequest,
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.post<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
+    return response.data;
+  };
+
+  updateHttpTriggerAccessControl = async (
+    searchRequest: AccessControlUpdateRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
+
+    return response.data;
+  };
+
+  bulkDeployChainsAccessControl = async (
+    searchRequest: AccessControlBulkDeployRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles/redeploy`,
+      searchRequest,
     );
 
     return response.data;
