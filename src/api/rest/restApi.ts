@@ -1183,7 +1183,7 @@ export class RestApi implements Api {
       params["specificationGroupId"] = specificationGroupId.join(",");
     }
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/systems-catalog/export/specifications`,
+      `${this.v1()}/systems-catalog/export/specifications`,
       {
         params,
         headers: {
@@ -1219,7 +1219,7 @@ export class RestApi implements Api {
     }
 
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export/api-spec`,
+      `${this.v1()}/catalog/export/api-spec`,
       {
         params: { ...params, externalRoutes, specificationType, format },
         headers: {
@@ -1255,7 +1255,7 @@ export class RestApi implements Api {
     withSpec: boolean,
   ): Promise<IntegrationSystem[]> => {
     const response = await this.instance.get<IntegrationSystem[]>(
-      `/api/v1/${getAppName()}/systems-catalog/systems`,
+      `${this.v1()}/systems-catalog/systems`,
       {
         params: { modelType, withSpec },
       },
@@ -1265,7 +1265,7 @@ export class RestApi implements Api {
 
   createService = async (system: SystemRequest): Promise<IntegrationSystem> => {
     const response = await this.instance.post<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems`,
+      `${this.v1()}/systems-catalog/systems`,
       system,
     );
     return response.data;
@@ -1276,7 +1276,7 @@ export class RestApi implements Api {
     envRequest: EnvironmentRequest,
   ): Promise<Environment> => {
     const response = await this.instance.post<Environment>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments`,
       envRequest,
     );
     return response.data;
@@ -1288,7 +1288,7 @@ export class RestApi implements Api {
     envRequest: EnvironmentRequest,
   ): Promise<Environment> => {
     const response = await this.instance.put<Environment>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
       envRequest,
     );
     return response.data;
@@ -1299,13 +1299,13 @@ export class RestApi implements Api {
     environmentId: string,
   ): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
     );
   };
 
   deleteService = async (serviceId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${serviceId}`,
+      `${this.v1()}/systems-catalog/systems/${serviceId}`,
     );
   };
 
@@ -1360,7 +1360,7 @@ export class RestApi implements Api {
 
   getEvents = async (lastEventId: string): Promise<EventsUpdate> => {
     const response = await this.instance.get<EventsUpdate>(
-      `/api/v1/${getAppName()}/catalog/events`,
+      `${this.v1()}/catalog/events`,
       {
         params: {
           lastEventId: lastEventId,
@@ -1375,14 +1375,14 @@ export class RestApi implements Api {
     engineHost: string,
   ): Promise<ChainDeployment[]> => {
     const response = await this.instance.get<ChainDeployment[]>(
-      `/api/v1/${getAppName()}/catalog/domains/${domain}/engines/${engineHost}/deployments`,
+      `${this.v1()}/catalog/domains/${domain}/engines/${engineHost}/deployments`,
     );
     return response.data;
   };
 
   getEnginesByDomain = async (domain: string): Promise<Engine[]> => {
     const response = await this.instance.get<Engine[]>(
-      `/api/v1/${getAppName()}/catalog/domains/${domain}/engines`,
+      `${this.v1()}/catalog/domains/${domain}/engines`,
     );
     return response.data;
   };
@@ -1404,7 +1404,7 @@ export class RestApi implements Api {
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse> => {
     const response = await this.instance.post<ActionLogResponse>(
-      `/api/v1/${getAppName()}/${serviceName}/actions-log`,
+      `${this.v1()}/${serviceName}/actions-log`,
       searchRequest,
     );
     return response.data;
@@ -1427,7 +1427,7 @@ export class RestApi implements Api {
     params: LogExportRequestParams,
   ): Promise<Blob> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/${serviceName}/actions-log/export`,
+      `${this.v1()}/${serviceName}/actions-log/export`,
       {
         responseType: "blob",
         params: params,
@@ -1438,7 +1438,7 @@ export class RestApi implements Api {
 
   getContextServices = async (): Promise<ContextSystem[]> => {
     const response = await this.instance.get<ContextSystem[]>(
-      `/api/v1/${getAppName()}/catalog/context-system`,
+      `${this.v1()}/catalog/context-system`,
     );
     const result = response.data;
     response.data.map(
@@ -1449,7 +1449,7 @@ export class RestApi implements Api {
 
   getContextService = async (id: string): Promise<ContextSystem> => {
     const response = await this.instance.get<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
+      `${this.v1()}/catalog/context-system/${id}`,
     );
     return response.data;
   };
@@ -1458,7 +1458,7 @@ export class RestApi implements Api {
     system: Pick<ContextSystem, "name" | "description">,
   ): Promise<ContextSystem> => {
     const response = await this.instance.post<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system`,
+      `${this.v1()}/catalog/context-system`,
       system,
     );
     return response.data;
@@ -1469,7 +1469,7 @@ export class RestApi implements Api {
     data: Partial<ContextSystem>,
   ): Promise<ContextSystem> => {
     const response = await this.instance.put<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
+      `${this.v1()}/catalog/context-system/${id}`,
       data,
     );
     return response.data;
@@ -1477,7 +1477,7 @@ export class RestApi implements Api {
 
   deleteContextService = async (serviceId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/context-system/${serviceId}`,
+      `${this.v1()}/catalog/context-system/${serviceId}`,
     );
   };
 
@@ -1487,7 +1487,7 @@ export class RestApi implements Api {
       formData.append("systemIds", serviceIds.join(","));
     }
     const response = await this.instance.post<Blob>(
-      `/api/v1/${getAppName()}/catalog/context-system/export`,
+      `${this.v1()}/catalog/context-system/export`,
       formData,
       {
         headers: {
@@ -1502,7 +1502,7 @@ export class RestApi implements Api {
 
   getService = async (id: string): Promise<IntegrationSystem> => {
     const response = await this.instance.get<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${id}`,
+      `${this.v1()}/systems-catalog/systems/${id}`,
     );
     return response.data;
   };
@@ -1512,7 +1512,7 @@ export class RestApi implements Api {
     data: Partial<IntegrationSystem>,
   ): Promise<IntegrationSystem> => {
     const response = await this.instance.put<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${id}`,
+      `${this.v1()}/systems-catalog/systems/${id}`,
       data,
     );
     return response.data;
@@ -1520,7 +1520,7 @@ export class RestApi implements Api {
 
   getEnvironments = async (systemId: string): Promise<Environment[]> => {
     const response = await this.instance.get<Environment[]>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments`,
     );
     return response.data;
   };
@@ -1529,7 +1529,7 @@ export class RestApi implements Api {
     systemId: string,
   ): Promise<SpecificationGroup[]> => {
     const response = await this.instance.get<SpecificationGroup[]>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups`,
+      `${this.v1()}/systems-catalog/specificationGroups`,
       {
         params: {
           systemId: systemId,
@@ -1543,7 +1543,7 @@ export class RestApi implements Api {
     systemId: string,
   ): Promise<Specification> => {
     const response = await this.instance.get<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/latest`,
+      `${this.v1()}/systems-catalog/models/latest`,
       {
         params: {
           systemId: systemId,
@@ -1558,7 +1558,7 @@ export class RestApi implements Api {
     data: Partial<SpecificationGroup>,
   ): Promise<SpecificationGroup> => {
     const response = await this.instance.patch<SpecificationGroup>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/${id}`,
+      `${this.v1()}/systems-catalog/specificationGroups/${id}`,
       data,
     );
     return response.data;
@@ -1566,7 +1566,7 @@ export class RestApi implements Api {
 
   deleteSpecificationGroup = async (id: string): Promise<void> => {
     await this.instance.delete<SpecificationGroup>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/${id}`,
+      `${this.v1()}/systems-catalog/specificationGroups/${id}`,
     );
   };
 
@@ -1575,7 +1575,7 @@ export class RestApi implements Api {
     data: Partial<Specification>,
   ): Promise<Specification> => {
     const response = await this.instance.patch<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}`,
+      `${this.v1()}/systems-catalog/models/${id}`,
       data,
     );
     return response.data;
@@ -1583,14 +1583,14 @@ export class RestApi implements Api {
 
   getSpecificationModelSource = async (id: string): Promise<string> => {
     const response = await this.instance.get<string>(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}/source`,
+      `${this.v1()}/systems-catalog/models/${id}/source`,
     );
     return response.data;
   };
 
   deleteSpecificationModel = async (id: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}`,
+      `${this.v1()}/systems-catalog/models/${id}`,
     );
   };
 
@@ -1599,7 +1599,7 @@ export class RestApi implements Api {
     specificationGroupId?: string,
   ): Promise<Specification[]> => {
     const response = await this.instance.get<Specification[]>(
-      `/api/v1/${getAppName()}/systems-catalog/models`,
+      `${this.v1()}/systems-catalog/models`,
       {
         params: {
           systemId: systemId,
@@ -1612,7 +1612,7 @@ export class RestApi implements Api {
 
   deprecateModel = async (modelId: string): Promise<Specification> => {
     const response = await this.instance.post<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/deprecated`,
+      `${this.v1()}/systems-catalog/models/deprecated`,
       modelId,
       {
         headers: { "Content-Type": "text/plain" },
@@ -1623,7 +1623,7 @@ export class RestApi implements Api {
 
   getOperations = async (modelId: string): Promise<SystemOperation[]> => {
     const response = await this.instance.get<SystemOperation[]>(
-      `/api/v1/${getAppName()}/systems-catalog/operations`,
+      `${this.v1()}/systems-catalog/operations`,
       {
         params: {
           modelId,
@@ -1635,7 +1635,7 @@ export class RestApi implements Api {
 
   getOperationInfo = async (operationId: string): Promise<OperationInfo> => {
     const response = await this.instance.get<OperationInfo>(
-      `/api/v1/${getAppName()}/systems-catalog/operations/${encodeURIComponent(operationId)}/info`,
+      `${this.v1()}/systems-catalog/operations/${encodeURIComponent(operationId)}/info`,
     );
     return response.data;
   };
@@ -1666,8 +1666,8 @@ export class RestApi implements Api {
 
     const url =
       systemType === IntegrationSystemType.CONTEXT
-        ? `/api/v1/${getAppName()}/catalog/context-system/import`
-        : `/api/v1/${getAppName()}/systems-catalog/import/system`;
+        ? `${this.v1()}/catalog/context-system/import`
+        : `${this.v1()}/systems-catalog/import/system`;
     const response = await this.instance.post<ImportSystemResult[]>(
       url,
       formData,
@@ -1691,7 +1691,7 @@ export class RestApi implements Api {
       specificationGroupId: specificationGroupId,
     };
     const response = await this.instance.post<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/import`,
+      `${this.v1()}/systems-catalog/import`,
       formData,
       {
         params,
@@ -1715,7 +1715,7 @@ export class RestApi implements Api {
     };
     if (protocol) params.protocol = protocol;
     const response = await this.instance.post<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/import`,
+      `${this.v1()}/systems-catalog/specificationGroups/import`,
       formData,
       {
         params,
@@ -1729,7 +1729,7 @@ export class RestApi implements Api {
     importId: string,
   ): Promise<ImportSpecificationResult> => {
     const response = await this.instance.get<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/import/${importId}`,
+      `${this.v1()}/systems-catalog/import/${importId}`,
     );
     return response.data;
   };
@@ -1738,7 +1738,7 @@ export class RestApi implements Api {
     includeContent: boolean,
   ): Promise<DetailedDesignTemplate[]> => {
     const response = await this.instance.get<DetailedDesignTemplate[]>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       {
         params: {
           includeContent,
@@ -1752,7 +1752,7 @@ export class RestApi implements Api {
     templateId: string,
   ): Promise<DetailedDesignTemplate> => {
     const response = await this.instance.get<DetailedDesignTemplate>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates/${templateId}`,
+      `${this.v1()}/catalog/detailed-design/templates/${templateId}`,
     );
     return response.data;
   };
@@ -1762,7 +1762,7 @@ export class RestApi implements Api {
     content: string,
   ): Promise<DetailedDesignTemplate> => {
     const response = await this.instance.put<DetailedDesignTemplate>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       { name, content },
     );
     return response.data;
@@ -1770,7 +1770,7 @@ export class RestApi implements Api {
 
   deleteDetailedDesignTemplates = async (ids: string[]): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       {
         params: {
           ids,
@@ -1784,7 +1784,7 @@ export class RestApi implements Api {
     templateId: string,
   ): Promise<ChainDetailedDesign> => {
     const response = await this.instance.get<ChainDetailedDesign>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/chains/${chainId}`,
+      `${this.v1()}/catalog/detailed-design/chains/${chainId}`,
       {
         params: {
           templateId,
@@ -1799,7 +1799,7 @@ export class RestApi implements Api {
     diagramModes: DiagramMode[],
   ): Promise<ElementsSequenceDiagrams> => {
     const response = await this.instance.post<ElementsSequenceDiagrams>(
-      `/api/v1/${getAppName()}/catalog/design-generator/chains/${chainId}`,
+      `${this.v1()}/catalog/design-generator/chains/${chainId}`,
       {
         diagramModes,
       },
@@ -1813,7 +1813,7 @@ export class RestApi implements Api {
     diagramModes: DiagramMode[],
   ): Promise<ElementsSequenceDiagrams> => {
     const response = await this.instance.post<ElementsSequenceDiagrams>(
-      `/api/v1/${getAppName()}/catalog/design-generator/chains/${chainId}/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/design-generator/chains/${chainId}/snapshots/${snapshotId}`,
       {
         diagramModes,
       },
@@ -1838,7 +1838,7 @@ export class RestApi implements Api {
     elementIds: string[],
   ): Promise<Element> => {
     const response = await this.instance.post<Element>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/groups`,
       elementIds,
     );
     return response.data;
@@ -1849,14 +1849,14 @@ export class RestApi implements Api {
     groupId: string,
   ): Promise<Element[]> => {
     const response = await this.instance.delete<Element[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups/${groupId}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/groups/${groupId}`,
     );
     return response.data;
   };
 
   getExchanges = async (limit: number): Promise<LiveExchange[]> => {
     const response = await this.instance.get<LiveExchange[]>(
-      `/api/v1/${getAppName()}/catalog/live-exchanges`,
+      `${this.v1()}/catalog/live-exchanges`,
       {
         params: {
           limit: limit,
@@ -1872,7 +1872,7 @@ export class RestApi implements Api {
     exchangeId: string,
   ): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`,
+      `${this.v1()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`,
     );
   };
 
@@ -1885,7 +1885,7 @@ export class RestApi implements Api {
     searchString: string,
   ): Promise<DiagnosticValidation[]> => {
     const response = await this.instance.post<DiagnosticValidation[]>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
+      `${this.v1()}/catalog/diagnostic/validations`,
       { searchString, filters },
     );
     return response.data;
@@ -1895,14 +1895,14 @@ export class RestApi implements Api {
     validationId: string,
   ): Promise<DiagnosticValidation> => {
     const response = await this.instance.get<DiagnosticValidation>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations/${validationId}`,
+      `${this.v1()}/catalog/diagnostic/validations/${validationId}`,
     );
     return response.data;
   };
 
   runValidations = async (ids: string[]): Promise<void> => {
     await this.instance.patch<void>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
+      `${this.v1()}/catalog/diagnostic/validations`,
       undefined,
       {
         params: { validationIds: ids },
@@ -1925,7 +1925,7 @@ export class RestApi implements Api {
         searchRequest: AccessControlSearchRequest,
     ): Promise<AccessControlResponse> => {
         const response = await this.instance.post<AccessControlResponse>(
-            `/api/v1/${getAppName()}/catalog/chains/roles`,
+            `${this.v1()}/catalog/chains/roles`,
             searchRequest,
         );
         return response.data;
@@ -1935,7 +1935,7 @@ export class RestApi implements Api {
         searchRequest: AccessControlUpdateRequest[]
     ): Promise<AccessControlResponse> => {
         const response = await this.instance.put<AccessControlResponse>(
-            `/api/v1/${getAppName()}/catalog/chains/roles`,
+            `${this.v1()}/catalog/chains/roles`,
             searchRequest,
         );
 
@@ -1946,7 +1946,7 @@ export class RestApi implements Api {
         searchRequest: AccessControlBulkDeployRequest[]
     ): Promise<AccessControlResponse>=> {
         const response = await this.instance.put<AccessControlResponse>(
-            `/api/v1/${getAppName()}/catalog/chains/roles/redeploy`,
+            `${this.v1()}/catalog/chains/roles/redeploy`,
             searchRequest,
         );
 
