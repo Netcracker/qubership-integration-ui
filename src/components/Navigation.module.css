@@ -30,7 +30,7 @@
 }
 
 .menu :global(.ant-menu-item::after) {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   bottom: 12px !important;
   left: 50% !important;
@@ -38,7 +38,9 @@
   width: 0 !important;
   height: 2px !important;
   background: transparent !important;
-  transition: width 0.2s ease, background 0.2s ease !important;
+  transition:
+    width 0.2s ease,
+    background 0.2s ease !important;
   display: block !important;
   border: none !important;
 }
