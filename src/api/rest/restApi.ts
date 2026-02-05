@@ -1397,23 +1397,6 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  loadVariablesManagementActionsLog = async (
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse> => {
-    return await this.loadActionsLog("variables-management", searchRequest);
-  };
-
-  loadActionsLog = async (
-    serviceName: string,
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse> => {
-    const response = await this.instance.post<ActionLogResponse>(
-      `${this.v1()}/${serviceName}/actions-log`,
-      searchRequest,
-    );
-    return response.data;
-  };
-
   exportCatalogActionsLog = async (
     params: LogExportRequestParams,
   ): Promise<Blob> => {
@@ -1422,26 +1405,6 @@ export class RestApi implements Api {
       {
         responseType: "blob",
         params,
-      },
-    );
-    return response.data;
-  };
-
-  exportVariablesManagementActionsLog = async (
-    params: LogExportRequestParams,
-  ): Promise<Blob> => {
-    return await this.exportActionLog("variables-management", params);
-  };
-
-  exportActionLog = async (
-    serviceName: string,
-    params: LogExportRequestParams,
-  ): Promise<Blob> => {
-    const response = await this.instance.get<Blob>(
-      `${this.v1()}/${serviceName}/actions-log/export`,
-      {
-        responseType: "blob",
-        params: params,
       },
     );
     return response.data;
@@ -1600,9 +1563,7 @@ export class RestApi implements Api {
   };
 
   deleteSpecificationModel = async (id: string): Promise<void> => {
-    await this.instance.delete(
-      `${this.v1()}/systems-catalog/models/${id}`,
-    );
+    await this.instance.delete(`${this.v1()}/systems-catalog/models/${id}`);
   };
 
   getSpecificationModel = async (
