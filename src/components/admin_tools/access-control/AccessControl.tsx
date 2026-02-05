@@ -200,7 +200,7 @@ export const AccessControl: React.FC = () => {
     }
   };
 
-  const columns: ColumnsType<AccessControlData>["columns"] = [
+  const columns: ColumnsType<AccessControlData> = [
     {
       title: "Endpoint",
       dataIndex: "endpoint",
@@ -208,13 +208,15 @@ export const AccessControl: React.FC = () => {
       sorter: {
         compare: (a: AccessControlData, b: AccessControlData) => {
           const aPath =
-            (a.properties as AccessControlProperty)?.contextPath ?? "";
+            (a.properties as unknown as AccessControlProperty)?.contextPath ??
+            "";
           const bPath =
-            (b.properties as AccessControlProperty)?.contextPath ?? "";
+            (b.properties as unknown as AccessControlProperty)?.contextPath ??
+            "";
           return String(aPath).localeCompare(String(bPath));
         },
       },
-      render: (_, record: AccessControlData) => {
+      render: (_value: unknown, record: AccessControlData) => {
         if (record.chainId) {
           return (
             <a
@@ -224,7 +226,8 @@ export const AccessControl: React.FC = () => {
                 )
               }
             >
-              {record.properties?.contextPath || "—"}
+              {(record.properties as unknown as AccessControlProperty)
+                ?.contextPath || "—"}
             </a>
           );
         }
@@ -237,7 +240,7 @@ export const AccessControl: React.FC = () => {
       filterDropdown: typeFilter,
       onFilter: (value: React.Key | boolean, record: AccessControlData) => {
         const { externalRoute, privateRoute } =
-          (record.properties as AccessControlProperty) ?? {};
+          (record.properties as unknown as AccessControlProperty) ?? {};
         const recordType =
           externalRoute && privateRoute
             ? "External, Private"
@@ -248,8 +251,11 @@ export const AccessControl: React.FC = () => {
                 : "Internal";
         return recordType === value;
       },
-      render: (_, record: AccessControlData) => {
-        const { externalRoute, privateRoute } = record.properties || {};
+      render: (_value: unknown, record: AccessControlData) => {
+        const props = record.properties as unknown as
+          | AccessControlProperty
+          | undefined;
+        const { externalRoute, privateRoute } = props ?? {};
         return (
           <>
             {externalRoute && privateRoute
@@ -270,12 +276,15 @@ export const AccessControl: React.FC = () => {
       hidden: !selectedKeys.includes("accessControlType"),
       filterDropdown: accessControlTypeFilter,
       onFilter: (value: React.Key | boolean, record: AccessControlData) => {
-        const recordValue = (record.properties as AccessControlProperty)
-          ?.accessControlType;
+        const recordValue = (
+          record.properties as unknown as AccessControlProperty
+        )?.accessControlType;
         return recordValue === value;
       },
-      render: (_, record: AccessControlData) => {
-        const props = record.properties as AccessControlProperty | undefined;
+      render: (_value: unknown, record: AccessControlData) => {
+        const props = record.properties as unknown as
+          | AccessControlProperty
+          | undefined;
         const val = props?.accessControlType;
         return (
           <>{typeof val === "string" ? val : val != null ? String(val) : "—"}</>
@@ -289,14 +298,18 @@ export const AccessControl: React.FC = () => {
         <TextColumnFilterDropdown {...props} />
       ),
       onFilter: getTextColumnFilterFn((record: AccessControlData) => {
-        const roles = (record.properties as AccessControlProperty)?.roles;
+        const roles = (record.properties as unknown as AccessControlProperty)
+          ?.roles;
         if (roles && Array.isArray(roles) && roles.length > 0) {
           return roles.join(" ");
         }
         return "";
       }),
-      render: (_, record: AccessControlData) => {
-        const roles = record.properties?.roles;
+      render: (_value: unknown, record: AccessControlData) => {
+        const props = record.properties as unknown as
+          | AccessControlProperty
+          | undefined;
+        const roles = props?.roles;
         if (roles && Array.isArray(roles) && roles.length > 0) {
           return (
             <span>
@@ -314,10 +327,10 @@ export const AccessControl: React.FC = () => {
     {
       title: "Attributes",
       key: "attributes",
-      render: (_, record: AccessControlData) => {
+      render: (_value: unknown, record: AccessControlData) => {
         if (
-          (record.properties as AccessControlProperty)?.accessControlType ===
-          AccessControlType.ABAC
+          (record.properties as unknown as AccessControlProperty)
+            ?.accessControlType === AccessControlType.ABAC
         ) {
           return (
             <span
@@ -344,7 +357,7 @@ export const AccessControl: React.FC = () => {
       onFilter: getTextColumnFilterFn((record: AccessControlData) =>
         record?.chainName ? record.chainName : "",
       ),
-      render: (_, record: AccessControlData) => {
+      render: (_value: unknown, record: AccessControlData) => {
         if (record.chainId) {
           return (
             <a onClick={() => void navigate(`/chains/${record.chainId}`)}>
@@ -384,7 +397,7 @@ export const AccessControl: React.FC = () => {
           return false;
         }
       },
-      render: (_, record: AccessControlData) => {
+      render: (_value: unknown, record: AccessControlData) => {
         if (record.chainId) {
           return (
             <DeploymentsCumulativeState
@@ -453,7 +466,9 @@ export const AccessControl: React.FC = () => {
                       )
                     }
                   >
-                    {currentRecord.properties?.contextPath || "—"}
+                    {(
+                      currentRecord.properties as unknown as AccessControlProperty
+                    )?.contextPath || "—"}
                   </a>
                 ) : (
                   "—"
@@ -461,8 +476,10 @@ export const AccessControl: React.FC = () => {
               </Descriptions.Item>
               <Descriptions.Item label="Type">
                 {(() => {
-                  const { externalRoute, privateRoute } =
-                    currentRecord.properties || {};
+                  const props = currentRecord.properties as unknown as
+                    | AccessControlProperty
+                    | undefined;
+                  const { externalRoute, privateRoute } = props ?? {};
                   return externalRoute && privateRoute
                     ? "External, Private"
                     : externalRoute
@@ -474,7 +491,7 @@ export const AccessControl: React.FC = () => {
               </Descriptions.Item>
               <Descriptions.Item label="Access Control Type">
                 {(() => {
-                  const props = currentRecord.properties as
+                  const props = currentRecord.properties as unknown as
                     | AccessControlProperty
                     | undefined;
                   const val = props?.accessControlType;
@@ -486,26 +503,31 @@ export const AccessControl: React.FC = () => {
                 })()}
               </Descriptions.Item>
               <Descriptions.Item label="Roles">
-                {currentRecord.properties?.roles &&
-                Array.isArray(currentRecord.properties.roles) &&
-                currentRecord.properties.roles.length > 0 ? (
-                  <span>
-                    {currentRecord.properties.roles.map((role, idx) => (
-                      <Tag
-                        key={`${role}-${idx}`}
-                        color="blue"
-                        style={{ marginBottom: 4 }}
-                      >
-                        {role}
-                      </Tag>
-                    ))}
-                  </span>
-                ) : (
-                  "—"
-                )}
+                {(() => {
+                  const props = currentRecord.properties as unknown as
+                    | AccessControlProperty
+                    | undefined;
+                  const roles = props?.roles;
+                  return roles && Array.isArray(roles) && roles.length > 0 ? (
+                    <span>
+                      {roles.map((role, idx) => (
+                        <Tag
+                          key={`${role}-${idx}`}
+                          color="blue"
+                          style={{ marginBottom: 4 }}
+                        >
+                          {role}
+                        </Tag>
+                      ))}
+                    </span>
+                  ) : (
+                    "—"
+                  );
+                })()}
               </Descriptions.Item>
               <Descriptions.Item label="Attributes">
-                {currentRecord.properties?.accessControlType === "ABAC" ? (
+                {(currentRecord.properties as unknown as AccessControlProperty)
+                  ?.accessControlType === AccessControlType.ABAC ? (
                   <span
                     style={{ cursor: "pointer", color: "#1890ff" }}
                     onClick={() => {
@@ -677,7 +699,7 @@ export const AccessControl: React.FC = () => {
             if (selectedRecords.length > 0) {
               const validRecords = selectedRecords.filter((record) => {
                 const accessControlType = (
-                  record.properties as AccessControlProperty
+                  record.properties as unknown as AccessControlProperty
                 )?.accessControlType;
                 return accessControlType !== AccessControlType.ABAC;
               });
@@ -721,7 +743,7 @@ export const AccessControl: React.FC = () => {
             if (selectedRecords.length > 0) {
               const validRecords = selectedRecords.filter((record) => {
                 const accessControlType = (
-                  record.properties as AccessControlProperty
+                  record.properties as unknown as AccessControlProperty
                 )?.accessControlType;
                 return accessControlType !== AccessControlType.ABAC;
               });

@@ -32,9 +32,9 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({
   const getAllUniqueRoles = (): string[] => {
     const allRoles = new Set<string>();
     recordsToProcess.forEach((rec) => {
-      const roles = (rec?.properties as unknown as
-        | AccessControlProperty
-        | undefined)?.roles;
+      const roles = (
+        rec?.properties as unknown as AccessControlProperty | undefined
+      )?.roles;
       if (Array.isArray(roles)) {
         roles.forEach((role: string) => allRoles.add(role));
       }
@@ -105,10 +105,12 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({
           let finalRoles: string[];
 
           if (isDeleteMode) {
-            if (existingRoles.length > 0) {
-              finalRoles = existingRoles.filter(
-                (role: string) => !selectedRoles.includes(role),
-              );
+            if (!(existingRoles) || existingRoles.length > 0) {
+                if (existingRoles) {
+                    finalRoles = existingRoles.filter(
+                        (role: string) => !selectedRoles.includes(role),
+                    );
+                }
             } else {
               finalRoles = [];
             }
