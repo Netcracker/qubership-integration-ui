@@ -131,8 +131,11 @@ export const AccessControl: React.FC = () => {
     true,
   );
 
-  const { filterDropdown: chainStatusFilter } =
-    makeEnumColumnFilterDropdown(chainStatusOptions, "chainStatus", true);
+  const { filterDropdown: chainStatusFilter } = makeEnumColumnFilterDropdown(
+    chainStatusOptions,
+    "chainStatus",
+    true,
+  );
 
   const onScroll = async (_event: UIEvent<HTMLDivElement>) => {};
 
@@ -673,8 +676,9 @@ export const AccessControl: React.FC = () => {
             );
             if (selectedRecords.length > 0) {
               const validRecords = selectedRecords.filter((record) => {
-                const accessControlType = (record.properties as AccessControlProperty)
-                  ?.accessControlType;
+                const accessControlType = (
+                  record.properties as AccessControlProperty
+                )?.accessControlType;
                 return accessControlType !== AccessControlType.ABAC;
               });
               if (validRecords.length === 0) {
@@ -716,8 +720,9 @@ export const AccessControl: React.FC = () => {
             );
             if (selectedRecords.length > 0) {
               const validRecords = selectedRecords.filter((record) => {
-                const accessControlType = (record.properties as AccessControlProperty)
-                  ?.accessControlType;
+                const accessControlType = (
+                  record.properties as AccessControlProperty
+                )?.accessControlType;
                 return accessControlType !== AccessControlType.ABAC;
               });
               if (validRecords.length === 0) {

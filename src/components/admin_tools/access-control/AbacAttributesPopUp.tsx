@@ -39,10 +39,7 @@ export const AbacAttributesPopUp: React.FC<AbacAttributesPopUpProps> = ({
         labelWrap
       >
         <Form.Item label="Resource Type">
-          <Input
-            value={abac?.resourceType ?? ""}
-            placeholder="—"
-          />
+          <Input value={abac?.resourceType ?? ""} placeholder="—" />
         </Form.Item>
         <Form.Item label="Operation">
           <Input value={abac?.operation ?? ""} placeholder="—" />
