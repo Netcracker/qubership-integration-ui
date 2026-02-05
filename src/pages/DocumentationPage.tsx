@@ -83,6 +83,20 @@ export const DocumentationPage: React.FC = () => {
         }
 
         const text = await response.text();
+
+        // Check if response is HTML (Vite SPA fallback) instead of markdown
+        const contentType = response.headers.get("content-type");
+        const isHtmlResponse =
+          contentType?.includes("text/html") ||
+          text.trim().startsWith("<!DOCTYPE") ||
+          text.trim().startsWith("<html");
+
+        if (isHtmlResponse) {
+          setError("Document not found");
+          setIsLoading(false);
+          return;
+        }
+
         setContent(text);
       } catch (err: unknown) {
         console.error("Failed to load documentation:", err);

@@ -10,9 +10,16 @@ jest.mock("../../../src/appConfig", () => ({
 
 describe("DocumentationService - Element Type Mapping", () => {
   let service: DocumentationService;
+  let mockFetch: jest.Mock;
+  let mockWindowOpen: jest.Mock;
 
   beforeEach(() => {
-    service = new DocumentationService();
+    // Mock fetch
+    mockFetch = jest.fn();
+    // Mock window.open
+    mockWindowOpen = jest.fn();
+
+    service = new DocumentationService(mockFetch, mockWindowOpen);
     // Clear cache between tests
     service.elementTypeMappingCache = null;
   });
@@ -311,24 +318,36 @@ describe("DocumentationService - Element Type Mapping", () => {
           "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
-      const openPageSpy = jest.spyOn(service, "openPage").mockImplementation();
-
       await service.openChainElementDocumentation("http-trigger");
 
-      expect(openPageSpy).toHaveBeenCalledWith(
+      expect(mockWindowOpen).toHaveBeenCalledWith(
         expect.stringContaining("http_trigger"),
+        "_blank",
       );
     });
 
     test("falls back to home for invalid element type", async () => {
       jest.spyOn(service, "loadPaths").mockResolvedValue([]);
 
-      const openPageSpy = jest.spyOn(service, "openPage").mockImplementation();
-
       await service.openChainElementDocumentation("non-existent");
 
-      expect(openPageSpy).toHaveBeenCalledWith(
+      expect(mockWindowOpen).toHaveBeenCalledWith(
         expect.stringContaining("not-found"),
+        "_blank",
+      );
+    });
+
+    test("calls onError callback on failure", async () => {
+      jest.spyOn(service, "loadPaths").mockRejectedValue(new Error("Network error"));
+
+      const onErrorMock = jest.fn();
+
+      await service.openChainElementDocumentation("http-trigger", onErrorMock);
+
+      expect(onErrorMock).toHaveBeenCalledWith(expect.any(Error));
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("/doc"),
+        "_blank",
       );
     });
   });

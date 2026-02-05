@@ -184,12 +184,12 @@ function fetchDocumentation(config: DocumentationConfig, dest: string): void {
 }
 
 function generateIndexes(dest: string): void {
-  const indexPath = path.join(__dirname, "build-doc-index.js");
+  const indexPath = path.join(__dirname, "build-doc-index.mjs");
   const docsPath = path.join(dest, "docs");
 
   if (!fs.existsSync(indexPath)) {
     console.warn(
-      "[Documentation] build-doc-index.js not found, skipping index generation",
+      "[Documentation] build-doc-index.mjs not found, skipping index generation",
     );
     return;
   }
