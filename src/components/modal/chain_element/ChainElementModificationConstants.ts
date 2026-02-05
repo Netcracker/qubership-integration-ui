@@ -296,19 +296,15 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     },
     keySerializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     valueSerializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     keyDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     valueDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     retryCount: {
       "ui:fieldReplacesAnyOrOneOf": true,
@@ -486,18 +482,31 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
   children: { "ui:widget": "hidden" },
 };
 
-export const contextPathAndHttpMethodRestrictTabMapping: Record<
-  string,
-  string
-> = {
-  checkpoint: "Parameters",
-  "http-trigger": "Endpoint",
+type Path2TabMapping = {
+  paths: string[];
+  mapping: Record<string, string>;
 };
 
-export const keyTabMapping: Record<string, string> = {
-  "kafka-sender-2": "Parameters",
-  "context-storage": "Operation",
-};
+const pathToTabExceptions: Path2TabMapping[] = [
+  {
+    paths: ["properties.after"],
+    mapping: {
+      "async-api-trigger": "Validate Request",
+    },
+  },
+  {
+    paths: ["properties.key"],
+    mapping: {
+      "kafka-sender-2": "Parameters",
+    },
+  },
+  {
+    paths: ["properties.contextPath", "properties.httpMethodRestrict"],
+    mapping: {
+      checkpoint: "Parameters",
+    },
+  },
+];
 
 export const pathToTabMap: Record<string, string> = {
   "properties.contextServiceId": "Operation",
@@ -511,6 +520,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.target": "Operation",
   "properties.targetName": "Operation",
   "properties.unwrap": "Operation",
+  "properties.contextPath": "Endpoint",
   "properties.integrationOperationId": "Endpoint",
   "properties.integrationSpecificationGroupId": "Endpoint",
   "properties.integrationSpecificationId": "Endpoint",
@@ -568,7 +578,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.before": "Prepare Request",
   "properties.after": "Handle Response",
   "properties.afterValidation": "Validations",
-  "properties.requestFilterHeaderAllowlist": "Filer Request",
+  "properties.requestFilterHeaderAllowlist": "Filter Request",
   "properties.logLevel": "Logging",
   "properties.sender": "Logging",
   "properties.receiver": "Logging",
@@ -591,7 +601,7 @@ export const desiredTabOrder = [
   "Handle Response",
   "Failure Response Mapping",
   "Access Control",
-  "Filer Request",
+  "Filter Request",
   "Logging",
   "Script",
   "Mapping",
@@ -604,21 +614,14 @@ export function getTabForPath(
   path: string,
   elementType?: string,
 ): string | undefined {
-  if (
-    (path === "properties.contextPath" ||
-      path === "properties.httpMethodRestrict") &&
-    elementType
-  ) {
-    const customTab = contextPathAndHttpMethodRestrictTabMapping[elementType];
-    if (customTab) {
-      return customTab;
-    }
-  }
-
-  if (path === "properties.key" && elementType) {
-    const customTab = keyTabMapping[elementType];
-    if (customTab) {
-      return customTab;
+  if (elementType) {
+    for (const mapping of pathToTabExceptions) {
+      if (mapping.paths.includes(path)) {
+        const customTab: string = mapping.mapping[elementType];
+        if (customTab) {
+          return customTab;
+        }
+      }
     }
   }
 

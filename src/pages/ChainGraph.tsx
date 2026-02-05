@@ -56,7 +56,6 @@ import {
   ExportChainOptions,
   ExportChains,
 } from "../components/modal/ExportChains.tsx";
-import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
 
@@ -294,10 +293,7 @@ const ChainGraphInner: React.FC = () => {
       }
 
       if (options.exportVariables) {
-        const variablesData = await commonVariablesApi.exportVariables(
-          [],
-          true,
-        );
+        const variablesData = await api.exportVariables([], true);
         data.push(variablesData);
       }
 
@@ -424,12 +420,6 @@ const ChainGraphInner: React.FC = () => {
   const getMinimapNodeColor = useCallback(
     (node: Node<ChainGraphNodeData>) => {
       if (node.type === "container") {
-        if (currentTheme === "dark") {
-          return "#1f1f1f";
-        }
-        if (currentTheme === "high-contrast") {
-          return "#000000";
-        }
         return getCssVariableValue("--container-header-background", "#fff9e6");
       }
 
@@ -446,7 +436,7 @@ const ChainGraphInner: React.FC = () => {
 
       return "#fdf39d";
     },
-    [libraryElements, currentTheme, getCssVariableValue],
+    [libraryElements, getCssVariableValue],
   );
 
   const getMinimapNodeStrokeColor = useCallback(
@@ -506,7 +496,7 @@ const ChainGraphInner: React.FC = () => {
               position="top-right"
               nodeColor={getMinimapNodeColor}
               nodeStrokeColor={getMinimapNodeStrokeColor}
-              nodeStrokeWidth={1}
+              nodeStrokeWidth={2}
             />
             <CustomControls />
             {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}

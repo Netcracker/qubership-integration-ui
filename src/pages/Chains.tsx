@@ -43,7 +43,6 @@ import {
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { useChainFilters } from "../hooks/useChainFilter.ts";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
@@ -481,9 +480,6 @@ const Chains = () => {
       chainsInFolders
         .flatMap((chains) => chains)
         .forEach((chain) => ids.add(chain.id));
-      if (ids.size === 0) {
-        return;
-      }
       const chainsFile =
         ids.size === 0
           ? await api.exportAllChains()
@@ -508,10 +504,7 @@ const Chains = () => {
       }
 
       if (options.exportVariables) {
-        const variablesData = await commonVariablesApi.exportVariables(
-          [],
-          true,
-        );
+        const variablesData = await api.exportVariables([], true);
         data.push(variablesData);
       }
 
