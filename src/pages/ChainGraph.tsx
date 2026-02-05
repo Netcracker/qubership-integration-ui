@@ -424,12 +424,6 @@ const ChainGraphInner: React.FC = () => {
   const getMinimapNodeColor = useCallback(
     (node: Node<ChainGraphNodeData>) => {
       if (node.type === "container") {
-        if (currentTheme === "dark") {
-          return "#1f1f1f";
-        }
-        if (currentTheme === "high-contrast") {
-          return "#000000";
-        }
         return getCssVariableValue("--container-header-background", "#fff9e6");
       }
 
@@ -446,7 +440,7 @@ const ChainGraphInner: React.FC = () => {
 
       return "#fdf39d";
     },
-    [libraryElements, currentTheme, getCssVariableValue],
+    [libraryElements, getCssVariableValue],
   );
 
   const getMinimapNodeStrokeColor = useCallback(
@@ -506,7 +500,7 @@ const ChainGraphInner: React.FC = () => {
               position="top-right"
               nodeColor={getMinimapNodeColor}
               nodeStrokeColor={getMinimapNodeStrokeColor}
-              nodeStrokeWidth={1}
+              nodeStrokeWidth={2}
             />
             <CustomControls />
             {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
