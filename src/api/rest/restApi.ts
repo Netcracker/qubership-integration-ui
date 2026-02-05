@@ -1313,7 +1313,7 @@ export class RestApi implements Api {
     const formData: FormData = new FormData();
     formData.append("file", file, file.name);
     const response = await this.instance.post<ImportPreview>(
-      `/api/${getAppName()}/v3/import/preview`,
+      `${this.v3()}/import/preview`,
       formData,
       {
         headers: {
@@ -1339,7 +1339,7 @@ export class RestApi implements Api {
       formData.append("validateByHash", validateByHash.toString());
     }
     const response = await this.instance.post<ImportCommitResponse>(
-      `/api/${getAppName()}/v3/import`,
+      `${this.v3()}/import`,
       formData,
       {
         headers: {
@@ -1353,7 +1353,7 @@ export class RestApi implements Api {
 
   getImportStatus = async (importId: string): Promise<ImportStatusResponse> => {
     const response = await this.instance.get<ImportStatusResponse>(
-      `/api/${getAppName()}/v3/import/${importId}`,
+      `${this.v3()}/import/${importId}`,
     );
     return response.data;
   };
@@ -1390,7 +1390,11 @@ export class RestApi implements Api {
   loadCatalogActionsLog = async (
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse> => {
-    return await this.loadActionsLog("catalog", searchRequest);
+    const response = await this.instance.post<ActionLogResponse>(
+      `${this.v1()}/catalog/actions-log`,
+      searchRequest,
+    );
+    return response.data;
   };
 
   loadVariablesManagementActionsLog = async (
@@ -1413,7 +1417,14 @@ export class RestApi implements Api {
   exportCatalogActionsLog = async (
     params: LogExportRequestParams,
   ): Promise<Blob> => {
-    return await this.exportActionLog("catalog", params);
+    const response = await this.instance.get<Blob>(
+      `${this.v1()}/catalog/actions-log/export`,
+      {
+        responseType: "blob",
+        params,
+      },
+    );
+    return response.data;
   };
 
   exportVariablesManagementActionsLog = async (
