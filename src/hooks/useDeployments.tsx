@@ -37,7 +37,10 @@ export const StatusNotificationMap: Record<
   },
 };
 
-export const useDeployments = (chainId?: string, isNotificationEnabled: boolean = true) => {
+export const useDeployments = (
+  chainId?: string,
+  isNotificationEnabled: boolean = true,
+) => {
   const { subscribe } = useEventContext();
   const notificationService = useNotificationService();
   const [deployments, setDeployments] = useState<Deployment[]>([]);

@@ -77,7 +77,7 @@ import {
   AccessControlSearchRequest,
   AccessControlResponse,
   AccessControlUpdateRequest,
-  AccessControlBulkDeployRequest
+  AccessControlBulkDeployRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1882,46 +1882,45 @@ export class RestApi implements Api {
     );
   };
 
-    bulkDeploy = async (
-        request: BulkDeploymentRequest,
-    ): Promise<BulkDeploymentResult[]> => {
-        const response = await this.instance.post<BulkDeploymentResult[]>(
-            `${this.v1()}/catalog/chains/deployments/bulk`,
-            request,
-        );
-        return response.data;
-    };
+  bulkDeploy = async (
+    request: BulkDeploymentRequest,
+  ): Promise<BulkDeploymentResult[]> => {
+    const response = await this.instance.post<BulkDeploymentResult[]>(
+      `${this.v1()}/catalog/chains/deployments/bulk`,
+      request,
+    );
+    return response.data;
+  };
 
+  loadHttpTriggerAccessControl = async (
+    searchRequest: AccessControlSearchRequest,
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.post<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
+    return response.data;
+  };
 
-    loadHttpTriggerAccessControl = async (
-        searchRequest: AccessControlSearchRequest,
-    ): Promise<AccessControlResponse> => {
-        const response = await this.instance.post<AccessControlResponse>(
-            `${this.v1()}/catalog/chains/roles`,
-            searchRequest,
-        );
-        return response.data;
-    };
+  updateHttpTriggerAccessControl = async (
+    searchRequest: AccessControlUpdateRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
 
-    updateHttpTriggerAccessControl = async (
-        searchRequest: AccessControlUpdateRequest[]
-    ): Promise<AccessControlResponse> => {
-        const response = await this.instance.put<AccessControlResponse>(
-            `${this.v1()}/catalog/chains/roles`,
-            searchRequest,
-        );
+    return response.data;
+  };
 
-        return response.data;
-    };
+  bulkDeployChainsAccessControl = async (
+    searchRequest: AccessControlBulkDeployRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles/redeploy`,
+      searchRequest,
+    );
 
-    bulkDeployChainsAccessControl = async (
-        searchRequest: AccessControlBulkDeployRequest[]
-    ): Promise<AccessControlResponse>=> {
-        const response = await this.instance.put<AccessControlResponse>(
-            `${this.v1()}/catalog/chains/roles/redeploy`,
-            searchRequest,
-        );
-
-        return response.data;
-    };
+    return response.data;
+  };
 }

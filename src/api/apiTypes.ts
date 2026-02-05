@@ -1183,60 +1183,60 @@ export interface SpecApiFile {
 }
 
 export type AccessControlSearchRequest = {
-    offset: number;
-    limit: number;
-    filters: unknown;
+  offset: number;
+  limit: number;
+  filters: unknown;
 };
 
 export type AccessControlUpdateRequest = {
-    elementId: string;
-    isRedeploy: boolean;
-    roles: string[];
+  elementId: string;
+  isRedeploy: boolean;
+  roles: string[];
 };
 
 export type AccessControlResponse = {
-    offset: number;
-    roles: AccessControl[];
+  offset: number;
+  roles: AccessControl[];
 };
 
 export type AccessControlBulkDeployRequest = {
-    chainId: string;
-    unsavedChanges: boolean;
+  chainId: string;
+  unsavedChanges: boolean;
 };
 
 export type AccessControl = {
-    chainId: string;
-    chainName: string;
-    elementId: string;
-    elementName: string;
-    deploymentStatus: string[];
-    unsavedChanges: boolean;
-    properties: Record<string, AccessControlProperty>;
-    modifiedWhen: number;
+  chainId: string;
+  chainName: string;
+  elementId: string;
+  elementName: string;
+  deploymentStatus: string[];
+  unsavedChanges: boolean;
+  properties: Record<string, AccessControlProperty>;
+  modifiedWhen: number;
 };
 
 export enum AccessControlType {
-    RBAC = 'RBAC',
-    ABAC = 'ABAC',
-    NONE = 'NONE'
+  RBAC = "RBAC",
+  ABAC = "ABAC",
+  NONE = "NONE",
 }
 
 export type AbacParameters = {
-    operation: string;
-    resourceType: string;
-    resourceDataType: string;
-    resourceString?: string;
-    resourceMap?: Record<string, unknown>;
-}
+  operation: string;
+  resourceType: string;
+  resourceDataType: string;
+  resourceString?: string;
+  resourceMap?: Record<string, unknown>;
+};
 
 export type AccessControlProperty = {
-    roles: string[];
-    contextPath?: string;
-    integrationOperationPath?: string;
-    externalRoute: boolean;
-    privateRoute: boolean;
-    accessControlType?: AccessControlType;
-    abacParameters?: AbacParameters;
+  roles: string[];
+  contextPath?: string;
+  integrationOperationPath?: string;
+  externalRoute: boolean;
+  privateRoute: boolean;
+  accessControlType?: AccessControlType;
+  abacParameters?: AbacParameters;
 };
 
 export type LiveExchange = {
