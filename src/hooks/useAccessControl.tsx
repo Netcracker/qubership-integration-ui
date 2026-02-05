@@ -5,7 +5,7 @@ import {
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
 } from "../api/apiTypes.ts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNotificationService } from "./useNotificationService.tsx";
 
 export const useAccessControl = () => {

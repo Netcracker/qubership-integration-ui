@@ -32,8 +32,9 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({
   const getAllUniqueRoles = (): string[] => {
     const allRoles = new Set<string>();
     recordsToProcess.forEach((rec) => {
-      const roles = (rec?.properties as AccessControlProperty | undefined)
-        ?.roles;
+      const roles = (rec?.properties as unknown as
+        | AccessControlProperty
+        | undefined)?.roles;
       if (Array.isArray(roles)) {
         roles.forEach((role: string) => allRoles.add(role));
       }
@@ -46,7 +47,7 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({
     if (recordsToProcess.length > 1) {
       return getAllUniqueRoles();
     }
-    const props = recordsToProcess[0]?.properties as
+    const props = recordsToProcess[0]?.properties as unknown as
       | AccessControlProperty
       | undefined;
     const roles = props?.roles;
@@ -97,14 +98,20 @@ export const AddDeleteRolesPopUp: React.FC<AddDeleteRolesPopUpProps> = ({
             throw new Error("Element ID is required");
           }
 
-          const props = rec.properties as AccessControlProperty | undefined;
-          const existingRoles = Array.isArray(props?.roles) ? props.roles : [];
+          const props = rec.properties as unknown as
+            | AccessControlProperty
+            | undefined;
+          const existingRoles = Array.isArray(props?.roles) ? props?.roles : [];
           let finalRoles: string[];
 
           if (isDeleteMode) {
-            finalRoles = existingRoles.filter(
-              (role: string) => !selectedRoles.includes(role),
-            );
+            if (existingRoles.length > 0) {
+              finalRoles = existingRoles.filter(
+                (role: string) => !selectedRoles.includes(role),
+              );
+            } else {
+              finalRoles = [];
+            }
           } else {
             const mergedRoles = [...existingRoles, ...selectedRoles];
             finalRoles = Array.from(new Set(mergedRoles));
