@@ -1910,13 +1910,46 @@ export class RestApi implements Api {
     );
   };
 
-  bulkDeploy = async (
-    request: BulkDeploymentRequest,
-  ): Promise<BulkDeploymentResult[]> => {
-    const response = await this.instance.post<BulkDeploymentResult[]>(
-      `/api/v1/${getAppName()}/catalog/chains/deployments/bulk`,
-      request,
-    );
-    return response.data;
-  };
+    bulkDeploy = async (
+        request: BulkDeploymentRequest,
+    ): Promise<BulkDeploymentResult[]> => {
+        const response = await this.instance.post<BulkDeploymentResult[]>(
+            `${this.v1()}/catalog/chains/deployments/bulk`,
+            request,
+        );
+        return response.data;
+    };
+
+
+    loadHttpTriggerAccessControl = async (
+        searchRequest: AccessControlSearchRequest,
+    ): Promise<AccessControlResponse> => {
+        const response = await this.instance.post<AccessControlResponse>(
+            `/api/v1/${getAppName()}/catalog/chains/roles`,
+            searchRequest,
+        );
+        return response.data;
+    };
+
+    updateHttpTriggerAccessControl = async (
+        searchRequest: AccessControlUpdateRequest[]
+    ): Promise<AccessControlResponse> => {
+        const response = await this.instance.put<AccessControlResponse>(
+            `/api/v1/${getAppName()}/catalog/chains/roles`,
+            searchRequest,
+        );
+
+        return response.data;
+    };
+
+    bulkDeployChainsAccessControl = async (
+        searchRequest: AccessControlBulkDeployRequest[]
+    ): Promise<AccessControlResponse>=> {
+        const response = await this.instance.put<AccessControlResponse>(
+            `/api/v1/${getAppName()}/catalog/chains/roles/redeploy`,
+            searchRequest,
+        );
+
+        return response.data;
+    };
 }

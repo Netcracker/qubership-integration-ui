@@ -33,31 +33,31 @@ export const AbacAttributesPopUp: React.FC<AbacAttributesPopUpProps> = ({record}
             >
                 <Form.Item label="Resource Type">
                     <Input
-                        value={record.properties?.abacParameters?.resourceType || ""}
+                        value={record.properties?.value?.abacParameters?.resourceType || ""}
                         placeholder="—"
                     />
                 </Form.Item>
                 <Form.Item label="Operation">
                     <Input
-                        value={record.properties?.abacParameters?.operation || ""}
+                        value={record.properties?.value?.abacParameters?.operation || ""}
                         placeholder="—"
                     />
                 </Form.Item>
                 <Form.Item label="Resource Data Type">
                     <Input
-                        value={record.properties?.abacParameters?.resourceDataType || ""}
+                        value={record.properties?.value?.abacParameters?.resourceDataType || ""}
                         placeholder="—"
                     />
                 </Form.Item>
-                {record.properties?.abacParameters?.resourceMap && (
+                {record.properties?.value?.abacParameters?.resourceMap && (
                     <Form.Item>
-                        <ResourceMapDisplay resourceMap={record.properties.abacParameters.resourceMap}/>
+                        <ResourceMapDisplay resourceMap={record.properties.value?.abacParameters.resourceMap}/>
                     </Form.Item>
                 )}
-                {record.properties?.abacParameters?.resourceString && (
+                {record.properties?.value?.abacParameters?.resourceString && (
                     <Form.Item label="Resource String">
                         <Input
-                            value={record.properties.abacParameters.resourceString}
+                            value={record.properties.value?.abacParameters.resourceString}
                             placeholder="—"
                         />
                     </Form.Item>

@@ -237,7 +237,7 @@ export const AccessControl: React.FC = () => {
                 return recordValue === value;
             },
             render: (_, record: AccessControlData) => {
-                return <>{record.properties?.accessControlType || "—"}</>;
+                return <>{String(record.properties?.accessControlType ?? "—")}</>;
             }
         },
         {
@@ -389,7 +389,7 @@ export const AccessControl: React.FC = () => {
                         <Descriptions column={1} size="small" layout="vertical">
                             <Descriptions.Item label="Endpoint">
                                 {currentRecord.chainId ? (
-                                    <a onClick={() => void navigate(`/chains/${currentRecord.chainId}/graph/${currentRecord.elementId}`)}>
+                                    <a onClick={() => void navigate(`/chains/${currentRecord?.chainId}/graph/${currentRecord?.elementId}`)}>
                                         {currentRecord.properties?.contextPath || "—"}
                                     </a>
                                 ) : (
@@ -406,7 +406,7 @@ export const AccessControl: React.FC = () => {
                                 })()}
                             </Descriptions.Item>
                             <Descriptions.Item label="Access Control Type">
-                                {currentRecord.properties?.accessControlType || "—"}
+                                {String(currentRecord.properties?.accessControlType ?? "—")}
                             </Descriptions.Item>
                             <Descriptions.Item label="Roles">
                                 {currentRecord.properties?.roles && Array.isArray(currentRecord.properties.roles) && currentRecord.properties.roles.length > 0 ? (
@@ -426,9 +426,11 @@ export const AccessControl: React.FC = () => {
                                     <span
                                         style={{ cursor: "pointer", color: "#1890ff" }}
                                         onClick={() => {
-                                            showModal({
-                                                component: <AbacAttributesPopUp record={currentRecord} />,
-                                            });
+                                            if (currentRecord) {
+                                                showModal({
+                                                    component: <AbacAttributesPopUp record={currentRecord} />,
+                                                });
+                                            }
                                         }}
                                     >
                                         Details
@@ -439,7 +441,7 @@ export const AccessControl: React.FC = () => {
                             </Descriptions.Item>
                             <Descriptions.Item label="Chain">
                                 {currentRecord.chainId ? (
-                                    <a onClick={() => void navigate(`/chains/${currentRecord.chainId}`)}>
+                                    <a onClick={() => void navigate(`/chains/${currentRecord?.chainId}`)}>
                                         {currentRecord.chainName}
                                     </a>
                                 ) : (
@@ -504,7 +506,7 @@ export const AccessControl: React.FC = () => {
                                 },
                             }}
                             rowClassName={(row) => row.unsavedChanges ? "highlight-row" : ""}
-                            onRow={(row) => {
+                            onRow={(row: AccessControlData) => {
                                 return {
                                     onClick: (event: React.MouseEvent<HTMLElement>) => {
                                         const target = event.target as HTMLElement;
@@ -536,10 +538,10 @@ export const AccessControl: React.FC = () => {
                             return;
                         }
 
-                        const selectedRecords = accessControlData?.roles?.filter((record) => {
+                        const selectedRecords = (accessControlData?.roles ?? []).filter((record: AccessControlData) => {
                             const rowKey = `${record.chainId}-${record.elementId}`;
                             return selectedRowKeys.includes(rowKey);
-                        }) || [];
+                        });
 
                         if (selectedRecords.length > 0) {
                             handleBulkDeploy(selectedRecords);
@@ -556,10 +558,10 @@ export const AccessControl: React.FC = () => {
                             notificationService.info("No selection", "Please select at least one row to modify");
                             return;
                         }
-                        const selectedRecords = accessControlData?.roles?.filter((record) => {
+                        const selectedRecords = (accessControlData?.roles ?? []).filter((record: AccessControlData) => {
                             const rowKey = `${record.chainId}-${record.elementId}`;
                             return selectedRowKeys.includes(rowKey);
-                        }) || [];
+                        });
                         if (selectedRecords.length > 0) {
                             const validRecords = selectedRecords.filter(record => {
                                 const accessControlType = (record.properties as any)?.accessControlType;
@@ -590,10 +592,10 @@ export const AccessControl: React.FC = () => {
                             notificationService.info("No selection", "Please select at least one row to delete roles");
                             return;
                         }
-                        const selectedRecords = accessControlData?.roles?.filter((record) => {
+                        const selectedRecords = (accessControlData?.roles ?? []).filter((record: AccessControlData) => {
                             const rowKey = `${record.chainId}-${record.elementId}`;
                             return selectedRowKeys.includes(rowKey);
-                        }) || [];
+                        });
                         if (selectedRecords.length > 0) {
                             const validRecords = selectedRecords.filter(record => {
                                 const accessControlType = (record.properties as any)?.accessControlType;
