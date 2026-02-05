@@ -55,7 +55,7 @@ import {
   BulkDeploymentResult,
   ImportVariablesResult,
   VariableImportPreview,
-  UsedProperty
+  UsedProperty,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -1020,8 +1020,8 @@ export class VSCodeExtensionApi implements Api {
     throw new RestApiError("Not implemented", 501);
   }
 
-  getUsedProperties(chainId: string): Promise<UsedProperty[]>  {
-      throw new Error("Method loadHttpTriggerAccessControl not implemented.");
+  getUsedProperties(chainId: string): Promise<UsedProperty[]> {
+    throw new Error("Method loadHttpTriggerAccessControl not implemented.");
   }
 }
 

@@ -1,28 +1,29 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Spin, Empty } from 'antd';
+import React, { useState, useMemo, useCallback } from "react";
+import { Spin, Empty } from "antd";
 import { useUsedProperties } from "../hooks/useUsedProperties.tsx";
 import { UsedProperty } from "../api/apiTypes.ts";
 import { useLibraryContext } from "./LibraryContext.tsx";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
 import styles from "./UsedPropertiesList.module.css";
 
-
 const USED_PROPERTY_SOURCE_LABEL_MAPPING: { [key: string]: string } = {
-  HEADER: 'H',
-  EXCHANGE_PROPERTY: 'P',
+  HEADER: "H",
+  EXCHANGE_PROPERTY: "P",
 };
 
 const USED_PROPERTY_TYPE_LABEL_MAPPING: { [key: string]: string } = {
-  STRING: 'string',
-  NUMBER: 'number',
-  BOOLEAN: 'boolean',
-  OBJECT: 'object',
-  UNKNOWN_TYPE: '—',
+  STRING: "string",
+  NUMBER: "number",
+  BOOLEAN: "boolean",
+  OBJECT: "object",
+  UNKNOWN_TYPE: "—",
 };
 
-const usedPropertyElementOperationColorMapping: { [key: string]: 'green' | 'blue' } = {
-  GET: 'green',
-  SET: 'blue',
+const usedPropertyElementOperationColorMapping: {
+  [key: string]: "green" | "blue";
+} = {
+  GET: "green",
+  SET: "blue",
 };
 
 interface ParsedProperty {
@@ -43,8 +44,8 @@ interface ParsedElement {
   type: string;
   typeTitle: string;
   operations: Array<{
-    operation: 'GET' | 'SET';
-    operationColor: 'green' | 'blue';
+    operation: "GET" | "SET";
+    operationColor: "green" | "blue";
   }>;
 }
 
@@ -62,13 +63,18 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
   const { properties, isLoading } = useUsedProperties(chainId);
   const { libraryElements } = useLibraryContext();
 
-  const [expandedProperties, setExpandedProperties] = useState<Set<string>>(new Set());
+  const [expandedProperties, setExpandedProperties] = useState<Set<string>>(
+    new Set(),
+  );
 
-  const getElementTemplate = useCallback((type: string): { title: string } | null => {
-    if (!libraryElements) return null;
-    const libraryElement = libraryElements.find(el => el.name === type);
-    return libraryElement ? { title: libraryElement.title } : null;
-  }, [libraryElements]);
+  const getElementTemplate = useCallback(
+    (type: string): { title: string } | null => {
+      if (!libraryElements) return null;
+      const libraryElement = libraryElements.find((el) => el.name === type);
+      return libraryElement ? { title: libraryElement.title } : null;
+    },
+    [libraryElements],
+  );
 
   const buildUsedPropMapKey = (property: UsedProperty): string => {
     return property.name + property.source;
@@ -77,7 +83,7 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
   const buildUsedElementMapKey = (
     propertyName: string,
     propertySource: string,
-    elementId: string
+    elementId: string,
   ): string => {
     return propertyName + propertySource + elementId;
   };
@@ -88,24 +94,28 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
     }
 
     const sortedProperties = [...properties].sort((a, b) =>
-      a.name.localeCompare(b.name)
+      a.name.localeCompare(b.name),
     );
 
-    return sortedProperties.map(property => {
+    return sortedProperties.map((property) => {
       const propertyId = buildUsedPropMapKey(property);
 
       const children: ParsedElement[] = Object.values(property.relatedElements)
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map(element => {
+        .map((element) => {
           const elementDescriptor = getElementTemplate(element.type);
 
           return {
-            id: buildUsedElementMapKey(property.name, property.source, element.id),
+            id: buildUsedElementMapKey(
+              property.name,
+              property.source,
+              element.id,
+            ),
             elementId: element.id,
             name: element.name,
             type: element.type,
             typeTitle: elementDescriptor?.title || element.type,
-            operations: element.operations.map(op => ({
+            operations: element.operations.map((op) => ({
               operation: op,
               operationColor: usedPropertyElementOperationColorMapping[op],
             })),
@@ -126,7 +136,7 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
   }, [properties, getElementTemplate]);
 
   const toggleProperty = (propertyId: string) => {
-    setExpandedProperties(prev => {
+    setExpandedProperties((prev) => {
       const next = new Set(prev);
       if (next.has(propertyId)) {
         next.delete(propertyId);
@@ -139,7 +149,9 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
+      <div
+        style={{ display: "flex", justifyContent: "center", padding: "24px" }}
+      >
         <Spin />
       </div>
     );
@@ -147,16 +159,13 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
 
   if (parsedProperties.length === 0) {
     return (
-      <Empty
-        description="Properties not found"
-        style={{ padding: "24px" }}
-      />
+      <Empty description="Properties not found" style={{ padding: "24px" }} />
     );
   }
 
   return (
     <div className={styles.usedPropertiesTree}>
-      {parsedProperties.map(property => {
+      {parsedProperties.map((property) => {
         const isExpanded = expandedProperties.has(property.id);
 
         return (
@@ -167,15 +176,18 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
               onClick={() => toggleProperty(property.id)}
             >
               <div className={styles.leftContent}>
-                <span className={styles.propertySource}>{property.sourceCode}</span>
+                <span className={styles.propertySource}>
+                  {property.sourceCode}
+                </span>
                 <span className={styles.propertyName}>{property.name}</span>
               </div>
               <div className={styles.rightContent}>
                 <span className={styles.propertyType}>
-                  [{property.isArray ? 'array of ' : ''}{property.type}]
+                  [{property.isArray ? "array of " : ""}
+                  {property.type}]
                 </span>
                 <span className={styles.propertyChildrenCount}>
-                  {property.childrenCount > 99 ? '99+' : property.childrenCount}
+                  {property.childrenCount > 99 ? "99+" : property.childrenCount}
                 </span>
                 <span className={styles.expandIcon}>
                   <OverridableIcon
@@ -188,7 +200,7 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
 
             {isExpanded && (
               <div className={styles.elementsContainer}>
-                {property.children.map(element => (
+                {property.children.map((element) => (
                   <div
                     key={element.id}
                     className={`${styles.elementRow} ${styles.menuItemContainer}`}
@@ -208,14 +220,17 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
                       />
                       <div className={styles.elementInfo}>
                         <div className={styles.elementName}>{element.name}</div>
-                        <span className={styles.elementType}>{element.typeTitle}</span>
+                        <span className={styles.elementType}>
+                          {element.typeTitle}
+                        </span>
                       </div>
                     </div>
                     <div className={styles.rightContent}>
                       {element.operations.map((op, idx) => {
-                        const colorClass = op.operationColor === 'green'
-                          ? styles.operationGreen
-                          : styles.operationBlue;
+                        const colorClass =
+                          op.operationColor === "green"
+                            ? styles.operationGreen
+                            : styles.operationBlue;
                         return (
                           <span
                             key={idx}

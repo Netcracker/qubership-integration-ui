@@ -466,7 +466,12 @@ const ChainGraphInner: React.FC = () => {
       <ElementsLibrarySidebar />
       <div className="react-flow-container" ref={reactFlowWrapper}>
         <ElkDirectionContextProvider
-          elkDirectionControl={{ direction, toggleDirection, rightPanel, toggleRightPanel }}
+          elkDirectionControl={{
+            direction,
+            toggleDirection,
+            rightPanel,
+            toggleRightPanel,
+          }}
         >
           <ReactFlow
             nodes={nodes}

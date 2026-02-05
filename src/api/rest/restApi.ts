@@ -74,7 +74,7 @@ import {
   BulkDeploymentResult,
   ImportVariablesResult,
   VariableImportPreview,
-  UsedProperty
+  UsedProperty,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -770,10 +770,7 @@ export class RestApi implements Api {
   };
 
   deleteSnapshots = async (snapshotIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `${this.v2()}/snapshots/bulk-delete`,
-      snapshotIds,
-    );
+    await this.instance.post(`${this.v2()}/snapshots/bulk-delete`, snapshotIds);
   };
 
   revertToSnapshot = async (
@@ -1076,10 +1073,7 @@ export class RestApi implements Api {
   };
 
   deleteFolders = async (folderIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `${this.v2()}/folders/bulk-delete`,
-      folderIds,
-    );
+    await this.instance.post(`${this.v2()}/folders/bulk-delete`, folderIds);
   };
 
   listFolder = async (
