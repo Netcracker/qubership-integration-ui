@@ -1,10 +1,7 @@
 import {
   ActionDifference,
   ActionLogResponse,
-  AccessControlBulkDeployRequest,
   AccessControlResponse,
-  AccessControlSearchRequest,
-  AccessControlUpdateRequest,
   BaseEntity,
   Chain,
   ChainDeployment,
@@ -62,7 +59,6 @@ import {
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
-import { RestApi } from "./restApi.ts";
 import type {
   ApiResponse,
   SecretWithVariables,
@@ -76,11 +72,9 @@ export const isVsCode = window.location.protocol === "vscode-webview:";
 export class VSCodeExtensionApi implements Api {
   vscode: VSCodeApi<never>;
   responseResolvers: Record<string, MessageResolver> = {};
-  private readonly restApi: RestApi;
 
   constructor() {
     this.vscode = acquireVsCodeApi();
-    this.restApi = new RestApi();
 
     // Listener for messages FROM extension
     window.addEventListener(
@@ -956,22 +950,16 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method bulkDeploy not implemented.");
   }
 
-  loadHttpTriggerAccessControl = async (
-    searchRequest: AccessControlSearchRequest,
-  ): Promise<AccessControlResponse> => {
-    return this.restApi.loadHttpTriggerAccessControl(searchRequest);
+  loadHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method loadHttpTriggerAccessControl not implemented.");
   };
 
-  updateHttpTriggerAccessControl = async (
-    searchRequest: AccessControlUpdateRequest[],
-  ): Promise<AccessControlResponse> => {
-    return this.restApi.updateHttpTriggerAccessControl(searchRequest);
+  updateHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method updateHttpTriggerAccessControl not implemented.");
   };
 
-  bulkDeployChainsAccessControl = async (
-    searchRequest: AccessControlBulkDeployRequest[],
-  ): Promise<AccessControlResponse> => {
-    return this.restApi.bulkDeployChainsAccessControl(searchRequest);
+  bulkDeployChainsAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method bulkDeployChainsAccessControl not implemented.");
   };
 
   getCommonVariables(): Promise<ApiResponse<Variable[]>> {
