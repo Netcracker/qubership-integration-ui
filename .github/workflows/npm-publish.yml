@@ -10,6 +10,8 @@ name: Publish NPM package
 run-name: NPM Package${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch')) && ' - Test' || ' - Publish' }}${{ (github.event_name == 'workflow_dispatch' && inputs.version) && format(' {0}', inputs.version) || '' }}
 
 on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
   workflow_dispatch:
     inputs:
       version:
@@ -137,9 +139,10 @@ jobs:
       update-nc-dependency: ${{ github.event_name == 'workflow_dispatch' && inputs.update-nc-dependency || false }}
       dist-tag: ${{(github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag != '' && inputs.npm-dist-tag) || 'latest' }}
       ref: ${{ github.ref_name }}
+      dry-run: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
   update-version-in-extension:
-    if: inputs.update-extension == true
+    if: inputs.update-extension == true && github.event_name != 'pull_request'
     needs: npm-publish
     runs-on: ubuntu-latest
     steps:
@@ -153,7 +156,7 @@ jobs:
           owner: "Netcracker"
 
   create-release:
-    if: ${{ github.event.inputs.create-github-release == 'true' }}
+    if: inputs.create-github-release == 'true' && github.event_name != 'pull_request'
     needs: npm-publish
     runs-on: ubuntu-latest
     permissions:
