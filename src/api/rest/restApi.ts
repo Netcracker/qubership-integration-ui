@@ -1888,11 +1888,9 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getUsedProperties = async (
-      chainId: string,
-  ): Promise<UsedProperty[]> => {
+  getUsedProperties = async (chainId: string): Promise<UsedProperty[]> => {
     const response = await this.instance.get<UsedProperty[]>(
-        `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`
+      `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`,
     );
 
     return response.data;
