@@ -156,7 +156,7 @@ jobs:
           owner: "Netcracker"
 
   create-release:
-    if: inputs.create-github-release == 'true' && github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && inputs.create-github-release == 'true'
     needs: npm-publish
     runs-on: ubuntu-latest
     permissions:
