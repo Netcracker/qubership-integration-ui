@@ -400,7 +400,10 @@ export interface Api {
     data: Partial<Specification>,
   ): Promise<Specification>;
 
-  getOperations(modelId: string): Promise<SystemOperation[]>;
+  getOperations(
+    modelId: string,
+    paginationOptions: PaginationOptions,
+  ): Promise<SystemOperation[]>;
 
   getOperationInfo(operationId: string): Promise<OperationInfo>;
 

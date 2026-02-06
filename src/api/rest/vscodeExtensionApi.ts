@@ -57,6 +57,7 @@ import {
   ImportVariablesResult,
   VariableImportPreview,
   UsedProperty,
+  PaginationOptions,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -588,9 +589,17 @@ export class VSCodeExtensionApi implements Api {
     ).payload;
   };
 
-  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+  getOperations = async (
+    modelId: string,
+    paginationOptions: PaginationOptions = {},
+  ): Promise<SystemOperation[]> => {
     return <SystemOperation[]>(
-      (await this.sendMessageToExtension("getOperations", modelId)).payload
+      (
+        await this.sendMessageToExtension("getOperations", {
+          modelId,
+          paginationOptions,
+        })
+      ).payload
     );
   };
 
@@ -1033,7 +1042,7 @@ export class VSCodeExtensionApi implements Api {
     throw new RestApiError("Not implemented", 501);
   }
 
-  getUsedProperties(chainId: string): Promise<UsedProperty[]> {
+  getUsedProperties(_chainId: string): Promise<UsedProperty[]> {
     throw new Error("Method loadHttpTriggerAccessControl not implemented.");
   }
 }

@@ -1581,14 +1581,22 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+  getOperations = async (
+    modelId: string,
+    paginationOptions: PaginationOptions = {},
+  ): Promise<SystemOperation[]> => {
+    const params: Record<string, string> = { modelId };
+
+    if (paginationOptions.offset !== undefined) {
+      params["offset"] = paginationOptions.offset.toString(10);
+    }
+    if (paginationOptions.count !== undefined) {
+      params["count"] = paginationOptions.count.toString(10);
+    }
+
     const response = await this.instance.get<SystemOperation[]>(
       `${this.v1()}/systems-catalog/operations`,
-      {
-        params: {
-          modelId,
-        },
-      },
+      { params },
     );
     return response.data;
   };
