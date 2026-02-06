@@ -1547,7 +1547,7 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  deployCamelK = async (request: CamelKDeployRequest): Promise<void> => {
+  deployMicroDomain = async (request: CamelKDeployRequest): Promise<void> => {
     const response = await this.instance.post<void>(
       `/api/v1/${getAppName()}/catalog/cr/deploy`,
       request,

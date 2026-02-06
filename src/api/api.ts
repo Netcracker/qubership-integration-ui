@@ -477,7 +477,7 @@ export interface Api {
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
 
-  deployCamelK(request: CamelKDeployRequest): Promise<void>;
+  deployMicroDomain(request: CamelKDeployRequest): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

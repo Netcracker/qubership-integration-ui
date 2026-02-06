@@ -1,10 +1,10 @@
 import React from "react";
-import { Table, Button, Typography } from "antd";
+import { Table, Button, Typography, Space, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { EngineTable } from "./EngineTable";
 import { useEngines } from "./hooks/useEngines";
 import tableStyles from "./Tables.module.css";
-import { EngineDomain } from "../../../api/apiTypes.ts";
+import { DomainType, EngineDomain } from "../../../api/apiTypes.ts";
 
 interface Props {
   domains: EngineDomain[];
@@ -38,6 +38,11 @@ const DomainsTable: React.FC<Props> = ({ domains, isLoading = false }) => {
       title: <span className={tableStyles.columnHeader}>Domain</span>,
       dataIndex: "name",
       key: "name",
+      render: (_: unknown, domain: EngineDomain) => {
+        return domain.type === DomainType.MICRO
+          ? <Space size={"small"}>{domain.name}<Tag>micro</Tag></Space>
+          : domain.name;
+      }
     },
     {
       title: <span className={tableStyles.columnHeader}>Version</span>,

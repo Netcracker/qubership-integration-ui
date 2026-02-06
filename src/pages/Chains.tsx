@@ -387,7 +387,7 @@ const Chains = () => {
     }
   };
 
-  const deployChainsToCamelKDomain = async (
+  const deployChainsToMicroDomain = async (
     chainIds: string[],
     name: string,
   ) => {
@@ -396,7 +396,7 @@ const Chains = () => {
     }
     setIsLoading(true);
     try {
-      await api.deployCamelK({ name, chainIds });
+      await api.deployMicroDomain({ name, chainIds });
     } catch (error) {
       notificationService.requestFailed("Failed to deploy chains", error);
     } finally {
@@ -737,7 +737,7 @@ const Chains = () => {
     }
     await Promise.all(
       request.camelKDeploys.map((camelKDeploy) =>
-        deployChainsToCamelKDomain(chainIds, camelKDeploy.name),
+        deployChainsToMicroDomain(chainIds, camelKDeploy.name),
       ),
     );
   };

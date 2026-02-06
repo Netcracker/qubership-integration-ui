@@ -38,7 +38,11 @@ import {
 import { useChainGraph } from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
-import { CreateDeploymentRequest, Element } from "../api/apiTypes.ts";
+import {
+  CreateDeploymentRequest,
+  DomainType,
+  Element,
+} from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
@@ -59,6 +63,7 @@ import {
 import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
+import { Domain } from "../components/SelectDomains.tsx";
 
 const readTheme = () => {
   if (typeof document === "undefined") return "light";
@@ -234,23 +239,27 @@ const ChainGraphInner: React.FC = () => {
     ],
   );
 
-  const saveAndDeploy = async (domain: string) => {
-    if (!chainId) return;
+  const saveAndDeployToNativeDomains = async (domains: string[]) => {
+    if (!chainId || domains.length === 0) return;
     try {
       await api.createSnapshot(chainId).then(async (snapshot) => {
         notificationService.info(
           "Created snapshot",
           `Created snapshot ${snapshot.name}`,
         );
-        const request: CreateDeploymentRequest = {
-          domain,
-          snapshotId: snapshot.id,
-          suspended: false,
-        };
-        await api.createDeployment(chainId, request);
-        notificationService.info(
-          "Deployed snapshot",
-          `Deployed snapshot ${snapshot.name}`,
+        await Promise.all(
+          domains.map(async (domain) => {
+            const request: CreateDeploymentRequest = {
+              domain,
+              snapshotId: snapshot.id,
+              suspended: false,
+            };
+            await api.createDeployment(chainId, request);
+            notificationService.info(
+              "Deployed snapshot",
+              `Deployed snapshot ${snapshot.name}`,
+            );
+          }),
         );
       });
     } catch (error) {
@@ -259,6 +268,33 @@ const ChainGraphInner: React.FC = () => {
         error,
       );
     }
+  };
+
+  const deployToMicroDomains = async (domains: string[]) => {
+    if (!chainId || domains.length === 0) return;
+    try {
+      await Promise.all(
+        domains.map(async (domain) =>
+          api.deployMicroDomain({ name: domain, chainIds: [chainId] }),
+        ),
+      );
+    } catch (error) {
+      notificationService.requestFailed("Failed to deploy chain", error);
+    }
+  };
+
+  const saveAndDeploy = async (domains: Domain[]) => {
+    if (!chainId) return;
+    const nativeDomains = domains
+      .filter((domain) => domain.type === DomainType.NATIVE)
+      .map((domain) => domain.name);
+    const microDomains = domains
+      .filter((domain) => domain.type === DomainType.MICRO)
+      .map((domain) => domain.name);
+    await Promise.all([
+      saveAndDeployToNativeDomains(nativeDomains),
+      deployToMicroDomains(microDomains),
+    ]);
   };
 
   const openSaveAndDeployDialog = () => {

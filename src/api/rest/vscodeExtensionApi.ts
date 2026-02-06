@@ -957,8 +957,8 @@ export class VSCodeExtensionApi implements Api {
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
   }
-  deployCamelK(): Promise<void> {
-    throw new Error("Method deployCamelK not implemented.");
+  deployMicroDomain(): Promise<void> {
+    throw new Error("Method deployMicroDomain not implemented.");
   }
 }
 
