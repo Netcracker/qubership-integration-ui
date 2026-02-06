@@ -18,6 +18,7 @@ import {
   ChainItem,
   CustomResourceBuildRequest,
   CustomResourceOptions,
+  DeployMode,
   FolderItem,
   ListFolderRequest,
   UpdateFolderRequest,
@@ -396,7 +397,7 @@ const Chains = () => {
     }
     setIsLoading(true);
     try {
-      await api.deployMicroDomain({ name, chainIds });
+      await api.deployMicroDomain({ name, chainIds, mode: DeployMode.APPEND });
     } catch (error) {
       notificationService.requestFailed("Failed to deploy chains", error);
     } finally {

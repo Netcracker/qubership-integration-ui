@@ -40,6 +40,7 @@ import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
 import {
   CreateDeploymentRequest,
+  DeployMode,
   DomainType,
   Element,
 } from "../api/apiTypes.ts";
@@ -275,7 +276,11 @@ const ChainGraphInner: React.FC = () => {
     try {
       await Promise.all(
         domains.map(async (domain) =>
-          api.deployMicroDomain({ name: domain, chainIds: [chainId] }),
+          api.deployMicroDomain({
+            name: domain,
+            chainIds: [chainId],
+            mode: DeployMode.APPEND,
+          }),
         ),
       );
     } catch (error) {

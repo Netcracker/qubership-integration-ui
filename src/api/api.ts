@@ -67,7 +67,7 @@ import {
   BulkDeploymentRequest,
   BulkDeploymentResult,
   CustomResourceBuildRequest,
-  CamelKDeployRequest,
+  MicroDomainDeployRequest,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -477,7 +477,7 @@ export interface Api {
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
 
-  deployMicroDomain(request: CamelKDeployRequest): Promise<void>;
+  deployMicroDomain(request: MicroDomainDeployRequest): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

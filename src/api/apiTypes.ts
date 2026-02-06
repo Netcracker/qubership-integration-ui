@@ -1249,9 +1249,15 @@ export type BulkDeploymentRequest = {
   chainIds: string[];
 };
 
-export type CamelKDeployRequest = {
+export type MicroDomainDeployRequest = {
   name: string;
   chainIds: string[];
+  mode?: DeployMode;
+};
+
+export enum DeployMode {
+  REWRITE = "REWRITE",
+  APPEND = "APPEND",
 }
 
 export type BulkDeploymentResult = {

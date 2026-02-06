@@ -73,7 +73,7 @@ import {
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
-  CamelKDeployRequest,
+  MicroDomainDeployRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1547,7 +1547,7 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  deployMicroDomain = async (request: CamelKDeployRequest): Promise<void> => {
+  deployMicroDomain = async (request: MicroDomainDeployRequest): Promise<void> => {
     const response = await this.instance.post<void>(
       `/api/v1/${getAppName()}/catalog/cr/deploy`,
       request,
