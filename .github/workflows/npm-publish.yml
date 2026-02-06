@@ -138,7 +138,7 @@ jobs:
       registry-url: ${{ github.event_name == 'workflow_dispatch' && inputs.registry-url || 'https://npm.pkg.github.com' }}
       update-nc-dependency: ${{ github.event_name == 'workflow_dispatch' && inputs.update-nc-dependency }}
       dist-tag: ${{(github.event_name == 'workflow_dispatch' && inputs.npm-dist-tag != '' && inputs.npm-dist-tag) || 'latest' }}
-      ref: ${{ github.ref_name }}
+      ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
       dry-run: ${{ github.event_name == 'pull_request' }}
 
   update-version-in-extension:
