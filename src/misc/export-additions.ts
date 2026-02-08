@@ -14,7 +14,9 @@ export async function exportAdditionsForChains(params: {
   const data: File[] = [];
 
   if (options.exportServices) {
-    const usedServices = await api.getServicesUsedByChains(chainIdsForUsedSystems);
+    const usedServices = await api.getServicesUsedByChains(
+      chainIdsForUsedSystems,
+    );
     if (usedServices.length > 0) {
       const serviceIds = usedServices.map((i) => i.systemId);
       const modelIds = usedServices.flatMap((i) => i.usedSystemModelIds ?? []);
@@ -42,4 +44,3 @@ export async function exportAdditionsForChains(params: {
 
   return data;
 }
-

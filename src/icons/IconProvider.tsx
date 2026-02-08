@@ -23,7 +23,8 @@ const allIcons = {
   ...elementIcons,
 };
 
-const SVG_FILL_STROKE_SELECTOR = "path, circle, rect, ellipse, polygon, line, polyline";
+const SVG_FILL_STROKE_SELECTOR =
+  "path, circle, rect, ellipse, polygon, line, polyline";
 const OVERRIDE_ICON_FONT_SIZE = "1.15em";
 
 function applyOverrideIconSize(
@@ -83,7 +84,10 @@ function isLiteralColorToken(value: string): boolean {
   return false;
 }
 
-function collectLiteralPaintsFromReactNode(node: ReactNode, paints: Set<string>) {
+function collectLiteralPaintsFromReactNode(
+  node: ReactNode,
+  paints: Set<string>,
+) {
   if (!React.isValidElement(node)) return;
   const props = node.props as Record<string, unknown>;
 
@@ -99,10 +103,16 @@ function collectLiteralPaintsFromReactNode(node: ReactNode, paints: Set<string>)
   const style = props.style;
   if (style && typeof style === "object" && !Array.isArray(style)) {
     const styleObj = style as Record<string, unknown>;
-    if (typeof styleObj.fill === "string" && isLiteralColorToken(styleObj.fill)) {
+    if (
+      typeof styleObj.fill === "string" &&
+      isLiteralColorToken(styleObj.fill)
+    ) {
       paints.add(normalizePaintToken(styleObj.fill));
     }
-    if (typeof styleObj.stroke === "string" && isLiteralColorToken(styleObj.stroke)) {
+    if (
+      typeof styleObj.stroke === "string" &&
+      isLiteralColorToken(styleObj.stroke)
+    ) {
       paints.add(normalizePaintToken(styleObj.stroke));
     }
   }
@@ -122,18 +132,30 @@ function isMonochromeSvgElement(node: React.ReactElement): boolean {
 }
 
 /** Replace literal fill/stroke colors with currentColor in props/style for a React SVG tree. */
-function normalizeSvgElementPaintToCurrentColor(node: React.ReactElement): React.ReactElement {
+function normalizeSvgElementPaintToCurrentColor(
+  node: React.ReactElement,
+): React.ReactElement {
   const props = node.props as Record<string, unknown>;
   const nextProps: Record<string, unknown> = { ...props };
 
-  if (typeof nextProps.fill === "string" && isLiteralColorToken(nextProps.fill)) {
+  if (
+    typeof nextProps.fill === "string" &&
+    isLiteralColorToken(nextProps.fill)
+  ) {
     nextProps.fill = "currentColor";
   }
-  if (typeof nextProps.stroke === "string" && isLiteralColorToken(nextProps.stroke)) {
+  if (
+    typeof nextProps.stroke === "string" &&
+    isLiteralColorToken(nextProps.stroke)
+  ) {
     nextProps.stroke = "currentColor";
   }
 
-  if (nextProps.style && typeof nextProps.style === "object" && !Array.isArray(nextProps.style)) {
+  if (
+    nextProps.style &&
+    typeof nextProps.style === "object" &&
+    !Array.isArray(nextProps.style)
+  ) {
     const style = { ...(nextProps.style as Record<string, unknown>) };
     if (typeof style.fill === "string" && isLiteralColorToken(style.fill)) {
       style.fill = "currentColor";
@@ -146,8 +168,12 @@ function normalizeSvgElementPaintToCurrentColor(node: React.ReactElement): React
 
   let normalizedChildren: ReactNode = props.children as ReactNode;
   if (props.children) {
-    normalizedChildren = React.Children.map(props.children as ReactNode, (child) =>
-      React.isValidElement(child) ? normalizeSvgElementPaintToCurrentColor(child) : child,
+    normalizedChildren = React.Children.map(
+      props.children as ReactNode,
+      (child) =>
+        React.isValidElement(child)
+          ? normalizeSvgElementPaintToCurrentColor(child)
+          : child,
     ) as ReactNode;
   }
 
@@ -177,7 +203,9 @@ function isSvgDocColoredOrUnknown(doc: Document): boolean {
   if (!svg || svg.tagName.toLowerCase() !== "svg") return true;
   // If SVG contains gradients/patterns/images, treat as colored/complex.
   if (
-    svg.querySelector("linearGradient, radialGradient, pattern, image, mask, filter")
+    svg.querySelector(
+      "linearGradient, radialGradient, pattern, image, mask, filter",
+    )
   ) {
     return true;
   }
@@ -196,17 +224,21 @@ function collectLiteralPaintsFromSvgDoc(doc: Document): Set<string> {
     const el = node as SVGElement;
 
     const fill = el.getAttribute("fill");
-    if (fill && isLiteralColorToken(fill)) paints.add(normalizePaintToken(fill));
+    if (fill && isLiteralColorToken(fill))
+      paints.add(normalizePaintToken(fill));
 
     const stroke = el.getAttribute("stroke");
-    if (stroke && isLiteralColorToken(stroke)) paints.add(normalizePaintToken(stroke));
+    if (stroke && isLiteralColorToken(stroke))
+      paints.add(normalizePaintToken(stroke));
 
     const style = el.getAttribute("style");
     if (style) {
       const mFill = style.match(/fill\s*:\s*([^;]+)/i);
       const mStroke = style.match(/stroke\s*:\s*([^;]+)/i);
-      if (mFill?.[1] && isLiteralColorToken(mFill[1])) paints.add(normalizePaintToken(mFill[1]));
-      if (mStroke?.[1] && isLiteralColorToken(mStroke[1])) paints.add(normalizePaintToken(mStroke[1]));
+      if (mFill?.[1] && isLiteralColorToken(mFill[1]))
+        paints.add(normalizePaintToken(mFill[1]));
+      if (mStroke?.[1] && isLiteralColorToken(mStroke[1]))
+        paints.add(normalizePaintToken(mStroke[1]));
     }
   });
 
@@ -253,7 +285,9 @@ function normalizeSvgStringPaintToCurrentColor(svgString: string): string {
           isLiteralColorToken(String(v)) ? "fill: currentColor" : `fill: ${v}`,
         )
         .replace(/stroke\s*:\s*([^;]+)/gi, (_m, v) =>
-          isLiteralColorToken(String(v)) ? "stroke: currentColor" : `stroke: ${v}`,
+          isLiteralColorToken(String(v))
+            ? "stroke: currentColor"
+            : `stroke: ${v}`,
         );
       el.setAttribute("style", nextStyle);
     }
@@ -398,7 +432,8 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
 }) => {
   const icons = useIcons();
   const IconComponent = icons.icons[name];
-  const isOverride = (allIcons as Record<string, unknown>)[name] !== IconComponent;
+  const isOverride =
+    (allIcons as Record<string, unknown>)[name] !== IconComponent;
   const nextProps = applyOverrideIconSize(props, isOverride);
 
   if (!IconComponent) {
@@ -406,10 +441,9 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
   }
 
   if (React.isValidElement(IconComponent)) {
-    const normalized =
-      isMonochromeSvgElement(IconComponent)
-        ? normalizeSvgElementPaintToCurrentColor(IconComponent)
-        : IconComponent;
+    const normalized = isMonochromeSvgElement(IconComponent)
+      ? normalizeSvgElementPaintToCurrentColor(IconComponent)
+      : IconComponent;
     const wrappedNode = React.cloneElement(normalized, {
       width: "1em",
       height: "1em",
@@ -429,8 +463,8 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
     const sizedSvg = React.cloneElement(
       parsed as React.ReactElement<React.SVGProps<SVGSVGElement>>,
       {
-      width: "1em",
-      height: "1em",
+        width: "1em",
+        height: "1em",
       },
     );
     return <Icon {...nextProps} component={() => sizedSvg} />;

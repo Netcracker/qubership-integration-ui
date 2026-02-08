@@ -516,12 +516,14 @@ pre[class*="language-"] .token.punctuation {
 
 .ant-modal-content {
   box-shadow: var(--modal-shadow, 0 12px 32px rgb(0 0 0 / 16%)) !important;
+
   /* Important: set the modal content background too (otherwise default white bleeds as a "frame" in dark theme). */
   background-color: var(
     --vscode-modal-background,
     var(--vscode-panel-background)
   ) !important;
   background-clip: padding-box;
+
   /* Keep border subtle and theme-driven; avoid color-mix to prevent unsupported/ignored rule fallback. */
   border: 1px solid var(--vscode-border, #303030) !important;
 }
