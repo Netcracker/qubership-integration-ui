@@ -1541,8 +1541,10 @@ export class RestApi implements Api {
     namespace: string,
     topicClassifierName: string,
   ): Promise<void> => {
-    await this.instance.post("/api/cip/v1/maas-actions/kafka", undefined, {
-      params: { namespace, topicClassifierName },
-    });
+    await this.instance.post(
+      `/api/v1/${getAppName()}/catalog/maas-actions/kafka`,
+      undefined,
+      { params: { namespace, topicClassifierName } },
+    );
   };
 }
