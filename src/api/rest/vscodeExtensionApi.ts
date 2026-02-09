@@ -953,6 +953,12 @@ export class VSCodeExtensionApi implements Api {
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
   }
+  createMaasKafkaEntity(
+    _namespace: string,
+    _topicClassifierName: string,
+  ): Promise<void> {
+    throw new Error("Method createMaasKafkaEntity not implemented.");
+  }
 }
 
 interface VSCodeApi<T> {

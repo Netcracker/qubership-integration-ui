@@ -1536,4 +1536,13 @@ export class RestApi implements Api {
     );
     return response.data;
   };
+
+  createMaasKafkaEntity = async (
+    namespace: string,
+    topicClassifierName: string,
+  ): Promise<void> => {
+    await this.instance.post("/api/cip/v1/maas-actions/kafka", undefined, {
+      params: { namespace, topicClassifierName },
+    });
+  };
 }

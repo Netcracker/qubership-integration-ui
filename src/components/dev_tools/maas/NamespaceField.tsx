@@ -13,7 +13,7 @@ export const NamespaceField: React.FC = () => {
         { pattern: NON_WHITESPACE_PATTERN, message: "Namespace cannot be empty" },
       ]}
     >
-      <Input disabled />
+      <Input />
     </Form.Item>
   );
 };
