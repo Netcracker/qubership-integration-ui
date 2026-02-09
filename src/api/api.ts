@@ -472,6 +472,11 @@ export interface Api {
   runValidations(ids: string[]): Promise<void>;
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
+
+  createMaasKafkaEntity(
+    namespace: string,
+    topicClassifierName: string,
+  ): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

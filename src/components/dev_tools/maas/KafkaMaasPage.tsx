@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Form, Input, Flex } from "antd";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Form, Input, Flex, message } from "antd";
 import { useForm } from "antd/lib/form/Form";
+import { api } from "../../../api/api.ts";
+import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { MaasFormActions } from "./MaasFormActions.tsx";
 import { MaasPageHeader } from "./MaasPageHeader.tsx";
 import { NamespaceField } from "./NamespaceField.tsx";
@@ -12,6 +14,22 @@ export const KafkaMaasPage: React.FC = () => {
   const [form] = useForm<KafkaMaasFormData>();
   const [exportInProgress, setExportInProgress] = useState(false);
   const [createInProgress, setCreateInProgress] = useState(false);
+  const notificationService = useNotificationService();
+
+  const formValues = Form.useWatch((values) => values, form) as
+    | Partial<KafkaMaasFormData>
+    | undefined;
+
+  const isFormValid = useMemo(() => {
+    const namespace = formValues?.namespace;
+    const topicClassifierName = formValues?.topicClassifierName;
+    return (
+      !!namespace &&
+      !!topicClassifierName &&
+      NON_WHITESPACE_PATTERN.test(namespace) &&
+      NON_WHITESPACE_PATTERN.test(topicClassifierName)
+    );
+  }, [formValues]);
 
   useEffect(() => {
     const namespace = (window as any)?.routes?.namespace || "";
@@ -48,37 +66,29 @@ export const KafkaMaasPage: React.FC = () => {
     try {
       const values = await form.validateFields();
       setCreateInProgress(true);
-      // TODO: Implement create functionality
-      // await createEntity(values.namespace, values.topicClassifierName);
-      console.log("Create functionality to be implemented", values);
+      await api.createMaasKafkaEntity(
+        values.namespace,
+        values.topicClassifierName,
+      );
+      message.success(
+        `MaaS Kafka entity created successfully: Namespace=[${values.namespace}] Topic Classifier=[${values.topicClassifierName}]`,
+      );
     } catch (error) {
-      console.error("Create validation failed:", error);
+      notificationService.requestFailed(
+        "Unable to create MaaS entity with given values.",
+        error,
+      );
     } finally {
       setCreateInProgress(false);
     }
-  }, [form]);
-
-  const isFormValid = useCallback(() => {
-    try {
-      const namespace = form.getFieldValue("namespace");
-      const topicClassifierName = form.getFieldValue("topicClassifierName");
-      return (
-        namespace &&
-        topicClassifierName &&
-        NON_WHITESPACE_PATTERN.test(namespace) &&
-        NON_WHITESPACE_PATTERN.test(topicClassifierName)
-      );
-    } catch {
-      return false;
-    }
-  }, [form]);
+  }, [form, notificationService]);
 
   return (
     <Flex vertical className={sharedStyles["container"]}>
       <MaasPageHeader
         title="Kafka - MaaS"
         exportInProgress={exportInProgress}
-        isFormValid={isFormValid()}
+        isFormValid={isFormValid}
         onExport={handleExport}
       />
 
@@ -110,7 +120,7 @@ export const KafkaMaasPage: React.FC = () => {
       <div className={styles["footer"]}>
         <MaasFormActions
           createInProgress={createInProgress}
-          isFormValid={isFormValid()}
+          isFormValid={isFormValid}
           onCreate={handleCreate}
           onReset={handleReset}
         />
