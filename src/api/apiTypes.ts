@@ -1164,9 +1164,23 @@ export type CustomResourceBuildRequest = {
 export type CustomResourceOptions = {
   language?: string;
   name?: string;
+  namespace?: string;
   container?: ContainerOptions;
+  monitoring?: MonitoringOptions;
+  service?: ServiceOptions;
   environment?: Record<string, string>;
+  resources?: string[];
+  serviceAccount?: string;
 };
+
+export type MonitoringOptions = {
+  enabled: boolean;
+  interval: string;
+}
+
+export type ServiceOptions = {
+  enabled: boolean;
+}
 
 export type ContainerOptions = {
   image?: string;
