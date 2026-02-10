@@ -1547,11 +1547,19 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  deployMicroDomain = async (request: MicroDomainDeployRequest): Promise<void> => {
+  deployMicroDomain = async (
+    request: MicroDomainDeployRequest,
+  ): Promise<void> => {
     const response = await this.instance.post<void>(
       `/api/v1/${getAppName()}/catalog/cr/deploy`,
       request,
     );
     return response.data;
+  };
+
+  deleteMicroDomain = async (name: string): Promise<void> => {
+    await this.instance.delete<void>(
+      `/api/v1/${getAppName()}/catalog/cr/${name}`,
+    );
   };
 }

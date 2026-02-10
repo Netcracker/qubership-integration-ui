@@ -960,6 +960,9 @@ export class VSCodeExtensionApi implements Api {
   deployMicroDomain(): Promise<void> {
     throw new Error("Method deployMicroDomain not implemented.");
   }
+  deleteMicroDomain(): Promise<void> {
+    throw new Error("Method deleteMicroDomain not implemented.");
+  }
 }
 
 interface VSCodeApi<T> {

@@ -478,6 +478,8 @@ export interface Api {
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
 
   deployMicroDomain(request: MicroDomainDeployRequest): Promise<void>;
+
+  deleteMicroDomain(name: string): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();
