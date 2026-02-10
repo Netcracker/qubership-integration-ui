@@ -34,6 +34,7 @@
   white-space: normal !important;
   line-height: 1.4 !important;
 }
+
 .libraryElements :global(.ant-menu-item .ant-menu-title-content) {
   overflow: visible !important;
   white-space: normal !important;
