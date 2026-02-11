@@ -124,9 +124,8 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       setMissingRequiredParamsMap((prev) => {
         const prevParams = prev[key];
         if (
-          prevParams &&
-          prevParams.length === params.length &&
-          prevParams.every((p, i) => p === params[i])
+          prevParams?.length === params.length &&
+          prevParams?.every((p, i) => p === params[i])
         ) {
           return prev;
         }
