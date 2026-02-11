@@ -28,7 +28,7 @@ const allIcons = {
   ...elementIcons,
 };
 
-const OVERRIDE_ICON_FONT_SIZE = "1.15em";
+const OVERRIDE_ICON_FONT_SIZE = "1em";
 
 function applyOverrideIconSize(
   props: AntdIconProps,
