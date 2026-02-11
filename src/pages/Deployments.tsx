@@ -1,12 +1,16 @@
 import React from "react";
-import { FloatButton, Table, Tooltip } from "antd";
+import { FloatButton, Space, Table, Tag, Tooltip } from "antd";
 import { useDeployments } from "../hooks/useDeployments.tsx";
 import { useParams } from "react-router";
 import { TableProps } from "antd/lib/table";
-import { CreateDeploymentRequest, Deployment } from "../api/apiTypes.ts";
+import {
+  CreateDeploymentRequest,
+  Deployment,
+  DomainType,
+} from "../api/apiTypes.ts";
 import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
-import { formatTimestamp } from "../misc/format-utils.ts";
+import { formatOptional, formatTimestamp } from "../misc/format-utils.ts";
 import { useModalsContext } from "../Modals.tsx";
 import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
 import { api } from "../api/api.ts";
@@ -34,7 +38,20 @@ export const Deployments: React.FC = () => {
         </>
       ),
     },
-    { title: "Domain", dataIndex: "domain", key: "domain" },
+    {
+      title: "Domain",
+      dataIndex: "domain",
+      key: "domain",
+      render: (_, deployment) =>
+        deployment.domainType === DomainType.MICRO ? (
+          <Space size={"small"}>
+            {deployment.domain}
+            <Tag>micro</Tag>
+          </Space>
+        ) : (
+          deployment.domain
+        ),
+    },
     {
       title: "Status",
       dataIndex: "runtime",
@@ -51,7 +68,9 @@ export const Deployments: React.FC = () => {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
-      render: (_, deployment) => <>{deployment.createdBy.username}</>,
+      render: (_, deployment) => (
+        <>{formatOptional(deployment.createdBy?.username)}</>
+      ),
     },
     {
       title: "Created At",

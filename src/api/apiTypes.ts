@@ -265,6 +265,7 @@ export type Deployment = {
   snapshotId: string;
   name: string;
   domain: string;
+  domainType: DomainType;
   createdWhen: number;
   createdBy: User;
   runtime?: RuntimeStates;
