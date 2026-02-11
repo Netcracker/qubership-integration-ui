@@ -32,6 +32,7 @@ export type FormContext = {
   integrationOperationQueryParameters?: Record<string, string>;
   integrationOperationSkipEmptyQueryParameters?: boolean;
   bodyFormData?: BodyFormEntry[];
+  externalRoute?: boolean;
   synchronousGrpcCall?: boolean;
 };
 
@@ -96,6 +97,10 @@ const FORM_CONTEXT_FIELD_CONFIG: Record<
   },
 
   // Boolean fields
+  externalRoute: {
+    transform: (val) =>
+      val !== undefined && val !== null ? Boolean(val) : undefined,
+  },
   synchronousGrpcCall: {
     transform: (val) =>
       val !== undefined && val !== null ? Boolean(val) : undefined,
