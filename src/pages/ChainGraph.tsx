@@ -37,6 +37,8 @@ import {
 
 import { useChainGraph } from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
+import { useElkDirection } from "../hooks/graph/useElkDirection.tsx";
+import { PageWithRightPanel } from "./PageWithRightPanel.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
 import { CreateDeploymentRequest, Element } from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
@@ -57,6 +59,7 @@ import {
   ExportChains,
 } from "../components/modal/ExportChains.tsx";
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
+import { exportAdditionsForChains } from "../misc/export-additions.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
 
 const readTheme = () => {
@@ -128,6 +131,8 @@ const ChainGraphInner: React.FC = () => {
     onContextMenuCall,
     isLoading,
   } = useChainGraph(chainId, refreshChain);
+
+  const { rightPanel, toggleRightPanel } = useElkDirection();
 
   const handleElementUpdated = useCallback(
     (element: Element, node: ChainGraphNode) => {
@@ -280,22 +285,16 @@ const ChainGraphInner: React.FC = () => {
       );
       const data = [chainsFile];
 
-      if (options.exportServices) {
-        const usedServices = await api.getServicesUsedByChains([chainId]);
-        if (usedServices.length > 0) {
-          const serviceIds = usedServices.map((i) => i.systemId);
-          const modelIds = usedServices.flatMap(
-            (i) => i.usedSystemModelIds ?? [],
-          );
-          const servicesData = await api.exportServices(serviceIds, modelIds);
-          data.push(servicesData);
-        }
-      }
-
-      if (options.exportVariables) {
-        const variablesData = await api.exportVariables([], true);
-        data.push(variablesData);
-      }
+      data.push(
+        ...(await exportAdditionsForChains({
+          api,
+          chainIdsForUsedSystems: [chainId],
+          options: {
+            exportServices: options.exportServices,
+            exportVariables: options.exportVariables,
+          },
+        })),
+      );
 
       const nonEmptyData = data.filter((d) => d.size !== 0);
       const archiveData = await mergeZipArchives(nonEmptyData);
@@ -420,12 +419,6 @@ const ChainGraphInner: React.FC = () => {
   const getMinimapNodeColor = useCallback(
     (node: Node<ChainGraphNodeData>) => {
       if (node.type === "container") {
-        if (currentTheme === "dark") {
-          return "#1f1f1f";
-        }
-        if (currentTheme === "high-contrast") {
-          return "#000000";
-        }
         return getCssVariableValue("--container-header-background", "#fff9e6");
       }
 
@@ -442,7 +435,7 @@ const ChainGraphInner: React.FC = () => {
 
       return "#fdf39d";
     },
-    [libraryElements, currentTheme, getCssVariableValue],
+    [libraryElements, getCssVariableValue],
   );
 
   const getMinimapNodeStrokeColor = useCallback(
@@ -468,7 +461,12 @@ const ChainGraphInner: React.FC = () => {
       <ElementsLibrarySidebar />
       <div className="react-flow-container" ref={reactFlowWrapper}>
         <ElkDirectionContextProvider
-          elkDirectionControl={{ direction, toggleDirection }}
+          elkDirectionControl={{
+            direction,
+            toggleDirection,
+            rightPanel,
+            toggleRightPanel,
+          }}
         >
           <ReactFlow
             nodes={nodes}
@@ -502,13 +500,14 @@ const ChainGraphInner: React.FC = () => {
               position="top-right"
               nodeColor={getMinimapNodeColor}
               nodeStrokeColor={getMinimapNodeStrokeColor}
-              nodeStrokeWidth={1}
+              nodeStrokeWidth={2}
             />
             <CustomControls />
             {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
           </ReactFlow>
         </ElkDirectionContextProvider>
       </div>
+      {rightPanel && <PageWithRightPanel />}
       <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           icon={<>⭾</>}
