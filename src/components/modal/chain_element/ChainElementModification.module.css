@@ -77,8 +77,8 @@
 .parameters-form
   :global(
     .ant-form-item-control-input:has(
-      .ant-form-item-control-input-content > div:only-child:empty
-    )
+        .ant-form-item-control-input-content > div:only-child:empty
+      )
   ) {
   min-height: 0;
 }

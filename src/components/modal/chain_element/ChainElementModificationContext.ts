@@ -13,7 +13,10 @@ export type FormContext = {
   readonly elementType?: string;
   readonly chainId?: string;
   readonly updateContext?: (newProperties: Record<string, unknown>) => void;
-  readonly reportMissingRequiredParams?: (key: string, params: string[]) => void;
+  readonly reportMissingRequiredParams?: (
+    key: string,
+    params: string[],
+  ) => void;
 
   // === PROPERTIES (saved to element) ===
   integrationSystemId?: string;
