@@ -28,24 +28,6 @@ const allIcons = {
   ...elementIcons,
 };
 
-const OVERRIDE_ICON_FONT_SIZE = "1em";
-
-function applyOverrideIconSize(
-  props: AntdIconProps,
-  isOverride: boolean,
-): AntdIconProps {
-  if (!isOverride) return props;
-  const style: React.CSSProperties = props.style ?? {};
-  if (style.fontSize) return props;
-  return {
-    ...props,
-    style: {
-      ...style,
-      fontSize: OVERRIDE_ICON_FONT_SIZE,
-    },
-  };
-}
-
 export interface IconContextType {
   icons: IconOverrides;
   setIcons: (icons: IconOverrides) => void;
@@ -115,10 +97,6 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
 }) => {
   const icons = useIcons();
   const IconComponent = icons.icons[name];
-  const isOverride =
-    (allIcons as Record<string, unknown>)[name] !== IconComponent;
-  const nextProps = applyOverrideIconSize(props, isOverride);
-
   if (!IconComponent) {
     return null;
   }
@@ -132,7 +110,7 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
       width: "1em",
       height: "1em",
     });
-    return <Icon {...nextProps} component={() => wrappedNode} />;
+    return <Icon {...props} component={() => wrappedNode} />;
   }
 
   // SVG string (e.g. "<svg>...</svg>" from config)
@@ -157,14 +135,14 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
       svgElement as React.ReactElement<React.SVGProps<SVGSVGElement>>,
       { width: "1em", height: "1em" },
     );
-    return <Icon {...nextProps} component={() => sizedSvg} />;
+    return <Icon {...props} component={() => sizedSvg} />;
   }
 
   // Component (function or class) — use DOM-based color normalization
   return (
     <IconWithDomColorNormalize
       IconComponent={IconComponent as React.ComponentType<AntdIconProps>}
-      props={nextProps}
+      props={props}
     />
   );
 };
