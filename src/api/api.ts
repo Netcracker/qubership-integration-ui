@@ -480,6 +480,8 @@ export interface Api {
   deployMicroDomain(request: MicroDomainDeployRequest): Promise<void>;
 
   deleteMicroDomain(name: string): Promise<void>;
+
+  deleteChainFromMicroDomain(name: string, chainId: string): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

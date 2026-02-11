@@ -1562,4 +1562,10 @@ export class RestApi implements Api {
       `/api/v1/${getAppName()}/catalog/cr/${name}`,
     );
   };
+
+  deleteChainFromMicroDomain = async (name: string, chainId: string): Promise<void> => {
+    await this.instance.delete<void>(
+      `/api/v1/${getAppName()}/catalog/cr/${name}/${chainId}`,
+    );
+  }
 }

@@ -963,6 +963,9 @@ export class VSCodeExtensionApi implements Api {
   deleteMicroDomain(): Promise<void> {
     throw new Error("Method deleteMicroDomain not implemented.");
   }
+  deleteChainFromMicroDomain(): Promise<void> {
+    throw new Error("Method deleteChainFromMicroDomain not implemented.");
+  }
 }
 
 interface VSCodeApi<T> {

@@ -102,7 +102,11 @@ export const Deployments: React.FC = () => {
 
   const deleteDeployment = async (deployment: Deployment) => {
     try {
-      await api.deleteDeployment(deployment.id);
+      if (deployment.domainType === DomainType.MICRO) {
+        await api.deleteChainFromMicroDomain(deployment.domain, deployment.chainId);
+      } else {
+        await api.deleteDeployment(deployment.id);
+      }
       removeDeployment(deployment);
     } catch (error) {
       notificationService.requestFailed("Failed to delete deployment", error);
