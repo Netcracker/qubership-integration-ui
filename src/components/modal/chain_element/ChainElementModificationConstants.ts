@@ -50,6 +50,10 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       /* kafka trigger - maas*/
       "maxPollRecords",
       "maxPollIntervalMs",
+      /* http trigger */
+      "accessControlType",
+      "roles",
+      "abacParameters",
       "*",
     ],
     contextPath: {
@@ -100,6 +104,9 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       },
       mappingDescription: {
         "ui:field": "mappingField",
+      },
+      elementId: {
+        "ui:field": "chainTriggerElementIdField",
       },
     },
     exportFileExtension: {
@@ -359,6 +366,14 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:field": "singleSelectField",
     },
     abacParameters: {
+      "ui:order": [
+        "*",
+        "resourceType",
+        "operation",
+        "resourceDataType",
+        "resourceString",
+        "resourceMap",
+      ],
       resourceMap: {
         "ui:fieldReplacesAnyOrOneOf": true,
         "ui:field": "enhancedPatternPropertiesField",
@@ -545,6 +560,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.handlerContainer": "Handle Validation Failure",
   "properties.handlerContainer.script": "Handle Validation Failure",
   "properties.handlerContainer.mappingDescription": "Handle Validation Failure",
+  "properties.handlerContainer.throwException": "Handle Validation Failure",
   "properties.handleChainFailureAction": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.elementId":
@@ -552,15 +568,9 @@ export const pathToTabMap: Record<string, string> = {
   "properties.chainFailureHandlerContainer.script": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.mappingDescription":
     "Failure Response Mapping",
+  "properties.chainFailureHandlerContainer.throwException":
+    "Failure Response Mapping",
   "properties.validationSchema": "Validate Request",
-  "properties.roles": "Access Control",
-  "properties.accessControlType": "Access Control",
-  "properties.abacParameters": "Access Control",
-  "properties.abacParameters.resourceType": "Access Control",
-  "properties.abacParameters.operation": "Access Control",
-  "properties.abacParameters.resourceDataType": "Access Control",
-  "properties.abacParameters.resourceString": "Access Control",
-  "properties.abacParameters.resourceMap": "Access Control",
   "properties.allowedContentTypes": "Validate Request",
   "properties.rejectRequestIfNonNullBodyGetDelete": "Validate Request",
   "properties.authorizationConfiguration": "Authorization",
@@ -576,7 +586,11 @@ export const pathToTabMap: Record<string, string> = {
   "properties.idempotency.chainTriggerParameters.chainCallTimeout":
     "Idempotency",
   "properties.before": "Prepare Request",
+  "properties.before.script": "Prepare Request",
+  "properties.before.mappingDescription": "Prepare Request",
   "properties.after": "Handle Response",
+  "properties.after.items.script": "Handle Response",
+  "properties.after.items.mappingDescription": "Handle Response",
   "properties.afterValidation": "Validations",
   "properties.requestFilterHeaderAllowlist": "Filter Request",
   "properties.logLevel": "Logging",
@@ -600,7 +614,6 @@ export const desiredTabOrder = [
   "Handle Validation Failure",
   "Handle Response",
   "Failure Response Mapping",
-  "Access Control",
   "Filter Request",
   "Logging",
   "Script",
@@ -608,6 +621,22 @@ export const desiredTabOrder = [
   "Header Modification",
   "Parameters",
   "Idempotency",
+];
+
+/**
+ * Tabs that should only be visible when a condition on formContext is met.
+ * If a tab is not listed here, it's always visible.
+ */
+type ConditionalTab = {
+  tab: string;
+  isVisible: (formContext: Record<string, unknown>) => boolean;
+};
+
+export const conditionalTabs: ConditionalTab[] = [
+  {
+    tab: "Validations",
+    isVisible: (ctx) => ctx.integrationOperationProtocolType === "http",
+  },
 ];
 
 export function getTabForPath(

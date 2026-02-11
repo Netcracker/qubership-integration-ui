@@ -74,6 +74,11 @@ import {
   BulkDeploymentResult,
   ImportVariablesResult,
   VariableImportPreview,
+  UsedProperty,
+  AccessControlSearchRequest,
+  AccessControlResponse,
+  AccessControlUpdateRequest,
+  AccessControlBulkDeployRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -769,10 +774,7 @@ export class RestApi implements Api {
   };
 
   deleteSnapshots = async (snapshotIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `${this.v2()}/snapshots/bulk-delete`,
-      snapshotIds,
-    );
+    await this.instance.post(`${this.v2()}/snapshots/bulk-delete`, snapshotIds);
   };
 
   revertToSnapshot = async (
@@ -1075,10 +1077,7 @@ export class RestApi implements Api {
   };
 
   deleteFolders = async (folderIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `${this.v2()}/folders/bulk-delete`,
-      folderIds,
-    );
+    await this.instance.post(`${this.v2()}/folders/bulk-delete`, folderIds);
   };
 
   listFolder = async (
@@ -1481,6 +1480,16 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  getEnvironment = async (
+    systemId: string,
+    environmentId: string,
+  ): Promise<Environment> => {
+    const response = await this.instance.get<Environment>(
+      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
+    );
+    return response.data;
+  };
+
   getEnvironments = async (systemId: string): Promise<Environment[]> => {
     const response = await this.instance.get<Environment[]>(
       `${this.v1()}/systems-catalog/systems/${systemId}/environments`,
@@ -1582,14 +1591,22 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+  getOperations = async (
+    modelId: string,
+    paginationOptions: PaginationOptions = {},
+  ): Promise<SystemOperation[]> => {
+    const params: Record<string, string> = { modelId };
+
+    if (paginationOptions.offset !== undefined) {
+      params["offset"] = paginationOptions.offset.toString(10);
+    }
+    if (paginationOptions.count !== undefined) {
+      params["count"] = paginationOptions.count.toString(10);
+    }
+
     const response = await this.instance.get<SystemOperation[]>(
       `${this.v1()}/systems-catalog/operations`,
-      {
-        params: {
-          modelId,
-        },
-      },
+      { params },
     );
     return response.data;
   };
@@ -1878,6 +1895,46 @@ export class RestApi implements Api {
       `${this.v1()}/catalog/chains/deployments/bulk`,
       request,
     );
+    return response.data;
+  };
+
+  getUsedProperties = async (chainId: string): Promise<UsedProperty[]> => {
+    const response = await this.instance.get<UsedProperty[]>(
+      `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`,
+    );
+
+    return response.data;
+  };
+
+  loadHttpTriggerAccessControl = async (
+    searchRequest: AccessControlSearchRequest,
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.post<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
+    return response.data;
+  };
+
+  updateHttpTriggerAccessControl = async (
+    searchRequest: AccessControlUpdateRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
+
+    return response.data;
+  };
+
+  bulkDeployChainsAccessControl = async (
+    searchRequest: AccessControlBulkDeployRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles/redeploy`,
+      searchRequest,
+    );
+
     return response.data;
   };
 }

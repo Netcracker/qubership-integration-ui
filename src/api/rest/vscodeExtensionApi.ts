@@ -1,6 +1,7 @@
 import {
   ActionDifference,
   ActionLogResponse,
+  AccessControlResponse,
   BaseEntity,
   Chain,
   ChainDeployment,
@@ -55,6 +56,8 @@ import {
   BulkDeploymentResult,
   ImportVariablesResult,
   VariableImportPreview,
+  UsedProperty,
+  PaginationOptions,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -518,6 +521,19 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method exportContextServices not implemented.");
   }
 
+  getEnvironment = async (
+    systemId: string,
+    environmentId: string,
+  ): Promise<Environment> => {
+    const result = <Environment>(
+      await this.sendMessageToExtension("getEnvironment", {
+        serviceId: systemId,
+        environmentId,
+      })
+    ).payload;
+    return result;
+  };
+
   getEnvironments = async (systemId: string): Promise<Environment[]> => {
     const result = <Environment[]>(
       (await this.sendMessageToExtension("getEnvironments", systemId)).payload
@@ -586,7 +602,11 @@ export class VSCodeExtensionApi implements Api {
     ).payload;
   };
 
-  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+  getOperations = async (
+    modelId: string,
+    _paginationOptions: PaginationOptions = {},
+  ): Promise<SystemOperation[]> => {
+    console.log("ALSU VSCODE API");
     return <SystemOperation[]>(
       (await this.sendMessageToExtension("getOperations", modelId)).payload
     );
@@ -694,8 +714,20 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method loadCatalogActionsLog not implemented.");
   }
 
+  loadVariablesManagementActionsLog(): Promise<ActionLogResponse> {
+    throw new Error(
+      "Method loadVariablesManagementActionsLog not implemented.",
+    );
+  }
+
   exportCatalogActionsLog(): Promise<Blob> {
     throw new Error("Method exportCatalogActionsLog not implemented.");
+  }
+
+  exportVariablesManagementActionsLog(): Promise<Blob> {
+    throw new Error(
+      "Method exportVariablesManagementActionsLog not implemented.",
+    );
   }
 
   getChains(): Promise<Chain[]> {
@@ -939,72 +971,104 @@ export class VSCodeExtensionApi implements Api {
   getValidations(): Promise<DiagnosticValidation[]> {
     throw new Error("Method getValidations not implemented.");
   }
+
   getValidation(): Promise<DiagnosticValidation> {
     throw new Error("Method getValidation not implemented.");
   }
+
   runValidations(): Promise<void> {
     throw new Error("Method runValidations not implemented.");
   }
+
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
   }
 
+  loadHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method loadHttpTriggerAccessControl not implemented.");
+  };
+
+  updateHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method updateHttpTriggerAccessControl not implemented.");
+  };
+
+  bulkDeployChainsAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method bulkDeployChainsAccessControl not implemented.");
+  };
+
   getCommonVariables(): Promise<ApiResponse<Variable[]>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   createCommonVariable(_variable: Variable): Promise<ApiResponse<string[]>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   updateCommonVariable(_variable: Variable): Promise<ApiResponse<Variable>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   deleteCommonVariables(_keys: string[]): Promise<boolean> {
     throw new RestApiError("Not implemented", 501);
   }
+
   exportVariables(_keys: string[], _asArchive?: boolean): Promise<File> {
     throw new RestApiError("Not implemented", 501);
   }
+
   importVariablesPreview(
     _formData: FormData,
   ): Promise<ApiResponse<VariableImportPreview[]>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   importVariables(
     _formData: FormData,
   ): Promise<ApiResponse<ImportVariablesResult>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   getSecuredVariables(): Promise<ApiResponse<SecretWithVariables[]>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   getSecuredVariablesForSecret(
     _secretName: string,
   ): Promise<ApiResponse<Variable[]>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   createSecuredVariables(
     _secretName: string,
     _variables: Variable[],
   ): Promise<ApiResponse<Variable[]>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   updateSecuredVariables(
     _secretName: string,
     _variables: Variable[],
   ): Promise<ApiResponse<Variable[]>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   deleteSecuredVariables(
     _secretName: string,
     _keys: string[],
   ): Promise<ApiResponse<boolean>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   createSecret(_secretName: string): Promise<ApiResponse<boolean>> {
     throw new RestApiError("Not implemented", 501);
   }
+
   downloadHelmChart(_secretName: string): Promise<File> {
     throw new RestApiError("Not implemented", 501);
+  }
+
+  getUsedProperties(_chainId: string): Promise<UsedProperty[]> {
+    throw new Error("Method loadHttpTriggerAccessControl not implemented.");
   }
 }
 
