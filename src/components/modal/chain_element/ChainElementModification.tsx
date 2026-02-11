@@ -65,6 +65,9 @@ import {
   transformValidationErrors,
   hasCriticalErrors,
 } from "./formValidationHelpers.ts";
+import BasePathField from "./field/BasePathField.tsx";
+import ExternalRouteCheckbox from "./field/ExternalRouteCheckbox.tsx";
+import ContextPathWithPrefixField from "./field/ContextPathWithPrefixField.tsx";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -521,6 +524,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         props["httpMethodRestrict"] = { "ui:widget": "hidden" };
       }
 
+      if (node.data.elementType === "http-trigger") {
+        props["contextPath"] = { "ui:field": "contextPathWithPrefixField" };
+        props["integrationOperationPath"] = { "ui:field": "basePathField" };
+        props["externalRoute"] = { "ui:field": "externalRouteCheckbox" };
+      }
+
       if (activeKey && activeKey !== "Endpoint") {
         props["ui:fieldReplacesAnyOrOneOf"] = true;
         props["ui:field"] = "hidden";
@@ -654,6 +663,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               singleSelectField: SingleSelectField,
               contextServiceField: ContextServiceField,
               chainTriggerElementIdField: ChainTriggerElementIdField,
+              basePathField: BasePathField,
+              externalRouteCheckbox: ExternalRouteCheckbox,
+              contextPathWithPrefixField: ContextPathWithPrefixField,
             }}
             widgets={widgets}
             onChange={(e) => {
