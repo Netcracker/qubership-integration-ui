@@ -7,7 +7,7 @@ This guide explains how to integrate the built-in documentation system into host
 The documentation system works by:
 
 1. **Fetching** Markdown files from a source (Git repository, npm package, or local directory)
-2. **Indexing** them to generate search indexes, table of contents, and navigation metadata
+2. **Indexing** them to generate search indices, table of contents, and navigation metadata
 3. **Serving** the files as static assets that the UI loads at runtime
 
 The fetch and index scripts are included in the `@netcracker/qip-ui` npm package, so host applications can reuse them.
