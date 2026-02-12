@@ -31,7 +31,6 @@
   ],
   "scripts": {
     "dev": "vite",
-    "predev": "npm run fetch-docs",
     "build": "vite build",
     "prebuild": "npm run fetch-docs",
     "build:lib": "vite build --config vite.config.lib.ts",
@@ -39,7 +38,6 @@
     "build:lib:bundled": "vite build --config vite.config.lib.bundled.ts",
     "build:lib:all": "npm run build:lib:external && npm run build:lib:bundled && node scripts/fix-preload.js",
     "fetch-docs": "node scripts/fetch-documentation.mjs",
-    "build:doc-index": "node scripts/build-doc-index.js",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css,scss,json,md}\"",
