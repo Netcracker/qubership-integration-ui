@@ -3,9 +3,9 @@ import { DocumentationService } from "../../../src/services/documentation/docume
 // Mock appConfig to avoid import.meta.env issues in Jest
 jest.mock("../../../src/appConfig", () => ({
   getConfig: jest.fn(() => ({
-    documentationRouteBase: "/doc",
-    documentationAssetsBaseUrl: "/doc",
+    documentationBaseUrl: "/doc",
   })),
+  onConfigChange: jest.fn(() => () => {}),
 }));
 
 describe("DocumentationService - Element Type Mapping", () => {

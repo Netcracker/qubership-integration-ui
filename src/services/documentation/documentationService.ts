@@ -3,8 +3,9 @@
 import "../../lunr-init";
 
 import type { DocumentMappingRule, HighlightSegment, SearchResult, TableOfContentNode } from "./documentationTypes";
-import { DOCUMENTATION_ASSETS_BASE_URL, DOCUMENTATION_ROUTE_BASE, joinUrl } from "./documentationUrlUtils";
+import { getDocumentationAssetsBaseUrl, DOCUMENTATION_ROUTE_BASE, joinUrl } from "./documentationUrlUtils";
 import { extractWords, formatFragmentSegments, segmentsToSafeHtml } from "./documentationHighlightUtils";
+import { onConfigChange } from "../../appConfig";
 
 import elasticlunr from "elasticlunr";
 
@@ -68,9 +69,19 @@ export class DocumentationService {
       window.open(url, target),
   ) {}
 
+  public resetCaches(): void {
+    this.pathsPromise = null;
+    this.namesPromise = null;
+    this.tocPromise = null;
+    this.searchIndexPromise = null;
+    this.contextMappingPromise = null;
+    this.elementMappingPromise = null;
+    this.elementTypeMappingCache = null;
+  }
+
   private async loadResource<T>(path: string): Promise<T> {
     const fullPath = joinUrl(
-      DOCUMENTATION_ASSETS_BASE_URL,
+      getDocumentationAssetsBaseUrl(),
       path.startsWith("/") ? path : `/${path}`,
     );
 
@@ -431,3 +442,7 @@ export class DocumentationService {
 }
 
 export const documentationService = new DocumentationService();
+
+onConfigChange(() => {
+  documentationService.resetCaches();
+});

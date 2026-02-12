@@ -7,7 +7,7 @@ import { DocumentationSearch } from "../components/documentation/DocumentationSe
 import { useDocumentation } from "../hooks/useDocumentation";
 import { useNavigate } from "react-router-dom";
 import {
-  DOCUMENTATION_ASSETS_BASE_URL,
+  getDocumentationAssetsBaseUrl,
   DOCUMENTATION_ROUTE_BASE,
   joinUrl,
   toDocMarkdownAssetPath,
@@ -32,7 +32,7 @@ export const DocumentationPage: React.FC = () => {
 
       try {
         const routeBase = DOCUMENTATION_ROUTE_BASE;
-        const assetsBaseUrl = DOCUMENTATION_ASSETS_BASE_URL;
+        const assetsBaseUrl = getDocumentationAssetsBaseUrl();
 
         // Handle search page
         if (location.pathname === `${routeBase}/search`) {
