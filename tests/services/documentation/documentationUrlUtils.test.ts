@@ -1,5 +1,6 @@
+const mockGetConfig = jest.fn(() => ({}));
 jest.mock("../../../src/appConfig", () => ({
-  getConfig: () => ({}),
+  getConfig: () => mockGetConfig(),
 }));
 
 import {
@@ -11,12 +12,25 @@ import {
 } from "../../../src/services/documentation/documentationUrlUtils";
 
 describe("documentationUrlUtils", () => {
+  beforeEach(() => {
+    mockGetConfig.mockReturnValue({});
+  });
+
   test("DOCUMENTATION_ROUTE_BASE is /doc", () => {
     expect(DOCUMENTATION_ROUTE_BASE).toBe("/doc");
   });
 
   test("getDocumentationAssetsBaseUrl defaults to /doc", () => {
     expect(getDocumentationAssetsBaseUrl()).toBe("/doc");
+  });
+
+  test("getDocumentationAssetsBaseUrl returns custom value from config", () => {
+    mockGetConfig.mockReturnValue({
+      documentationBaseUrl: "https://example.com/custom-docs",
+    });
+    expect(getDocumentationAssetsBaseUrl()).toBe(
+      "https://example.com/custom-docs",
+    );
   });
 
   test("joinUrl joins base and path safely", () => {

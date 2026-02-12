@@ -2,9 +2,22 @@
 // This ensures lunr is available when elasticlunr loads
 import "../../lunr-init";
 
-import type { DocumentMappingRule, HighlightSegment, SearchResult, TableOfContentNode } from "./documentationTypes";
-import { getDocumentationAssetsBaseUrl, DOCUMENTATION_ROUTE_BASE, joinUrl } from "./documentationUrlUtils";
-import { extractWords, formatFragmentSegments, segmentsToSafeHtml } from "./documentationHighlightUtils";
+import type {
+  DocumentMappingRule,
+  HighlightSegment,
+  SearchResult,
+  TableOfContentNode,
+} from "./documentationTypes";
+import {
+  getDocumentationAssetsBaseUrl,
+  DOCUMENTATION_ROUTE_BASE,
+  joinUrl,
+} from "./documentationUrlUtils";
+import {
+  extractWords,
+  formatFragmentSegments,
+  segmentsToSafeHtml,
+} from "./documentationHighlightUtils";
 import { onConfigChange } from "../../appConfig";
 
 import elasticlunr from "elasticlunr";
@@ -418,7 +431,8 @@ export class DocumentationService {
     } else {
       console.log("Documentation mapping rule not found");
     }
-    const mappedPath = mappingRule?.doc || `${DOCUMENTATION_ROUTE_BASE}/not-found`;
+    const mappedPath =
+      mappingRule?.doc || `${DOCUMENTATION_ROUTE_BASE}/not-found`;
     console.log("Documentation mapping:", path, "->", mappedPath);
     return mappedPath;
   }

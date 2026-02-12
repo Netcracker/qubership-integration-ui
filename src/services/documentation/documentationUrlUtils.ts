@@ -6,7 +6,9 @@ export const DOCUMENTATION_ROUTE_BASE = "/doc";
 export const DEFAULT_DOCUMENTATION_ASSETS_BASE_URL = "/doc";
 
 export function getDocumentationAssetsBaseUrl(): string {
-  return getConfig().documentationBaseUrl || DEFAULT_DOCUMENTATION_ASSETS_BASE_URL;
+  return (
+    getConfig().documentationBaseUrl || DEFAULT_DOCUMENTATION_ASSETS_BASE_URL
+  );
 }
 
 export function normalizeBasePath(basePath: string): string {

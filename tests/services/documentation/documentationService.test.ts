@@ -8,6 +8,102 @@ jest.mock("../../../src/appConfig", () => ({
   onConfigChange: jest.fn(() => () => {}),
 }));
 
+describe("DocumentationService - Resource Loading", () => {
+  let service: DocumentationService;
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = jest.fn();
+    service = new DocumentationService(mockFetch, jest.fn());
+  });
+
+  test("loadPaths fetches and caches paths.json", async () => {
+    const mockPaths = ["00__Overview/overview.md", "01__Chains/chains.md"];
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: () => Promise.resolve(mockPaths),
+    });
+
+    const result = await service.loadPaths();
+    expect(result).toEqual(mockPaths);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("paths.json"),
+    );
+
+    // Second call uses cache
+    await service.loadPaths();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("loadNames fetches and caches names.json", async () => {
+    const mockNames = [["Overview"], ["Chains"]];
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: () => Promise.resolve(mockNames),
+    });
+
+    const result = await service.loadNames();
+    expect(result).toEqual(mockNames);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("names.json"),
+    );
+  });
+
+  test("loadTOC fetches and caches toc.json", async () => {
+    const mockTOC = { title: "", children: [] };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: () => Promise.resolve(mockTOC),
+    });
+
+    const result = await service.loadTOC();
+    expect(result).toEqual(mockTOC);
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("toc.json"));
+  });
+
+  test("loadResource throws on non-ok response", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      statusText: "Not Found",
+      headers: new Headers(),
+    });
+
+    await expect(service.loadPaths()).rejects.toThrow("Failed to load");
+  });
+
+  test("loadResource throws on HTML response (SPA fallback)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "text/html" }),
+      text: () => Promise.resolve("<!DOCTYPE html><html></html>"),
+    });
+
+    await expect(service.loadPaths()).rejects.toThrow(
+      "received HTML instead of JSON",
+    );
+  });
+
+  test("resetCaches allows re-fetching after clear", async () => {
+    const mockPaths = ["00__Overview/overview.md"];
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: () => Promise.resolve(mockPaths),
+    });
+
+    await service.loadPaths();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    service.resetCaches();
+
+    await service.loadPaths();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("DocumentationService - Element Type Mapping", () => {
   let service: DocumentationService;
   let mockFetch: jest.Mock;
@@ -310,6 +406,39 @@ describe("DocumentationService - Element Type Mapping", () => {
     });
   });
 
+  describe("resetCaches", () => {
+    test("clears all cached promises", async () => {
+      const loadPathsSpy = jest
+        .spyOn(service, "loadPaths")
+        .mockResolvedValue([
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
+        ]);
+
+      // Populate caches
+      await service.buildElementTypeMapping();
+      expect(loadPathsSpy).toHaveBeenCalledTimes(1);
+
+      // Reset and call again — should re-fetch
+      service.resetCaches();
+      await service.buildElementTypeMapping();
+      expect(loadPathsSpy).toHaveBeenCalledTimes(2);
+    });
+
+    test("clears elementTypeMappingCache", async () => {
+      jest
+        .spyOn(service, "loadPaths")
+        .mockResolvedValue([
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
+        ]);
+
+      await service.buildElementTypeMapping();
+      expect(service.elementTypeMappingCache).not.toBeNull();
+
+      service.resetCaches();
+      expect(service.elementTypeMappingCache).toBeNull();
+    });
+  });
+
   describe("openChainElementDocumentation", () => {
     test("opens documentation for valid element type", async () => {
       jest
@@ -338,7 +467,9 @@ describe("DocumentationService - Element Type Mapping", () => {
     });
 
     test("calls onError callback on failure", async () => {
-      jest.spyOn(service, "loadPaths").mockRejectedValue(new Error("Network error"));
+      jest
+        .spyOn(service, "loadPaths")
+        .mockRejectedValue(new Error("Network error"));
 
       const onErrorMock = jest.fn();
 

@@ -1,12 +1,12 @@
 # Documentation Integration Guide
 
-This guide explains how to integrate the built-in documentation system into host applications that use `@netcracker/qip-ui` as an npm dependency (e.g., VS Code extensions or other web applications).
+This guide explains how to integrate the built-in documentation system into host applications that use `@netcracker/qip-ui` as an npm dependency (e.g., Visual Studio Code extensions or other web applications).
 
 ## Overview
 
 The documentation system works by:
 
-1. **Fetching** markdown files from a source (git repository, npm package, or local directory)
+1. **Fetching** Markdown files from a source (Git repository, npm package, or local directory)
 2. **Indexing** them to generate search indexes, table of contents, and navigation metadata
 3. **Serving** the files as static assets that the UI loads at runtime
 
@@ -61,8 +61,8 @@ Create a `.documentation-config.json` file in your project root:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `source` | Yes | `"git"`, `"npm"`, or `"local"` |
-| `repository` | For git | Git repository URL |
-| `branch` | For git | Branch name (default: `"master"`) |
+| `repository` | For Git | Git repository URL |
+| `branch` | For Git | Branch name (default: `"master"`) |
 | `package` | For npm | npm package name |
 | `version` | For npm | npm version range |
 | `path` | Yes | Path to docs directory within the source |
@@ -83,7 +83,7 @@ Add the following scripts to your `package.json`:
 
 This will:
 - Clone/download documentation from the configured source
-- Generate `paths.json`, `names.json`, `toc.json`, and `search-index.json` indexes
+- Generate `paths.json`, `names.json`, `toc.json`, and `search-index.json` indices
 - Place everything in the `destination` directory (default: `public/doc`)
 
 ## Step 3: Configure the documentation base URL (if needed)
@@ -120,7 +120,7 @@ The documentation system will use your custom content instead.
 
 The documentation source must follow a specific directory naming convention for proper navigation and search:
 
-```
+```text
 docs/
   00__Overview/
     overview.md
@@ -143,9 +143,9 @@ docs/
 
 ### Generated output
 
-After running the fetch script, the destination directory will contain markdown files alongside generated indexes:
+After running the fetch script, the destination directory will contain Markdown files alongside generated indices:
 
-```
+```text
 public/doc/
   00__Overview/
     overview.md
