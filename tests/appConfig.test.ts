@@ -7,9 +7,7 @@ describe("appConfig - documentationBaseUrl", () => {
 
   test("can be set via configure()", () => {
     configure({ documentationBaseUrl: "https://example.com/docs" });
-    expect(getConfig().documentationBaseUrl).toBe(
-      "https://example.com/docs",
-    );
+    expect(getConfig().documentationBaseUrl).toBe("https://example.com/docs");
   });
 
   test("triggers config change listener", () => {
