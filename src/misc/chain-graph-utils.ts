@@ -341,6 +341,24 @@ export function sortParentsBeforeChildren<
   });
 }
 
+export function nonEmptyContainerExists(
+  nodesToDelete: ChainGraphNode[],
+): boolean {
+  const conteinerIds = new Set<string>();
+  const parentIdsFromUnits = new Set<string>();
+  for (const node of nodesToDelete) {
+    if (node.type === "container") {
+      conteinerIds.add(node.id);
+    } else if (node.type === "unit" && node.parentId) {
+      parentIdsFromUnits.add(node.parentId);
+    }
+  }
+
+  return Array.from(conteinerIds).some((containerId) =>
+    parentIdsFromUnits.has(containerId),
+  );
+}
+
 export function getContainerIdsForEdges(
   edges: Edge[],
   allNodes: ChainGraphNode[],
