@@ -3,16 +3,15 @@ import { FloatButton, Space, Table, Tag, Tooltip } from "antd";
 import { useDeployments } from "../hooks/useDeployments.tsx";
 import { useParams } from "react-router";
 import { TableProps } from "antd/lib/table";
-import {
-  CreateDeploymentRequest,
-  Deployment,
-  DomainType,
-} from "../api/apiTypes.ts";
+import { CreateDeploymentRequest, Deployment, DomainType } from "../api/apiTypes.ts";
 import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
 import { formatOptional, formatTimestamp } from "../misc/format-utils.ts";
 import { useModalsContext } from "../Modals.tsx";
-import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
+import {
+  CreateDeploymentOptions,
+  DeploymentCreate,
+} from "../components/modal/DeploymentCreate.tsx";
 import { api } from "../api/api.ts";
 import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
@@ -103,7 +102,10 @@ export const Deployments: React.FC = () => {
   const deleteDeployment = async (deployment: Deployment) => {
     try {
       if (deployment.domainType === DomainType.MICRO) {
-        await api.deleteChainFromMicroDomain(deployment.domain, deployment.chainId);
+        await api.deleteChainFromMicroDomain(
+          deployment.domain,
+          deployment.chainId,
+        );
       } else {
         await api.deleteDeployment(deployment.id);
       }
@@ -113,11 +115,23 @@ export const Deployments: React.FC = () => {
     }
   };
 
-  const createDeployment = async (request: CreateDeploymentRequest) => {
+  const createDeployment = async (options: CreateDeploymentOptions) => {
     if (!chainId) return;
     try {
-      const deployment = await api.createDeployment(chainId, request);
-      onDeploymentCreated(deployment);
+      await Promise.all(
+        options.domains
+          .filter((domain) => domain.type !== DomainType.MICRO)
+          .map(async (domain) => {
+            const request: CreateDeploymentRequest = {
+              domain: domain.name,
+              snapshotId: options.snapshotId,
+              suspended: false,
+            };
+            const deployment = await api.createDeployment(chainId, request);
+            onDeploymentCreated(deployment);
+          }),
+      );
+      // TODO deploy to microdomains
     } catch (error) {
       notificationService.requestFailed("Failed to create deployment", error);
     }
