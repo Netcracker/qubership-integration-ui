@@ -8,6 +8,7 @@ import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { isDev } from "../appConfig.ts";
 import { useDocumentation } from "../hooks/useDocumentation.ts";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
+import {AiAssistant} from "./ai/AiAssistant.tsx";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -76,6 +77,7 @@ const Navigation = ({
             onThemeChange={onThemeChange}
           />
         )}
+        <AiAssistant />
         <NotificationBar />
       </div>
     </nav>

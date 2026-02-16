@@ -4,6 +4,8 @@ import type { ThemeConfig } from "antd";
 export type AppConfig = {
   apiGateway?: string;
   appName?: string;
+  aiServiceUrl?: string;
+  aiAssistantName?: string;
   icons?: IconOverrides;
   cssVariables?: Record<string, string>;
   additionalCss?: string[];
@@ -15,6 +17,8 @@ export type AppConfig = {
 const appConfigValue: AppConfig = {
   appName: import.meta.env.VITE_API_APP,
   apiGateway: import.meta.env.VITE_GATEWAY,
+  aiServiceUrl: import.meta.env.VITE_AI_SERVICE_URL as string | undefined,
+  aiAssistantName: (import.meta.env.VITE_AI_ASSISTANT_NAME as string | undefined),
   icons: {},
   dev: import.meta.env.DEV,
 };
@@ -85,6 +89,16 @@ export function configure(config: Partial<AppConfig>): void {
     const oldValue = appConfigValue.apiGateway;
     appConfigValue.apiGateway = config.apiGateway;
     overrides.push(`apiGateway: "${oldValue}" -> "${config.apiGateway}"`);
+  }
+  if (config.aiServiceUrl !== undefined) {
+    const oldValue = appConfigValue.aiServiceUrl;
+    appConfigValue.aiServiceUrl = config.aiServiceUrl;
+    overrides.push(`aiServiceUrl: "${oldValue}" -> "${config.aiServiceUrl}"`);
+  }
+  if (config.aiAssistantName !== undefined) {
+    const oldValue = appConfigValue.aiAssistantName;
+    appConfigValue.aiAssistantName = config.aiAssistantName;
+    overrides.push(`aiAssistantName: "${oldValue}" -> "${config.aiAssistantName}"`);
   }
   if (config.icons !== undefined) {
     const previousIcons = appConfigValue.icons || {};
@@ -166,6 +180,16 @@ export function loadConfigFromEnv(): Partial<AppConfig> {
     config.appName = appName;
   }
 
+  const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL as string | undefined;
+  if (aiServiceUrl) {
+    config.aiServiceUrl = aiServiceUrl;
+  }
+
+  const aiAssistantName = import.meta.env.VITE_AI_ASSISTANT_NAME as string | undefined;
+  if (aiAssistantName) {
+    config.aiAssistantName = aiAssistantName;
+  }
+
   const cssVars = import.meta.env.VITE_CSS_VARIABLES as string | undefined;
   if (cssVars) {
     try {
@@ -205,6 +229,8 @@ export type AppExtensionProps = {
   appName?: string;
   icons?: IconOverrides;
   apiGateway?: string;
+  aiServiceUrl?: string;
+  aiAssistantName?: string;
   cssVariables?: Record<string, string>;
   additionalCss?: string[];
   themeOverrides?: Partial<ThemeConfig>;
