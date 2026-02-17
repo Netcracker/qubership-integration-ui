@@ -224,10 +224,7 @@ export interface Api {
 
   getCheckpointSessions(sessionIds: string[]): Promise<CheckpointSession[]>;
 
-  retrySessionFromCheckpoint(
-    chainId: string,
-    sessionId: string,
-  ): Promise<void>;
+  retrySessionFromCheckpoint(chainId: string, sessionId: string): Promise<void>;
 
   getFolder(folderId: string): Promise<FolderItem>;
 
