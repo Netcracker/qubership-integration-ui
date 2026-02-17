@@ -40,14 +40,12 @@
   color: var(--vscode-modal-foreground, var(--vscode-foreground));
 }
 
-
 .modal-footer {
   margin-top: auto;
 }
 
 .modal-body {
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden auto;
   flex: 1;
   min-height: 0;
   display: flex;
