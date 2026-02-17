@@ -16,8 +16,6 @@ import {
   CatalogItemType,
   ChainCreationRequest,
   ChainItem,
-  CustomResourceBuildRequest,
-  CustomResourceOptions,
   DeployMode,
   FolderItem,
   ListFolderRequest,
@@ -27,7 +25,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
 import { TextColumnFilterDropdown } from "../components/table/TextColumnFilterDropdown.tsx";
-import { formatDate, formatTimestamp } from "../misc/format-utils.ts";
+import { formatTimestamp } from "../misc/format-utils.ts";
 import { TimestampColumnFilterDropdown } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import { TableRowSelection } from "antd/lib/table/interface";
@@ -52,7 +50,6 @@ import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
 import styles from "./Chains.module.css";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
-import { ExportCRDialog } from "../components/modal/ExportCRDialog.tsx";
 import {
   DeployChains,
   DeployRequest,
@@ -454,33 +451,6 @@ const Chains = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const exportCR = async (options: CustomResourceOptions) => {
-    const ids = selectedRowKeys.map((k) => k.toString());
-    setIsLoading(true);
-    try {
-      const request: CustomResourceBuildRequest = {
-        options,
-        chainIds: ids,
-      };
-      const text = await api.buildCR(request);
-      const blob = new Blob([text], { type: "application/yaml" });
-      const timestamp = formatDate(new Date());
-      const fileName = `cr-${timestamp}.yaml`;
-      const file = new File([blob], fileName, { type: "application/yaml" });
-      downloadFile(file);
-    } catch (error) {
-      notificationService.requestFailed("Failed to export CR", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onExportCRBtnClick = () => {
-    showModal({
-      component: <ExportCRDialog onSubmit={(options) => exportCR(options)} />,
-    });
   };
 
   const pasteItem = async (destinationFolderId?: string) => {
@@ -1045,14 +1015,6 @@ const Chains = () => {
             tooltip={{ title: "Deploy selected chains", placement: "left" }}
             icon={<OverridableIcon name="send" />}
             onClick={onDeployBtnClick}
-          />
-          <FloatButton
-            tooltip={{
-              title: "Export selected chains as Camel K CR",
-              placement: "left",
-            }}
-            icon={<OverridableIcon name="kubernetes" />}
-            onClick={() => onExportCRBtnClick()}
           />
           <FloatButton
             tooltip={{ title: "Paste", placement: "left" }}
