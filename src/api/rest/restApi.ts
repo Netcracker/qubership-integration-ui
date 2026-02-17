@@ -75,30 +75,47 @@ import {
   BulkDeploymentResult,
   MicroDomainDeployRequest,
   BulkMicroDomainDeployResult,
+  ImportVariablesResult,
+  VariableImportPreview,
+  UsedProperty,
+  AccessControlSearchRequest,
+  AccessControlResponse,
+  AccessControlUpdateRequest,
+  AccessControlBulkDeployRequest
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
 import qs from "qs";
 import { getAppName, getConfig } from "../../appConfig.ts";
 import { EntityFilterModel } from "../../components/table/filter/filter.ts";
+import { registerRestAxiosInstance } from "./requestHeadersInterceptor.ts";
+import type {
+  ApiError,
+  ApiResponse,
+  SecretResponse,
+  SecretWithVariables,
+  Variable
+} from "../apiTypes.ts";
 
 export class RestApi implements Api {
   instance: AxiosInstance;
 
   constructor() {
     const config = getConfig();
-    const gateway = config.apiGateway || import.meta.env.VITE_GATEWAY;
+    const gateway = config.apiGateway;
     this.instance = rateLimit(
       axios.create({
         baseURL: gateway,
         timeout: 2000,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       }),
       {
         maxRequests: 50,
-        perMilliseconds: 1000,
-      },
+        perMilliseconds: 1000
+      }
     );
+
+    registerRestAxiosInstance(this.instance);
 
     this.instance.interceptors.response.use(
       (response) => response,
@@ -128,156 +145,518 @@ export class RestApi implements Api {
           }
         }
         return Promise.reject(
-          new RestApiError(message, responseCode, responseBody, error),
+          new RestApiError(message, responseCode, responseBody, error)
         );
-      },
+      }
     );
   }
 
+  private v1 = (): string => `/api/v1/${getAppName()}`;
+  private v2 = (): string => `/api/${getAppName()}/v2`;
+  private v3 = (): string => `/api/${getAppName()}/v3`;
+
+  private toApiError = (
+    serviceName: string,
+    message: string,
+    errorDate: string,
+    stacktrace?: string
+  ): ApiError => {
+    return {
+      responseBody: {
+        serviceName,
+        errorMessage: message,
+        errorDate,
+        stacktrace
+      }
+    };
+  };
+
+  private wrapApiResponse = async <T>(
+    serviceName: string,
+    fallbackMessage: string,
+    fn: () => Promise<T>
+  ): Promise<ApiResponse<T>> => {
+    try {
+      const data = await fn();
+      return { success: true, data };
+    } catch (error) {
+      // RestApi converts axios errors into RestApiError with responseBody when possible.
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        (error as { name?: unknown }).name === "RestApiError"
+      ) {
+        const e = error as RestApiError;
+        const body = e.responseBody;
+        if (body?.serviceName && body?.errorMessage && body?.errorDate) {
+          return {
+            success: false,
+            error: this.toApiError(
+              body.serviceName,
+              body.errorMessage,
+              body.errorDate,
+              body.stackTrace
+            )
+          };
+        }
+        if (e.message) {
+          return {
+            success: false,
+            error: this.toApiError(
+              serviceName,
+              e.message,
+              new Date().toISOString()
+            )
+          };
+        }
+      }
+
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          fallbackMessage,
+          new Date().toISOString()
+        )
+      };
+    }
+  };
+
+  private wrapBoolean = async (
+    fallbackMessage: string,
+    fn: () => Promise<void>
+  ): Promise<boolean> => {
+    try {
+      await fn();
+      return true;
+    } catch (error) {
+      // keep parity with old BaseApi.wrapBoolean(): no throw
+      console.error(fallbackMessage, error);
+      return false;
+    }
+  };
+
   getChains = async (): Promise<Chain[]> => {
     const response = await this.instance.get<Chain[]>(
-      `/api/v1/${getAppName()}/catalog/chains`,
+      `${this.v1()}/catalog/chains`
     );
     return response.data;
   };
 
+  // Admin Tools: Variables Management
+  getCommonVariables = async (): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch common variables",
+      async () => {
+        const response = await this.instance.get<unknown>(
+          `${prefix}/common-variables`
+        );
+        const rawData = response.data;
+        if (rawData && typeof rawData === "object" && !Array.isArray(rawData)) {
+          return Object.entries(rawData as Record<string, unknown>).map(
+            ([key, value]) => ({
+              key,
+              value: String(value)
+            })
+          );
+        }
+        throw new Error("Unexpected response format");
+      }
+    );
+  };
+
+  createCommonVariable = async (
+    variable: Variable
+  ): Promise<ApiResponse<string[]>> => {
+    return this.createCommonVariables({ [variable.key]: variable.value });
+  };
+
+  private createCommonVariables = async (
+    variables: Record<string, string>
+  ): Promise<ApiResponse<string[]>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create variables",
+      async () => {
+        const response = await this.instance.post<string[]>(
+          `${prefix}/common-variables`,
+          variables
+        );
+        return response.data;
+      }
+    );
+  };
+
+  updateCommonVariable = async (
+    variable: Variable
+  ): Promise<ApiResponse<Variable>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update variable",
+      async () => {
+        const response = await this.instance.patch<Variable>(
+          `${prefix}/common-variables/${variable.key}`,
+          variable.value,
+          { headers: { "Content-Type": "text/plain" } }
+        );
+        return response.data;
+      }
+    );
+  };
+
+  deleteCommonVariables = async (keys: string[]): Promise<boolean> => {
+    const prefix = `${this.v1()}/variables-management`;
+    return this.wrapBoolean("Failed to delete variables", async () => {
+      const params = new URLSearchParams();
+      keys.forEach((key) => params.append("variablesNames", key));
+      await this.instance.delete(`${prefix}/common-variables?${params}`);
+    });
+  };
+
+  exportVariables = async (keys: string[], asArchive = true): Promise<File> => {
+    const prefix = `${this.v1()}/variables-management`;
+    const params = new URLSearchParams();
+    keys.forEach((key) => params.append("variablesNames", key));
+    params.append("asArchive", String(asArchive));
+
+    const response = await this.instance.get<Blob>(
+      `${prefix}/common-variables/export?${params}`,
+      { responseType: "blob" }
+    );
+    return getFileFromResponse(response);
+  };
+
+  importVariablesPreview = async (
+    formData: FormData
+  ): Promise<ApiResponse<VariableImportPreview[]>> => {
+    const serviceName = "Common Variables API";
+    if (!formData) {
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          "No file selected or form data is empty.",
+          new Date().toISOString()
+        )
+      };
+    }
+    const path = `${this.v1()}/variables-management/common-variables/preview`;
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to get import variables preview",
+      async () => {
+        const response = await this.instance.post<VariableImportPreview[]>(
+          path,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        return response.data;
+      }
+    );
+  };
+
+  importVariables = async (
+    formData: FormData
+  ): Promise<ApiResponse<ImportVariablesResult>> => {
+    const serviceName = "Common Variables API";
+    if (!formData) {
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          "No file selected or form data is empty.",
+          new Date().toISOString()
+        )
+      };
+    }
+    const path = `${this.v2()}/common-variables/import`;
+    return this.wrapApiResponse(serviceName, "Failed to import", async () => {
+      const response = await this.instance.post<ImportVariablesResult>(
+        path,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return response.data;
+    });
+  };
+
+  getSecuredVariables = async (): Promise<
+    ApiResponse<SecretWithVariables[]>
+  > => {
+    const serviceName = "Secured Variables API";
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch secured variables",
+      async () => {
+        const response = await this.instance.get<SecretResponse[]>(
+          `${this.v2()}/secured-variables`
+        );
+        return response.data.map(
+          ({ secretName, variablesNames, defaultSecret }) => ({
+            secretName,
+            variables: variablesNames.map((key: string) => ({
+              key,
+              value: "******"
+            })),
+            isDefaultSecret: defaultSecret
+          })
+        );
+      }
+    );
+  };
+
+  getSecuredVariablesForSecret = async (
+    secretName: string
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch variables for secret",
+      async () => {
+        const response = await this.instance.get<string[]>(
+          `${this.v2()}/secured-variables/${secretName}`
+        );
+        return response.data.map((key: string) => ({ key, value: "******" }));
+      }
+    );
+  };
+
+  createSecuredVariables = async (
+    secretName: string,
+    variables: Variable[]
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+    const keyRegex = /^[a-zA-Z0-9_-]+$/;
+    for (const v of variables) {
+      if (!keyRegex.test(v.key)) {
+        return {
+          success: false,
+          error: this.toApiError(
+            serviceName,
+            `Invalid key: ${v.key}`,
+            new Date().toISOString()
+          )
+        };
+      }
+    }
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secured variables",
+      async () => {
+        await this.instance.post(`${this.v2()}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value]))
+        });
+        return variables;
+      }
+    );
+  };
+
+  updateSecuredVariables = async (
+    secretName: string,
+    variables: Variable[]
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update secured variables",
+      async () => {
+        await this.instance.patch(`${this.v2()}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value]))
+        });
+        return variables;
+      }
+    );
+  };
+
+  deleteSecuredVariables = async (
+    secretName: string,
+    keys: string[]
+  ): Promise<ApiResponse<boolean>> => {
+    const serviceName = "Secured Variables API";
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to delete secured variables",
+      async () => {
+        const params = new URLSearchParams();
+        keys.forEach((key) => params.append("variablesNames", key));
+        await this.instance.delete(
+          `${this.v2()}/secured-variables/${secretName}?${params}`
+        );
+        return true;
+      }
+    );
+  };
+
+  createSecret = async (secretName: string): Promise<ApiResponse<boolean>> => {
+    const serviceName = "Secured Variables API";
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secret",
+      async () => {
+        await this.instance.post(`${this.v2()}/secret/${secretName}`);
+        return true;
+      }
+    );
+  };
+
+  downloadHelmChart = async (secretName: string): Promise<File> => {
+    const response = await this.instance.get<Blob>(
+      `${this.v2()}/secret/template/${secretName}`,
+      { responseType: "blob" }
+    );
+    return getFileFromResponse(response);
+  };
+
   getChain = async (id: string): Promise<Chain> => {
     const response = await this.instance.get<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${id}`,
+      `${this.v1()}/catalog/chains/${id}`
     );
     return response.data;
   };
 
   findChainByElementId = async (elementId: string): Promise<Chain> => {
     const response = await this.instance.get<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/find-by-element/${elementId}`,
+      `${this.v1()}/catalog/chains/find-by-element/${elementId}`
     );
     return response.data;
   };
 
   updateChain = async (id: string, chain: Partial<Chain>): Promise<Chain> => {
     const response = await this.instance.put<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${id}`,
-      chain,
+      `${this.v1()}/catalog/chains/${id}`,
+      chain
     );
     return response.data;
   };
 
   createChain = async (chain: ChainCreationRequest): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains`,
-      chain,
+      `${this.v1()}/catalog/chains`,
+      chain
     );
     return response.data;
   };
 
   deleteChain = async (chainId: string): Promise<void> => {
-    await this.instance.delete<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}`,
-    );
+    await this.instance.delete<Chain>(`${this.v1()}/catalog/chains/${chainId}`);
   };
 
   deleteChains = async (chainIds: string[]): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/bulk-delete`,
-      chainIds,
+      `${this.v1()}/catalog/chains/bulk-delete`,
+      chainIds
     );
   };
 
   duplicateChain = async (chainId: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/duplicate`,
+      `${this.v1()}/catalog/chains/${chainId}/duplicate`
     );
     return response.data;
   };
 
   copyChain = async (chainId: string, folderId?: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/copy`,
+      `${this.v1()}/catalog/chains/${chainId}/copy`,
       null,
       {
-        params: { targetFolderId: folderId },
-      },
+        params: { targetFolderId: folderId }
+      }
     );
     return response.data;
   };
 
   moveChain = async (chainId: string, folder?: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/move`,
+      `${this.v1()}/catalog/chains/${chainId}/move`,
       null,
       {
-        params: { targetFolderId: folder },
-      },
+        params: { targetFolderId: folder }
+      }
     );
     return response.data;
   };
 
   exportAllChains = async (): Promise<File> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export`,
+      `${this.v1()}/catalog/export`,
       {
-        responseType: "blob",
-      },
+        responseType: "blob"
+      }
     );
     return getFileFromResponse(response);
   };
 
   exportChains = async (
     chainIds: string[],
-    exportSubchains: boolean,
+    exportSubchains: boolean
   ): Promise<File> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export/chains`,
+      `${this.v1()}/catalog/export/chains`,
       {
         params: { chainIds, exportWithSubChains: exportSubchains },
         paramsSerializer: {
-          indexes: null,
+          indexes: null
         },
-        responseType: "blob",
-      },
+        responseType: "blob"
+      }
     );
     return getFileFromResponse(response);
   };
 
   getLibrary = async (): Promise<LibraryData> => {
     const response = await this.instance.get<LibraryData>(
-      `/api/v1/${getAppName()}/catalog/library`,
+      `${this.v1()}/catalog/library`
     );
     return response.data;
   };
 
   getElementTypes = async (): Promise<ElementFilter[]> => {
     const response = await this.instance.get<ElementFilter[]>(
-      `/api/v1/${getAppName()}/catalog/library/elements/types`,
+      `${this.v1()}/catalog/library/elements/types`
     );
     return response.data;
   };
 
   getElements = async (chainId: string): Promise<Element[]> => {
     const response = await this.instance.get<Element[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`
     );
     return response.data;
   };
 
   getElementsByType = async (
     chainId: string,
-    elementType: string,
+    elementType: string
   ): Promise<ElementWithChainName[]> => {
     const response = await this.instance.get<ElementWithChainName[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/type/${elementType}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/type/${elementType}`
     );
     return response.data;
   };
 
   createElement = async (
     elementRequest: CreateElementRequest,
-    chainId: string,
+    chainId: string
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
-      elementRequest,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
+      elementRequest
     );
     return response.data;
   };
@@ -285,36 +664,36 @@ export class RestApi implements Api {
   updateElement = async (
     elementRequest: PatchElementRequest,
     chainId: string,
-    elementId: string,
+    elementId: string
   ): Promise<ActionDifference> => {
     const response = await this.instance.patch<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/${elementId}`,
-      elementRequest,
+      `${this.v1()}/catalog/chains/${chainId}/elements/${elementId}`,
+      elementRequest
     );
     return response.data;
   };
 
   transferElement = async (
     transferElementRequest: TransferElementRequest,
-    chainId: string,
+    chainId: string
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/transfer`,
-      transferElementRequest,
+      `${this.v1()}/catalog/chains/${chainId}/elements/transfer`,
+      transferElementRequest
     );
     return response.data;
   };
 
   deleteElements = async (
     elementIds: string[],
-    chainId: string,
+    chainId: string
   ): Promise<ActionDifference> => {
     const elementsIdsParam = elementIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
       {
-        params: { elementsIds: elementsIdsParam },
-      },
+        params: { elementsIds: elementsIdsParam }
+      }
     );
     return response.data;
   };
@@ -322,94 +701,91 @@ export class RestApi implements Api {
   modifyHttpTriggerProperties = async (
     chainId: string,
     specificationGroupId: string,
-    httpTriggerIds: string[],
+    httpTriggerIds: string[]
   ): Promise<void> => {
     await this.instance.put(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/properties-modification`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/properties-modification`,
       {},
       {
         params: {
           specificationGroupId: specificationGroupId,
-          httpTriggerIds: httpTriggerIds,
+          httpTriggerIds: httpTriggerIds
         },
         paramsSerializer: (params) =>
-          qs.stringify(params, { arrayFormat: "repeat" }),
-      },
+          qs.stringify(params, { arrayFormat: "repeat" })
+      }
     );
   };
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
     const response = await this.instance.get<Connection[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`
     );
     return response.data;
   };
 
   createConnection = async (
     connectionRequest: ConnectionRequest,
-    chainId: string,
+    chainId: string
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
-      connectionRequest,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
+      connectionRequest
     );
     return response.data;
   };
 
   deleteConnections = async (
     connectionIds: string[],
-    chainId: string,
+    chainId: string
   ): Promise<ActionDifference> => {
     const connectionIdsParam = connectionIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
       {
-        params: { dependenciesIds: connectionIdsParam },
-      },
+        params: { dependenciesIds: connectionIdsParam }
+      }
     );
     return response.data;
   };
 
   createSnapshot = async (chainId: string): Promise<Snapshot> => {
     const response = await this.instance.post<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots`
     );
     return response.data;
   };
 
   getSnapshots = async (chainId: string): Promise<Snapshot[]> => {
     const response = await this.instance.get<Snapshot[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots`
     );
     return response.data;
   };
 
   getSnapshot = async (snapshotId: string): Promise<Snapshot> => {
     const response = await this.instance.get<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`
     );
     return response.data;
   };
 
   deleteSnapshot = async (snapshotId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`
     );
   };
 
   deleteSnapshots = async (snapshotIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `/api/v2/${getAppName()}/catalog/snapshots/bulk-delete`,
-      snapshotIds,
-    );
+    await this.instance.post(`${this.v2()}/snapshots/bulk-delete`, snapshotIds);
   };
 
   revertToSnapshot = async (
     chainId: string,
-    snapshotId: string,
+    snapshotId: string
   ): Promise<Snapshot> => {
     const response = await this.instance.post<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots/${snapshotId}/revert`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots/${snapshotId}/revert`
     );
     return response.data;
   };
@@ -417,126 +793,126 @@ export class RestApi implements Api {
   updateSnapshot = async (
     snapshotId: string,
     name: string,
-    labels: EntityLabel[],
+    labels: EntityLabel[]
   ): Promise<Snapshot> => {
     const response = await this.instance.put<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`,
       {
         name,
-        labels,
-      },
+        labels
+      }
     );
     return response.data;
   };
 
   getLibraryElementByType = async (type: string): Promise<LibraryElement> => {
     const response = await this.instance.get<LibraryElement>(
-      `/api/v1/${getAppName()}/catalog/library/${type}`,
+      `${this.v1()}/catalog/library/${type}`
     );
     return response.data;
   };
 
   getDeployments = async (chainId: string): Promise<Deployment[]> => {
     const response = await this.instance.get<Deployment[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/deployments`,
+      `${this.v1()}/catalog/chains/${chainId}/deployments`
     );
     return response.data;
   };
 
   createDeployment = async (
     chainId: string,
-    request: CreateDeploymentRequest,
+    request: CreateDeploymentRequest
   ): Promise<Deployment> => {
     const response = await this.instance.post<Deployment>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/deployments`,
-      request,
+      `${this.v1()}/catalog/chains/${chainId}/deployments`,
+      request
     );
     return response.data;
   };
 
   deleteDeployment = async (deploymentId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/deployments/${deploymentId}`,
+      `${this.v1()}/catalog/chains/chainId/deployments/${deploymentId}`
     );
   };
 
   getDomains = async (): Promise<EngineDomain[]> => {
     const response = await this.instance.get<EngineDomain[]>(
-      `/api/v1/${getAppName()}/catalog/domains`,
+      `${this.v1()}/catalog/domains`
     );
     return response.data;
   };
 
   getLoggingSettings = async (
-    chainId: string,
+    chainId: string
   ): Promise<ChainLoggingSettings> => {
     const response = await this.instance.get<ChainLoggingSettings>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`
     );
     return response.data;
   };
 
   setLoggingProperties = async (
     chainId: string,
-    properties: ChainLoggingProperties,
+    properties: ChainLoggingProperties
   ): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
-      properties,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`,
+      properties
     );
   };
 
   deleteLoggingSettings = async (chainId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`
     );
   };
 
   getMaskedFields = async (chainId: string): Promise<MaskedField[]> => {
     const response = await this.instance.get<MaskedFields>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking`,
+      `${this.v1()}/catalog/chains/${chainId}/masking`
     );
     return response.data.fields;
   };
 
   createMaskedField = async (
     chainId: string,
-    maskedField: Partial<Omit<MaskedField, "id">>,
+    maskedField: Partial<Omit<MaskedField, "id">>
   ): Promise<MaskedField> => {
     const response = await this.instance.post<MaskedField>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking`,
-      maskedField,
+      `${this.v1()}/catalog/chains/${chainId}/masking`,
+      maskedField
     );
     return response.data;
   };
 
   deleteMaskedFields = async (
     chainId: string,
-    maskedFieldIds: string[],
+    maskedFieldIds: string[]
   ): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking/field`,
-      maskedFieldIds,
+      `${this.v1()}/catalog/chains/${chainId}/masking/field`,
+      maskedFieldIds
     );
   };
 
   deleteMaskedField = async (
     chainId: string,
-    maskedFieldId: string,
+    maskedFieldId: string
   ): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
+      `${this.v1()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`
     );
   };
 
   updateMaskedField = async (
     chainId: string,
     maskedFieldId: string,
-    changes: Partial<Omit<MaskedField, "id">>,
+    changes: Partial<Omit<MaskedField, "id">>
   ): Promise<MaskedField> => {
     const response = await this.instance.put<MaskedField>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
-      changes,
+      `${this.v1()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
+      changes
     );
     return response.data;
   };
@@ -544,9 +920,9 @@ export class RestApi implements Api {
   getSessions = async (
     chainId: string | undefined,
     filters: SessionFilterAndSearchRequest,
-    paginationOptions: PaginationOptions,
+    paginationOptions: PaginationOptions
   ): Promise<SessionSearchResponse> => {
-    const prefix = `/api/v1/${getAppName()}/sessions-management/sessions`;
+    const prefix = `${this.v1()}/sessions-management/sessions`;
     const url = chainId ? `${prefix}/chains/${chainId}` : prefix;
     const params: Record<string, string> = {};
     if (paginationOptions.offset) {
@@ -558,31 +934,31 @@ export class RestApi implements Api {
     const response = await this.instance.post<SessionSearchResponse>(
       url,
       filters,
-      { params },
+      { params }
     );
     return response.data;
   };
 
   deleteSessions = async (sessionIds: string[]): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/sessions-management/sessions/bulk-delete`,
-      sessionIds,
+      `${this.v1()}/sessions-management/sessions/bulk-delete`,
+      sessionIds
     );
   };
 
   deleteSessionsByChainId = async (
-    chainId: string | undefined,
+    chainId: string | undefined
   ): Promise<void> => {
-    const prefix = `/api/v1/${getAppName()}/sessions-management/sessions`;
+    const prefix = `${this.v1()}/sessions-management/sessions`;
     const url = chainId ? `${prefix}/chains/${chainId}` : prefix;
     await this.instance.delete(url);
   };
 
   exportSessions = async (sessionIds: string[]): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `/api/v1/${getAppName()}/sessions-management/sessions/export`,
+      `${this.v1()}/sessions-management/sessions/export`,
       sessionIds,
-      { responseType: "blob" },
+      { responseType: "blob" }
     );
     return getFileFromResponse(response);
   };
@@ -594,181 +970,176 @@ export class RestApi implements Api {
     headers.set("Content-Type", "multipart/form-data");
     headers.set("accept", "*/*");
     const response = await this.instance.post<Session[]>(
-      `/api/v1/${getAppName()}/sessions-management/sessions/import`,
+      `${this.v1()}/sessions-management/sessions/import`,
       formData,
-      { headers },
+      { headers }
     );
     return response.data;
   };
 
   retryFromLastCheckpoint = async (
     chainId: string,
-    sessionId: string,
+    sessionId: string
   ): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
+      `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
+      null
     );
   };
 
   getSession = async (sessionId: string): Promise<Session> => {
     const response = await this.instance.get<Session>(
-      `/api/v1/${getAppName()}/sessions-management/sessions/${sessionId}`,
+      `${this.v1()}/sessions-management/sessions/${sessionId}`
     );
     return response.data;
   };
 
   getCheckpointSessions = async (
-    sessionIds: string[],
+    sessionIds: string[]
   ): Promise<CheckpointSession[]> => {
     const response = await this.instance.get<CheckpointSession[]>(
-      `/api/v1/${getAppName()}/engine/sessions`,
+      `${this.v1()}/engine/sessions`,
       {
         params: { ids: sessionIds },
         paramsSerializer: {
-          indexes: null,
-        },
-      },
+          indexes: null
+        }
+      }
     );
     return response.data;
   };
 
   retrySessionFromLastCheckpoint = async (
     chainId: string,
-    sessionId: string,
+    sessionId: string
   ): Promise<void> => {
     return this.instance.post(
-      `/api/v1/${getAppName()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
+      `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
+      null
     );
   };
 
   getFolder = async (folderId: string): Promise<FolderItem> => {
     const response = await this.instance.get<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}`,
+      `${this.v2()}/folders/${folderId}`
     );
     return response.data;
   };
 
   getRootFolders = async (
     filter: string,
-    openedFolderId: string,
+    openedFolderId: string
   ): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
-      `/api/v1/${getAppName()}/catalog/folders/`,
+      `${this.v1()}/catalog/folders/`,
       {
         params: {
           filter: filter,
-          openedFolderId: openedFolderId,
-        },
-      },
+          openedFolderId: openedFolderId
+        }
+      }
     );
     return response.data;
   };
 
   getPathToFolder = async (folderId: string): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}/path`,
+      `${this.v2()}/folders/${folderId}/path`
     );
     return response.data;
   };
 
   getPathToFolderByName = async (folderName: string): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
-      `/api/v2/${getAppName()}/catalog/folders/path?name=${folderName}`,
+      `${this.v2()}/folders/path?name=${folderName}`
     );
     return response.data;
   };
 
   createFolder = async (request: CreateFolderRequest): Promise<FolderItem> => {
     const response = await this.instance.post<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders`,
-      request,
+      `${this.v2()}/folders`,
+      request
     );
     return response.data;
   };
 
   updateFolder = async (
     folderId: string,
-    changes: UpdateFolderRequest,
+    changes: UpdateFolderRequest
   ): Promise<FolderItem> => {
     const response = await this.instance.put<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}`,
-      changes,
+      `${this.v2()}/folders/${folderId}`,
+      changes
     );
     return response.data;
   };
 
   deleteFolder = async (folderId: string): Promise<void> => {
-    await this.instance.delete(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}`,
-    );
+    await this.instance.delete(`${this.v2()}/folders/${folderId}`);
   };
 
   deleteFolders = async (folderIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `/api/v2/${getAppName()}/catalog/folders/bulk-delete`,
-      folderIds,
-    );
+    await this.instance.post(`${this.v2()}/folders/bulk-delete`, folderIds);
   };
 
   listFolder = async (
-    request: ListFolderRequest,
+    request: ListFolderRequest
   ): Promise<(FolderItem | ChainItem)[]> => {
     const response = await this.instance.post<(FolderItem | ChainItem)[]>(
-      `/api/v2/${getAppName()}/catalog/folders/list`,
-      request,
+      `${this.v2()}/folders/list`,
+      request
     );
     return response.data;
   };
 
   moveFolder = async (
     folderId: string,
-    targetFolderId?: string,
+    targetFolderId?: string
   ): Promise<FolderItem> => {
     const request: MoveFolderRequest = {
       id: folderId,
-      targetId: targetFolderId,
+      targetId: targetFolderId
     };
     const response = await this.instance.post<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders/move`,
-      request,
+      `${this.v2()}/folders/move`,
+      request
     );
     return response.data;
   };
 
   getNestedChains = async (folderId: string): Promise<Chain[]> => {
     const response = await this.instance.get<Chain[]>(
-      `/api/v1/${getAppName()}/catalog/folders/${folderId}/chains`,
+      `${this.v1()}/catalog/folders/${folderId}/chains`
     );
     return response.data;
   };
 
   getServicesUsedByChains = async (
-    chainIds: string[],
+    chainIds: string[]
   ): Promise<UsedService[]> => {
     const response = await this.instance.get<UsedService[]>(
-      `/api/v1/${getAppName()}/catalog/chains/used-systems`,
+      `${this.v1()}/catalog/chains/used-systems`,
       {
         params: { chainIds },
         paramsSerializer: {
-          indexes: null,
-        },
-      },
+          indexes: null
+        }
+      }
     );
     return response.data;
   };
 
   getChainsUsedByService = async (systemId: string): Promise<BaseEntity[]> => {
     const response = await this.instance.get<BaseEntity[]>(
-      `/api/v1/${getAppName()}/catalog/chains/systems/${systemId}`,
+      `${this.v1()}/catalog/chains/systems/${systemId}`
     );
     return response.data;
   };
 
   exportServices = async (
     serviceIds: string[],
-    modelIds: string[],
+    modelIds: string[]
   ): Promise<File> => {
     const formData: FormData = new FormData();
     if (serviceIds?.length) {
@@ -778,22 +1149,22 @@ export class RestApi implements Api {
       formData.append("usedSystemModelIds", modelIds.join(","));
     }
     const response = await this.instance.post<Blob>(
-      `/api/v1/${getAppName()}/systems-catalog/export/system`,
+      `${this.v1()}/systems-catalog/export/system`,
       formData,
       {
         headers: {
           "Content-Type": "multipart/form-data",
-          accept: "*/*",
+          accept: "*/*"
         },
-        responseType: "blob",
-      },
+        responseType: "blob"
+      }
     );
     return getFileFromResponse(response);
   };
 
   exportSpecifications = async (
     specificationIds: string[],
-    specificationGroupId: string[],
+    specificationGroupId: string[]
   ): Promise<File> => {
     const params: Record<string, string> = {};
     if (specificationIds?.length) {
@@ -803,14 +1174,14 @@ export class RestApi implements Api {
       params["specificationGroupId"] = specificationGroupId.join(",");
     }
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/systems-catalog/export/specifications`,
+      `${this.v1()}/systems-catalog/export/specifications`,
       {
         params,
         headers: {
-          accept: "*/*",
+          accept: "*/*"
         },
-        responseType: "blob",
-      },
+        responseType: "blob"
+      }
     );
     return getFileFromResponse(response);
   };
@@ -822,7 +1193,7 @@ export class RestApi implements Api {
     httpTriggerIds: string[],
     externalRoutes: boolean,
     specificationType: ApiSpecificationType,
-    format: ApiSpecificationFormat,
+    format: ApiSpecificationFormat
   ): Promise<File> => {
     const params: Record<string, string> = {};
     if (deploymentIds?.length) {
@@ -839,14 +1210,14 @@ export class RestApi implements Api {
     }
 
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export/api-spec`,
+      `${this.v1()}/catalog/export/api-spec`,
       {
         params: { ...params, externalRoutes, specificationType, format },
         headers: {
-          accept: "*/*",
+          accept: "*/*"
         },
-        responseType: "blob",
-      },
+        responseType: "blob"
+      }
     );
     const contentType =
       (
@@ -863,7 +1234,7 @@ export class RestApi implements Api {
         if (e instanceof RestApiError) throw e;
         throw new RestApiError(
           "Failed to generate API specification",
-          response.status,
+          response.status
         );
       }
     }
@@ -872,32 +1243,32 @@ export class RestApi implements Api {
 
   getServices = async (
     modelType: string,
-    withSpec: boolean,
+    withSpec: boolean
   ): Promise<IntegrationSystem[]> => {
     const response = await this.instance.get<IntegrationSystem[]>(
-      `/api/v1/${getAppName()}/systems-catalog/systems`,
+      `${this.v1()}/systems-catalog/systems`,
       {
-        params: { modelType, withSpec },
-      },
+        params: { modelType, withSpec }
+      }
     );
     return response.data;
   };
 
   createService = async (system: SystemRequest): Promise<IntegrationSystem> => {
     const response = await this.instance.post<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems`,
-      system,
+      `${this.v1()}/systems-catalog/systems`,
+      system
     );
     return response.data;
   };
 
   createEnvironment = async (
     systemId: string,
-    envRequest: EnvironmentRequest,
+    envRequest: EnvironmentRequest
   ): Promise<Environment> => {
     const response = await this.instance.post<Environment>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments`,
-      envRequest,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments`,
+      envRequest
     );
     return response.data;
   };
@@ -905,27 +1276,27 @@ export class RestApi implements Api {
   updateEnvironment = async (
     systemId: string,
     environmentId: string,
-    envRequest: EnvironmentRequest,
+    envRequest: EnvironmentRequest
   ): Promise<Environment> => {
     const response = await this.instance.put<Environment>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
-      envRequest,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
+      envRequest
     );
     return response.data;
   };
 
   deleteEnvironment = async (
     systemId: string,
-    environmentId: string,
+    environmentId: string
   ): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments/${environmentId}`
     );
   };
 
   deleteService = async (serviceId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${serviceId}`,
+      `${this.v1()}/systems-catalog/systems/${serviceId}`
     );
   };
 
@@ -933,14 +1304,14 @@ export class RestApi implements Api {
     const formData: FormData = new FormData();
     formData.append("file", file, file.name);
     const response = await this.instance.post<ImportPreview>(
-      `/api/${getAppName()}/v3/import/preview`,
+      `${this.v3()}/import/preview`,
       formData,
       {
         headers: {
           "Content-Type": "multipart/form-data",
-          accept: "*/*",
-        },
-      },
+          accept: "*/*"
+        }
+      }
     );
     return response.data;
   };
@@ -948,7 +1319,7 @@ export class RestApi implements Api {
   commitImport = async (
     file: File,
     request?: ImportRequest,
-    validateByHash?: boolean,
+    validateByHash?: boolean
   ): Promise<ImportCommitResponse> => {
     const formData: FormData = new FormData();
     formData.append("file", file, file.name);
@@ -959,145 +1330,119 @@ export class RestApi implements Api {
       formData.append("validateByHash", validateByHash.toString());
     }
     const response = await this.instance.post<ImportCommitResponse>(
-      `/api/${getAppName()}/v3/import`,
+      `${this.v3()}/import`,
       formData,
       {
         headers: {
           "Content-Type": "multipart/form-data",
-          accept: "*/*",
-        },
-      },
+          accept: "*/*"
+        }
+      }
     );
     return response.data;
   };
 
   getImportStatus = async (importId: string): Promise<ImportStatusResponse> => {
     const response = await this.instance.get<ImportStatusResponse>(
-      `/api/${getAppName()}/v3/import/${importId}`,
+      `${this.v3()}/import/${importId}`
     );
     return response.data;
   };
 
   getEvents = async (lastEventId: string): Promise<EventsUpdate> => {
     const response = await this.instance.get<EventsUpdate>(
-      `/api/v1/${getAppName()}/catalog/events`,
+      `${this.v1()}/catalog/events`,
       {
         params: {
-          lastEventId: lastEventId,
-        },
-      },
+          lastEventId: lastEventId
+        }
+      }
     );
     return response.data;
   };
 
   getDeploymentsByEngine = async (
     domain: string,
-    engineHost: string,
+    engineHost: string
   ): Promise<ChainDeployment[]> => {
     const response = await this.instance.get<ChainDeployment[]>(
-      `/api/v1/${getAppName()}/catalog/domains/${domain}/engines/${engineHost}/deployments`,
+      `${this.v1()}/catalog/domains/${domain}/engines/${engineHost}/deployments`
     );
     return response.data;
   };
 
   getEnginesByDomain = async (domain: string): Promise<Engine[]> => {
     const response = await this.instance.get<Engine[]>(
-      `/api/v1/${getAppName()}/catalog/domains/${domain}/engines`,
+      `${this.v1()}/catalog/domains/${domain}/engines`
     );
     return response.data;
   };
 
   loadCatalogActionsLog = async (
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse> => {
-    return await this.loadActionsLog("catalog", searchRequest);
-  };
-
-  loadVariablesManagementActionsLog = async (
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse> => {
-    return await this.loadActionsLog("variables-management", searchRequest);
-  };
-
-  loadActionsLog = async (
-    serviceName: string,
-    searchRequest: ActionLogSearchRequest,
+    searchRequest: ActionLogSearchRequest
   ): Promise<ActionLogResponse> => {
     const response = await this.instance.post<ActionLogResponse>(
-      `/api/v1/${getAppName()}/${serviceName}/actions-log`,
-      searchRequest,
+      `${this.v1()}/catalog/actions-log`,
+      searchRequest
     );
     return response.data;
   };
 
   exportCatalogActionsLog = async (
-    params: LogExportRequestParams,
-  ): Promise<Blob> => {
-    return await this.exportActionLog("catalog", params);
-  };
-
-  exportVariablesManagementActionsLog = async (
-    params: LogExportRequestParams,
-  ): Promise<Blob> => {
-    return await this.exportActionLog("variables-management", params);
-  };
-
-  exportActionLog = async (
-    serviceName: string,
-    params: LogExportRequestParams,
+    params: LogExportRequestParams
   ): Promise<Blob> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/${serviceName}/actions-log/export`,
+      `${this.v1()}/catalog/actions-log/export`,
       {
         responseType: "blob",
-        params: params,
-      },
+        params
+      }
     );
     return response.data;
   };
 
   getContextServices = async (): Promise<ContextSystem[]> => {
     const response = await this.instance.get<ContextSystem[]>(
-      `/api/v1/${getAppName()}/catalog/context-system`,
+      `${this.v1()}/catalog/context-system`
     );
     const result = response.data;
     response.data.map(
-      (system) => (system.type = IntegrationSystemType.CONTEXT),
+      (system) => (system.type = IntegrationSystemType.CONTEXT)
     );
     return result;
   };
 
   getContextService = async (id: string): Promise<ContextSystem> => {
     const response = await this.instance.get<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
+      `${this.v1()}/catalog/context-system/${id}`
     );
     return response.data;
   };
 
   createContextService = async (
-    system: Pick<ContextSystem, "name" | "description">,
+    system: Pick<ContextSystem, "name" | "description">
   ): Promise<ContextSystem> => {
     const response = await this.instance.post<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system`,
-      system,
+      `${this.v1()}/catalog/context-system`,
+      system
     );
     return response.data;
   };
 
   updateContextService = async (
     id: string,
-    data: Partial<ContextSystem>,
+    data: Partial<ContextSystem>
   ): Promise<ContextSystem> => {
     const response = await this.instance.put<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
-      data,
+      `${this.v1()}/catalog/context-system/${id}`,
+      data
     );
     return response.data;
   };
 
   deleteContextService = async (serviceId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/context-system/${serviceId}`,
+      `${this.v1()}/catalog/context-system/${serviceId}`
     );
   };
 
@@ -1107,155 +1452,171 @@ export class RestApi implements Api {
       formData.append("systemIds", serviceIds.join(","));
     }
     const response = await this.instance.post<Blob>(
-      `/api/v1/${getAppName()}/catalog/context-system/export`,
+      `${this.v1()}/catalog/context-system/export`,
       formData,
       {
         headers: {
           "Content-Type": "multipart/form-data",
-          accept: "*/*",
+          accept: "*/*"
         },
-        responseType: "blob",
-      },
+        responseType: "blob"
+      }
     );
     return getFileFromResponse(response);
   };
 
   getService = async (id: string): Promise<IntegrationSystem> => {
     const response = await this.instance.get<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${id}`,
+      `${this.v1()}/systems-catalog/systems/${id}`
     );
     return response.data;
   };
 
   updateService = async (
     id: string,
-    data: Partial<IntegrationSystem>,
+    data: Partial<IntegrationSystem>
   ): Promise<IntegrationSystem> => {
     const response = await this.instance.put<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${id}`,
-      data,
+      `${this.v1()}/systems-catalog/systems/${id}`,
+      data
+    );
+    return response.data;
+  };
+
+  getEnvironment = async (
+    systemId: string,
+    environmentId: string
+  ): Promise<Environment> => {
+    const response = await this.instance.get<Environment>(
+      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`
     );
     return response.data;
   };
 
   getEnvironments = async (systemId: string): Promise<Environment[]> => {
     const response = await this.instance.get<Environment[]>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments`
     );
     return response.data;
   };
 
   getApiSpecifications = async (
-    systemId: string,
+    systemId: string
   ): Promise<SpecificationGroup[]> => {
     const response = await this.instance.get<SpecificationGroup[]>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups`,
+      `${this.v1()}/systems-catalog/specificationGroups`,
       {
         params: {
-          systemId: systemId,
-        },
-      },
+          systemId: systemId
+        }
+      }
     );
     return response.data;
   };
 
   getLatestApiSpecification = async (
-    systemId: string,
+    systemId: string
   ): Promise<Specification> => {
     const response = await this.instance.get<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/latest`,
+      `${this.v1()}/systems-catalog/models/latest`,
       {
         params: {
-          systemId: systemId,
-        },
-      },
+          systemId: systemId
+        }
+      }
     );
     return response.data;
   };
 
   updateApiSpecificationGroup = async (
     id: string,
-    data: Partial<SpecificationGroup>,
+    data: Partial<SpecificationGroup>
   ): Promise<SpecificationGroup> => {
     const response = await this.instance.patch<SpecificationGroup>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/${id}`,
-      data,
+      `${this.v1()}/systems-catalog/specificationGroups/${id}`,
+      data
     );
     return response.data;
   };
 
   deleteSpecificationGroup = async (id: string): Promise<void> => {
     await this.instance.delete<SpecificationGroup>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/${id}`,
+      `${this.v1()}/systems-catalog/specificationGroups/${id}`
     );
   };
 
   updateSpecificationModel = async (
     id: string,
-    data: Partial<Specification>,
+    data: Partial<Specification>
   ): Promise<Specification> => {
     const response = await this.instance.patch<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}`,
-      data,
+      `${this.v1()}/systems-catalog/models/${id}`,
+      data
     );
     return response.data;
   };
 
   getSpecificationModelSource = async (id: string): Promise<string> => {
     const response = await this.instance.get<string>(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}/source`,
+      `${this.v1()}/systems-catalog/models/${id}/source`
     );
     return response.data;
   };
 
   deleteSpecificationModel = async (id: string): Promise<void> => {
-    await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}`,
-    );
+    await this.instance.delete(`${this.v1()}/systems-catalog/models/${id}`);
   };
 
   getSpecificationModel = async (
     systemId?: string,
-    specificationGroupId?: string,
+    specificationGroupId?: string
   ): Promise<Specification[]> => {
     const response = await this.instance.get<Specification[]>(
-      `/api/v1/${getAppName()}/systems-catalog/models`,
+      `${this.v1()}/systems-catalog/models`,
       {
         params: {
           systemId: systemId,
-          specificationGroupId: specificationGroupId,
-        },
-      },
+          specificationGroupId: specificationGroupId
+        }
+      }
     );
     return response.data;
   };
 
   deprecateModel = async (modelId: string): Promise<Specification> => {
     const response = await this.instance.post<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/deprecated`,
+      `${this.v1()}/systems-catalog/models/deprecated`,
       modelId,
       {
-        headers: { "Content-Type": "text/plain" },
-      },
+        headers: { "Content-Type": "text/plain" }
+      }
     );
     return response.data;
   };
 
-  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+  getOperations = async (
+    modelId: string,
+    paginationOptions: PaginationOptions = {}
+  ): Promise<SystemOperation[]> => {
+    const params: Record<string, string> = { modelId };
+
+    if (paginationOptions.offset !== undefined) {
+      params["offset"] = paginationOptions.offset.toString(10);
+    }
+    if (paginationOptions.count !== undefined) {
+      params["count"] = paginationOptions.count.toString(10);
+    }
+
     const response = await this.instance.get<SystemOperation[]>(
-      `/api/v1/${getAppName()}/systems-catalog/operations`,
-      {
-        params: {
-          modelId,
-        },
-      },
+      `${this.v1()}/systems-catalog/operations`,
+      { params }
     );
     return response.data;
   };
 
   getOperationInfo = async (operationId: string): Promise<OperationInfo> => {
     const response = await this.instance.get<OperationInfo>(
-      `/api/v1/${getAppName()}/systems-catalog/operations/${encodeURIComponent(operationId)}/info`,
+      `${this.v1()}/systems-catalog/operations/${encodeURIComponent(operationId)}/info`
     );
     return response.data;
   };
@@ -1267,7 +1628,7 @@ export class RestApi implements Api {
     deployLabel?: string,
     packageName?: string,
     packageVersion?: string,
-    packagePartOf?: string,
+    packagePartOf?: string
   ): Promise<ImportSystemResult[]> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -1286,37 +1647,37 @@ export class RestApi implements Api {
 
     const url =
       systemType === IntegrationSystemType.CONTEXT
-        ? `/api/v1/${getAppName()}/catalog/context-system/import`
-        : `/api/v1/${getAppName()}/systems-catalog/import/system`;
+        ? `${this.v1()}/catalog/context-system/import`
+        : `${this.v1()}/systems-catalog/import/system`;
     const response = await this.instance.post<ImportSystemResult[]>(
       url,
       formData,
       {
         headers: {
           ...headers,
-          "Content-Type": "multipart/form-data",
-        },
-      },
+          "Content-Type": "multipart/form-data"
+        }
+      }
     );
     return response.data;
   };
 
   importSpecification = async (
     specificationGroupId: string,
-    files: File[],
+    files: File[]
   ): Promise<ImportSpecificationResult> => {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
     const params: Record<string, string> = {
-      specificationGroupId: specificationGroupId,
+      specificationGroupId: specificationGroupId
     };
     const response = await this.instance.post<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/import`,
+      `${this.v1()}/systems-catalog/import`,
       formData,
       {
         params,
-        headers: { "Content-Type": "multipart/form-data" },
-      },
+        headers: { "Content-Type": "multipart/form-data" }
+      }
     );
     return response.data;
   };
@@ -1325,104 +1686,104 @@ export class RestApi implements Api {
     systemId: string,
     name: string,
     files: File[],
-    protocol?: string,
+    protocol?: string
   ): Promise<ImportSpecificationResult> => {
     const formData: FormData = new FormData();
     files.forEach((file) => formData.append("files", file, file.name));
     const params: Record<string, string> = {
       systemId: systemId,
-      name: name,
+      name: name
     };
     if (protocol) params.protocol = protocol;
     const response = await this.instance.post<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/import`,
+      `${this.v1()}/systems-catalog/specificationGroups/import`,
       formData,
       {
         params,
-        headers: { "Content-Type": "multipart/form-data" },
-      },
+        headers: { "Content-Type": "multipart/form-data" }
+      }
     );
     return response.data;
   };
 
   getImportSpecificationResult = async (
-    importId: string,
+    importId: string
   ): Promise<ImportSpecificationResult> => {
     const response = await this.instance.get<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/import/${importId}`,
+      `${this.v1()}/systems-catalog/import/${importId}`
     );
     return response.data;
   };
 
   getDetailedDesignTemplates = async (
-    includeContent: boolean,
+    includeContent: boolean
   ): Promise<DetailedDesignTemplate[]> => {
     const response = await this.instance.get<DetailedDesignTemplate[]>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       {
         params: {
-          includeContent,
-        },
-      },
+          includeContent
+        }
+      }
     );
     return response.data;
   };
 
   getDetailedDesignTemplate = async (
-    templateId: string,
+    templateId: string
   ): Promise<DetailedDesignTemplate> => {
     const response = await this.instance.get<DetailedDesignTemplate>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates/${templateId}`,
+      `${this.v1()}/catalog/detailed-design/templates/${templateId}`
     );
     return response.data;
   };
 
   createOrUpdateDetailedDesignTemplate = async (
     name: string,
-    content: string,
+    content: string
   ): Promise<DetailedDesignTemplate> => {
     const response = await this.instance.put<DetailedDesignTemplate>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
-      { name, content },
+      `${this.v1()}/catalog/detailed-design/templates`,
+      { name, content }
     );
     return response.data;
   };
 
   deleteDetailedDesignTemplates = async (ids: string[]): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       {
         params: {
-          ids,
-        },
-      },
+          ids
+        }
+      }
     );
   };
 
   getChainDetailedDesign = async (
     chainId: string,
-    templateId: string,
+    templateId: string
   ): Promise<ChainDetailedDesign> => {
     const response = await this.instance.get<ChainDetailedDesign>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/chains/${chainId}`,
+      `${this.v1()}/catalog/detailed-design/chains/${chainId}`,
       {
         params: {
-          templateId,
-        },
-      },
+          templateId
+        }
+      }
     );
     return response.data;
   };
 
   getChainSequenceDiagram = async (
     chainId: string,
-    diagramModes: DiagramMode[],
+    diagramModes: DiagramMode[]
   ): Promise<ElementsSequenceDiagrams> => {
     const response = await this.instance.post<ElementsSequenceDiagrams>(
-      `/api/v1/${getAppName()}/catalog/design-generator/chains/${chainId}`,
+      `${this.v1()}/catalog/design-generator/chains/${chainId}`,
       {
-        diagramModes,
-      },
+        diagramModes
+      }
     );
     return response.data;
   };
@@ -1430,13 +1791,13 @@ export class RestApi implements Api {
   getSnapshotSequenceDiagram = async (
     chainId: string,
     snapshotId: string,
-    diagramModes: DiagramMode[],
+    diagramModes: DiagramMode[]
   ): Promise<ElementsSequenceDiagrams> => {
     const response = await this.instance.post<ElementsSequenceDiagrams>(
-      `/api/v1/${getAppName()}/catalog/design-generator/chains/${chainId}/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/design-generator/chains/${chainId}/snapshots/${snapshotId}`,
       {
-        diagramModes,
-      },
+        diagramModes
+      }
     );
     return response.data;
   };
@@ -1448,40 +1809,40 @@ export class RestApi implements Api {
   readSpecificationFileContent = (): Promise<string> => {
     return Promise.reject(
       new Error(
-        "Method readSpecificationFileContent not implemented in RestApi",
-      ),
+        "Method readSpecificationFileContent not implemented in RestApi"
+      )
     );
   };
 
   groupElements = async (
     chainId: string,
-    elementIds: string[],
+    elementIds: string[]
   ): Promise<Element> => {
     const response = await this.instance.post<Element>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups`,
-      elementIds,
+      `${this.v1()}/catalog/chains/${chainId}/elements/groups`,
+      elementIds
     );
     return response.data;
   };
 
   ungroupElements = async (
     chainId: string,
-    groupId: string,
+    groupId: string
   ): Promise<Element[]> => {
     const response = await this.instance.delete<Element[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups/${groupId}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/groups/${groupId}`
     );
     return response.data;
   };
 
   getExchanges = async (limit: number): Promise<LiveExchange[]> => {
     const response = await this.instance.get<LiveExchange[]>(
-      `/api/v1/${getAppName()}/catalog/live-exchanges`,
+      `${this.v1()}/catalog/live-exchanges`,
       {
         params: {
-          limit: limit,
-        },
-      },
+          limit: limit
+        }
+      }
     );
     return response.status === 204 ? [] : response.data;
   };
@@ -1489,10 +1850,10 @@ export class RestApi implements Api {
   terminateExchange = async (
     podIp: string,
     deploymentId: string,
-    exchangeId: string,
+    exchangeId: string
   ): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`,
+      `${this.v1()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`
     );
   };
 
@@ -1502,84 +1863,124 @@ export class RestApi implements Api {
 
   getValidations = async (
     filters: EntityFilterModel[],
-    searchString: string,
+    searchString: string
   ): Promise<DiagnosticValidation[]> => {
     const response = await this.instance.post<DiagnosticValidation[]>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
-      { searchString, filters },
+      `${this.v1()}/catalog/diagnostic/validations`,
+      { searchString, filters }
     );
     return response.data;
   };
 
   buildCR = async (request: CustomResourceBuildRequest): Promise<string> => {
     const response = await this.instance.post<string>(
-      `/api/v1/${getAppName()}/catalog/cr`,
-      request,
+      `${this.v1()}/catalog/cr`,
+      request
     );
     return response.data;
   };
 
   getValidation = async (
-    validationId: string,
+    validationId: string
   ): Promise<DiagnosticValidation> => {
     const response = await this.instance.get<DiagnosticValidation>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations/${validationId}`,
+      `${this.v1()}/catalog/diagnostic/validations/${validationId}`
     );
     return response.data;
   };
 
   runValidations = async (ids: string[]): Promise<void> => {
     await this.instance.patch<void>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
+      `${this.v1()}/catalog/diagnostic/validations`,
       undefined,
       {
-        params: { validationIds: ids },
-      },
+        params: { validationIds: ids }
+      }
     );
   };
 
   bulkDeploy = async (
-    request: BulkDeploymentRequest,
+    request: BulkDeploymentRequest
   ): Promise<BulkDeploymentResult[]> => {
     const response = await this.instance.post<BulkDeploymentResult[]>(
-      `/api/v1/${getAppName()}/catalog/chains/deployments/bulk`,
-      request,
+      `${this.v1()}/catalog/chains/deployments/bulk`,
+      request
     );
     return response.data;
   };
 
+  getUsedProperties = async (chainId: string): Promise<UsedProperty[]> => {
+    const response = await this.instance.get<UsedProperty[]>(
+      `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`
+    );
+
+    return response.data;
+  };
+
+  loadHttpTriggerAccessControl = async (
+    searchRequest: AccessControlSearchRequest
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.post<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest
+    );
+    return response.data;
+  };
+
+  updateHttpTriggerAccessControl = async (
+    searchRequest: AccessControlUpdateRequest[]
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest
+    );
+
+    return response.data;
+  };
+
+  bulkDeployChainsAccessControl = async (
+    searchRequest: AccessControlBulkDeployRequest[]
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles/redeploy`,
+      searchRequest
+    );
+
+    return response.data;
+  };
+
   deployToMicroDomain = async (
-    request: BulkMicroDomainDeployResult,
+    request: BulkMicroDomainDeployResult
   ): Promise<BulkDeploymentResult[]> => {
     const response = await this.instance.post<BulkDeploymentResult[]>(
-      `/api/v1/${getAppName()}/catalog/cr/deploy-chains`,
-      request,
+      `${this.v1()}/catalog/cr/deploy-chains`,
+      request
     );
     return response.data;
   };
 
   deploySnapshotsToMicroDomain = async (
-    request: MicroDomainDeployRequest,
+    request: MicroDomainDeployRequest
   ): Promise<void> => {
     const response = await this.instance.post<void>(
-      `/api/v1/${getAppName()}/catalog/cr/deploy`,
-      request,
+      `${this.v1()}/catalog/cr/deploy`,
+      request
     );
     return response.data;
   };
 
   deleteMicroDomain = async (name: string): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/cr/${name}`,
+      `${this.v1()}/catalog/cr/${name}`
     );
   };
 
   deleteSnapshotFromMicroDomain = async (
     name: string,
-    chainId: string,
+    chainId: string
   ): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/cr/${name}/${chainId}`,
+      `${this.v1()}/catalog/cr/${name}/${chainId}`
     );
   };
 }

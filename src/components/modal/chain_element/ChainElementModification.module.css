@@ -49,10 +49,9 @@
   margin-top: auto !important;
 }
 
+/* Description is now rendered in the footer, hide RJSF's default placement */
 .modal-body :global(#root__description) {
-  font-size: 12px !important;
-  color: var(--vscode-descriptionForeground) !important;
-  padding-top: 16px !important;
+  display: none;
 }
 
 .custom-textarea textarea {
@@ -60,7 +59,7 @@
 }
 
 .parameters-form {
-  min-height: 0;
+  min-height: 500px;
   overflow-y: auto;
 }
 
@@ -73,4 +72,17 @@
 .field-required {
   color: #ff4d4f;
   margin-right: 4px;
+}
+
+.parameters-form
+  :global(
+    .ant-form-item-control-input:has(
+      .ant-form-item-control-input-content > div:only-child:empty
+    )
+  ) {
+  min-height: 0;
+}
+
+.parameters-form :global(.ant-form-item) {
+  margin-bottom: 12px;
 }

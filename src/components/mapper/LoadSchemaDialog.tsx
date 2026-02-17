@@ -1,4 +1,10 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Col,
@@ -14,7 +20,10 @@ import {
 import { useModalContext } from "../../ModalContextProvider";
 import Dragger from "antd/lib/upload/Dragger";
 import { Editor, Monaco } from "@monaco-editor/react";
-import { useMonacoTheme, applyVSCodeThemeToMonaco } from "../../hooks/useMonacoTheme";
+import {
+  useMonacoTheme,
+  applyVSCodeThemeToMonaco,
+} from "../../hooks/useMonacoTheme";
 import {
   GraphQLOperationInfo,
   GraphQLUtil,
@@ -247,8 +256,9 @@ function isOperationSet(element: Element): boolean {
 
 function isConfiguredGraphQLServiceCallElement(element: Element): boolean {
   return (
-    normalizeProtocol(element.properties?.["integrationOperationProtocolType"]) ===
-      "graphql" &&
+    normalizeProtocol(
+      element.properties?.["integrationOperationProtocolType"],
+    ) === "graphql" &&
     !!element.properties?.["integrationSystemId"] &&
     !!element.properties?.["integrationSpecificationId"] &&
     !!element.properties?.["integrationGqlQuery"]
@@ -333,6 +343,9 @@ function buildMapperOperationOptions(element: Element): OperationOption[] {
     }));
 }
 
+const toRecord = (v: unknown): Record<string, unknown> =>
+  v && typeof v === "object" ? (v as Record<string, unknown>) : {};
+
 async function buildServiceOperationOptions(
   element: Element,
 ): Promise<OperationOption[]> {
@@ -340,18 +353,25 @@ async function buildServiceOperationOptions(
   const operationInfo = await api.getOperationInfo(operationId);
   return [
     ...Object.entries(operationInfo.requestSchema ?? {})
+      .filter(([mediaType]) => mediaType !== "parameters")
       .slice(0, 1)
       .map(([mediaType, schema]) => ({
         value: `request-${mediaType}`,
         label: "Request",
         schema: JSON.stringify(schema, undefined, 2),
       })),
-    ...Object.entries(operationInfo.responseSchemas ?? {}).map(
-      ([name, schema]) => ({
-        value: name,
-        label: name,
-        schema: JSON.stringify(schema, undefined, 2),
-      }),
+    ...Object.entries(operationInfo.responseSchemas ?? {}).flatMap(
+      ([responseCode, byContentType]) =>
+        Object.entries(toRecord(byContentType))
+          .filter(([, schema]) => schema !== undefined && schema !== null)
+          .map(([contentType, schema]) => {
+            const key = `${responseCode}-${contentType}`;
+            return {
+              value: key,
+              label: key,
+              schema: JSON.stringify(schema, undefined, 2),
+            };
+          }),
     ),
   ];
 }
@@ -406,9 +426,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   const [graphqlQueryErrors, setGraphqlQueryErrors] = useState<
     editor.IMarker[]
   >([]);
-  const [storedSelection, setStoredSelection] = useState<StoredSelection | undefined>(() =>
-    readStoredSelection(elementId, schemaKind),
-  );
+  const [storedSelection, setStoredSelection] = useState<
+    StoredSelection | undefined
+  >(() => readStoredSelection(elementId, schemaKind));
   const registerMonacoInstance = useCallback((monaco?: Monaco) => {
     if (!monaco) {
       return;
@@ -418,7 +438,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
   }, []);
 
   useEffect(() => {
-    monacoInstancesRef.current.forEach((instance) => applyVSCodeThemeToMonaco(instance));
+    monacoInstancesRef.current.forEach((instance) =>
+      applyVSCodeThemeToMonaco(instance),
+    );
   }, [monacoTheme]);
 
   useEffect(() => {
@@ -440,7 +462,10 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
         if (cancelled) return;
         setChainElements(elementsResponse);
       } catch (error) {
-        console.error("Failed to refresh chain structure before loading schema", error);
+        console.error(
+          "Failed to refresh chain structure before loading schema",
+          error,
+        );
       }
     };
 
@@ -527,8 +552,12 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
       return;
     }
     const operationField = ["schema", "operation"];
-    const currentValue = form.getFieldValue(operationField) as string | undefined;
-    const availableValues = new Set(operationOptions.map((option) => option.value));
+    const currentValue = form.getFieldValue(operationField) as
+      | string
+      | undefined;
+    const availableValues = new Set(
+      operationOptions.map((option) => option.value),
+    );
     const shouldUseStored =
       !!storedSelection &&
       !!selectedElement &&
@@ -723,7 +752,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                             readOnly: true,
                             fixedOverflowWidgets: true,
                           }}
-                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
+                          onMount={(_editor, monaco) =>
+                            registerMonacoInstance(monaco)
+                          }
                         />
                       </Form.Item>
                       <Form.Item
@@ -740,7 +771,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                             readOnly: true,
                             fixedOverflowWidgets: true,
                           }}
-                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
+                          onMount={(_editor, monaco) =>
+                            registerMonacoInstance(monaco)
+                          }
                         />
                       </Form.Item>
                     </>
@@ -756,7 +789,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                         options={{ readOnly: true, fixedOverflowWidgets: true }}
                         language={"json"}
                         theme={monacoTheme}
-                        onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
+                        onMount={(_editor, monaco) =>
+                          registerMonacoInstance(monaco)
+                        }
                       />
                     </Form.Item>
                   )}
@@ -885,7 +920,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                             ]);
                           }}
                           options={{ fixedOverflowWidgets: true }}
-                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
+                          onMount={(_editor, monaco) =>
+                            registerMonacoInstance(monaco)
+                          }
                         />
                       </Form.Item>
                       <Form.Item
@@ -925,7 +962,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                             ]);
                           }}
                           options={{ fixedOverflowWidgets: true }}
-                          onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
+                          onMount={(_editor, monaco) =>
+                            registerMonacoInstance(monaco)
+                          }
                         />
                       </Form.Item>
                     </>
@@ -967,7 +1006,9 @@ export const LoadSchemaDialog: React.FC<LoadSchemaDialogProps> = ({
                           void form.validateFields([["sample", "text"]]);
                         }}
                         options={{ fixedOverflowWidgets: true }}
-                        onMount={(_editor, monaco) => registerMonacoInstance(monaco)}
+                        onMount={(_editor, monaco) =>
+                          registerMonacoInstance(monaco)
+                        }
                       />
                     </Form.Item>
                   )}

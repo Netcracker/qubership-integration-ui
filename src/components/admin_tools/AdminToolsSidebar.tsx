@@ -30,26 +30,26 @@ const menuItems = [
     icon: <OverridableIcon name="audit" />,
     label: "Audit",
   },
-  {
-    key: "/admintools/import-instructions",
-    icon: <OverridableIcon name="cloudUpload" />,
-    label: "Import Instructions",
-  },
+  // {
+  //   key: "/admintools/import-instructions",
+  //   icon: <OverridableIcon name="cloudUpload" />,
+  //   label: "Import Instructions",
+  // },
   {
     key: "/admintools/sessions",
     icon: <OverridableIcon name="user" />,
     label: "Sessions",
   },
   {
-    key: "/admintools/roles",
+    key: "/admintools/access-control",
     icon: <OverridableIcon name="settings" />,
-    label: "Roles",
+    label: "Access Control",
   },
-  {
-    key: "/admintools/design-templates",
-    icon: <OverridableIcon name="fileText" />,
-    label: "Design Templates",
-  },
+  // {
+  //   key: "/admintools/design-templates",
+  //   icon: <OverridableIcon name="fileText" />,
+  //   label: "Design Templates",
+  // },
   {
     key: "/admintools/exchanges",
     icon: <OverridableIcon name="unorderedList" />,

@@ -7,10 +7,51 @@
   border-color: var(--vscode-editorGroup-border) !important;
 }
 
+.ant-input:focus,
+.ant-input:focus-within,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper:focus-within,
+.ant-input-number:focus,
+.ant-input-number:focus-within,
+.ant-input-number-focused {
+  border-color: var(--vscode-focusBorder, #1677ff) !important;
+  box-shadow: 0 0 0 2px rgb(22 119 255 / 15%) !important;
+}
+
 .ant-select-selector {
   background-color: var(--vscode-input-background) !important;
   color: var(--vscode-input-foreground) !important;
   border-color: var(--vscode-editorGroup-border) !important;
+}
+
+.ant-select-focused .ant-select-selector {
+  border-color: var(--vscode-focusBorder, #1677ff) !important;
+  box-shadow: 0 0 0 2px rgb(22 119 255 / 15%) !important;
+}
+
+/* Validation error state: red border */
+.ant-form-item-has-error .ant-input,
+.ant-form-item-has-error .ant-input-affix-wrapper,
+.ant-form-item-has-error .ant-input-number,
+.ant-form-item-has-error .ant-select-selector {
+  border-color: var(--vscode-errorForeground, #ff4d4f) !important;
+}
+
+/* Validation error + focus: red border with red shadow */
+.ant-form-item-has-error .ant-input:focus,
+.ant-form-item-has-error .ant-input:focus-within,
+.ant-form-item-has-error .ant-input-affix-wrapper:focus,
+.ant-form-item-has-error .ant-input-affix-wrapper:focus-within,
+.ant-form-item-has-error .ant-input-number:focus,
+.ant-form-item-has-error .ant-input-number:focus-within,
+.ant-form-item-has-error .ant-input-number-focused {
+  border-color: var(--vscode-errorForeground, #ff4d4f) !important;
+  box-shadow: 0 0 0 2px rgb(255 77 79 / 15%) !important;
+}
+
+.ant-form-item-has-error .ant-select-focused .ant-select-selector {
+  border-color: var(--vscode-errorForeground, #ff4d4f) !important;
+  box-shadow: 0 0 0 2px rgb(255 77 79 / 15%) !important;
 }
 
 .ant-select-selection-placeholder,
@@ -36,13 +77,6 @@
 }
 
 .ant-input-search-button .anticon {
-  color: var(--vscode-foreground) !important;
-}
-
-/* Icons and buttons inside input */
-.ant-input-affix-wrapper .ant-input-suffix .anticon,
-.ant-input-affix-wrapper .ant-input-prefix .anticon,
-.ant-input-clear-icon {
   color: var(--vscode-foreground) !important;
 }
 
@@ -111,27 +145,6 @@ code[class*="language-"] {
 
 .ant-notification-notice-message > span {
   color: inherit !important;
-}
-
-.ant-modal .ant-form,
-.ant-modal .ant-form-item,
-.ant-modal .ant-form-item-label,
-.ant-modal label,
-.ant-modal .ant-form-item-label > label,
-.ant-modal .ant-form-item .ant-form-item-control-input-content,
-.ant-modal .ant-form-item .ant-form-item-extra,
-.ant-modal .ant-form-item-explain,
-.ant-modal .ant-form-item-explain-error,
-.ant-modal .ant-tabs,
-.ant-modal .ant-tabs-tab,
-.ant-modal .ant-tabs-tab-btn,
-.ant-modal .ant-checkbox-wrapper,
-.ant-modal .ant-checkbox + span,
-.ant-modal .ant-typography,
-.ant-modal .ant-select-selection-item,
-.ant-modal .ant-select-selection-placeholder,
-.ant-modal .ant-select-selection-search-input {
-  color: var(--vscode-modal-foreground, var(--vscode-foreground)) !important;
 }
 
 /* Only remove text-shadow, keep syntax highlighting colors */
@@ -211,6 +224,29 @@ pre[class*="language-"] .token.punctuation {
   background-color: var(--vscode-list-hoverBackground) !important;
   color: var(--vscode-foreground) !important;
   border-color: transparent !important;
+}
+
+/* Icon-only text buttons (dropdown triggers, kebab menu, settings, etc.)
+   Remove the extra inner "white rim" (border/outline/after effects) and keep a single VS Code-like focus ring. */
+.ant-btn.ant-btn-text.ant-btn-icon-only,
+.ant-btn.ant-btn-icon-only[class*="ant-btn-variant-text"] {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.ant-btn.ant-btn-text.ant-btn-icon-only::before,
+.ant-btn.ant-btn-text.ant-btn-icon-only::after,
+.ant-btn.ant-btn-icon-only[class*="ant-btn-variant-text"]::before,
+.ant-btn.ant-btn-icon-only[class*="ant-btn-variant-text"]::after {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.ant-btn.ant-btn-text.ant-btn-icon-only:focus-visible,
+.ant-btn.ant-btn-icon-only[class*="ant-btn-variant-text"]:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder, #007acc) !important;
+  outline-offset: 2px;
 }
 
 .ant-btn-primary {
@@ -363,6 +399,14 @@ pre[class*="language-"] .token.punctuation {
   background-color: var(--vscode-list-hoverBackground) !important;
 }
 
+.ant-table-tbody > tr.highlight-row > td {
+  background-color: #fffef0 !important;
+}
+
+.ant-table-tbody > tr.highlight-row:hover > td {
+  background-color: #fffef0 !important;
+}
+
 .ant-table-cell {
   border-color: var(
     --vscode-editorGroup-border,
@@ -432,10 +476,6 @@ pre[class*="language-"] .token.punctuation {
 /* Modal theming */
 .ant-modal,
 .ant-modal-content {
-  background-color: var(
-    --vscode-modal-background,
-    var(--vscode-panel-background)
-  ) !important;
   color: var(--vscode-modal-foreground, var(--vscode-foreground)) !important;
 }
 
@@ -489,9 +529,16 @@ pre[class*="language-"] .token.punctuation {
 
 .ant-modal-content {
   box-shadow: var(--modal-shadow, 0 12px 32px rgb(0 0 0 / 16%)) !important;
+
+  /* Important: set the modal content background too (otherwise default white bleeds as a "frame" in dark theme). */
+  background-color: var(
+    --vscode-modal-background,
+    var(--vscode-panel-background)
+  ) !important;
   background-clip: padding-box;
-  border: 1px solid
-    color-mix(in srgb, var(--vscode-border, #000) 25%, transparent);
+
+  /* Keep border subtle and theme-driven; avoid color-mix to prevent unsupported/ignored rule fallback. */
+  border: 1px solid var(--vscode-border, #303030) !important;
 }
 
 .ant-modal-mask {
@@ -521,15 +568,25 @@ pre[class*="language-"] .token.punctuation {
 
 /* Message theming */
 .ant-message-notice {
-  background-color: var(--vscode-panel-background) !important;
+  /* Keep notice wrapper transparent; style the inner bubble only.
+     Otherwise message becomes a full-width bar (looks like a big frame). */
+  background-color: transparent !important;
   color: var(--vscode-foreground) !important;
 }
 
 .ant-message-notice-content {
-  background-color: var(--vscode-panel-background) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  background-color: var(
+    --vscode-modal-background,
+    var(--vscode-panel-background)
+  ) !important;
   color: var(--vscode-foreground) !important;
-  border: none !important;
-  box-shadow: none !important;
+  border: 1px solid var(--vscode-border, #303030) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 22%) !important;
 }
 
 .ant-message-custom-content {

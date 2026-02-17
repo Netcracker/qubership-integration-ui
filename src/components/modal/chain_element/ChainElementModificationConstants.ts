@@ -18,6 +18,42 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "integrationOperationId",
       "contextServiceId",
       "contextId",
+      /* rabbitmq/kafka trigger */
+      "connectionSourceType",
+      "addresses",
+      "username",
+      "password",
+      "vhostClassifierName",
+      "topicsClassifierName",
+      "maasClassifierNamespace",
+      "maasClassifierTenantEnabled",
+      "maasClassifierTenantId",
+      "exchange",
+      "queues",
+      "routingKey",
+      //SFTP Trigger
+      "connectUrl",
+      "scheduler.cron",
+
+      /* kafka trigger - manual*/
+      "brokers",
+      "securityProtocol",
+      "saslMechanism",
+      "saslJaasConfig",
+      "topics",
+      "groupId",
+      "reconnectBackoffMaxMs",
+      "sslProtocol",
+      "sslEndpointAlgorithm",
+      "autoOffsetReset",
+      "consumersCount",
+      /* kafka trigger - maas*/
+      "maxPollRecords",
+      "maxPollIntervalMs",
+      /* http trigger */
+      "accessControlType",
+      "roles",
+      "abacParameters",
       "*",
     ],
     contextPath: {
@@ -68,6 +104,9 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       },
       mappingDescription: {
         "ui:field": "mappingField",
+      },
+      elementId: {
+        "ui:field": "chainTriggerElementIdField",
       },
     },
     exportFileExtension: {
@@ -145,7 +184,7 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:widget": "multipleSelectWidget",
     },
     headerModificationToRemove: {
-      "ui:widget": "multipleSelectWidget",
+      "ui:widget": "singleColumnTableWidget",
     },
     synchronousPullRetryableCodes: {
       "ui:widget": "multipleSelectWidget",
@@ -218,7 +257,7 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       },
       chainTriggerParameters: {
         triggerElementId: {
-          "ui:field": "chainTriggerSelectField",
+          "ui:field": "chainTriggerElementIdField",
         },
         chainCallTimeout: {
           "ui:fieldReplacesAnyOrOneOf": true,
@@ -264,19 +303,15 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     },
     keySerializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     valueSerializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     keyDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     valueDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     retryCount: {
       "ui:fieldReplacesAnyOrOneOf": true,
@@ -325,12 +360,20 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:widget": "hidden",
     },
     elementId: {
-      "ui:field": "chainTriggerSelectField",
+      "ui:field": "chainTriggerElementIdField",
     },
     reuseElementId: {
       "ui:field": "singleSelectField",
     },
     abacParameters: {
+      "ui:order": [
+        "*",
+        "resourceType",
+        "operation",
+        "resourceDataType",
+        "resourceString",
+        "resourceMap",
+      ],
       resourceMap: {
         "ui:fieldReplacesAnyOrOneOf": true,
         "ui:field": "enhancedPatternPropertiesField",
@@ -358,6 +401,92 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     exchangePattern: {
       "ui:widget": "hidden",
     },
+
+    //Circuit Breaker
+    failureRateThreshold: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    minimumNumberOfCalls: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    permittedNumberOfCallsInHalfOpenState: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    slidingWindowSize: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    slowCallDurationThreshold: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    slowCallRateThreshold: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+    waitDurationInOpenState: {
+      "ui:fieldReplacesAnyOrOneOf": true,
+      "ui:field": "oneOfAsSingleInputField",
+    },
+
+    //Split
+    aggregationStrategy: {
+      "ui:widget": "hidden",
+    },
+
+    //SFTP Upload and SFTP Download
+    allowNullBody: {
+      "ui:widget": "hidden",
+    },
+    binary: {
+      "ui:widget": "hidden",
+    },
+    throwExceptionOnConnectFailed: {
+      "ui:widget": "hidden",
+    },
+    useUserKnownHostsFile: {
+      "ui:widget": "hidden",
+    },
+    streamDownload: {
+      "ui:widget": "hidden",
+    },
+    autoCreate: {
+      "ui:widget": "hidden",
+    },
+    sendEmptyMessageWhenIdle: {
+      "ui:widget": "hidden",
+    },
+
+    //Scheduler
+    deleteJob: {
+      "ui:widget": "hidden",
+    },
+
+    //SFTP Trigger
+    ignoreFileNotFoundOrPermissionError: {
+      "ui:widget": "hidden",
+    },
+    jschLoggingLevel: {
+      "ui:widget": "hidden",
+    },
+    readLockLoggingLevel: {
+      "ui:widget": "hidden",
+    },
+    runLoggingLevel: {
+      "ui:widget": "hidden",
+    },
+    scheduler: {
+      "ui:widget": "hidden",
+    },
+    "scheduler.deleteJob": {
+      "ui:widget": "hidden",
+    },
+    "scheduler.triggerGroup": {
+      "ui:widget": "hidden",
+    },
   },
   id: { "ui:widget": "hidden" },
   elementType: { "ui:widget": "hidden" },
@@ -367,6 +496,32 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
   swimlaneId: { "ui:widget": "hidden" },
   children: { "ui:widget": "hidden" },
 };
+
+type Path2TabMapping = {
+  paths: string[];
+  mapping: Record<string, string>;
+};
+
+const pathToTabExceptions: Path2TabMapping[] = [
+  {
+    paths: ["properties.after"],
+    mapping: {
+      "async-api-trigger": "Validate Request",
+    },
+  },
+  {
+    paths: ["properties.key"],
+    mapping: {
+      "kafka-sender-2": "Parameters",
+    },
+  },
+  {
+    paths: ["properties.contextPath", "properties.httpMethodRestrict"],
+    mapping: {
+      checkpoint: "Parameters",
+    },
+  },
+];
 
 export const pathToTabMap: Record<string, string> = {
   "properties.contextServiceId": "Operation",
@@ -405,6 +560,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.handlerContainer": "Handle Validation Failure",
   "properties.handlerContainer.script": "Handle Validation Failure",
   "properties.handlerContainer.mappingDescription": "Handle Validation Failure",
+  "properties.handlerContainer.throwException": "Handle Validation Failure",
   "properties.handleChainFailureAction": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.elementId":
@@ -412,15 +568,9 @@ export const pathToTabMap: Record<string, string> = {
   "properties.chainFailureHandlerContainer.script": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.mappingDescription":
     "Failure Response Mapping",
+  "properties.chainFailureHandlerContainer.throwException":
+    "Failure Response Mapping",
   "properties.validationSchema": "Validate Request",
-  "properties.roles": "Access Control",
-  "properties.accessControlType": "Access Control",
-  "properties.abacParameters": "Access Control",
-  "properties.abacParameters.resourceType": "Access Control",
-  "properties.abacParameters.operation": "Access Control",
-  "properties.abacParameters.resourceDataType": "Access Control",
-  "properties.abacParameters.resourceString": "Access Control",
-  "properties.abacParameters.resourceMap": "Access Control",
   "properties.allowedContentTypes": "Validate Request",
   "properties.rejectRequestIfNonNullBodyGetDelete": "Validate Request",
   "properties.authorizationConfiguration": "Authorization",
@@ -436,9 +586,22 @@ export const pathToTabMap: Record<string, string> = {
   "properties.idempotency.chainTriggerParameters.chainCallTimeout":
     "Idempotency",
   "properties.before": "Prepare Request",
+  "properties.before.script": "Prepare Request",
+  "properties.before.mappingDescription": "Prepare Request",
   "properties.after": "Handle Response",
+  "properties.after.items.script": "Handle Response",
+  "properties.after.items.mappingDescription": "Handle Response",
   "properties.afterValidation": "Validations",
-  "properties.requestFilterHeaderAllowlist": "Filer Request",
+  "properties.requestFilterHeaderAllowlist": "Filter Request",
+  "properties.logLevel": "Logging",
+  "properties.sender": "Logging",
+  "properties.receiver": "Logging",
+  "properties.businessIdentifiers": "Logging",
+  "properties.message": "Logging",
+  "properties.script": "Script",
+  "properties.mappingDescription": "Mapping",
+  "properties.headerModificationToAdd": "Header Modification",
+  "properties.headerModificationToRemove": "Header Modification",
 };
 
 export const desiredTabOrder = [
@@ -451,8 +614,45 @@ export const desiredTabOrder = [
   "Handle Validation Failure",
   "Handle Response",
   "Failure Response Mapping",
-  "Access Control",
-  "Filer Request",
+  "Filter Request",
+  "Logging",
+  "Script",
+  "Mapping",
+  "Header Modification",
   "Parameters",
   "Idempotency",
 ];
+
+/**
+ * Tabs that should only be visible when a condition on formContext is met.
+ * If a tab is not listed here, it's always visible.
+ */
+type ConditionalTab = {
+  tab: string;
+  isVisible: (formContext: Record<string, unknown>) => boolean;
+};
+
+export const conditionalTabs: ConditionalTab[] = [
+  {
+    tab: "Validations",
+    isVisible: (ctx) => ctx.integrationOperationProtocolType === "http",
+  },
+];
+
+export function getTabForPath(
+  path: string,
+  elementType?: string,
+): string | undefined {
+  if (elementType) {
+    for (const mapping of pathToTabExceptions) {
+      if (mapping.paths.includes(path)) {
+        const customTab: string = mapping.mapping[elementType];
+        if (customTab) {
+          return customTab;
+        }
+      }
+    }
+  }
+
+  return pathToTabMap[path];
+}

@@ -14,6 +14,8 @@ type SelectFieldProps = {
   selectOptions: SelectProps<string>["options"];
   selectOnChange: SelectProps<string>["onChange"];
   selectDisabled: boolean;
+  selectLoading?: boolean;
+  selectOnPopupScroll?: SelectProps<string>["onPopupScroll"];
   selectOptionLabelProp?: string;
   selectNotFoundMessage?: string;
   buttonTitle: string;
@@ -45,6 +47,8 @@ export const SelectAndNavigateField: React.FC<SelectFieldProps> = (props) => {
           optionLabelProp={props.selectOptionLabelProp}
           onChange={props.selectOnChange}
           disabled={props.selectDisabled}
+          loading={props.selectLoading}
+          onPopupScroll={props.selectOnPopupScroll}
           {...(props.selectNotFoundMessage && {
             notFoundContent: (
               <Empty
@@ -60,9 +64,7 @@ export const SelectAndNavigateField: React.FC<SelectFieldProps> = (props) => {
             disabled={props.buttonDisabled}
             onClick={
               typeof props.buttonOnClick === "string"
-                ? () => {
-                    handleClick(props.buttonOnClick as string);
-                  }
+                ? () => handleClick(props.buttonOnClick as string)
                 : props.buttonOnClick
             }
           />

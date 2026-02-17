@@ -105,7 +105,10 @@ import {
   BulbOutlined,
   BarChartOutlined,
   ToolOutlined,
-  KubernetesOutlined
+  KubernetesOutlined,
+  RightSquareOutlined,
+  MenuUnfoldOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 
 export const commonIcons = {
@@ -187,6 +190,10 @@ export const commonIcons = {
   bulb: BulbOutlined,
   barChart: BarChartOutlined,
   tool: ToolOutlined,
+  rightPanel: RightSquareOutlined,
+  block: BlockOutlined,
+  menuUnfold: MenuUnfoldOutlined,
+  info: InfoCircleOutlined,
 };
 
 export const elementIcons = {

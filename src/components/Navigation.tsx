@@ -1,4 +1,5 @@
 import { Menu, Button } from "antd";
+import { Link, useLocation } from "react-router-dom";
 import styles from "./Navigation.module.css";
 import type { MenuProps } from "antd";
 import { NotificationBar } from "./notifications/NotificationBar.tsx";
@@ -12,22 +13,22 @@ type MenuItem = Required<MenuProps>["items"][number];
 
 const items: MenuItem[] = [
   {
-    label: <a href="/chains">Chains</a>,
+    label: <Link to="/chains">Chains</Link>,
     key: "chains",
     icon: <OverridableIcon name="unorderedList" />,
   },
   {
-    label: <a href="/services">Services</a>,
+    label: <Link to="/services">Services</Link>,
     key: "services",
     icon: <OverridableIcon name="appstore" />,
   },
   {
-    label: <a href="/admintools">Admin Tools</a>,
+    label: <Link to="/admintools">Admin Tools</Link>,
     key: "admintools",
     icon: <OverridableIcon name="desktop" />,
   },
   {
-    label: <a href="/devtools">Dev Tools</a>,
+    label: <Link to="/devtools">Dev Tools</Link>,
     key: "devtools",
     icon: <OverridableIcon name="tool" />,
   },
@@ -35,14 +36,20 @@ const items: MenuItem[] = [
 
 interface NavigationProps {
   showThemeSwitcher?: boolean;
-  currentTheme?: 'light' | 'dark' | 'high-contrast';
-  onThemeChange?: (theme: 'light' | 'dark' | 'high-contrast') => void;
+  currentTheme?: "light" | "dark" | "high-contrast";
+  onThemeChange?: (theme: "light" | "dark" | "high-contrast") => void;
 }
 
-const Navigation = ({ showThemeSwitcher = false, currentTheme, onThemeChange }: NavigationProps) => {
+const Navigation = ({
+  showThemeSwitcher = false,
+  currentTheme,
+  onThemeChange,
+}: NavigationProps) => {
   const devMode = isDev();
   const shouldShowDevTools = devMode;
   const { openContextDoc } = useDocumentation();
+  const { pathname } = useLocation();
+  const selectedKey = pathname.split("/")[1] || "chains";
 
   return (
     <nav className={styles.navigation}>
@@ -52,8 +59,9 @@ const Navigation = ({ showThemeSwitcher = false, currentTheme, onThemeChange }: 
         key="menu"
         mode="horizontal"
         className={styles.menu}
+        selectedKeys={[selectedKey]}
       ></Menu>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         {!isVsCode && (
           <Button
             icon={<OverridableIcon name="questionCircle" />}
@@ -62,8 +70,11 @@ const Navigation = ({ showThemeSwitcher = false, currentTheme, onThemeChange }: 
             title="Help"
           />
         )}
-        {(showThemeSwitcher && shouldShowDevTools) && (
-          <SettingsPanel currentTheme={currentTheme} onThemeChange={onThemeChange} />
+        {showThemeSwitcher && shouldShowDevTools && (
+          <SettingsPanel
+            currentTheme={currentTheme}
+            onThemeChange={onThemeChange}
+          />
         )}
         <NotificationBar />
       </div>

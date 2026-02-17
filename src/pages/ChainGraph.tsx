@@ -22,7 +22,7 @@ import React, {
 } from "react";
 import { ElementsLibrarySidebar } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { DnDProvider } from "../components/DndContext.tsx";
-import { Flex, FloatButton } from "antd";
+import { Flex, FloatButton, Modal } from "antd";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router-dom";
 import { CustomControls } from "../components/graph/CustomControls.tsx";
@@ -37,6 +37,8 @@ import {
 
 import { useChainGraph } from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
+import { useElkDirection } from "../hooks/graph/useElkDirection.tsx";
+import { PageWithRightPanel } from "./PageWithRightPanel.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
 import {
   CreateDeploymentRequest,
@@ -52,17 +54,18 @@ import {
   ChainGraphNode,
   ChainGraphNodeData,
   nodeTypes,
+  OnDeleteEvent,
 } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import ContextMenu from "../components/graph/ContextMenu.tsx";
-import { getElementColor } from "../misc/chain-graph-utils.ts";
+import { getElementColor, nonEmptyContainerExists } from "../misc/chain-graph-utils.ts";
 import {
   ExportChainOptions,
   ExportChains,
 } from "../components/modal/ExportChains.tsx";
-import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
+import { exportAdditionsForChains } from "../misc/export-additions.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
 import { Domain } from "../components/SelectDomains.tsx";
 
@@ -135,6 +138,8 @@ const ChainGraphInner: React.FC = () => {
     onContextMenuCall,
     isLoading,
   } = useChainGraph(chainId, refreshChain);
+
+  const { rightPanel, toggleRightPanel } = useElkDirection();
 
   const handleElementUpdated = useCallback(
     (element: Element, node: ChainGraphNode) => {
@@ -299,25 +304,16 @@ const ChainGraphInner: React.FC = () => {
       );
       const data = [chainsFile];
 
-      if (options.exportServices) {
-        const usedServices = await api.getServicesUsedByChains([chainId]);
-        if (usedServices.length > 0) {
-          const serviceIds = usedServices.map((i) => i.systemId);
-          const modelIds = usedServices.flatMap(
-            (i) => i.usedSystemModelIds ?? [],
-          );
-          const servicesData = await api.exportServices(serviceIds, modelIds);
-          data.push(servicesData);
-        }
-      }
-
-      if (options.exportVariables) {
-        const variablesData = await commonVariablesApi.exportVariables(
-          [],
-          true,
-        );
-        data.push(variablesData);
-      }
+      data.push(
+        ...(await exportAdditionsForChains({
+          api,
+          chainIdsForUsedSystems: [chainId],
+          options: {
+            exportServices: options.exportServices,
+            exportVariables: options.exportVariables,
+          },
+        })),
+      );
 
       const nonEmptyData = data.filter((d) => d.size !== 0);
       const archiveData = await mergeZipArchives(nonEmptyData);
@@ -442,12 +438,6 @@ const ChainGraphInner: React.FC = () => {
   const getMinimapNodeColor = useCallback(
     (node: Node<ChainGraphNodeData>) => {
       if (node.type === "container") {
-        if (currentTheme === "dark") {
-          return "#1f1f1f";
-        }
-        if (currentTheme === "high-contrast") {
-          return "#000000";
-        }
         return getCssVariableValue("--container-header-background", "#fff9e6");
       }
 
@@ -464,7 +454,7 @@ const ChainGraphInner: React.FC = () => {
 
       return "#fdf39d";
     },
-    [libraryElements, currentTheme, getCssVariableValue],
+    [libraryElements, getCssVariableValue],
   );
 
   const getMinimapNodeStrokeColor = useCallback(
@@ -485,12 +475,36 @@ const ChainGraphInner: React.FC = () => {
     [currentTheme, getCssVariableValue],
   );
 
+  const handleDelete = useCallback(
+    async (changes: OnDeleteEvent) => {
+      if (
+        changes.nodes.length > 0 &&
+        (await nonEmptyContainerExists(changes.nodes))
+      ) {
+        Modal.confirm({
+          title: "Delete Container",
+          content:
+            "This container element is not empty. Are you sure you want to delete it? All its content will be also deleted.",
+          onOk: () => void onDelete(changes),
+        });
+      } else {
+        void onDelete(changes);
+      }
+    },
+    [onDelete],
+  );
+
   return (
     <Flex className={styles["graph-wrapper"]}>
       <ElementsLibrarySidebar />
       <div className="react-flow-container" ref={reactFlowWrapper}>
         <ElkDirectionContextProvider
-          elkDirectionControl={{ direction, toggleDirection }}
+          elkDirectionControl={{
+            direction,
+            toggleDirection,
+            rightPanel,
+            toggleRightPanel,
+          }}
         >
           <ReactFlow
             nodes={nodes}
@@ -505,7 +519,9 @@ const ChainGraphInner: React.FC = () => {
             onNodesChange={(changes) => void onNodesChange(changes)}
             onEdgesChange={(changes) => void onEdgesChange(changes)}
             onConnect={(connection) => void onConnect(connection)}
-            onDelete={(changes) => void onDelete(changes)}
+            onDelete={(changes) => {
+              void handleDelete(changes);
+            }}
             onDrop={(event) => void onDrop(event)}
             onDragOver={onDragOver}
             onNodeDoubleClick={onNodeDoubleClick}
@@ -524,13 +540,14 @@ const ChainGraphInner: React.FC = () => {
               position="top-right"
               nodeColor={getMinimapNodeColor}
               nodeStrokeColor={getMinimapNodeStrokeColor}
-              nodeStrokeWidth={1}
+              nodeStrokeWidth={2}
             />
             <CustomControls />
             {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
           </ReactFlow>
         </ElkDirectionContextProvider>
       </div>
+      {rightPanel && <PageWithRightPanel />}
       <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           icon={<>⭾</>}

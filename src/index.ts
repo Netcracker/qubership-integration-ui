@@ -14,6 +14,17 @@ export type {
 } from "./icons/IconProvider.tsx";
 export { default as App } from "./App";
 export { default as AppExtension } from "./AppExtension";
+export type {
+  RequestHeaders,
+  RequestHeadersContext,
+  RequestHeadersProvider,
+  RequestHeadersEjectHandle,
+} from "./api/rest/requestHeadersInterceptor";
+export {
+  installRequestHeaders,
+  installBearerAuth,
+  getRestAxiosInstance,
+} from "./api/rest/requestHeadersInterceptor";
 export {
   configureAppExtension,
   loadConfigFromEnv,
@@ -25,3 +36,7 @@ export {
   isDev,
 } from "./appConfig";
 export { isVsCode } from "./api/rest/vscodeExtensionApi";
+export {
+  DocumentationService,
+  documentationService,
+} from "./services/documentation/documentationService";

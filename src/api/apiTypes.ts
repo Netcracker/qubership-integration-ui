@@ -472,6 +472,7 @@ export type ImportPreview = {
   errorMessage: string;
   chains: ChainImportPreview[];
   systems: SystemImportPreview[];
+  contextService?: SystemImportPreview[];
   variables: VariableImportPreview[];
   instructions: GeneralImportInstructions;
 };
@@ -611,6 +612,7 @@ export type ImportStatusResponse = {
 export type ImportResult = {
   chains: ImportChainResult[];
   systems: ImportSystemResult[];
+  contextService?: ImportSystemResult[];
   variables: ImportVariableResult[];
   instructionsResult: ImportInstructionResult[];
 };
@@ -784,6 +786,38 @@ export class RestApiError extends Error {
     this.rawError = raw;
   }
 }
+
+export interface ApiError {
+  responseBody: {
+    serviceName: string;
+    errorMessage: string;
+    errorDate: string;
+    stacktrace?: string;
+  };
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  error?: ApiError;
+  data?: T;
+}
+
+export type Variable = {
+  key: string;
+  value: string;
+};
+
+export type SecretWithVariables = {
+  secretName: string;
+  variables: Variable[];
+  isDefaultSecret: boolean;
+};
+
+export type SecretResponse = {
+  secretName: string;
+  variablesNames: string[];
+  defaultSecret: boolean;
+};
 
 export type CreateFolderRequest = {
   id?: string;
@@ -1157,6 +1191,63 @@ export interface SpecApiFile {
   fileUri: string;
 }
 
+export type AccessControlSearchRequest = {
+  offset: number;
+  limit: number;
+  filters: unknown;
+};
+
+export type AccessControlUpdateRequest = {
+  elementId: string;
+  isRedeploy: boolean;
+  roles: string[];
+};
+
+export type AccessControlResponse = {
+  offset: number;
+  roles: AccessControl[];
+};
+
+export type AccessControlBulkDeployRequest = {
+  chainId: string;
+  unsavedChanges: boolean;
+};
+
+export type AccessControl = {
+  chainId: string;
+  chainName: string;
+  elementId: string;
+  elementName: string;
+  deploymentStatus: string[];
+  unsavedChanges: boolean;
+  properties: Record<string, AccessControlProperty>;
+  modifiedWhen: number;
+};
+
+export enum AccessControlType {
+  RBAC = "RBAC",
+  ABAC = "ABAC",
+  NONE = "NONE",
+}
+
+export type AbacParameters = {
+  operation: string;
+  resourceType: string;
+  resourceDataType: string;
+  resourceString?: string;
+  resourceMap?: Record<string, unknown>;
+};
+
+export type AccessControlProperty = {
+  roles: string[];
+  contextPath?: string;
+  integrationOperationPath?: string;
+  externalRoute: boolean;
+  privateRoute: boolean;
+  accessControlType?: AccessControlType;
+  abacParameters?: AbacParameters;
+};
+
 export type CustomResourceBuildRequest = {
   options: CustomResourceOptions;
   chainIds: string[];
@@ -1294,4 +1385,37 @@ export enum BulkDeploymentStatus {
   FAILED_SNAPSHOT = "FAILED_SNAPSHOT",
   CREATED = "CREATED",
   IGNORED = "IGNORED",
+}
+
+export enum UsedPropertySource {
+  HEADER = "HEADER",
+  EXCHANGE_PROPERTY = "EXCHANGE_PROPERTY",
+}
+
+export enum UsedPropertyType {
+  STRING = "STRING",
+  NUMBER = "NUMBER",
+  BOOLEAN = "BOOLEAN",
+  OBJECT = "OBJECT",
+  UNKNOWN_TYPE = "UNKNOWN_TYPE",
+}
+
+export enum UsedPropertyElementOperation {
+  GET = "GET",
+  SET = "SET",
+}
+
+export type UsedProperty = {
+  name: string;
+  source: UsedPropertySource;
+  type: UsedPropertyType;
+  isArray: boolean;
+  relatedElements: { [id: string]: UsedPropertyElement };
+};
+
+export interface UsedPropertyElement {
+  id: string;
+  name: string;
+  type: string;
+  operations: UsedPropertyElementOperation[];
 }
