@@ -40,7 +40,12 @@ import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { useElkDirection } from "../hooks/graph/useElkDirection.tsx";
 import { PageWithRightPanel } from "./PageWithRightPanel.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
-import { CreateDeploymentRequest, Element } from "../api/apiTypes.ts";
+import {
+  CreateDeploymentRequest,
+  DeployMode,
+  DomainType,
+  Element,
+} from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
@@ -62,6 +67,7 @@ import {
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { exportAdditionsForChains } from "../misc/export-additions.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
+import { Domain } from "../components/SelectDomains.tsx";
 
 const readTheme = () => {
   if (typeof document === "undefined") return "light";
@@ -239,23 +245,35 @@ const ChainGraphInner: React.FC = () => {
     ],
   );
 
-  const saveAndDeploy = async (domain: string) => {
-    if (!chainId) return;
+  const saveAndDeploy = async (domains: Domain[]) => {
+    if (!chainId || domains.length === 0) return;
     try {
       await api.createSnapshot(chainId).then(async (snapshot) => {
         notificationService.info(
           "Created snapshot",
           `Created snapshot ${snapshot.name}`,
         );
-        const request: CreateDeploymentRequest = {
-          domain,
-          snapshotId: snapshot.id,
-          suspended: false,
-        };
-        await api.createDeployment(chainId, request);
-        notificationService.info(
-          "Deployed snapshot",
-          `Deployed snapshot ${snapshot.name}`,
+        await Promise.all(
+          domains.map(async (domain) => {
+            if (domain.type === DomainType.MICRO) {
+              await api.deploySnapshotsToMicroDomain({
+                name: domain.name,
+                snapshotIds: [snapshot.id],
+                mode: DeployMode.APPEND,
+              });
+            } else {
+              const request: CreateDeploymentRequest = {
+                domain: domain.name,
+                snapshotId: snapshot.id,
+                suspended: false,
+              };
+              await api.createDeployment(chainId, request);
+            }
+            notificationService.info(
+              "Deployed snapshot",
+              `Deployed snapshot ${snapshot.name}`,
+            );
+          }),
         );
       });
     } catch (error) {

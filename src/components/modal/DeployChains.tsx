@@ -1,22 +1,24 @@
 import React, { useState } from "react";
-import { BulkDeploymentSnapshotAction } from "../../api/apiTypes.ts";
+import {
+  BulkDeploymentSnapshotAction,
+  DomainType,
+} from "../../api/apiTypes.ts";
 import { useModalContext } from "../../ModalContextProvider.tsx";
 import { Modal, Button, Form, Select } from "antd";
-import { useDomains } from "../../hooks/useDomains.tsx";
+import { Domain, SelectDomains } from "../SelectDomains.tsx";
 
-export type DeployOptions = {
-  domains: string[];
+export type DeployRequest = {
+  domains: Domain[];
   snapshotAction: BulkDeploymentSnapshotAction;
 };
 
 type DeployChainsProps = {
-  onSubmit?: (options: DeployOptions) => void;
+  onSubmit?: (options: DeployRequest) => void;
 };
 
 export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
   const { closeContainingModal } = useModalContext();
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const { isLoading: isDomainsLoading, domains } = useDomains();
 
   return (
     <Modal
@@ -38,13 +40,13 @@ export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
         </Button>,
       ]}
     >
-      <Form<DeployOptions>
+      <Form<DeployRequest>
         labelWrap
         labelCol={{ flex: "150px" }}
         wrapperCol={{ flex: "auto" }}
         id="deployOptionsForm"
         initialValues={{
-          domains: ["default"],
+          domains: [{ name: "default", type: DomainType.NATIVE }],
           snapshotAction: BulkDeploymentSnapshotAction.CREATE_NEW,
         }}
         onFinish={(values) => {
@@ -62,15 +64,7 @@ export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
           label={"Engine domains"}
           rules={[{ required: true }]}
         >
-          <Select
-            loading={isDomainsLoading}
-            mode="multiple"
-            allowClear
-            options={domains.map((domain) => ({
-              value: domain.id,
-              label: domain.name,
-            }))}
-          />
+          <SelectDomains />
         </Form.Item>
         <Form.Item name="snapshotAction" label={"Snapshot action"}>
           <Select

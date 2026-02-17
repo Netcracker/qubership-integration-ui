@@ -16,6 +16,7 @@ import {
   CatalogItemType,
   ChainCreationRequest,
   ChainItem,
+  DeployMode,
   FolderItem,
   ListFolderRequest,
   UpdateFolderRequest,
@@ -51,8 +52,9 @@ import styles from "./Chains.module.css";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
 import {
   DeployChains,
-  DeployOptions,
+  DeployRequest,
 } from "../components/modal/DeployChains.tsx";
+import { Domain } from "../components/SelectDomains.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -368,7 +370,7 @@ const Chains = () => {
 
   const deployChains = async (
     chainIds: string[],
-    domains: string[],
+    domains: Domain[],
     snapshotAction: BulkDeploymentSnapshotAction,
   ) => {
     if (chainIds.length === 0) {
@@ -376,7 +378,12 @@ const Chains = () => {
     }
     setIsLoading(true);
     try {
-      await api.bulkDeploy({ chainIds, domains, snapshotAction });
+      await api.deployToMicroDomain({
+        domains: domains.map((domain) => domain.name),
+        chainIds,
+        snapshotAction,
+        mode: DeployMode.APPEND,
+      });
     } catch (error) {
       notificationService.requestFailed("Failed to deploy chains", error);
     } finally {
@@ -607,8 +614,8 @@ const Chains = () => {
       showModal({
         component: (
           <DeployChains
-            onSubmit={(options: DeployOptions) =>
-              void deploySelectedChains(options)
+            onSubmit={(request: DeployRequest) =>
+              void deploySelectedChains(request)
             }
           />
         ),
@@ -659,7 +666,7 @@ const Chains = () => {
     await deleteChains(chainIds);
   };
 
-  const deploySelectedChains = async (options: DeployOptions) => {
+  const deploySelectedChains = async (request: DeployRequest) => {
     const chainIds = folderItems
       .filter(
         (i) =>
@@ -667,7 +674,7 @@ const Chains = () => {
           i.itemType === CatalogItemType.CHAIN,
       )
       .map((i) => i.id);
-    await deployChains(chainIds, options.domains, options.snapshotAction);
+    await deployChains(chainIds, request.domains, request.snapshotAction);
   };
 
   const onContextMenuItemClick = async (item: FolderItem, key: React.Key) => {
