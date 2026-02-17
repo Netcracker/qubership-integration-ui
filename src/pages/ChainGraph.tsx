@@ -240,7 +240,7 @@ const ChainGraphInner: React.FC = () => {
     ],
   );
 
-  const saveAndDeployToNativeDomains = async (domains: string[]) => {
+  const saveAndDeploy = async (domains: Domain[]) => {
     if (!chainId || domains.length === 0) return;
     try {
       await api.createSnapshot(chainId).then(async (snapshot) => {
@@ -250,12 +250,20 @@ const ChainGraphInner: React.FC = () => {
         );
         await Promise.all(
           domains.map(async (domain) => {
-            const request: CreateDeploymentRequest = {
-              domain,
-              snapshotId: snapshot.id,
-              suspended: false,
-            };
-            await api.createDeployment(chainId, request);
+            if (domain.type === DomainType.MICRO) {
+              await api.deploySnapshotsToMicroDomain({
+                name: domain.name,
+                snapshotIds: [snapshot.id],
+                mode: DeployMode.APPEND,
+              });
+            } else {
+              const request: CreateDeploymentRequest = {
+                domain: domain.name,
+                snapshotId: snapshot.id,
+                suspended: false,
+              };
+              await api.createDeployment(chainId, request);
+            }
             notificationService.info(
               "Deployed snapshot",
               `Deployed snapshot ${snapshot.name}`,
@@ -269,37 +277,6 @@ const ChainGraphInner: React.FC = () => {
         error,
       );
     }
-  };
-
-  const deployToMicroDomains = async (domains: string[]) => {
-    if (!chainId || domains.length === 0) return;
-    try {
-      await Promise.all(
-        domains.map(async (domain) =>
-          api.deployMicroDomain({
-            name: domain,
-            chainIds: [chainId],
-            mode: DeployMode.APPEND,
-          }),
-        ),
-      );
-    } catch (error) {
-      notificationService.requestFailed("Failed to deploy chain", error);
-    }
-  };
-
-  const saveAndDeploy = async (domains: Domain[]) => {
-    if (!chainId) return;
-    const nativeDomains = domains
-      .filter((domain) => domain.type === DomainType.NATIVE)
-      .map((domain) => domain.name);
-    const microDomains = domains
-      .filter((domain) => domain.type === DomainType.MICRO)
-      .map((domain) => domain.name);
-    await Promise.all([
-      saveAndDeployToNativeDomains(nativeDomains),
-      deployToMicroDomains(microDomains),
-    ]);
   };
 
   const openSaveAndDeployDialog = () => {

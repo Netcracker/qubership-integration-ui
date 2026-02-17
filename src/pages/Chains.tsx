@@ -57,6 +57,7 @@ import {
   DeployChains,
   DeployRequest,
 } from "../components/modal/DeployChains.tsx";
+import { Domain } from "../components/SelectDomains.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -372,7 +373,7 @@ const Chains = () => {
 
   const deployChains = async (
     chainIds: string[],
-    domains: string[],
+    domains: Domain[],
     snapshotAction: BulkDeploymentSnapshotAction,
   ) => {
     if (chainIds.length === 0) {
@@ -380,24 +381,12 @@ const Chains = () => {
     }
     setIsLoading(true);
     try {
-      await api.bulkDeploy({ chainIds, domains, snapshotAction });
-    } catch (error) {
-      notificationService.requestFailed("Failed to deploy chains", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const deployChainsToMicroDomain = async (
-    chainIds: string[],
-    name: string,
-  ) => {
-    if (chainIds.length === 0) {
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await api.deployMicroDomain({ name, chainIds, mode: DeployMode.APPEND });
+      await api.deployToMicroDomain({
+        domains: domains.map((domain) => domain.name),
+        chainIds,
+        snapshotAction,
+        mode: DeployMode.APPEND,
+      });
     } catch (error) {
       notificationService.requestFailed("Failed to deploy chains", error);
     } finally {
@@ -729,18 +718,7 @@ const Chains = () => {
           i.itemType === CatalogItemType.CHAIN,
       )
       .map((i) => i.id);
-    if (request.nativeDeploy) {
-      await deployChains(
-        chainIds,
-        request.nativeDeploy.domains,
-        request.nativeDeploy.snapshotAction,
-      );
-    }
-    await Promise.all(
-      request.camelKDeploys.map((camelKDeploy) =>
-        deployChainsToMicroDomain(chainIds, camelKDeploy.name),
-      ),
-    );
+    await deployChains(chainIds, request.domains, request.snapshotAction);
   };
 
   const onContextMenuItemClick = async (item: FolderItem, key: React.Key) => {

@@ -957,14 +957,17 @@ export class VSCodeExtensionApi implements Api {
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
   }
-  deployMicroDomain(): Promise<void> {
-    throw new Error("Method deployMicroDomain not implemented.");
+  deployToMicroDomain(): Promise<BulkDeploymentResult[]> {
+    throw new Error("Method deployToMicroDomain not implemented.");
+  }
+  deploySnapshotsToMicroDomain(): Promise<void> {
+    throw new Error("Method deploySnapshotsToMicroDomain not implemented.");
   }
   deleteMicroDomain(): Promise<void> {
     throw new Error("Method deleteMicroDomain not implemented.");
   }
-  deleteChainFromMicroDomain(): Promise<void> {
-    throw new Error("Method deleteChainFromMicroDomain not implemented.");
+  deleteSnapshotFromMicroDomain(): Promise<void> {
+    throw new Error("Method deleteSnapshotFromMicroDomain not implemented.");
   }
 }
 

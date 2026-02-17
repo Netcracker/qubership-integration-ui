@@ -1177,11 +1177,11 @@ export type CustomResourceOptions = {
 export type MonitoringOptions = {
   enabled: boolean;
   interval: string;
-}
+};
 
 export type ServiceOptions = {
   enabled: boolean;
-}
+};
 
 export type ContainerOptions = {
   image?: string;
@@ -1266,7 +1266,14 @@ export type BulkDeploymentRequest = {
 
 export type MicroDomainDeployRequest = {
   name: string;
+  snapshotIds: string[];
+  mode?: DeployMode;
+};
+
+export type BulkMicroDomainDeployResult = {
+  domains: string[];
   chainIds: string[];
+  snapshotAction: BulkDeploymentSnapshotAction;
   mode?: DeployMode;
 };
 

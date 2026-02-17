@@ -7,21 +7,7 @@ import { useModalContext } from "../../ModalContextProvider.tsx";
 import { Modal, Button, Form, Select } from "antd";
 import { Domain, SelectDomains } from "../SelectDomains.tsx";
 
-export type CamelKDeploy = {
-  name: string;
-};
-
-export type NativeDeploy = {
-  domains: string[];
-  snapshotAction: BulkDeploymentSnapshotAction;
-};
-
 export type DeployRequest = {
-  nativeDeploy?: NativeDeploy;
-  camelKDeploys: CamelKDeploy[];
-};
-
-type DeployOptions = {
   domains: Domain[];
   snapshotAction: BulkDeploymentSnapshotAction;
 };
@@ -29,26 +15,6 @@ type DeployOptions = {
 type DeployChainsProps = {
   onSubmit?: (options: DeployRequest) => void;
 };
-
-function createDeployRequest(deployOptions: DeployOptions): DeployRequest {
-  const nativeDomains: string[] = [];
-  const camelKDomains: string[] = [];
-  for (const domain of deployOptions.domains) {
-    (domain.type === DomainType.MICRO ? camelKDomains : nativeDomains).push(
-      domain.name,
-    );
-  }
-  return {
-    nativeDeploy:
-      nativeDomains.length > 0
-        ? {
-            domains: nativeDomains,
-            snapshotAction: deployOptions.snapshotAction,
-          }
-        : undefined,
-    camelKDeploys: camelKDomains.map((domain) => ({ name: domain })),
-  };
-}
 
 export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
   const { closeContainingModal } = useModalContext();
@@ -74,7 +40,7 @@ export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
         </Button>,
       ]}
     >
-      <Form<DeployOptions>
+      <Form<DeployRequest>
         labelWrap
         labelCol={{ flex: "150px" }}
         wrapperCol={{ flex: "auto" }}
@@ -85,9 +51,8 @@ export const DeployChains: React.FC<DeployChainsProps> = ({ onSubmit }) => {
         }}
         onFinish={(values) => {
           setConfirmLoading(true);
-          const deployRequest = createDeployRequest(values);
           try {
-            onSubmit?.(deployRequest);
+            onSubmit?.(values);
             closeContainingModal();
           } finally {
             setConfirmLoading(false);

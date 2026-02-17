@@ -74,6 +74,7 @@ import {
   BulkDeploymentRequest,
   BulkDeploymentResult,
   MicroDomainDeployRequest,
+  BulkMicroDomainDeployResult,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1547,7 +1548,17 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  deployMicroDomain = async (
+  deployToMicroDomain = async (
+    request: BulkMicroDomainDeployResult,
+  ): Promise<BulkDeploymentResult[]> => {
+    const response = await this.instance.post<BulkDeploymentResult[]>(
+      `/api/v1/${getAppName()}/catalog/cr/deploy-chains`,
+      request,
+    );
+    return response.data;
+  };
+
+  deploySnapshotsToMicroDomain = async (
     request: MicroDomainDeployRequest,
   ): Promise<void> => {
     const response = await this.instance.post<void>(
@@ -1563,9 +1574,12 @@ export class RestApi implements Api {
     );
   };
 
-  deleteChainFromMicroDomain = async (name: string, chainId: string): Promise<void> => {
+  deleteSnapshotFromMicroDomain = async (
+    name: string,
+    chainId: string,
+  ): Promise<void> => {
     await this.instance.delete<void>(
       `/api/v1/${getAppName()}/catalog/cr/${name}/${chainId}`,
     );
-  }
+  };
 }

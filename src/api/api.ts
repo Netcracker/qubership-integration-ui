@@ -68,6 +68,7 @@ import {
   BulkDeploymentResult,
   CustomResourceBuildRequest,
   MicroDomainDeployRequest,
+  BulkMicroDomainDeployResult,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -477,11 +478,20 @@ export interface Api {
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
 
-  deployMicroDomain(request: MicroDomainDeployRequest): Promise<void>;
+  deployToMicroDomain(
+    request: BulkMicroDomainDeployResult,
+  ): Promise<BulkDeploymentResult[]>;
+
+  deploySnapshotsToMicroDomain(
+    request: MicroDomainDeployRequest,
+  ): Promise<void>;
 
   deleteMicroDomain(name: string): Promise<void>;
 
-  deleteChainFromMicroDomain(name: string, chainId: string): Promise<void>;
+  deleteSnapshotFromMicroDomain(
+    name: string,
+    snapshotId: string,
+  ): Promise<void>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();
