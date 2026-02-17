@@ -1,3 +1,5 @@
+import { resetAiProvider } from "./ai/config.ts";
+import { setAiServiceUrl } from "./ai/appConfig.ts";
 import { IconOverrides } from "./icons/IconProvider";
 import type { ThemeConfig } from "antd";
 
@@ -93,6 +95,8 @@ export function configure(config: Partial<AppConfig>): void {
   if (config.aiServiceUrl !== undefined) {
     const oldValue = appConfigValue.aiServiceUrl;
     appConfigValue.aiServiceUrl = config.aiServiceUrl;
+    setAiServiceUrl(config.aiServiceUrl);
+    resetAiProvider();
     overrides.push(`aiServiceUrl: "${oldValue}" -> "${config.aiServiceUrl}"`);
   }
   if (config.aiAssistantName !== undefined) {
