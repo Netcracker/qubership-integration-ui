@@ -640,7 +640,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             showErrorList={false}
             experimental_defaultFormStateBehavior={{
               allOf: "populateDefaults",
-              mergeDefaultsIntoFormData: "useFormDataIfPresent",
+              arrayMinItems: {
+                populate: 'never'
+              }
             }}
             formContext={formContext}
             templates={{
