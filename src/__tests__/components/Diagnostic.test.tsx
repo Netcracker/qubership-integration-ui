@@ -90,7 +90,11 @@ jest.mock("../../components/dev_tools/DiagnosticValidationModal", () => ({
   ),
 }));
 
-import { Diagnostic } from "../../components/dev_tools/Diagnostic";
+import {
+  Diagnostic,
+  VALIDATION_STATE_TO_LABEL,
+  VALIDATION_STATE_TO_COLOR,
+} from "../../components/dev_tools/Diagnostic";
 
 function makeValidation(
   overrides: Partial<DiagnosticValidation> = {},
@@ -415,5 +419,136 @@ describe("Diagnostic", () => {
     await waitFor(() => {
       expect(container.textContent).toContain("With Children");
     });
+  });
+
+  it("renders multiple validations with different severities and alert counts", async () => {
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "Error Val",
+        alertsCount: 5,
+        severity: ValidationSeverity.ERROR,
+      }),
+      makeValidation({
+        id: "v2",
+        title: "Warning Val",
+        alertsCount: 3,
+        severity: ValidationSeverity.WARNING,
+      }),
+      makeValidation({
+        id: "v3",
+        title: "Clean Val",
+        alertsCount: 0,
+        severity: ValidationSeverity.ERROR,
+      }),
+    ]);
+
+    await waitFor(() => {
+      const tags = container.querySelectorAll(".ant-tag");
+      const tagTexts = Array.from(tags).map((t) => t.textContent);
+      expect(tagTexts).toContain("5");
+      expect(tagTexts).toContain("3");
+      expect(tagTexts).toContain("0");
+    });
+  });
+
+  it("renders validation with IN_PROGRESS status badge", async () => {
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "In Progress",
+        status: { state: ValidationState.IN_PROGRESS },
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("In Progress");
+    });
+  });
+
+  it("does not render status for child rows", async () => {
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "Parent",
+        alertsCount: 1,
+        entityType: ValidationEntityType.CHAIN,
+        chainEntities: [
+          {
+            chainId: "c1",
+            chainName: "Child Chain",
+            elementId: "",
+            elementName: "",
+            elementType: "",
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Parent");
+      // Only one "Finished" badge for the parent, not for children
+      const badges = container.querySelectorAll(".ant-badge");
+      expect(badges.length).toBe(1);
+    });
+  });
+
+  it("shows different status badges", async () => {
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "Not Started",
+        status: { state: ValidationState.NOT_STARTED },
+      }),
+      makeValidation({
+        id: "v2",
+        title: "Failed One",
+        status: { state: ValidationState.FAILED },
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Not Started");
+      expect(container.textContent).toContain("Failed");
+    });
+  });
+
+  it("VALIDATION_STATE_TO_LABEL maps all states", () => {
+    expect(VALIDATION_STATE_TO_LABEL[ValidationState.OK]).toBe("Finished");
+    expect(VALIDATION_STATE_TO_LABEL[ValidationState.NOT_STARTED]).toBe(
+      "Not Started",
+    );
+    expect(VALIDATION_STATE_TO_LABEL[ValidationState.IN_PROGRESS]).toBe(
+      "In Progress",
+    );
+    expect(VALIDATION_STATE_TO_LABEL[ValidationState.FAILED]).toBe("Failed");
+  });
+
+  it("VALIDATION_STATE_TO_COLOR maps all states", () => {
+    expect(VALIDATION_STATE_TO_COLOR[ValidationState.OK]).toBe("success");
+    expect(VALIDATION_STATE_TO_COLOR[ValidationState.NOT_STARTED]).toBe(
+      "default",
+    );
+    expect(VALIDATION_STATE_TO_COLOR[ValidationState.IN_PROGRESS]).toBe(
+      "processing",
+    );
+    expect(VALIDATION_STATE_TO_COLOR[ValidationState.FAILED]).toBe("error");
+  });
+
+  it("renders spacer for rows without children", async () => {
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({ id: "v1", title: "No Children", alertsCount: 0 }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("No Children");
+    });
+
+    // Should render a spacer span (width: 20) instead of expand icon
+    const spacers = container.querySelectorAll(
+      "span[style*='width: 20px']",
+    );
+    expect(spacers.length).toBeGreaterThan(0);
   });
 });
