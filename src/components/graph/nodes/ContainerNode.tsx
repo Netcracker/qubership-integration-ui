@@ -29,6 +29,8 @@ export function ContainerNode({
   sourcePosition = Position.Right,
 }: NodeProps<ChainGraphNode>) {
   const isCollapsed = !!data.collapsed;
+  const isGroupContainer = data.elementType === "container";
+
   const trimmedLabel = useMemo(
     () => (data.label?.split("\n")[0] ?? "Container").trim(),
     [data.label],
@@ -36,6 +38,17 @@ export function ContainerNode({
 
   const actionsRef = useRef<HTMLDivElement>(null);
   const actionsWidth = useElementWidth(actionsRef);
+
+  const shouldRenderTargetHandle = !!data.inputEnabled || isGroupContainer;
+  const shouldRenderSourceHandle = !!data.outputEnabled || isGroupContainer;
+
+  const hideTargetHandle = isGroupContainer && !data.inputEnabled;
+  const hideSourceHandle = isGroupContainer && !data.outputEnabled;
+
+  const hiddenHandleStyle: React.CSSProperties = {
+    opacity: 0,
+    pointerEvents: "none",
+  };
 
   return (
     <div
@@ -86,19 +99,21 @@ export function ContainerNode({
         </div>
       </div>
 
-      {data.inputEnabled && (
+      {shouldRenderTargetHandle && (
         <Handle
           type="target"
           position={targetPosition}
-          isConnectable={isConnectable}
+          isConnectable={isConnectable && !!data.inputEnabled}
+          style={hideTargetHandle ? hiddenHandleStyle : undefined}
         />
       )}
 
-      {data.outputEnabled && (
+      {shouldRenderSourceHandle && (
         <Handle
           type="source"
           position={sourcePosition}
-          isConnectable={isConnectable}
+          isConnectable={isConnectable && !!data.outputEnabled}
+          style={hideSourceHandle ? hiddenHandleStyle : undefined}
         />
       )}
     </div>

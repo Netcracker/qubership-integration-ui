@@ -282,11 +282,6 @@ function leftAlignDisconnectedSiblings<
       const compMin = isHorizontal ? box.minX : box.minY;
       const desiredDelta = globalMin - compMin;
 
-      if (desiredDelta === 0) {
-        placedBounds.push(box);
-        continue;
-      }
-
       let limitDelta = desiredDelta;
 
       for (const prev of placedBounds) {
@@ -368,7 +363,12 @@ function autoLayout(
   direction: ElkDirection,
 ): void {
   const nodes = reactFlow.getNodes();
-  const edges = reactFlow.getEdges();
+  const edges = reactFlow
+    .getEdges()
+    .filter(
+      (e) => !(e.data as { decorative?: boolean } | undefined)?.decorative,
+    )
+    .filter((e) => !String(e.id).startsWith("decorative:"));
 
   void arrangeNodes(nodes, edges, direction).then((newNodes) => {
     const nodeMap = new Map(newNodes.map((node) => [node.id, node]));
