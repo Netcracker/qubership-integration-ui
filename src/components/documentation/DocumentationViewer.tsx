@@ -12,7 +12,7 @@ import {
   isSafeHref,
 } from "../../services/documentation/documentationUrlUtils";
 import { useVSCodeTheme } from "../../hooks/useVSCodeTheme";
-import styles from "./DocumentationViewer.module.css";
+import "./DocumentationViewer.css";
 
 /**
  * Props for the DocumentationViewer component.
@@ -139,7 +139,7 @@ export const DocumentationViewer: React.FC<DocumentationViewerProps> = ({
   } as const;
 
   return (
-    <div className={`${styles.viewer}${isDark ? ` ${styles.dark}` : ""}`}>
+    <div className={`doc-viewer${isDark ? " doc-viewer--dark" : ""}`}>
       <Markdown
         rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
         remarkPlugins={[remarkGfm]}
