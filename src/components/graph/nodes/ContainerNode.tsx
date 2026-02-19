@@ -21,9 +21,6 @@ export function ContainerNode({
     [data.label],
   );
 
-  const actionsRef = useRef<HTMLDivElement>(null);
-  const actionsWidth = useElementWidth(actionsRef);
-
   const shouldRenderTargetHandle = !!data.inputEnabled || isGroupContainer;
   const shouldRenderSourceHandle = !!data.outputEnabled || isGroupContainer;
 
