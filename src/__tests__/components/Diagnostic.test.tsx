@@ -17,7 +17,7 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
-import { render, fireEvent, waitFor, screen, act } from "@testing-library/react";
+import { render, fireEvent, waitFor, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import {
   DiagnosticValidation,
@@ -550,5 +550,205 @@ describe("Diagnostic", () => {
       "span[style*='width: 20px']",
     );
     expect(spacers.length).toBeGreaterThan(0);
+  });
+
+  it("renders child chain row with icon and link to chain", async () => {
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "Parent Val",
+        alertsCount: 1,
+        entityType: ValidationEntityType.CHAIN,
+        chainEntities: [
+          {
+            chainId: "c1",
+            chainName: "My Chain",
+            elementId: "",
+            elementName: "",
+            elementType: "",
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Parent Val");
+    });
+
+    // Expand the parent row
+    const expandIcon = container.querySelector("[data-testid='icon-right']");
+    expect(expandIcon).toBeTruthy();
+    fireEvent.click(expandIcon!);
+
+    await waitFor(() => {
+      const chainLink = container.querySelector("a[href='/chains/c1']");
+      expect(chainLink).toBeTruthy();
+      expect(chainLink!.textContent).toBe("My Chain");
+    });
+
+  });
+
+  it("renders child element rows when expanding validation with chain entities", async () => {
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "Parent Val",
+        alertsCount: 1,
+        chainEntities: [
+          {
+            chainId: "c1",
+            chainName: "Chain One",
+            elementId: "e1",
+            elementName: "My Element",
+            elementType: "http-trigger",
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Parent Val");
+    });
+
+    // Expand parent validation row
+    const expandIcon = container.querySelector("[data-testid='icon-right']");
+    fireEvent.click(expandIcon!);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Chain One");
+    });
+  });
+
+  it("calls runValidations when Run Diagnostic is clicked", async () => {
+    mockRunValidations.mockResolvedValue(undefined);
+
+    await renderAndWaitForLoad([
+      makeValidation({ id: "v1", title: "Val 1" }),
+    ]);
+
+    const button = screen.getByTitle("Run Diagnostic");
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(mockRunValidations).toHaveBeenCalledWith([]);
+    });
+  });
+
+  it("shows error notification when runValidations fails", async () => {
+    mockRunValidations.mockRejectedValue(new Error("Run failed"));
+
+    await renderAndWaitForLoad([
+      makeValidation({ id: "v1", title: "Val 1" }),
+    ]);
+
+    const button = screen.getByTitle("Run Diagnostic");
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(mockRequestFailed).toHaveBeenCalledWith(
+        "Validations run failed",
+        expect.anything(),
+      );
+    });
+  });
+
+  it("loads validation details when expanding a not-yet-loaded validation", async () => {
+    const detailedValidation = makeValidation({
+      id: "v1",
+      title: "Expandable Val",
+      alertsCount: 2,
+      chainEntities: [
+        {
+          chainId: "c1",
+          chainName: "Chain One",
+          elementId: "e1",
+          elementName: "Element One",
+          elementType: "script",
+          properties: {},
+        },
+      ],
+    });
+    mockGetValidation.mockResolvedValue(detailedValidation);
+
+    // Render with alertsCount > 0 but no chainEntities (not pre-loaded)
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "Expandable Val",
+        alertsCount: 2,
+        chainEntities: [],
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Expandable Val");
+    });
+
+    // Expand the row - should trigger openValidation
+    const expandIcon = container.querySelector("[data-testid='icon-right']");
+    expect(expandIcon).toBeTruthy();
+    fireEvent.click(expandIcon!);
+
+    await waitFor(() => {
+      expect(mockGetValidation).toHaveBeenCalledWith("v1");
+    });
+  });
+
+  it("shows error notification when openValidation fails", async () => {
+    mockGetValidation.mockRejectedValue(new Error("Load failed"));
+
+    const { container } = await renderAndWaitForLoad([
+      makeValidation({
+        id: "v1",
+        title: "Fail Val",
+        alertsCount: 2,
+        chainEntities: [],
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("Fail Val");
+    });
+
+    const expandIcon = container.querySelector("[data-testid='icon-right']");
+    fireEvent.click(expandIcon!);
+
+    await waitFor(() => {
+      expect(mockRequestFailed).toHaveBeenCalledWith(
+        "Error while loading diagnostic validation details",
+        expect.anything(),
+      );
+    });
+  });
+
+  it("shows diagnostic started notification when run is clicked", async () => {
+    mockRunValidations.mockResolvedValue(undefined);
+
+    await renderAndWaitForLoad([
+      makeValidation({ id: "v1", title: "Val 1" }),
+    ]);
+
+    fireEvent.click(screen.getByTitle("Run Diagnostic"));
+
+    await waitFor(() => {
+      expect(mockInfo).toHaveBeenCalledWith(
+        "Diagnostic started",
+        "Diagnostic started",
+      );
+    });
+  });
+
+  it("disables Run Diagnostic button while loading", async () => {
+    // While initial load is in progress, button should be disabled
+    mockGetValidations.mockImplementation(
+      () => new Promise(() => {}), // Never resolves - simulates loading
+    );
+
+    render(<Diagnostic />);
+
+    const button = screen.getByTitle("Run Diagnostic");
+    expect(button).toBeDisabled();
   });
 });
