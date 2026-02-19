@@ -974,16 +974,6 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  retryFromLastCheckpoint = async (
-    chainId: string,
-    sessionId: string,
-  ): Promise<void> => {
-    await this.instance.post(
-      `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
-    );
-  };
-
   getSession = async (sessionId: string): Promise<Session> => {
     const response = await this.instance.get<Session>(
       `${this.v1()}/sessions-management/sessions/${sessionId}`,
@@ -1006,13 +996,13 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  retrySessionFromLastCheckpoint = async (
+  retrySessionFromCheckpoint = async (
     chainId: string,
     sessionId: string,
   ): Promise<void> => {
     return this.instance.post(
       `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
+      {},
     );
   };
 
@@ -1476,6 +1466,16 @@ export class RestApi implements Api {
     const response = await this.instance.put<IntegrationSystem>(
       `${this.v1()}/systems-catalog/systems/${id}`,
       data,
+    );
+    return response.data;
+  };
+
+  getEnvironment = async (
+    systemId: string,
+    environmentId: string,
+  ): Promise<Environment> => {
+    const response = await this.instance.get<Environment>(
+      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
     );
     return response.data;
   };
