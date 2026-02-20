@@ -40,3 +40,6 @@ export {
   DocumentationService,
   documentationService,
 } from "./services/documentation/documentationService";
+export { setMonacoWorkerBasePath, getMonacoWorkerBasePath } from "./monaco-worker-config";
+export { configureMonacoLoader } from "./monaco-loader-config";
+export type { MonacoLoaderConfig } from "./monaco-loader-config";
