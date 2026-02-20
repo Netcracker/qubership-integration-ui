@@ -1,5 +1,6 @@
 import "./lunr-init";
 import "./vscode-entry";
+import "./monaco-init-external";
 
 export type * from "./api/apiTypes";
 export type {
