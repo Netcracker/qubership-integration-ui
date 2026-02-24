@@ -15,7 +15,11 @@ export function initExternalMonaco(): void {
   configureMonacoLoader({ monaco });
 
   if (typeof window !== "undefined") {
-    const base = `${window.location.origin}/`.replace(/\/+$/, "") + "/";
+    let origin = window.location.origin;
+    while (origin.endsWith("/")) {
+      origin = origin.slice(0, -1);
+    }
+    const base = `${origin}/`;
     setDefaultWorkerBasePath(`${base}assets/monaco-work`);
   }
 }
@@ -40,8 +44,11 @@ export function initBundledMonaco(): void {
 
   try {
     const scriptUrl = new URL(script.src);
-    const pathname = scriptUrl.pathname.replace(/\/[^/]*$/, "");
-    scriptUrl.pathname = `${pathname}/assets/monaco-work`;
+    const pathname = scriptUrl.pathname;
+    const lastSlash = pathname.lastIndexOf("/");
+    const basePath =
+      lastSlash === -1 ? "" : pathname.slice(0, Math.max(0, lastSlash));
+    scriptUrl.pathname = `${basePath}/assets/monaco-work`;
     setDefaultWorkerBasePath(scriptUrl.href);
   } catch {
     // Ignore invalid URL and keep current config.
