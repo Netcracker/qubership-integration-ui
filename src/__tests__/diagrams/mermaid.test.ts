@@ -45,9 +45,7 @@ describe("exportAsMermaid", () => {
   });
 
   it("should use id as name when name is not provided", () => {
-    const result = exportAsMermaid(
-      makeDiagram({ participants: [p("p1")] }),
-    );
+    const result = exportAsMermaid(makeDiagram({ participants: [p("p1")] }));
     expect(result).toContain("participant p1 as p1;");
   });
 
@@ -245,9 +243,7 @@ describe("exportAsMermaid", () => {
   });
 
   it("should export empty alternatives as nothing", () => {
-    const actions: Action[] = [
-      { type: "alternatives", branches: [] },
-    ];
+    const actions: Action[] = [{ type: "alternatives", branches: [] }];
     const result = exportAsMermaid(makeDiagram({ actions }));
     expect(result).not.toContain("alt");
     expect(result).not.toContain("end;");

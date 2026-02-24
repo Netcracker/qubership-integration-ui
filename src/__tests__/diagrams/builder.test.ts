@@ -42,7 +42,10 @@ function makeChain(
   } as unknown as Chain;
 }
 
-function findMessage(actions: unknown[], predicate: (msg: Record<string, unknown>) => boolean): Record<string, unknown> | undefined {
+function findMessage(
+  actions: unknown[],
+  predicate: (msg: Record<string, unknown>) => boolean,
+): Record<string, unknown> | undefined {
   for (const action of actions) {
     const a = action as Record<string, unknown>;
     if (a.type === "message" && predicate(a)) return a;
@@ -140,7 +143,10 @@ describe("buildSequenceDiagram", () => {
         type: "loop-2",
         properties: { expression: "item.count > 0" } as never,
       });
-      const chain = makeChain([trigger, loop], [{ from: "trigger-1", to: "loop-1" }]);
+      const chain = makeChain(
+        [trigger, loop],
+        [{ from: "trigger-1", to: "loop-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
@@ -149,7 +155,9 @@ describe("buildSequenceDiagram", () => {
           const act = a as Record<string, unknown>;
           return act.actions ? (act.actions as unknown[]) : [a];
         })
-        .find((a) => (a as Record<string, unknown>).type === "loop") as Record<string, unknown> | undefined;
+        .find((a) => (a as Record<string, unknown>).type === "loop") as
+        | Record<string, unknown>
+        | undefined;
       expect(loopAction?.label).toBe("item.count > 0");
     });
 
@@ -166,7 +174,10 @@ describe("buildSequenceDiagram", () => {
         type: "loop-2",
         properties: { maxLoopIteration: 1500 } as never,
       });
-      const chain = makeChain([trigger, loop], [{ from: "trigger-1", to: "loop-1" }]);
+      const chain = makeChain(
+        [trigger, loop],
+        [{ from: "trigger-1", to: "loop-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
@@ -175,7 +186,9 @@ describe("buildSequenceDiagram", () => {
           const act = a as Record<string, unknown>;
           return act.actions ? (act.actions as unknown[]) : [a];
         })
-        .find((a) => (a as Record<string, unknown>).type === "loop") as Record<string, unknown> | undefined;
+        .find((a) => (a as Record<string, unknown>).type === "loop") as
+        | Record<string, unknown>
+        | undefined;
       expect(loopAction?.label).toBe("My Loop");
     });
   });
@@ -198,12 +211,17 @@ describe("buildSequenceDiagram", () => {
           isExternalCall: true,
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "sender-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "sender-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("POST") && m.includes("/api/v1/users"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("POST") && m.includes("/api/v1/users")),
+      ).toBe(true);
     });
 
     it("should show full URI when no path component exists", async () => {
@@ -223,12 +241,19 @@ describe("buildSequenceDiagram", () => {
           isExternalCall: true,
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "sender-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "sender-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("GET") && m.includes("http://test.com"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("GET") && m.includes("http://test.com"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -249,12 +274,17 @@ describe("buildSequenceDiagram", () => {
           operationName: "GetUsers",
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "gql-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "gql-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("operation: GetUsers"))).toBe(true);
+      expect(messages.some((m) => m.includes("operation: GetUsers"))).toBe(
+        true,
+      );
     });
 
     it("should show URI when operation name is not provided", async () => {
@@ -272,12 +302,17 @@ describe("buildSequenceDiagram", () => {
           uri: "https://example.com/graphql",
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "gql-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "gql-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("https://example.com/graphql"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("https://example.com/graphql")),
+      ).toBe(true);
       expect(messages.every((m) => !m.includes("%empty_property%"))).toBe(true);
     });
   });
@@ -299,7 +334,10 @@ describe("buildSequenceDiagram", () => {
           destinationName: "my-topic",
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "pubsub-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "pubsub-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
@@ -330,12 +368,19 @@ describe("buildSequenceDiagram", () => {
           connectionSourceType: "manual",
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "rmq-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "rmq-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("exchange") && m.includes("my-exchange"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("exchange") && m.includes("my-exchange"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -357,12 +402,17 @@ describe("buildSequenceDiagram", () => {
           connectionSourceType: "manual",
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "kafka-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "kafka-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("topic") && m.includes("my-topic"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("topic") && m.includes("my-topic")),
+      ).toBe(true);
     });
 
     it("should show classifier for maas connection", async () => {
@@ -382,7 +432,10 @@ describe("buildSequenceDiagram", () => {
           connectionSourceType: "maas",
         } as never,
       });
-      const chain = makeChain([trigger, sender], [{ from: "trigger-1", to: "kafka-1" }]);
+      const chain = makeChain(
+        [trigger, sender],
+        [{ from: "trigger-1", to: "kafka-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
@@ -407,7 +460,10 @@ describe("buildSequenceDiagram", () => {
           elementId: "40625b0d-b5fc-47fb-a668-fc2f816b42dc",
         } as never,
       });
-      const chain = makeChain([trigger, chainCall], [{ from: "trigger-1", to: "cc-1" }]);
+      const chain = makeChain(
+        [trigger, chainCall],
+        [{ from: "trigger-1", to: "cc-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
@@ -431,12 +487,19 @@ describe("buildSequenceDiagram", () => {
         type: "file-write",
         properties: { fileName: "output.txt" } as never,
       });
-      const chain = makeChain([trigger, fileWrite], [{ from: "trigger-1", to: "fw-1" }]);
+      const chain = makeChain(
+        [trigger, fileWrite],
+        [{ from: "trigger-1", to: "fw-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("Write local file") && m.includes("output.txt"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("Write local file") && m.includes("output.txt"),
+        ),
+      ).toBe(true);
     });
 
     it("should show file name for file-read", async () => {
@@ -452,12 +515,19 @@ describe("buildSequenceDiagram", () => {
         type: "file-read",
         properties: { fileName: "input.csv" } as never,
       });
-      const chain = makeChain([trigger, fileRead], [{ from: "trigger-1", to: "fr-1" }]);
+      const chain = makeChain(
+        [trigger, fileRead],
+        [{ from: "trigger-1", to: "fr-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("Read local file") && m.includes("input.csv"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("Read local file") && m.includes("input.csv"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -479,12 +549,19 @@ describe("buildSequenceDiagram", () => {
           to: "b@example.com",
         } as never,
       });
-      const chain = makeChain([trigger, mail], [{ from: "trigger-1", to: "mail-1" }]);
+      const chain = makeChain(
+        [trigger, mail],
+        [{ from: "trigger-1", to: "mail-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("a@example.com") && m.includes("b@example.com"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("a@example.com") && m.includes("b@example.com"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -516,12 +593,17 @@ describe("buildSequenceDiagram", () => {
           }),
         ],
       });
-      const chain = makeChain([trigger, condition], [{ from: "trigger-1", to: "cond-1" }]);
+      const chain = makeChain(
+        [trigger, condition],
+        [{ from: "trigger-1", to: "cond-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       // Find an alternatives action in the diagram
-      const findAlternatives = (actions: unknown[]): Record<string, unknown> | undefined => {
+      const findAlternatives = (
+        actions: unknown[],
+      ): Record<string, unknown> | undefined => {
         for (const a of actions) {
           const act = a as Record<string, unknown>;
           if (act.type === "alternatives") return act;
@@ -536,7 +618,7 @@ describe("buildSequenceDiagram", () => {
       expect(alt).toBeDefined();
       const branches = alt!.branches as Record<string, unknown>[];
       expect(branches.length).toBe(2);
-      expect((branches[0].label as string)).toContain("on condition x > 0");
+      expect(branches[0].label as string).toContain("on condition x > 0");
     });
   });
 
@@ -555,10 +637,16 @@ describe("buildSequenceDiagram", () => {
         type: "script",
         properties: { script: "//test" } as never,
       });
-      const chain = makeChain([trigger, script], [{ from: "trigger-1", to: "script-1" }]);
+      const chain = makeChain(
+        [trigger, script],
+        [{ from: "trigger-1", to: "script-1" }],
+      );
 
       const fullDiagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
-      const simpleDiagram = await buildSequenceDiagram(chain, DiagramMode.SIMPLE);
+      const simpleDiagram = await buildSequenceDiagram(
+        chain,
+        DiagramMode.SIMPLE,
+      );
 
       const fullMessages = collectMessages(fullDiagram.actions);
       const simpleMessages = collectMessages(simpleDiagram.actions);
@@ -639,7 +727,9 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("cron") && m.includes("0 0 * * *"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("cron") && m.includes("0 0 * * *")),
+      ).toBe(true);
     });
   });
 
@@ -667,7 +757,9 @@ describe("buildSequenceDiagram", () => {
         id: "split-1",
         name: "Split",
         type: "split-2",
-        properties: { aggregationStrategy: "chainsAggregationStrategy" } as never,
+        properties: {
+          aggregationStrategy: "chainsAggregationStrategy",
+        } as never,
         children: [splitChild1, splitChild2],
       });
       const chain = makeChain(
@@ -678,7 +770,11 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("Waiting for 'split elements' to complete"))).toBe(true);
+      expect(
+        messages.some((m) =>
+          m.includes("Waiting for 'split elements' to complete"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -694,14 +790,24 @@ describe("buildSequenceDiagram", () => {
         id: "sftp-1",
         name: "SFTP Download",
         type: "sftp-download",
-        properties: { connectUrl: "sftp://host", fileName: "data.csv" } as never,
+        properties: {
+          connectUrl: "sftp://host",
+          fileName: "data.csv",
+        } as never,
       });
-      const chain = makeChain([trigger, sftp], [{ from: "trigger-1", to: "sftp-1" }]);
+      const chain = makeChain(
+        [trigger, sftp],
+        [{ from: "trigger-1", to: "sftp-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("Download file") && m.includes("data.csv"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("Download file") && m.includes("data.csv"),
+        ),
+      ).toBe(true);
     });
 
     it("should show upload file message for sftp-upload", async () => {
@@ -715,14 +821,24 @@ describe("buildSequenceDiagram", () => {
         id: "sftp-1",
         name: "SFTP Upload",
         type: "sftp-upload",
-        properties: { connectUrl: "sftp://host", fileName: "upload.zip" } as never,
+        properties: {
+          connectUrl: "sftp://host",
+          fileName: "upload.zip",
+        } as never,
       });
-      const chain = makeChain([trigger, sftp], [{ from: "trigger-1", to: "sftp-1" }]);
+      const chain = makeChain(
+        [trigger, sftp],
+        [{ from: "trigger-1", to: "sftp-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("Upload file") && m.includes("upload.zip"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("Upload file") && m.includes("upload.zip"),
+        ),
+      ).toBe(true);
     });
 
     it("should create SFTP participant with connect URL", async () => {
@@ -736,13 +852,21 @@ describe("buildSequenceDiagram", () => {
         id: "sftp-1",
         name: "SFTP Download",
         type: "sftp-download",
-        properties: { connectUrl: "sftp://myhost.com", fileName: "f.txt" } as never,
+        properties: {
+          connectUrl: "sftp://myhost.com",
+          fileName: "f.txt",
+        } as never,
       });
-      const chain = makeChain([trigger, sftp], [{ from: "trigger-1", to: "sftp-1" }]);
+      const chain = makeChain(
+        [trigger, sftp],
+        [{ from: "trigger-1", to: "sftp-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
-      expect(diagram.participants.some((p) => p.name?.includes("sftp://myhost.com"))).toBe(true);
+      expect(
+        diagram.participants.some((p) => p.name?.includes("sftp://myhost.com")),
+      ).toBe(true);
     });
   });
 
@@ -759,7 +883,12 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("Download created/updated file") && m.includes("*.csv"))).toBe(true);
+      expect(
+        messages.some(
+          (m) =>
+            m.includes("Download created/updated file") && m.includes("*.csv"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -799,13 +928,20 @@ describe("buildSequenceDiagram", () => {
           useCorrelationId: false,
         } as never,
       });
-      const chain = makeChain([trigger, cs], [{ from: "trigger-1", to: "cs-1" }]);
+      const chain = makeChain(
+        [trigger, cs],
+        [{ from: "trigger-1", to: "cs-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("GET context") && m.includes("my-ctx"))).toBe(true);
-      expect(diagram.participants.some((p) => p.name?.includes("ctx-svc-1"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("GET context") && m.includes("my-ctx")),
+      ).toBe(true);
+      expect(
+        diagram.participants.some((p) => p.name?.includes("ctx-svc-1")),
+      ).toBe(true);
     });
 
     it("should show correlation ID when enabled", async () => {
@@ -825,7 +961,10 @@ describe("buildSequenceDiagram", () => {
           useCorrelationId: "true",
         } as never,
       });
-      const chain = makeChain([trigger, cs], [{ from: "trigger-1", to: "cs-1" }]);
+      const chain = makeChain(
+        [trigger, cs],
+        [{ from: "trigger-1", to: "cs-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
@@ -848,7 +987,10 @@ describe("buildSequenceDiagram", () => {
         type: "checkpoint",
         properties: { checkpointElementId: "cp-elem-1" } as never,
       });
-      const chain = makeChain([trigger, checkpoint], [{ from: "trigger-1", to: "cp-1" }]);
+      const chain = makeChain(
+        [trigger, checkpoint],
+        [{ from: "trigger-1", to: "cp-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
@@ -877,7 +1019,9 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("topic") && m.includes("my-topic"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("topic") && m.includes("my-topic")),
+      ).toBe(true);
     });
 
     it("should show classifier for maas connection", async () => {
@@ -897,7 +1041,9 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("classifier") && m.includes("my-cls"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("classifier") && m.includes("my-cls")),
+      ).toBe(true);
     });
   });
 
@@ -920,7 +1066,9 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("exchange") && m.includes("my-queue"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("exchange") && m.includes("my-queue")),
+      ).toBe(true);
     });
 
     it("should show classifier for non-manual connection", async () => {
@@ -940,7 +1088,11 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(messages.some((m) => m.includes("classifier") && m.includes("my-vhost-cls"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("classifier") && m.includes("my-vhost-cls"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -972,11 +1124,16 @@ describe("buildSequenceDiagram", () => {
           }),
         ],
       });
-      const chain = makeChain([trigger, choice], [{ from: "trigger-1", to: "choice-1" }]);
+      const chain = makeChain(
+        [trigger, choice],
+        [{ from: "trigger-1", to: "choice-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
-      const findAlternatives = (actions: unknown[]): Record<string, unknown> | undefined => {
+      const findAlternatives = (
+        actions: unknown[],
+      ): Record<string, unknown> | undefined => {
         for (const a of actions) {
           const act = a as Record<string, unknown>;
           if (act.type === "alternatives") return act;
@@ -990,7 +1147,11 @@ describe("buildSequenceDiagram", () => {
       const alt = findAlternatives(diagram.actions);
       expect(alt).toBeDefined();
       const branches = alt!.branches as Record<string, unknown>[];
-      expect(branches.some((b) => (b.label as string).includes("on condition a == 1"))).toBe(true);
+      expect(
+        branches.some((b) =>
+          (b.label as string).includes("on condition a == 1"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -1028,11 +1189,16 @@ describe("buildSequenceDiagram", () => {
           }),
         ],
       });
-      const chain = makeChain([trigger, tcf], [{ from: "trigger-1", to: "tcf-1" }]);
+      const chain = makeChain(
+        [trigger, tcf],
+        [{ from: "trigger-1", to: "tcf-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
-      const findAlternatives = (actions: unknown[]): Record<string, unknown> | undefined => {
+      const findAlternatives = (
+        actions: unknown[],
+      ): Record<string, unknown> | undefined => {
         for (const a of actions) {
           const act = a as Record<string, unknown>;
           if (act.type === "alternatives") return act;
@@ -1046,7 +1212,11 @@ describe("buildSequenceDiagram", () => {
       const alt = findAlternatives(diagram.actions);
       expect(alt).toBeDefined();
       const branches = alt!.branches as Record<string, unknown>[];
-      expect(branches.some((b) => (b.label as string).includes("on exception java.lang.Exception"))).toBe(true);
+      expect(
+        branches.some((b) =>
+          (b.label as string).includes("on exception java.lang.Exception"),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -1083,7 +1253,9 @@ describe("buildSequenceDiagram", () => {
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
-      const findParallel = (actions: unknown[]): Record<string, unknown> | undefined => {
+      const findParallel = (
+        actions: unknown[],
+      ): Record<string, unknown> | undefined => {
         for (const a of actions) {
           const act = a as Record<string, unknown>;
           if (act.type === "parallel") return act;
@@ -1121,11 +1293,16 @@ describe("buildSequenceDiagram", () => {
           after: [],
         } as never,
       });
-      const chain = makeChain([trigger, sc], [{ from: "trigger-1", to: "sc-1" }]);
+      const chain = makeChain(
+        [trigger, sc],
+        [{ from: "trigger-1", to: "sc-1" }],
+      );
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
-      expect(diagram.participants.some((p) => p.name?.includes("TestService"))).toBe(true);
+      expect(
+        diagram.participants.some((p) => p.name?.includes("TestService")),
+      ).toBe(true);
     });
   });
 
@@ -1146,7 +1323,9 @@ describe("buildSequenceDiagram", () => {
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
-      expect(diagram.participants.some((p) => p.name?.includes("TestService"))).toBe(true);
+      expect(
+        diagram.participants.some((p) => p.name?.includes("TestService")),
+      ).toBe(true);
     });
   });
 
@@ -1186,10 +1365,15 @@ describe("buildSequenceDiagram", () => {
         [{ from: "trigger-1", to: "cond-1" }],
       );
 
-      const simpleDiagram = await buildSequenceDiagram(chain, DiagramMode.SIMPLE);
+      const simpleDiagram = await buildSequenceDiagram(
+        chain,
+        DiagramMode.SIMPLE,
+      );
 
       // Internal-only alternatives should be filtered out
-      const findAlternatives = (actions: unknown[]): Record<string, unknown> | undefined => {
+      const findAlternatives = (
+        actions: unknown[],
+      ): Record<string, unknown> | undefined => {
         for (const a of actions) {
           const act = a as Record<string, unknown>;
           if (act.type === "alternatives") return act;
@@ -1246,7 +1430,9 @@ describe("buildSequenceDiagram", () => {
 
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
-      const findAlternatives = (actions: unknown[]): Record<string, unknown> | undefined => {
+      const findAlternatives = (
+        actions: unknown[],
+      ): Record<string, unknown> | undefined => {
         for (const a of actions) {
           const act = a as Record<string, unknown>;
           if (act.type === "alternatives") return act;
@@ -1260,7 +1446,9 @@ describe("buildSequenceDiagram", () => {
       const alt = findAlternatives(diagram.actions);
       expect(alt).toBeDefined();
       const branches = alt!.branches as Record<string, unknown>[];
-      expect(branches.some((b) => (b.label as string).includes("50%"))).toBe(true);
+      expect(branches.some((b) => (b.label as string).includes("50%"))).toBe(
+        true,
+      );
     });
   });
 });
