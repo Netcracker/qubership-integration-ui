@@ -6,6 +6,7 @@ import {
   FloatButton,
   InputNumber,
   MenuProps,
+  Modal,
   Space,
   Table,
   TableProps,
@@ -139,6 +140,18 @@ export const LiveExchanges: React.FC = () => {
       }
     },
     [notificationService],
+  );
+
+  const showTerminateExchangeModal = useCallback(
+    (liveExchange: LiveExchange) => {
+      Modal.confirm({
+        title: "Terminate Exchange",
+        content:
+          "Are you sure you want to terminate current exchange? That will cause current session to end with error.",
+        onOk: () => void terminateExchange(liveExchange),
+      });
+    },
+    [terminateExchange],
   );
 
   const columns: TableProps<LiveExchangeTableItem>["columns"] = [
@@ -330,7 +343,7 @@ export const LiveExchanges: React.FC = () => {
             <Button
               type="text"
               icon={<OverridableIcon name="stop" />}
-              onClick={() => void terminateExchange(item)}
+              onClick={() => void showTerminateExchangeModal(item)}
             />
           </Tooltip>
         ),
