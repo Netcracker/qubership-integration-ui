@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Modal, Form, Input, Badge, Button, Switch, Select } from "antd";
-import { EntityLabels } from "../labels/EntityLabels";
-import { Environment, EnvironmentRequest } from "../../api/apiTypes";
-import { useServiceContext } from "./ServiceParametersPage";
+import { EntityLabels } from "../../labels/EntityLabels";
+import { Environment, EnvironmentRequest } from "../../../api/apiTypes";
+import { useServiceContext } from "../detail/ServiceParametersPage";
 import { Segmented } from "antd";
-import { EnvironmentSourceType } from "../../api/apiTypes";
-import { OverridableIcon } from "../../icons/IconProvider.tsx";
-import { environmentLabelOptions } from "./utils.tsx";
-import { isAmqpProtocol, isKafkaProtocol } from "../../misc/protocol-utils";
-import { isVsCode } from "../../api/rest/vscodeExtensionApi.ts";
+import { EnvironmentSourceType } from "../../../api/apiTypes";
+import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import { environmentLabelOptions } from "../utils.tsx";
+import { isAmqpProtocol, isKafkaProtocol } from "../../../misc/protocol-utils";
+import { isVsCode } from "../../../api/rest/vscodeExtensionApi.ts";
 
 interface EnvironmentParamsModalProps {
   open: boolean;
