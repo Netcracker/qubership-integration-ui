@@ -258,12 +258,20 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         key: "name",
         render: (text: string, record: Environment) => (
           <span
+            role="button"
+            tabIndex={0}
             style={{
               fontWeight: 600,
               color: "var(--vscode-textLink-foreground, #1677ff)",
               cursor: "pointer",
             }}
             onClick={() => handleEditClick(record)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleEditClick(record);
+              }
+            }}
           >
             {text}
           </span>

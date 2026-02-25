@@ -320,6 +320,8 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
             }}
           >
             <span
+              role="button"
+              tabIndex={0}
               style={{
                 marginRight: 8,
                 fontSize: 16,
@@ -327,6 +329,12 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
                 cursor: "pointer",
               }}
               onClick={() => setShowProperties((prev) => !prev)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowProperties((prev) => !prev);
+                }
+              }}
             >
               {showProperties ? "▲" : "▼"}
             </span>
@@ -449,6 +457,8 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
                             />
                           ) : (
                             <div
+                              role="button"
+                              tabIndex={0}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -459,6 +469,12 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
                               onMouseEnter={() => setHoverValueKey(key)}
                               onMouseLeave={() => setHoverValueKey(null)}
                               onClick={() => setEditingValueKey(key)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setEditingValueKey(key);
+                                }
+                              }}
                             >
                               <span style={{ flex: 1 }}>{value}</span>
                               {hoverValueKey === key && (
