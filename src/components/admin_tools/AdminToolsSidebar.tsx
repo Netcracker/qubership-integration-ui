@@ -37,7 +37,7 @@ const menuItems = [
   // },
   {
     key: "/admintools/sessions",
-    icon: <OverridableIcon name="user" />,
+    icon: <OverridableIcon name="sessions" />,
     label: "Sessions",
   },
   {

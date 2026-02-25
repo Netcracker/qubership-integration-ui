@@ -117,7 +117,7 @@ export const commonIcons = {
   inbox: InboxOutlined,
   more: MoreOutlined,
   save: SaveOutlined,
-  user: UserOutlined,
+  sessions: UserOutlined,
   exclamationCircle: ExclamationCircleOutlined,
   fileText: FileTextOutlined,
   rollback: RollbackOutlined,
