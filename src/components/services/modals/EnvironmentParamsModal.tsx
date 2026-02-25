@@ -114,7 +114,7 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
   const handleAddRow = (record: { key: string; value: string; id: string }) => {
     if (!record.key || !record.value) return;
     setPropertiesObj((prev) => ({ ...prev, [record.key]: record.value }));
-    const newId = Math.random().toString(36).slice(2);
+    const newId = crypto.randomUUID();
     setAddingRows((rows) =>
       rows
         .filter((r) => r.id !== record.id)
@@ -345,7 +345,7 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
                   size="small"
                   style={{ marginLeft: 16 }}
                   onClick={() => {
-                    const newId = Math.random().toString(36).slice(2);
+                    const newId = crypto.randomUUID();
                     setAddingRows((rows) => [
                       ...rows,
                       { key: "", value: "", id: newId },
@@ -385,7 +385,7 @@ export const EnvironmentParamsModal: React.FC<EnvironmentParamsModalProps> = ({
                   const obj: Record<string, string> = {};
                   lines.forEach((line) => {
                     const match = line.match(
-                      /^\s*([^=;\s]+)\s*=\s*([^;]*);?\s*$/,
+                      /^([^=;]+)=([^;]*);?$/,
                     );
                     if (match) obj[match[1]] = match[2];
                   });
