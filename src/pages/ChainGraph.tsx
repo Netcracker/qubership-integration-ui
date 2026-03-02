@@ -17,6 +17,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -26,6 +27,11 @@ import { Flex, FloatButton, Modal } from "antd";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router-dom";
 import { CustomControls } from "../components/graph/CustomControls.tsx";
+import {
+  ElementFocus,
+  ElementFocusContext,
+  type FitViewToElementIdFn,
+} from "../components/graph/ElementFocus.tsx";
 import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { useModalsContext } from "../Modals.tsx";
 import { ChainElementModification } from "../components/modal/chain_element/ChainElementModification.tsx";
@@ -59,7 +65,11 @@ import {
 import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import ContextMenu from "../components/graph/ContextMenu.tsx";
-import { getElementColor, nonEmptyContainerExists } from "../misc/chain-graph-utils.ts";
+import {
+  getElementColor,
+  nonEmptyContainerExists,
+  sanitizeEdge,
+} from "../misc/chain-graph-utils.ts";
 import {
   ExportChainOptions,
   ExportChains,
@@ -121,6 +131,7 @@ const ChainGraphInner: React.FC = () => {
   const {
     nodes,
     edges,
+    decorativeEdges,
     onConnect,
     onDragOver,
     onDrop,
@@ -139,7 +150,13 @@ const ChainGraphInner: React.FC = () => {
     isLoading,
   } = useChainGraph(chainId, refreshChain);
 
+  const renderEdges = useMemo(
+    () => [...edges, ...decorativeEdges].map(sanitizeEdge),
+    [edges, decorativeEdges],
+  );
+
   const { rightPanel, toggleRightPanel } = useElkDirection();
+  const fitViewToElementIdRef = useRef<FitViewToElementIdFn | null>(null);
 
   const handleElementUpdated = useCallback(
     (element: Element, node: ChainGraphNode) => {
@@ -479,7 +496,7 @@ const ChainGraphInner: React.FC = () => {
     async (changes: OnDeleteEvent) => {
       if (
         changes.nodes.length > 0 &&
-        (await nonEmptyContainerExists(changes.nodes))
+        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[]))
       ) {
         Modal.confirm({
           title: "Delete Container",
@@ -506,11 +523,12 @@ const ChainGraphInner: React.FC = () => {
             toggleRightPanel,
           }}
         >
-          <ReactFlow
+          <ElementFocusContext.Provider value={fitViewToElementIdRef}>
+            <ReactFlow
             nodes={nodes}
             nodeTypes={nodeTypes}
             defaultEdgeOptions={{ zIndex: 1001 }}
-            edges={edges}
+            edges={renderEdges}
             onNodeDragStart={onNodeDragStart}
             onNodeDrag={onNodeDrag}
             onNodeDragStop={(event, draggedNode) =>
@@ -533,6 +551,7 @@ const ChainGraphInner: React.FC = () => {
             onPaneClick={closeMenu}
             fitView
           >
+            <ElementFocus />
             <Background variant={BackgroundVariant.Dots} />
             <MiniMap
               zoomable
@@ -545,9 +564,10 @@ const ChainGraphInner: React.FC = () => {
             <CustomControls />
             {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
           </ReactFlow>
+          {rightPanel && <PageWithRightPanel />}
+        </ElementFocusContext.Provider>
         </ElkDirectionContextProvider>
       </div>
-      {rightPanel && <PageWithRightPanel />}
       <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
         <FloatButton
           icon={<>⭾</>}

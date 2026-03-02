@@ -225,16 +225,11 @@ export interface Api {
 
   importSessions(files: File[]): Promise<Session[]>;
 
-  retryFromLastCheckpoint(chainId: string, sessionId: string): Promise<void>;
-
   getSession(sessionId: string): Promise<Session>;
 
   getCheckpointSessions(sessionIds: string[]): Promise<CheckpointSession[]>;
 
-  retrySessionFromLastCheckpoint(
-    chainId: string,
-    sessionId: string,
-  ): Promise<void>;
+  retrySessionFromCheckpoint(chainId: string, sessionId: string): Promise<void>;
 
   getFolder(folderId: string): Promise<FolderItem>;
 
@@ -313,6 +308,10 @@ export interface Api {
     modelType: string,
     withSpec: boolean,
   ): Promise<IntegrationSystem[]>;
+
+  filterServices(filters: EntityFilterModel[]): Promise<IntegrationSystem[]>;
+
+  searchServices(searchCondition: string): Promise<IntegrationSystem[]>;
 
   createService(system: SystemRequest): Promise<IntegrationSystem>;
 
@@ -467,6 +466,11 @@ export interface Api {
   ungroupElements(chainId: string, groupId: string): Promise<Element[]>;
 
   getExchanges(limit: number): Promise<LiveExchange[]>;
+
+  getAndFilterExchanges(
+    limit: number,
+    filters: EntityFilterModel[],
+  ): Promise<LiveExchange[]>;
 
   terminateExchange(
     podIp: string,

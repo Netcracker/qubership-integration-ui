@@ -77,6 +77,8 @@ export const AccessControl: React.FC = () => {
     setAccessControlData,
     getAccessControl,
     bulkDeployAccessControl,
+    loadMore,
+    allDataLoaded,
   } = useAccessControl();
   const { showModal } = useModalsContext();
   const navigate = useNavigate();
@@ -137,7 +139,14 @@ export const AccessControl: React.FC = () => {
     true,
   );
 
-  const onScroll = async (_event: UIEvent<HTMLDivElement>) => {};
+  const onScroll = async (event: UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    const isScrolledToTheEnd =
+      target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
+    if (!allDataLoaded && isScrolledToTheEnd && !isLoading) {
+      await loadMore();
+    }
+  };
 
   const showDrawer = (record: AccessControlData) => {
     setCurrentRecord(record);
@@ -220,11 +229,9 @@ export const AccessControl: React.FC = () => {
         if (record.chainId) {
           return (
             <a
-              onClick={() =>
-                void navigate(
-                  `/chains/${record.chainId}/graph/${record.elementId}`,
-                )
-              }
+              href={`/chains/${record.chainId}/graph/${record.elementId}`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               {(record.properties as unknown as AccessControlProperty)
                 ?.contextPath || "—"}
@@ -420,7 +427,7 @@ export const AccessControl: React.FC = () => {
     <Flex vertical className={commonStyles["container"]}>
       <Flex className={commonStyles["header"]}>
         <Title level={4} className={commonStyles["title"]}>
-          <OverridableIcon name="settings" className={commonStyles["icon"]} />
+          <OverridableIcon name="accessControl" className={commonStyles["icon"]} />
           Access Control
         </Title>
         <Flex vertical={false} gap={8} className={commonStyles["actions"]}>
@@ -460,11 +467,9 @@ export const AccessControl: React.FC = () => {
               <Descriptions.Item label="Endpoint">
                 {currentRecord.chainId ? (
                   <a
-                    onClick={() =>
-                      void navigate(
-                        `/chains/${currentRecord?.chainId}/graph/${currentRecord?.elementId}`,
-                      )
-                    }
+                    href={`/chains/${currentRecord?.chainId}/graph/${currentRecord?.elementId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     {(
                       currentRecord.properties as unknown as AccessControlProperty
@@ -591,7 +596,6 @@ export const AccessControl: React.FC = () => {
         >
           <div
             ref={
-              // ResizeObserver ref from useResizeHeight is compatible with div
               containerRef as unknown as React.Ref<HTMLDivElement>
             }
             style={{
@@ -603,7 +607,6 @@ export const AccessControl: React.FC = () => {
             <Table<AccessControlData>
               className="flex-table"
               size="small"
-              /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- columns type from ColumnsType */
               columns={columns}
               dataSource={accessControlData?.roles}
               scroll={{
@@ -770,7 +773,7 @@ export const AccessControl: React.FC = () => {
         />
         <FloatButton
           tooltip={{ title: "Refresh", placement: "left" }}
-          icon={<OverridableIcon name="redo" />}
+          icon={<OverridableIcon name="refresh" />}
           onClick={() => void getAccessControl()}
         />
       </FloatButtonGroup>

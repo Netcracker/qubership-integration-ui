@@ -24,9 +24,7 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
-import { TextColumnFilterDropdown } from "../components/table/TextColumnFilterDropdown.tsx";
 import { formatTimestamp } from "../misc/format-utils.ts";
-import { TimestampColumnFilterDropdown } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import { TableRowSelection } from "antd/lib/table/interface";
 import Search from "antd/lib/input/Search";
@@ -782,7 +780,6 @@ const Chains = () => {
       key: "name",
       dataIndex: "name",
       sorter: compareChainTableItemsByTypeAndName,
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       render: (_, item) => (
         <Flex vertical={false} gap={4}>
           {item.itemType === CatalogItemType.FOLDER ? (
@@ -810,7 +807,6 @@ const Chains = () => {
       key: "id",
       dataIndex: "id",
       hidden: !selectedKeys.includes("id"),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
     },
     {
       title: "Description",
@@ -818,7 +814,6 @@ const Chains = () => {
       dataIndex: "description",
       hidden: !selectedKeys.includes("description"),
       sorter: (a, b) => a.description.localeCompare(b.description),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
     },
     {
       title: "Status",
@@ -837,9 +832,6 @@ const Chains = () => {
       key: "labels",
       dataIndex: "labels",
       hidden: !selectedKeys.includes("labels"),
-      filterDropdown: (props) => (
-        <TextColumnFilterDropdown {...props} enableExact />
-      ),
       render: (_, item) =>
         item.itemType === CatalogItemType.CHAIN ? (
           <EntityLabels labels={(item as ChainItem).labels} />
@@ -855,10 +847,6 @@ const Chains = () => {
         (a.createdBy?.username ?? "").localeCompare(
           b.createdBy?.username ?? "",
         ),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
-      // onFilter: getTextColumnFilterFn(
-      //   (item) => item.createdBy.username,
-      // ),
     },
     {
       title: "Created At",
@@ -869,8 +857,6 @@ const Chains = () => {
         <>{item.createdWhen ? formatTimestamp(item.createdWhen) : "-"}</>
       ),
       sorter: (a, b) => (a.createdWhen ?? 0) - (b.createdWhen ?? 0),
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      // onFilter: getTimestampColumnFilterFn((item) => item.createdWhen),
     },
     {
       title: "Modified By",
@@ -882,10 +868,6 @@ const Chains = () => {
         (a.modifiedBy?.username ?? "").localeCompare(
           b.modifiedBy?.username ?? "",
         ),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
-      // onFilter: getTextColumnFilterFn(
-      //   (item) => item.modifiedBy.username,
-      // ),
     },
     {
       title: "Modified At",
@@ -896,8 +878,6 @@ const Chains = () => {
         <>{item.modifiedWhen ? formatTimestamp(item.modifiedWhen) : "-"}</>
       ),
       sorter: (a, b) => (a.modifiedWhen ?? 0) - (b.modifiedWhen ?? 0),
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      // onFilter: getTimestampColumnFilterFn((item) => item.modifiedWhen),
     },
     {
       title: "",
@@ -947,15 +927,18 @@ const Chains = () => {
     <>
       {contextHolder}
       <Flex vertical gap={16} className={styles.container}>
-        {pathItems && pathItems.length > 0 ? (
-          <Breadcrumb items={pathItems} />
-        ) : null}
-        <Flex vertical={false} gap={8}>
+        <Flex vertical={false} gap={12} align="center">
+          {pathItems && pathItems.length > 0 ? (
+            <Breadcrumb items={pathItems} style={{ marginLeft: 9 }} />
+          ) : null}
+          <div style={{ flex: 1 }} />
           <Search
             placeholder="Full text search"
             allowClear
             onSearch={(value) => setSearchString(value)}
+            style={{ width: 500, flex: "none" }}
           />
+          {filterButton}
           <Dropdown
             menu={{
               items: columnVisibilityMenuItems,
@@ -968,7 +951,6 @@ const Chains = () => {
           >
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
-          {filterButton}
         </Flex>
         <Table<ChainTableItem>
           className="flex-table"

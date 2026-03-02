@@ -109,6 +109,7 @@ import {
   RightSquareOutlined,
   MenuUnfoldOutlined,
   InfoCircleOutlined,
+  HddOutlined
 } from "@ant-design/icons";
 
 export const commonIcons = {
@@ -117,7 +118,7 @@ export const commonIcons = {
   inbox: InboxOutlined,
   more: MoreOutlined,
   save: SaveOutlined,
-  user: UserOutlined,
+  sessions: UserOutlined,
   exclamationCircle: ExclamationCircleOutlined,
   fileText: FileTextOutlined,
   rollback: RollbackOutlined,
@@ -194,6 +195,10 @@ export const commonIcons = {
   block: BlockOutlined,
   menuUnfold: MenuUnfoldOutlined,
   info: InfoCircleOutlined,
+  liveExchanges: NodeIndexOutlined,
+  domains: HddOutlined,
+  accessControl: LockOutlined,
+  refresh: RedoOutlined,
 };
 
 export const elementIcons = {
