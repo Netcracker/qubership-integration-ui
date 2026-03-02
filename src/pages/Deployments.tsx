@@ -1,14 +1,23 @@
 import React from "react";
-import { FloatButton, Table, Tooltip } from "antd";
+import { FloatButton, Space, Table, Tag, Tooltip } from "antd";
 import { useDeployments } from "../hooks/useDeployments.tsx";
 import { useParams } from "react-router";
 import { TableProps } from "antd/lib/table";
-import { CreateDeploymentRequest, Deployment } from "../api/apiTypes.ts";
+import {
+  CreateDeploymentRequest,
+  Deployment,
+  DeployMode,
+  DomainType,
+  MicroDomainDeployRequest,
+} from "../api/apiTypes.ts";
 import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
-import { formatTimestamp } from "../misc/format-utils.ts";
+import { formatOptional, formatTimestamp } from "../misc/format-utils.ts";
 import { useModalsContext } from "../Modals.tsx";
-import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
+import {
+  CreateDeploymentOptions,
+  DeploymentCreate,
+} from "../components/modal/DeploymentCreate.tsx";
 import { api } from "../api/api.ts";
 import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
@@ -34,7 +43,20 @@ export const Deployments: React.FC = () => {
         </>
       ),
     },
-    { title: "Domain", dataIndex: "domain", key: "domain" },
+    {
+      title: "Domain",
+      dataIndex: "domain",
+      key: "domain",
+      render: (_, deployment) =>
+        deployment.domainType === DomainType.MICRO ? (
+          <Space size={"small"}>
+            {deployment.domain}
+            <Tag>micro</Tag>
+          </Space>
+        ) : (
+          deployment.domain
+        ),
+    },
     {
       title: "Status",
       dataIndex: "runtime",
@@ -51,7 +73,9 @@ export const Deployments: React.FC = () => {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
-      render: (_, deployment) => <>{deployment.createdBy.username}</>,
+      render: (_, deployment) => (
+        <>{formatOptional(deployment.createdBy?.username)}</>
+      ),
     },
     {
       title: "Created At",
@@ -83,18 +107,43 @@ export const Deployments: React.FC = () => {
 
   const deleteDeployment = async (deployment: Deployment) => {
     try {
-      await api.deleteDeployment(deployment.id);
+      if (deployment.domainType === DomainType.MICRO) {
+        await api.deleteSnapshotFromMicroDomain(
+          deployment.domain,
+          deployment.snapshotId,
+        );
+      } else {
+        await api.deleteDeployment(deployment.id);
+      }
       removeDeployment(deployment);
     } catch (error) {
       notificationService.requestFailed("Failed to delete deployment", error);
     }
   };
 
-  const createDeployment = async (request: CreateDeploymentRequest) => {
+  const createDeployment = async (options: CreateDeploymentOptions) => {
     if (!chainId) return;
     try {
-      const deployment = await api.createDeployment(chainId, request);
-      onDeploymentCreated(deployment);
+      await Promise.all(
+        options.domains.map(async (domain) => {
+          if (domain.type === DomainType.MICRO) {
+            const request: MicroDomainDeployRequest = {
+              name: domain.name,
+              snapshotIds: [options.snapshotId],
+              mode: DeployMode.APPEND,
+            };
+            await api.deploySnapshotsToMicroDomain(request);
+          } else {
+            const request: CreateDeploymentRequest = {
+              domain: domain.name,
+              snapshotId: options.snapshotId,
+              suspended: false,
+            };
+            const deployment = await api.createDeployment(chainId, request);
+            onDeploymentCreated(deployment);
+          }
+        }),
+      );
     } catch (error) {
       notificationService.requestFailed("Failed to create deployment", error);
     }

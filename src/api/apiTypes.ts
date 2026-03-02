@@ -265,6 +265,7 @@ export type Deployment = {
   snapshotId: string;
   name: string;
   domain: string;
+  domainType: DomainType;
   createdWhen: number;
   createdBy: User;
   runtime?: RuntimeStates;
@@ -283,7 +284,13 @@ export type EngineDomain = {
   replicas: number;
   namespace: string;
   version?: string;
+  type: DomainType;
 };
+
+export enum DomainType {
+  NATIVE = "NATIVE",
+  MICRO = "MICRO",
+}
 
 export type ChainLoggingSettings = {
   fallbackDefault: ChainLoggingProperties;
@@ -1241,6 +1248,37 @@ export type AccessControlProperty = {
   abacParameters?: AbacParameters;
 };
 
+export type CustomResourceBuildRequest = {
+  options: CustomResourceOptions;
+  chainIds: string[];
+};
+
+export type CustomResourceOptions = {
+  language?: string;
+  name?: string;
+  namespace?: string;
+  container?: ContainerOptions;
+  monitoring?: MonitoringOptions;
+  service?: ServiceOptions;
+  environment?: Record<string, string>;
+  resources?: string[];
+  serviceAccount?: string;
+};
+
+export type MonitoringOptions = {
+  enabled: boolean;
+  interval: string;
+};
+
+export type ServiceOptions = {
+  enabled: boolean;
+};
+
+export type ContainerOptions = {
+  image?: string;
+  imagePoolPolicy?: "Always" | "Never" | "IfNotPresent";
+};
+
 export type LiveExchange = {
   exchangeId: string;
   deploymentId: string;
@@ -1316,6 +1354,24 @@ export type BulkDeploymentRequest = {
   snapshotAction: BulkDeploymentSnapshotAction;
   chainIds: string[];
 };
+
+export type MicroDomainDeployRequest = {
+  name: string;
+  snapshotIds: string[];
+  mode?: DeployMode;
+};
+
+export type BulkMicroDomainDeployResult = {
+  domains: string[];
+  chainIds: string[];
+  snapshotAction: BulkDeploymentSnapshotAction;
+  mode?: DeployMode;
+};
+
+export enum DeployMode {
+  REWRITE = "REWRITE",
+  APPEND = "APPEND",
+}
 
 export type BulkDeploymentResult = {
   chainId: string;

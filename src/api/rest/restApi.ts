@@ -66,12 +66,15 @@ import {
   Element,
   SystemOperation,
   SpecApiFile,
+  CustomResourceBuildRequest,
   LiveExchange,
   ContextSystem,
   IntegrationSystemType,
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
+  MicroDomainDeployRequest,
+  BulkMicroDomainDeployResult,
   ImportVariablesResult,
   VariableImportPreview,
   UsedProperty,
@@ -976,29 +979,29 @@ export class RestApi implements Api {
 
   getSession = async (sessionId: string): Promise<Session> => {
     const response = await this.instance.get<Session>(
-      `${this.v1()}/sessions-management/sessions/${sessionId}`,
+      `${this.v1()}/sessions-management/sessions/${sessionId}`
     );
     return response.data;
   };
 
   getCheckpointSessions = async (
-    sessionIds: string[],
+    sessionIds: string[]
   ): Promise<CheckpointSession[]> => {
     const response = await this.instance.get<CheckpointSession[]>(
       `${this.v1()}/engine/sessions`,
       {
         params: { ids: sessionIds },
         paramsSerializer: {
-          indexes: null,
-        },
-      },
+          indexes: null
+        }
+      }
     );
     return response.data;
   };
 
   retrySessionFromCheckpoint = async (
     chainId: string,
-    sessionId: string,
+    sessionId: string
   ): Promise<void> => {
     return this.instance.post(
       `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
@@ -1900,6 +1903,14 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  buildCR = async (request: CustomResourceBuildRequest): Promise<string> => {
+    const response = await this.instance.post<string>(
+      `${this.v1()}/catalog/cr`,
+      request,
+    );
+    return response.data;
+  };
+
   getValidation = async (
     validationId: string,
   ): Promise<DiagnosticValidation> => {
@@ -1967,5 +1978,40 @@ export class RestApi implements Api {
     );
 
     return response.data;
+  };
+
+  deployToMicroDomain = async (
+    request: BulkMicroDomainDeployResult,
+  ): Promise<BulkDeploymentResult[]> => {
+    const response = await this.instance.post<BulkDeploymentResult[]>(
+      `${this.v1()}/catalog/cr/deploy-chains`,
+      request,
+    );
+    return response.data;
+  };
+
+  deploySnapshotsToMicroDomain = async (
+    request: MicroDomainDeployRequest,
+  ): Promise<void> => {
+    const response = await this.instance.post<void>(
+      `${this.v1()}/catalog/cr/deploy`,
+      request,
+    );
+    return response.data;
+  };
+
+  deleteMicroDomain = async (name: string): Promise<void> => {
+    await this.instance.delete<void>(
+      `${this.v1()}/catalog/cr/${name}`,
+    );
+  };
+
+  deleteSnapshotFromMicroDomain = async (
+    name: string,
+    chainId: string,
+  ): Promise<void> => {
+    await this.instance.delete<void>(
+      `${this.v1()}/catalog/cr/${name}/${chainId}`,
+    );
   };
 }
