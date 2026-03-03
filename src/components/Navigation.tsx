@@ -62,6 +62,7 @@ const Navigation = ({
         selectedKeys={[selectedKey]}
       ></Menu>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="bg-switcher-selector"></div>
         {!isVsCode && (
           <Button
             icon={<OverridableIcon name="questionCircle" />}
