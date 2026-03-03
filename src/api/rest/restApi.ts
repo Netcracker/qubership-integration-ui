@@ -90,6 +90,7 @@ import { registerRestAxiosInstance } from "./requestHeadersInterceptor.ts";
 import type {
   ApiError,
   ApiResponse,
+  DiscoveryResponse,
   SecretResponse,
   SecretWithVariables,
   Variable,
@@ -1860,6 +1861,22 @@ export class RestApi implements Api {
     return response.status === 204 ? [] : response.data;
   };
 
+  getAndFilterExchanges = async (
+    limit: number,
+    filters: EntityFilterModel[],
+  ): Promise<LiveExchange[]> => {
+    const response = await this.instance.post<LiveExchange[]>(
+      `${this.v1()}/catalog/live-exchanges`,
+      {
+        params: {
+          limit: limit,
+        },
+        filters,
+      },
+    );
+    return response.status === 204 ? [] : response.data;
+  };
+
   terminateExchange = async (
     podIp: string,
     deploymentId: string,
@@ -1951,6 +1968,26 @@ export class RestApi implements Api {
       searchRequest,
     );
 
+    return response.data;
+  };
+
+  runServiceDiscovery = async (): Promise<unknown> => {
+    return await this.instance.post<unknown>(
+      `${this.v1()}/systems-catalog/systems/discovery`,
+    );
+  };
+
+  isAutodiscoveryInProgress = async (): Promise<number> => {
+    const response = await this.instance.get<number>(
+      `${this.v1()}/systems-catalog/systems/discovery/progress`,
+    );
+    return response.data;
+  };
+
+  getAutodiscoveryResult = async (): Promise<DiscoveryResponse> => {
+    const response = await this.instance.get<DiscoveryResponse>(
+      `${this.v1()}/systems-catalog/systems/discovery/result`,
+    );
     return response.data;
   };
 

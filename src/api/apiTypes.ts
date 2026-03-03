@@ -1364,6 +1364,19 @@ export interface UsedPropertyElement {
   operations: UsedPropertyElementOperation[];
 }
 
+export interface DiscoveryError {
+  serviceName: string;
+  message: string;
+}
+
+export interface DiscoveryResponse {
+  discoveredSystemIds: string[];
+  discoveredGroupIds: string[];
+  discoveredSpecificationIds: string[];
+  updatedSystemsIds: string[];
+  errorMessages: DiscoveryError[];
+}
+
 export interface ChainElementCodeResponse {
     code: string;
 }

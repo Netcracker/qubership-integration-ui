@@ -76,6 +76,7 @@ import type {
   AccessControlResponse,
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
+  DiscoveryResponse,
   ChainElementCodeResponse
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
@@ -463,6 +464,11 @@ export interface Api {
 
   getExchanges(limit: number): Promise<LiveExchange[]>;
 
+  getAndFilterExchanges(
+    limit: number,
+    filters: EntityFilterModel[],
+  ): Promise<LiveExchange[]>;
+
   terminateExchange(
     podIp: string,
     deploymentId: string,
@@ -537,6 +543,12 @@ export interface Api {
   bulkDeployChainsAccessControl(
     searchRequest: AccessControlBulkDeployRequest[],
   ): Promise<AccessControlResponse>;
+
+  runServiceDiscovery(): Promise<unknown>;
+
+  isAutodiscoveryInProgress(): Promise<number>;
+
+  getAutodiscoveryResult(): Promise<DiscoveryResponse>;
 
   getElementsAsCode(chainId: string): Promise<ChainElementCodeResponse>;
 }

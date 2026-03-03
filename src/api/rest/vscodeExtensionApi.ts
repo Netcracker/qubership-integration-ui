@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  DiscoveryResponse,
   SecretWithVariables,
   Variable,
 } from "../apiTypes.ts";
@@ -970,6 +971,10 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method getExchanges not implemented.");
   }
 
+  getAndFilterExchanges(): Promise<LiveExchange[]> {
+    throw new Error("Method getAndFilterExchanges not implemented.");
+  }
+
   terminateExchange(): Promise<void> {
     throw new Error("Method terminateExchange not implemented.");
   }
@@ -1075,6 +1080,16 @@ export class VSCodeExtensionApi implements Api {
 
   getUsedProperties(_chainId: string): Promise<UsedProperty[]> {
     throw new Error("Method loadHttpTriggerAccessControl not implemented.");
+  }
+
+  runServiceDiscovery(): Promise<unknown> {
+    throw new Error("Method runServiceDiscovery not implemented.");
+  }
+  isAutodiscoveryInProgress(): Promise<number> {
+    throw new Error("Method isAutodiscoveryInProgress not implemented.");
+  }
+  getAutodiscoveryResult(): Promise<DiscoveryResponse> {
+    throw new Error("Method getAutodiscoveryResult not implemented.");
   }
 
   getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
