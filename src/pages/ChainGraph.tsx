@@ -595,8 +595,11 @@ const ChainGraphInner: React.FC = () => {
                 <div
                   style={{
                     width: rightPanelWidth,
-                    flexShrink: 0,
                     minWidth: MIN_PANEL_WIDTH,
+                    flexShrink: 0,
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
                   <PageWithRightPanel width={rightPanelWidth} />

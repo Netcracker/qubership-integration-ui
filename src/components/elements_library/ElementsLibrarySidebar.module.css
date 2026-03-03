@@ -8,8 +8,20 @@
   ) !important;
 }
 
+/* Right panel: full-height sider so start border runs full height like left sider */
 .rightPanelBorder {
   border-left: 1px solid var(--vscode-border, rgb(0 0 0 / 15%)) !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.rightPanelBorder :global(.ant-layout-sider-children) {
+  height: 100% !important;
+  min-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .sideMenu :global(.ant-layout-sider-children) {
