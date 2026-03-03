@@ -76,6 +76,7 @@ import type {
   AccessControlResponse,
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
+  ChainElementCodeResponse
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -536,6 +537,8 @@ export interface Api {
   bulkDeployChainsAccessControl(
     searchRequest: AccessControlBulkDeployRequest[],
   ): Promise<AccessControlResponse>;
+
+  getElementsAsCode(chainId: string): Promise<ChainElementCodeResponse>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

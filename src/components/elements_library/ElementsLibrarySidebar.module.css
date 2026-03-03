@@ -8,6 +8,10 @@
   ) !important;
 }
 
+.rightPanelBorder {
+  border-left: 1px solid var(--vscode-border, rgb(0 0 0 / 15%)) !important;
+}
+
 .sideMenu :global(.ant-layout-sider-children) {
   background: var(
     --vscode-sideBar-background,
@@ -79,6 +83,10 @@
 .spacedTabs {
   width: 100%;
   margin-bottom: 10px;
+}
+
+.rightPanelTabs {
+  margin-bottom: 0 !important;
 }
 
 .spacedTabs :global(.ant-tabs-nav) {

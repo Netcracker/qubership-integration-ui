@@ -63,6 +63,7 @@ import {
   UsedProperty,
   UsedService,
   VariableImportPreview,
+  ChainElementCodeResponse
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -1074,6 +1075,10 @@ export class VSCodeExtensionApi implements Api {
 
   getUsedProperties(_chainId: string): Promise<UsedProperty[]> {
     throw new Error("Method loadHttpTriggerAccessControl not implemented.");
+  }
+
+  getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
+      throw new Error("Method  not implemented.");
   }
 }
 

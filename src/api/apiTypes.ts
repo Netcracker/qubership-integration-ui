@@ -1363,3 +1363,7 @@ export interface UsedPropertyElement {
   type: string;
   operations: UsedPropertyElementOperation[];
 }
+
+export interface ChainElementCodeResponse {
+    code: string;
+}
