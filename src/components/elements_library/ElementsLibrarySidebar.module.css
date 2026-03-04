@@ -8,7 +8,6 @@
   ) !important;
 }
 
-/* Right panel: full-height sider so start border runs full height like left sider */
 .rightPanelBorder {
   border-left: 1px solid var(--vscode-border, rgb(0 0 0 / 15%)) !important;
   height: 100% !important;
