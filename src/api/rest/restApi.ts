@@ -79,7 +79,7 @@ import {
   AccessControlResponse,
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
-  ChainElementCodeResponse
+  ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1991,14 +1991,13 @@ export class RestApi implements Api {
     return response.data;
   };
 
-
   getElementsAsCode = async (
-      chainId: string
+    chainId: string,
   ): Promise<ChainElementCodeResponse> => {
-      const response = await this.instance.get<ChainElementCodeResponse>(
-          `${this.v1()}/catalog/chains/${chainId}/elements/code`
-      );
+    const response = await this.instance.get<ChainElementCodeResponse>(
+      `${this.v1()}/catalog/chains/${chainId}/elements/code`,
+    );
 
-      return response.data;
+    return response.data;
   };
 }

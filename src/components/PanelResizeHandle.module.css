@@ -11,14 +11,10 @@
   overflow: visible;
 }
 
-/* Invisible hit area so panels stay flush; resize still works */
 .handle::before {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -4px;
-  right: -4px;
+  inset: 0 -4px 0 -4px;
 }
 
 .line {

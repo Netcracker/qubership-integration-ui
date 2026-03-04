@@ -64,7 +64,7 @@ import {
   UsedProperty,
   UsedService,
   VariableImportPreview,
-  ChainElementCodeResponse
+  ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -1093,7 +1093,7 @@ export class VSCodeExtensionApi implements Api {
   }
 
   getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
-      throw new Error("Method  not implemented.");
+    throw new Error("Method  not implemented.");
   }
 }
 

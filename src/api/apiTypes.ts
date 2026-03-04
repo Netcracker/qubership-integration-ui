@@ -1378,5 +1378,5 @@ export interface DiscoveryResponse {
 }
 
 export interface ChainElementCodeResponse {
-    code: string;
+  code: string;
 }

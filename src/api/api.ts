@@ -77,7 +77,7 @@ import type {
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
   DiscoveryResponse,
-  ChainElementCodeResponse
+  ChainElementCodeResponse,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
