@@ -55,6 +55,7 @@ import { ContextServiceParametersPage } from "./components/services/context/Cont
 import DevTools from "./pages/DevTools.tsx";
 import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValidationPage.tsx";
 import { DesignTemplates } from "./components/admin_tools/design-templates/DesignTemplates.tsx";
+import { UserPermissionsProvider } from "./permissions/UserPermissionsProvider.tsx";
 
 const { Header } = Layout;
 
@@ -219,17 +220,19 @@ const App = () => {
 
   return (
     <ConfigProvider theme={antdConfig}>
-      <AntdApp>
-        <IconProvider>
-          <ThemeContext.Provider value={themeContextValue}>
-            <EventNotification>
-              <Modals>
-                <RouterProvider router={router} />
-              </Modals>
-            </EventNotification>
-          </ThemeContext.Provider>
-        </IconProvider>
-      </AntdApp>
+      <UserPermissionsProvider>
+        <AntdApp>
+          <IconProvider>
+            <ThemeContext.Provider value={themeContextValue}>
+              <EventNotification>
+                <Modals>
+                  <RouterProvider router={router} />
+                </Modals>
+              </EventNotification>
+            </ThemeContext.Provider>
+          </IconProvider>
+        </AntdApp>
+      </UserPermissionsProvider>
     </ConfigProvider>
   );
 };
