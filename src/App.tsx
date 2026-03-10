@@ -56,6 +56,7 @@ import DevTools from "./pages/DevTools.tsx";
 import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValidationPage.tsx";
 import { DesignTemplates } from "./components/admin_tools/design-templates/DesignTemplates.tsx";
 import { UserPermissionsProvider } from "./permissions/UserPermissionsProvider.tsx";
+import { Require } from "./permissions/Require.tsx";
 
 const { Header } = Layout;
 
@@ -89,14 +90,34 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       <Route element={<RootLayout />}>
-        <Route path="/devtools" element={<DevTools />}>
+        <Route
+          path="/devtools"
+          element={
+            <Require
+              permissions={{ devTools: ["access"] }}
+              fallback={<NotFound />}
+            >
+              <DevTools />
+            </Require>
+          }
+        >
           <Route path="" element={<Navigate to="diagnostic/validations" />} />
           <Route
             path="diagnostic/validations"
             element={<DiagnosticValidationPage />}
           />
         </Route>
-        <Route path="/admintools" element={<AdminTools />}>
+        <Route
+          path="/admintools"
+          element={
+            <Require
+              permissions={{ adminTools: ["access"] }}
+              fallback={<NotFound />}
+            >
+              <AdminTools />
+            </Require>
+          }
+        >
           <Route path="" element={<Navigate to="domains" />} />
           <Route path="domains" element={<Domains />} />
           <Route
@@ -109,7 +130,10 @@ const router = createBrowserRouter(
           <Route path="sessions" element={<SessionsPage />} />
           <Route path="access-control" element={<AccessControl />} />
           <Route path="exchanges" element={<LiveExchanges />} />
-          <Route path="detailed-design/templates" element={<DesignTemplates />} />
+          <Route
+            path="detailed-design/templates"
+            element={<DesignTemplates />}
+          />
         </Route>
         <Route index path="/" element={<Navigate to="/chains" />} />
         <Route index path="/chains" element={<Chains />} />

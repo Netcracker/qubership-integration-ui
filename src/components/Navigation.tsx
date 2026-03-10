@@ -8,31 +8,11 @@ import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { isDev } from "../appConfig.ts";
 import { useDocumentation } from "../hooks/useDocumentation.ts";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
+import { usePermissions } from "../permissions/usePermissions.tsx";
+import { useMemo } from "react";
+import { hasPermissions } from "../permissions/funcs.ts";
 
 type MenuItem = Required<MenuProps>["items"][number];
-
-const items: MenuItem[] = [
-  {
-    label: <Link to="/chains">Chains</Link>,
-    key: "chains",
-    icon: <OverridableIcon name="unorderedList" />,
-  },
-  {
-    label: <Link to="/services">Services</Link>,
-    key: "services",
-    icon: <OverridableIcon name="appstore" />,
-  },
-  {
-    label: <Link to="/admintools">Admin Tools</Link>,
-    key: "admintools",
-    icon: <OverridableIcon name="desktop" />,
-  },
-  {
-    label: <Link to="/devtools">Dev Tools</Link>,
-    key: "devtools",
-    icon: <OverridableIcon name="tool" />,
-  },
-];
 
 interface NavigationProps {
   showThemeSwitcher?: boolean;
@@ -50,6 +30,37 @@ const Navigation = ({
   const { openContextDoc } = useDocumentation();
   const { pathname } = useLocation();
   const selectedKey = pathname.split("/")[1] || "chains";
+  const permissions = usePermissions();
+
+  const items = useMemo(() => {
+    const result: MenuItem[] = [
+      {
+        label: <Link to="/chains">Chains</Link>,
+        key: "chains",
+        icon: <OverridableIcon name="unorderedList" />,
+      },
+      {
+        label: <Link to="/services">Services</Link>,
+        key: "services",
+        icon: <OverridableIcon name="appstore" />,
+      },
+    ];
+    if (hasPermissions(permissions, { adminTools: ["access"] })) {
+      result.push({
+        label: <Link to="/admintools">Admin Tools</Link>,
+        key: "admintools",
+        icon: <OverridableIcon name="desktop" />,
+      });
+    }
+    if (hasPermissions(permissions, { devTools: ["access"] })) {
+      result.push({
+        label: <Link to="/devtools">Dev Tools</Link>,
+        key: "devtools",
+        icon: <OverridableIcon name="tool" />,
+      });
+    }
+    return result;
+  }, [permissions]);
 
   return (
     <nav className={styles.navigation}>
