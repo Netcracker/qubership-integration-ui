@@ -2,6 +2,7 @@ export const ResourceTypes = [
   "importInstructions",
   "commonVariable",
   "securedVariable",
+  "folder",
   "chain",
   "snapshot",
   "deployment",
@@ -27,6 +28,8 @@ export const Operations = [
   "import",
   "export",
 
+  "compare", // chain
+  "generateDDS", // chain
   "downloadTemplate", // securedVariables
   "revert", // snapshot
   "retry", // session
@@ -40,3 +43,5 @@ export const Operations = [
 export type Operation = (typeof Operations)[number];
 
 export type UserPermissions = Partial<Record<ResourceType, Operation[]>>;
+
+export type RequiredPermissions = UserPermissions | { anyOf: UserPermissions[] };

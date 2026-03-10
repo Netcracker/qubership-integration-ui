@@ -1,10 +1,10 @@
-import { UserPermissions } from "./types.ts";
+import { RequiredPermissions } from "./types.ts";
 import React, { PropsWithChildren, ReactNode } from "react";
 import { usePermissions } from "./usePermissions.tsx";
 import { hasPermissions } from "./funcs.ts";
 
 type RequireProps = PropsWithChildren & {
-  permissions: UserPermissions;
+  permissions: RequiredPermissions;
   fallback?: ReactNode;
 };
 

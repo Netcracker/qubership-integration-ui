@@ -1,5 +1,6 @@
 import {
   Operations,
+  RequiredPermissions,
   ResourceType,
   ResourceTypes,
   UserPermissions,
@@ -20,10 +21,15 @@ export function getPermissions(appConfig: AppConfig): UserPermissions {
 
 export function hasPermissions(
   provided: UserPermissions,
-  required: UserPermissions,
+  required: RequiredPermissions,
 ): boolean {
-  return Object.entries(required).every(([resource, operations]) => {
-    const permittedOperations = provided[resource as ResourceType] ?? [];
-    return operations.every(operation => permittedOperations.includes(operation));
-  });
+  const options = "anyOf" in required ? required.anyOf : [required];
+  return options.some((option) =>
+    Object.entries(option).every(([resource, operations]) => {
+      const permittedOperations = provided[resource as ResourceType] ?? [];
+      return operations.every((operation) =>
+        permittedOperations.includes(operation),
+      );
+    }),
+  );
 }
