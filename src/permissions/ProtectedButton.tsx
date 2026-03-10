@@ -4,39 +4,43 @@ import { ButtonProps } from "antd/es/button/button";
 import React, { ReactNode } from "react";
 import { Require } from "./Require.tsx";
 import { Button, Tooltip } from "antd";
+import { IconName, OverridableIcon } from "../icons/IconProvider.tsx";
 
 export type OnDenied = "hide" | "disable";
 
 type ButtonWithTooltipProps = {
   tooltipProps: TooltipProps;
-  buttonProps: ButtonProps;
-};
-
-type ProtectedButtonProps = ButtonWithTooltipProps & {
-  permissions: RequiredPermissions;
-  onDenied?: OnDenied;
+  buttonProps: ButtonProps & { iconName?: IconName };
 };
 
 const ButtonWithTooltip: React.FC<ButtonWithTooltipProps> = ({
   tooltipProps,
-  buttonProps,
+  buttonProps: { iconName, icon, ...restButtonProps },
 }): ReactNode => {
   return (
     <Tooltip {...tooltipProps}>
-      <Button {...buttonProps} />
+      <Button
+        icon={iconName ? <OverridableIcon name={iconName} /> : icon}
+        {...restButtonProps}
+      />
     </Tooltip>
   );
 };
 
+export type ProtectedButtonProps = ButtonWithTooltipProps & {
+  require: RequiredPermissions;
+  onDenied?: OnDenied;
+};
+
 export const ProtectedButton: React.FC<ProtectedButtonProps> = ({
-  permissions,
+  require,
   onDenied = "hide",
   tooltipProps,
   buttonProps,
 }): ReactNode => {
   return (
     <Require
-      permissions={permissions}
+      permissions={require}
       fallback={
         onDenied === "disable" ? (
           <ButtonWithTooltip

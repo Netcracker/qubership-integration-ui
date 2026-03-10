@@ -980,7 +980,7 @@ const Chains = () => {
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
           <ProtectedButton
-            permissions={{ chain: ["compare"] }}
+            require={{ chain: ["compare"] }}
             tooltipProps={{
               title: "Compare selected chains",
               placement: "bottom",
@@ -988,10 +988,10 @@ const Chains = () => {
             buttonProps={{ icon: <>⇄</>, disabled: true }}
           />
           <ProtectedButton
-            permissions={{ chain: ["create"] }}
+            require={{ chain: ["create"] }}
             tooltipProps={{ title: "Paste", placement: "bottom" }}
             buttonProps={{
-              icon: <OverridableIcon name="carryOut" />,
+              iconName: "carryOut",
               onClick: () => {
                 Promise.resolve(pasteItem(getFolderId())).catch(
                   () => undefined,
@@ -1000,43 +1000,43 @@ const Chains = () => {
             }}
           />
           <ProtectedButton
-            permissions={{ deployment: ["create"] }}
+            require={{ deployment: ["create"] }}
             tooltipProps={{
               title: "Deploy selected chains",
               placement: "bottom",
             }}
             buttonProps={{
-              icon: <OverridableIcon name="send" />,
+              iconName: "send",
               onClick: onDeployBtnClick,
             }}
           />
           <ProtectedButton
-            permissions={{ chain: ["import"] }}
+            require={{ chain: ["import"] }}
             tooltipProps={{
               title: "Export selected chains",
               placement: "bottom",
             }}
             buttonProps={{
-              icon: <OverridableIcon name="cloudDownload" />,
+              iconName: "cloudDownload",
               onClick: onExportBtnClick,
             }}
           />
           <ProtectedButton
-            permissions={{ chain: ["export"] }}
+            require={{ chain: ["export"] }}
             tooltipProps={{ title: "Import chains", placement: "bottom" }}
             buttonProps={{
-              icon: <OverridableIcon name="cloudUpload" />,
+              iconName: "cloudUpload",
               onClick: onImportBtnClick,
             }}
           />
           <ProtectedButton
-            permissions={{ chain: ["delete"] }}
+            require={{ chain: ["delete"] }}
             tooltipProps={{
               title: "Delete selected chains and folders",
               placement: "bottom",
             }}
             buttonProps={{
-              icon: <OverridableIcon name="delete" />,
+              iconName: "delete",
               onClick: onDeleteBtnClick,
             }}
           />

@@ -1,5 +1,6 @@
 export const ResourceTypes = [
   "importInstructions",
+  "secret",
   "commonVariable",
   "securedVariable",
   "folder",
@@ -7,7 +8,7 @@ export const ResourceTypes = [
   "snapshot",
   "deployment",
   "loggingSettings",
-  "maskedFields",
+  "maskedField",
   "session",
   "service",
   "specification",
@@ -18,7 +19,7 @@ export const ResourceTypes = [
   "adminTools",
 ] as const;
 
-export type ResourceType = typeof ResourceTypes[number];
+export type ResourceType = (typeof ResourceTypes)[number];
 
 export const Operations = [
   "create",
@@ -28,20 +29,33 @@ export const Operations = [
   "import",
   "export",
 
-  "compare", // chain
-  "generateDDS", // chain
-  "downloadTemplate", // securedVariables
-  "revert", // snapshot
-  "retry", // session
+  // chain
+  "generateDDS",
 
-  "deprecate", // specification
+  // chain, snapshot
+  "compare",
+  "generateSequenceDiagram",
 
-  "access", // adminTools, devTools
+  // snapshot
+  "showXml",
 
+  // snapshot
+  "revert", // redundant? chain update?
+
+  // session
+  "retry",
+
+  // specification
+  "deprecate",
+
+  // adminTools, devTools
+  "access",
 ] as const;
 
 export type Operation = (typeof Operations)[number];
 
 export type UserPermissions = Partial<Record<ResourceType, Operation[]>>;
 
-export type RequiredPermissions = UserPermissions | { anyOf: UserPermissions[] };
+export type RequiredPermissions =
+  | UserPermissions
+  | { anyOf: UserPermissions[] };
