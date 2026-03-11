@@ -35,6 +35,7 @@ import { AddDeleteRolesPopUp } from "./AddDeleteRolesPopUp.tsx";
 import { useNavigate } from "react-router";
 import { DeploymentsCumulativeState } from "../../deployment_runtime_states/DeploymentsCumulativeState.tsx";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
 
 const { Title } = Typography;
 
@@ -445,10 +446,12 @@ export const AccessControl: React.FC = () => {
           >
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
-          <Tooltip title="Redeploy" placement="bottom">
-            <Button
-              icon={<OverridableIcon name="send" />}
-              onClick={() => {
+          <ProtectedButton
+            require={{ deployment: ["create"] }}
+            tooltipProps={{ title: "Redeploy", placement: "bottom" }}
+            buttonProps={{
+              iconName: "send",
+              onClick: () => {
                 if (selectedRowKeys.length === 0) {
                   notificationService.info(
                     "No selection",
@@ -470,13 +473,15 @@ export const AccessControl: React.FC = () => {
                     "Selected records not found",
                   );
                 }
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Add Roles" placement="bottom">
-            <Button
-              icon={<OverridableIcon name="plus" />}
-              onClick={() => {
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["update"] }}
+            tooltipProps={{ title: "Add Roles", placement: "bottom" }}
+            buttonProps={{
+              iconName: "plus",
+              onClick: () => {
                 if (selectedRowKeys.length === 0) {
                   notificationService.info(
                     "No selection",
@@ -518,13 +523,15 @@ export const AccessControl: React.FC = () => {
                     "Selected record not found",
                   );
                 }
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete Roles" placement="bottom">
-            <Button
-              icon={<OverridableIcon name="minus" />}
-              onClick={() => {
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["update"] }}
+            tooltipProps={{ title: "Delete Roles", placement: "bottom" }}
+            buttonProps={{
+              iconName: "minus",
+              onClick: () => {
                 if (selectedRowKeys.length === 0) {
                   notificationService.info(
                     "No selection",
@@ -567,9 +574,9 @@ export const AccessControl: React.FC = () => {
                     "Selected record not found",
                   );
                 }
-              }}
-            />
-          </Tooltip>
+              },
+            }}
+          />
           <Tooltip title="Refresh" placement="bottom">
             <Button
               icon={<OverridableIcon name="refresh" />}

@@ -14,9 +14,11 @@ export const ResourceTypes = [
   "specification",
   "specificationGroup",
   "environment",
-  "liveExchanges",
+  "liveExchange",
   "devTools",
   "adminTools",
+  "designTemplate",
+  "actionLog"
 ] as const;
 
 export type ResourceType = (typeof ResourceTypes)[number];
@@ -48,8 +50,14 @@ export const Operations = [
   // specification
   "deprecate",
 
+  // liveExchange
+  "stop",
+
   // adminTools, devTools
   "access",
+
+  // service
+  "discover"
 ] as const;
 
 export type Operation = (typeof Operations)[number];

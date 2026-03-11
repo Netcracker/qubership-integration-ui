@@ -26,6 +26,7 @@ import {
 } from "../../../misc/format-utils.ts";
 import { useNavigate } from "react-router";
 import { useLiveExchangeFilters } from "./useLiveExchangeFilters.tsx";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
 
 const { Title } = Typography;
 
@@ -280,13 +281,15 @@ export const LiveExchanges: React.FC = () => {
         isLiveExchangeGroup(item) ? (
           <></>
         ) : (
-          <Tooltip title={"Terminate exchange"}>
-            <Button
-              type="text"
-              icon={<OverridableIcon name="stop" />}
-              onClick={() => void showTerminateExchangeModal(item)}
-            />
-          </Tooltip>
+          <ProtectedButton
+            require={{ liveExchange: ["stop"] }}
+            tooltipProps={{ title: "Terminate exchange" }}
+            buttonProps={{
+              type: "text",
+              iconName: "stop",
+              onClick: () => void showTerminateExchangeModal(item),
+            }}
+          />
         ),
     },
   ];

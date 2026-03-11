@@ -7,19 +7,19 @@ import {
   Table,
   TableProps,
   Tag,
-  Tooltip,
   Typography,
 } from "antd";
 import { useNotificationService } from "../../../hooks/useNotificationService";
 import { OverridableIcon } from "../../../icons/IconProvider";
 import commonStyles from "../CommonStyle.module.css";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "../../../api/api";
 import { DetailedDesignTemplate } from "../../../api/apiTypes";
 import { formatTimestamp } from "../../../misc/format-utils";
 import { useModalsContext } from "../../../Modals";
 import { CreateDesignTemplateModal } from "./CreateDesignTemplateModal";
 import { TableRowSelection } from "antd/es/table/interface";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
 
 const { Title } = Typography;
 
@@ -209,19 +209,24 @@ export const DesignTemplates: React.FC = () => {
           className={commonStyles["actions"]}
           align={"center"}
         >
-          <Tooltip title="Delete selected templates" placement="bottom">
-            <Button
-              disabled={!isDeleteEnabled()}
-              icon={<OverridableIcon name="delete" />}
-              onClick={() => {
+          <ProtectedButton
+            require={{ designTemplate: ["delete"] }}
+            tooltipProps={{
+              title: "Delete selected templates",
+              placement: "bottom",
+            }}
+            buttonProps={{
+              disabled: !isDeleteEnabled(),
+              iconName: "delete",
+              onClick: () => {
                 Modal.confirm({
                   title: `Delete template?`,
                   content: `Are you sure you want to permanently delete selected templates?`,
                   onOk: () => void handleDelete(),
                 });
-              }}
-            />
-          </Tooltip>
+              },
+            }}
+          />
           <Dropdown
             menu={{
               items: columnVisibilityMenuItems,
@@ -234,20 +239,27 @@ export const DesignTemplates: React.FC = () => {
           >
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
-          <Tooltip title="Export selected template" placement="bottom">
-            <Button
-              disabled={selectedRowKeys.length !== 1}
-              icon={<OverridableIcon name="cloudDownload" />}
-              onClick={() => void handleExport()}
-            />
-          </Tooltip>
-          <Tooltip title="Create template" placement="bottom">
-            <Button
-              type="primary"
-              icon={<OverridableIcon name="plus" />}
-              onClick={handleCreate}
-            />
-          </Tooltip>
+          <ProtectedButton
+            require={{ designTemplate: ["export"] }}
+            tooltipProps={{
+              title: "Export selected template",
+              placement: "bottom",
+            }}
+            buttonProps={{
+              disabled: selectedRowKeys.length !== 1,
+              iconName: "cloudDownload",
+              onClick: () => void handleExport(),
+            }}
+          />
+          <ProtectedButton
+            require={{ designTemplate: ["create"] }}
+            tooltipProps={{ title: "Create template", placement: "bottom" }}
+            buttonProps={{
+              type: "primary",
+              iconName: "plus",
+              onClick: handleCreate,
+            }}
+          />
         </Flex>
       </Flex>
       <Flex
