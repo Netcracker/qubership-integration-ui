@@ -917,6 +917,7 @@ const Chains = () => {
                 item.itemType === CatalogItemType.FOLDER
                   ? folderMenuItems
                   : chainMenuItems,
+              // @ts-expect-error Some mistake with types: onClick presents in menu props.
               onClick: ({ key }: MenuInfo) =>
                 void onContextMenuItemClick(item, key),
             }}
