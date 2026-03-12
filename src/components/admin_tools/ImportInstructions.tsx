@@ -327,7 +327,7 @@ export const ImportInstructions: React.FC = () => {
 
   useEffect(() => {
     setEnableEdit(
-      !hasPermissions(permissions, { importInstructions: ["update"] }),
+      hasPermissions(permissions, { importInstructions: ["update"] }),
     );
   }, [permissions]);
 
