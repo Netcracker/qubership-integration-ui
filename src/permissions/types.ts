@@ -24,12 +24,14 @@ export const ResourceTypes = [
 export type ResourceType = (typeof ResourceTypes)[number];
 
 export const Operations = [
+  "list",
   "create",
   "read",
   "update",
   "delete",
   "import",
   "export",
+  "execute",
 
   // chain
   "generateDDS",

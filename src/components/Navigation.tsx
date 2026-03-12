@@ -33,18 +33,21 @@ const Navigation = ({
   const permissions = usePermissions();
 
   const items = useMemo(() => {
-    const result: MenuItem[] = [
-      {
+    const result: MenuItem[] = [];
+    if (hasPermissions(permissions, { chain: ["list"] })) {
+      result.push({
         label: <Link to="/chains">Chains</Link>,
         key: "chains",
         icon: <OverridableIcon name="unorderedList" />,
-      },
-      {
+      });
+    }
+    if (hasPermissions(permissions, { service: ["list"] })) {
+      result.push({
         label: <Link to="/services">Services</Link>,
         key: "services",
         icon: <OverridableIcon name="appstore" />,
-      },
-    ];
+      });
+    }
     if (hasPermissions(permissions, { adminTools: ["access"] })) {
       result.push({
         label: <Link to="/admintools">Admin Tools</Link>,

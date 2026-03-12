@@ -57,6 +57,7 @@ import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValid
 import { DesignTemplates } from "./components/admin_tools/design-templates/DesignTemplates.tsx";
 import { UserPermissionsProvider } from "./permissions/UserPermissionsProvider.tsx";
 import { Require } from "./permissions/Require.tsx";
+import { NotAuthorized } from "./permissions/NotAuthorized.tsx";
 
 const { Header } = Layout;
 
@@ -95,7 +96,7 @@ const router = createBrowserRouter(
           element={
             <Require
               permissions={{ devTools: ["access"] }}
-              fallback={<NotFound />}
+              fallback={<NotAuthorized />}
             >
               <DevTools />
             </Require>
@@ -112,7 +113,7 @@ const router = createBrowserRouter(
           element={
             <Require
               permissions={{ adminTools: ["access"] }}
-              fallback={<NotFound />}
+              fallback={<NotAuthorized />}
             >
               <AdminTools />
             </Require>
@@ -136,8 +137,29 @@ const router = createBrowserRouter(
           />
         </Route>
         <Route index path="/" element={<Navigate to="/chains" />} />
-        <Route index path="/chains" element={<Chains />} />
-        <Route path="/chains/:chainId" element={<ChainPage />}>
+        <Route
+          index
+          path="/chains"
+          element={
+            <Require
+              permissions={{ chain: ["list"] }}
+              fallback={<NotAuthorized />}
+            >
+              <Chains />
+            </Require>
+          }
+        />
+        <Route
+          path="/chains/:chainId"
+          element={
+            <Require
+              permissions={{ chain: ["read"] }}
+              fallback={<NotAuthorized />}
+            >
+              <ChainPage />
+            </Require>
+          }
+        >
           <Route index element={<ChainGraph />} />
           <Route index path="graph" element={<ChainGraph />} />
           <Route path="graph/:elementId" element={<ChainGraph />} />
@@ -149,7 +171,17 @@ const router = createBrowserRouter(
           <Route path="masking" element={<Masking />} />
           <Route path="properties" element={<ChainProperties />} />
         </Route>
-        <Route path="/services" element={<Services />} />
+        <Route
+          path="/services"
+          element={
+            <Require
+              permissions={{ service: ["list"] }}
+              fallback={<NotAuthorized />}
+            >
+              <Services />
+            </Require>
+          }
+        />
         <Route
           path="/services/systems/:systemId/parameters"
           element={<ServiceParametersPage />}
