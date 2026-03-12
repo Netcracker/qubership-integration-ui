@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
-  Dropdown,
   Empty,
   Flex,
   InputNumber,
-  MenuProps,
   Modal,
   Space,
   Table,
@@ -27,6 +25,7 @@ import {
 import { useNavigate } from "react-router";
 import { useLiveExchangeFilters } from "./useLiveExchangeFilters.tsx";
 import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { useColumnSettingsBasedOnColumnsType } from "../../table/useColumnSettingsButton.tsx";
 
 const { Title } = Typography;
 
@@ -72,15 +71,6 @@ export const LiveExchanges: React.FC = () => {
   const [items, setItems] = useState<LiveExchangeTableItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [limit, setLimit] = useState<number>(10);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    "sessionId",
-    "chainName",
-    "sessionDuration",
-    "duration",
-    "sessionStartTime",
-    "main",
-    "podIp",
-  ]);
 
   const [columnWidths, setColumnWidths] = useState<{ [key: string]: number }>({
     sessionId: 200,
@@ -145,7 +135,6 @@ export const LiveExchanges: React.FC = () => {
       title: "Session ID",
       key: "sessionId",
       dataIndex: "sessionId",
-      hidden: !visibleColumns.includes("sessionId"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.sessionId ?? "").localeCompare(a.sessionId ?? ""),
       onHeaderCell: () => ({
@@ -172,7 +161,6 @@ export const LiveExchanges: React.FC = () => {
       title: "Chain",
       key: "chainName",
       dataIndex: "chainName",
-      hidden: !visibleColumns.includes("chainName"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.chainName ?? b.chainId ?? "").localeCompare(
           a.chainName ?? a.chainId ?? "",
@@ -191,7 +179,6 @@ export const LiveExchanges: React.FC = () => {
       title: "Session Duration",
       key: "sessionDuration",
       dataIndex: "sessionDuration",
-      hidden: !visibleColumns.includes("sessionDuration"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.sessionDuration ?? 0) - (a.sessionDuration ?? 0),
       onHeaderCell: () => ({
@@ -206,7 +193,6 @@ export const LiveExchanges: React.FC = () => {
       title: "Exchange Duration",
       key: "duration",
       dataIndex: "duration",
-      hidden: !visibleColumns.includes("duration"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (isLiveExchangeGroup(b) ? 0 : (b.duration ?? 0)) -
         (isLiveExchangeGroup(a) ? 0 : (a.duration ?? 0)),
@@ -226,7 +212,6 @@ export const LiveExchanges: React.FC = () => {
       title: "Session Started",
       key: "sessionStartTime",
       dataIndex: "sessionStartTime",
-      hidden: !visibleColumns.includes("sessionStartTime"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.sessionStartTime ?? 0) - (a.sessionStartTime ?? 0),
       onHeaderCell: () => ({
@@ -245,7 +230,6 @@ export const LiveExchanges: React.FC = () => {
       title: "Main thread",
       key: "main",
       dataIndex: "main",
-      hidden: !visibleColumns.includes("main"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (!isLiveExchangeGroup(b) && b.main ? 1 : 0) -
         (!isLiveExchangeGroup(a) && a.main ? 1 : 0),
@@ -264,7 +248,6 @@ export const LiveExchanges: React.FC = () => {
       title: "Pod IP",
       key: "podIp",
       dataIndex: "podIp",
-      hidden: !visibleColumns.includes("podIp"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.podIp ?? "").localeCompare(a.podIp ?? ""),
       onHeaderCell: () => ({
@@ -294,16 +277,11 @@ export const LiveExchanges: React.FC = () => {
     },
   ];
 
-  const columnVisibilityMenuItems: MenuProps["items"] = columns.map(
-    (column, index) => ({
-      label:
-        typeof column.title === "string"
-          ? column.title
-          : (column.key?.toString() ?? index),
-      key: column.key ?? index,
-      disabled: column.key === "sessionId",
-    }),
-  );
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<LiveExchangeTableItem>(
+      "liveExchangesTable",
+      columns,
+    );
 
   const totalColumnsWidth = Object.values(columnWidths).reduce(
     (acc, width) => acc + width,
@@ -357,18 +335,7 @@ export const LiveExchanges: React.FC = () => {
             />
           </Space>
           {filterButton}
-          <Dropdown
-            menu={{
-              items: columnVisibilityMenuItems,
-              selectable: true,
-              multiple: true,
-              selectedKeys: visibleColumns,
-              onSelect: ({ selectedKeys }) => setVisibleColumns(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setVisibleColumns(selectedKeys),
-            }}
-          >
-            <Button icon={<OverridableIcon name="settings" />} />
-          </Dropdown>
+          {columnSettingsButton}
           <Tooltip title="Refresh" placement="bottom">
             <Button
               icon={<OverridableIcon name="refresh" />}
@@ -390,7 +357,7 @@ export const LiveExchanges: React.FC = () => {
         <Table<LiveExchangeTableItem>
           className="flex-table"
           size="small"
-          columns={columns}
+          columns={orderedColumns}
           dataSource={items}
           scroll={{ x: totalColumnsWidth, y: "" }}
           pagination={false}

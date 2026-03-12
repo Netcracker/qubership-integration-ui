@@ -4,9 +4,7 @@ import {
   Button,
   Descriptions,
   Drawer,
-  Dropdown,
   Flex,
-  MenuProps,
   Table,
   Tooltip,
   Typography,
@@ -36,6 +34,7 @@ import { ResizableTitle } from "../ResizableTitle.tsx";
 import commonStyles from "./CommonStyle.module.css";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { Require } from "../../permissions/Require.tsx";
+import { useColumnSettingsBasedOnColumnsType } from "../table/useColumnSettingsButton.tsx";
 
 export enum OperationType {
   READ = "read",
@@ -139,15 +138,6 @@ const externalEntityType: EntityType[] = [
   EntityType.DETAILED_DESIGN_TEMPLATE,
 ];
 
-const columnVisibilityMenuItems: MenuProps["items"] = [
-  { label: "Action Time", key: "actionTime" },
-  { label: "Initiator", key: "username" },
-  { label: "Operation", key: "operation" },
-  { label: "Entity Type", key: "entityType" },
-  { label: "Entity Name", key: "entityName" },
-  { label: "ParentName", key: "parentName" },
-];
-
 const { Title } = Typography;
 
 const EXTERNAL_ENTITY_PATTERN = /^[^\\/:*?"<>|]+\.(zip|ya?ml|xml|wsdl)$/i;
@@ -175,15 +165,6 @@ export const ActionsLog: React.FC = () => {
   };
 
   const [containerRef, containerHeight] = useResizeHeight<HTMLElement>();
-
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([
-    "actionTime",
-    "username",
-    "operation",
-    "entityType",
-    "entityName",
-    "parentName",
-  ]);
 
   const [columnsWidth, setColumnsWidth] = useState<{ [key: string]: number }>({
     actionTime: 200,
@@ -231,8 +212,8 @@ export const ActionsLog: React.FC = () => {
   const columns: TableProps<ActionLog>["columns"] = [
     {
       title: "Action Time",
+      key: "actionTime",
       dataIndex: "actionTime",
-      hidden: !selectedKeys.includes("actionTime"),
       width: columnsWidth.actionTime,
       sorter: (a: ActionLog, b: ActionLog) => b.actionTime - a.actionTime,
       filterDropdown: (props: FilterDropdownProps) => (
@@ -247,8 +228,8 @@ export const ActionsLog: React.FC = () => {
     },
     {
       title: "Initiator",
+      key: "username",
       dataIndex: "username",
-      hidden: !selectedKeys.includes("username"),
       width: columnsWidth.username,
       filterDropdown: (props: FilterDropdownProps) => (
         <TextColumnFilterDropdown {...props} />
@@ -263,8 +244,8 @@ export const ActionsLog: React.FC = () => {
     },
     {
       title: "Operation",
+      key: "operation",
       dataIndex: "operation",
-      hidden: !selectedKeys.includes("operation"),
       width: columnsWidth.operation,
       filterDropdown: operationFilter,
       onFilter: operationOnFilter,
@@ -284,9 +265,9 @@ export const ActionsLog: React.FC = () => {
     },
     {
       title: "Entity Type",
+      key: "entityType",
       dataIndex: "entityType",
       width: columnsWidth.entityType,
-      hidden: !selectedKeys.includes("entityType"),
       filterDropdown: entityTypeFilter,
       onFilter: entityTypeOnFilter,
       onHeaderCell: () => ({
@@ -302,6 +283,7 @@ export const ActionsLog: React.FC = () => {
     },
     {
       title: "Entity Name",
+      key: "entityName",
       dataIndex: "entityName",
       width: columnsWidth.entityName,
       filterDropdown: (props: FilterDropdownProps) => (
@@ -319,9 +301,9 @@ export const ActionsLog: React.FC = () => {
     },
     {
       title: "Parent Name",
+      key: "parentName",
       dataIndex: "parentName",
       width: columnsWidth.parentName,
-      hidden: !selectedKeys.includes("parentName"),
       filterDropdown: (props: FilterDropdownProps) => (
         <TextColumnFilterDropdown {...props} />
       ),
@@ -356,6 +338,9 @@ export const ActionsLog: React.FC = () => {
       hidden: true,
     },
   ];
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<ActionLog>("actionsLogTable", columns);
 
   const handleResize =
     (dataIndex: string) =>
@@ -477,18 +462,7 @@ export const ActionsLog: React.FC = () => {
           Audit
         </Title>
         <Flex vertical={false} gap={4} className={commonStyles["actions"]}>
-          <Dropdown
-            menu={{
-              items: columnVisibilityMenuItems,
-              selectable: true,
-              multiple: true,
-              selectedKeys,
-              onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-            }}
-          >
-            <Button icon={<OverridableIcon name="settings" />} />
-          </Dropdown>
+          {columnSettingsButton}
           <Tooltip title="Refresh" placement="bottom">
             <Button
               icon={<OverridableIcon name="refresh" />}
@@ -585,7 +559,7 @@ export const ActionsLog: React.FC = () => {
             <Table<ActionLog>
               className="flex-table"
               size="small"
-              columns={columns}
+              columns={orderedColumns}
               dataSource={logsData}
               scroll={{ x: totalColumnsWidth, y: containerHeight - 59 || 400 }}
               pagination={false}

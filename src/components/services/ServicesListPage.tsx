@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import styles from "./Services.module.css";
 import { Input, Typography, message, Flex } from "antd";
+import { CompactSearch } from "../table/CompactSearch.tsx";
 import { CreateServiceModal } from "./modals/CreateServiceModal";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
@@ -51,8 +52,6 @@ const visibleColumns: string[] = [
   "source",
   "labels",
   "usedBy",
-  "createdWhen",
-  "createdBy",
 ];
 
 export const ServicesListPage: React.FC = () => {
@@ -585,16 +584,16 @@ export const ServicesListPage: React.FC = () => {
         </Typography.Title>
 
         <div className={styles["actions"]}>
-          <Input.Search
+          <CompactSearch
+            value={searchString}
+            onChange={handleSearchChange}
             placeholder="Search services..."
             allowClear
-            value={searchString}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onSearch={(value) => {
-              clearTimeout(searchDebounceRef.current);
-              setDebouncedSearch(value);
-            }}
             style={{ width: 500 }}
+            onSearchConfirm={(v) => {
+              clearTimeout(searchDebounceRef.current);
+              setDebouncedSearch(v);
+            }}
           />
           {tab === "internal" && (
             <Require permissions={{ service: ["execute"] }}>

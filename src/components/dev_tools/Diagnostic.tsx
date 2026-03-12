@@ -3,14 +3,12 @@ import {
   Badge,
   BadgeProps,
   Button,
-  Dropdown,
   Flex,
-  MenuProps,
   Table,
   Tag,
   Tooltip,
 } from "antd";
-import Search from "antd/lib/input/Search";
+import { CompactSearch } from "../table/CompactSearch";
 import {
   DiagnosticValidation,
   ValidationSeverity,
@@ -26,6 +24,7 @@ import { IconName, OverridableIcon } from "../../icons/IconProvider";
 import { useModalsContext } from "../../Modals";
 import { DiagnosticValidationModal } from "./DiagnosticValidationModal";
 import { useDiagnosticValidationFilters } from "./useDiagnosticValidationFilters";
+import { useColumnSettingsBasedOnColumnsType } from "../table/useColumnSettingsButton";
 
 export const VALIDATION_STATE_TO_LABEL: { [key: string]: string } = {
   [ValidationState.OK]: "Finished",
@@ -87,35 +86,13 @@ export const Diagnostic: React.FC = () => {
     [],
   );
   const [searchString, setSearchString] = useState<string>("");
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([
-    "title",
-    "status",
-    "alertsCount",
-    "hint",
-    "startTime",
-  ]);
   const { filters, filterButton } = useDiagnosticValidationFilters();
 
-  const columnVisibilityMenuItems: MenuProps["items"] = [
-    { label: "Name", key: "title", disabled: true },
-    { label: "Status", key: "status" },
-    { label: "Alerts", key: "alertsCount" },
-    { label: "Hint", key: "hint" },
-    { label: "Start Time", key: "startTime" },
-  ];
-
   const columns: TableProps<DiagnosticValidationTableItem>["columns"] = [
-    {
-      title: "Table Id",
-      dataIndex: "itemId",
-      key: "itemId",
-      hidden: true,
-    },
     {
       title: "Name",
       dataIndex: "title",
       key: "title",
-      hidden: !selectedKeys.includes("title"),
       sorter: (a, b) => a.title.localeCompare(b.title),
       defaultSortOrder: "ascend",
       render: (_, validation) => {
@@ -166,7 +143,6 @@ export const Diagnostic: React.FC = () => {
       dataIndex: "status",
       key: "status",
       width: 130,
-      hidden: !selectedKeys.includes("status"),
       render: (_, validation) =>
         isDiagnosticValidation(validation) && (
           <Badge
@@ -188,7 +164,6 @@ export const Diagnostic: React.FC = () => {
       dataIndex: "alertsCount",
       key: "alertsCount",
       width: 90,
-      hidden: !selectedKeys.includes("alertsCount"),
       sorter: (a, b) => (a.alertsCount ?? 0) - (b.alertsCount ?? 0),
       render: (_, record) => {
         const count = record.alertsCount;
@@ -211,7 +186,6 @@ export const Diagnostic: React.FC = () => {
       dataIndex: "hint",
       key: "hint",
       width: 70,
-      hidden: !selectedKeys.includes("hint"),
       render: (_, validation) =>
         isDiagnosticValidation(validation) && (
           <Tooltip placement="left" title={validation.suggestion}>
@@ -224,13 +198,18 @@ export const Diagnostic: React.FC = () => {
       dataIndex: "startedWhen",
       key: "startTime",
       width: 180,
-      hidden: !selectedKeys.includes("startTime"),
       render: (_, validation) =>
         isDiagnosticValidation(validation) &&
         validation?.status?.startedWhen &&
         formatTimestamp(validation.status.startedWhen),
     },
   ];
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<DiagnosticValidationTableItem>(
+      "diagnosticTable",
+      columns,
+    );
 
   const rowSelection: TableRowSelection<DiagnosticValidationTableItem> = {
     type: "checkbox",
@@ -421,23 +400,13 @@ export const Diagnostic: React.FC = () => {
         message="This menu is only available for testing environment and won't be accessible on production. Data, created via this tab won't be exported with the chains."
       />
       <Flex vertical={false} gap={4}>
-        <Search
+        <CompactSearch
+          value={searchString}
+          onChange={setSearchString}
           placeholder="Full text search"
           allowClear
-          onSearch={(value) => setSearchString(value)}
         />
-        <Dropdown
-          menu={{
-            items: columnVisibilityMenuItems,
-            selectable: true,
-            multiple: true,
-            selectedKeys,
-            onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-            onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-          }}
-        >
-          <Button icon={<OverridableIcon name="settings" />} />
-        </Dropdown>
+        {columnSettingsButton}
         {filterButton}
         <Button
           type="primary"
@@ -453,7 +422,7 @@ export const Diagnostic: React.FC = () => {
       <Table<DiagnosticValidationTableItem>
         size="small"
         className="flex-table"
-        columns={columns}
+        columns={orderedColumns}
         rowSelection={rowSelection}
         dataSource={tableData}
         pagination={false}

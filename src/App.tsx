@@ -55,6 +55,7 @@ import { ContextServiceParametersPage } from "./components/services/context/Cont
 import DevTools from "./pages/DevTools.tsx";
 import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValidationPage.tsx";
 import { DesignTemplates } from "./components/admin_tools/design-templates/DesignTemplates.tsx";
+import { ImportInstructions } from "./components/admin_tools/ImportInstructions.tsx";
 import { UserPermissionsProvider } from "./permissions/UserPermissionsProvider.tsx";
 import { Require } from "./permissions/Require.tsx";
 import { NotAuthorized } from "./permissions/NotAuthorized.tsx";
@@ -129,6 +130,7 @@ const router = createBrowserRouter(
           <Route path="variables/secured" element={<SecuredVariables />} />
           <Route path="audit" element={<ActionsLog />} />
           <Route path="sessions" element={<SessionsPage />} />
+          <Route path="import-instructions" element={<ImportInstructions />} />
           <Route path="access-control" element={<AccessControl />} />
           <Route path="exchanges" element={<LiveExchanges />} />
           <Route

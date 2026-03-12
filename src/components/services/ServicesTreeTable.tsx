@@ -16,7 +16,7 @@ import {
   IntegrationSystemType,
 } from "../../api/apiTypes.ts";
 import { useNavigate, useParams } from "react-router-dom";
-import { ColumnsFilter } from "../table/ColumnsFilter";
+import { getColumnsOrderKey, getColumnsVisibleKey } from "../table/ColumnsFilter";
 import { OperationInfoModal } from "./modals/OperationInfoModal";
 import { api } from "../../api/api";
 import {
@@ -36,6 +36,7 @@ import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { HttpMethod } from "./ui/HttpMethod.tsx";
 import { ProtectedDropdown } from "../../permissions/ProtectedDropdown.tsx";
 import { RequiredPermissions } from "../../permissions/types.ts";
+import { ColumnSettingsButton } from "../table/ColumnSettingsButton.tsx";
 
 export type ServiceEntity =
   | IntegrationSystem
@@ -618,11 +619,11 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   }, [defaultVisibleKeys, allColumnKeys]);
 
   const [columnsOrder, setColumnsOrder] = useState<string[]>(() => {
-    const storedOrder = localStorage.getItem(`${storageKey}_columnsOrder`);
+    const storedOrder = localStorage.getItem(getColumnsOrderKey(storageKey));
     return storedOrder ? (JSON.parse(storedOrder) as string[]) : allColumnKeys;
   });
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const storedVisible = localStorage.getItem(`${storageKey}_columnsVisible`);
+    const storedVisible = localStorage.getItem(getColumnsVisibleKey(storageKey));
     return storedVisible
       ? (JSON.parse(storedVisible) as string[])
       : initialKeys;
@@ -640,22 +641,15 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   };
 
   const FilterButton = () => (
-    <Dropdown
-      popupRender={() => (
-        <ColumnsFilter
-          allColumns={allColumnKeys}
-          defaultColumns={initialKeys}
-          storageKey={storageKey}
-          labelsByKey={Object.fromEntries(
-            allServicesTreeTableColumns.map((c) => [c.key, c.title]),
-          )}
-          onChange={handleColumnsChange}
-        />
+    <ColumnSettingsButton
+      allColumns={allColumnKeys}
+      defaultColumns={initialKeys}
+      storageKey={storageKey}
+      labelsByKey={Object.fromEntries(
+        allServicesTreeTableColumns.map((c) => [c.key, c.title]),
       )}
-      trigger={["click"]}
-    >
-      <Button icon={<OverridableIcon name="settings" />} />
-    </Dropdown>
+      onChange={handleColumnsChange}
+    />
   );
 
   const finalColumns = useMemo(() => {

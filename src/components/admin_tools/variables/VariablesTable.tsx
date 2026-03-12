@@ -11,9 +11,14 @@ import {
   getTextColumnFilterFn,
 } from "../../table/TextColumnFilterDropdown";
 import type { FilterDropdownProps } from "antd/lib/table/interface";
-import { Variable } from "../../../api/apiTypes.ts";
+import type { Variable } from "../../../api/apiTypes.ts";
 import { ResizableTitle } from "../../ResizableTitle.tsx";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import {
+  EditableCellTrigger,
+  InlineEditWithButtons,
+  editableCellStyles,
+} from "../../table/EditableCell.tsx";
 
 interface VariablesTableProps {
   variables: Variable[];
@@ -160,7 +165,7 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
         const isEditing = enableEdit && editingKey === record.key;
 
         if (isEditing) {
-          const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          const onKeyDown = (e: React.KeyboardEvent) => {
             if (e.key === "Escape") {
               e.preventDefault();
               onCancelEditing();
@@ -171,7 +176,11 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
           };
 
           return (
-            <div className={styles["editing-wrapper"]}>
+            <InlineEditWithButtons
+              onKeyDown={onKeyDown}
+              onApply={() => onConfirmEdit(record.key, editingValue)}
+              onCancel={onCancelEditing}
+            >
               <Input.TextArea
                 autoFocus
                 value={editingValue}
@@ -179,24 +188,12 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
                 onKeyDown={onKeyDown}
                 rows={isValueHidden ? 1 : 3}
               />
-              <div className={styles["editing-buttons"]}>
-                <Button
-                  icon={<OverridableIcon name="check" />}
-                  type="text"
-                  onClick={() => onConfirmEdit(record.key, editingValue)}
-                />
-                <Button
-                  icon={<OverridableIcon name="close" />}
-                  type="text"
-                  onClick={onCancelEditing}
-                />
-              </div>
-            </div>
+            </InlineEditWithButtons>
           );
         }
 
         if (record.key === NEW_VARIABLE_KEY) {
-          const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          const onKeyDown = (e: React.KeyboardEvent) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               if (
@@ -213,7 +210,19 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
           };
 
           return (
-            <div className={styles["editing-wrapper"]}>
+            <InlineEditWithButtons
+              onKeyDown={onKeyDown}
+              onApply={() => {
+                if (
+                  newRecord.current.key &&
+                  newRecord.current.value &&
+                  newRecord.current.key !== NEW_VARIABLE_KEY
+                ) {
+                  onAdd(newRecord.current.key, newRecord.current.value);
+                }
+              }}
+              onCancel={onCancelEditing}
+            >
               <Input.TextArea
                 ref={newValueInputRef}
                 autoFocus
@@ -223,36 +232,16 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
                 onKeyDown={onKeyDown}
                 rows={isValueHidden ? 1 : 3}
               />
-              <div className={styles["editing-buttons"]}>
-                <Button
-                  icon={<OverridableIcon name="check" />}
-                  type="text"
-                  onClick={() => {
-                    if (
-                      newRecord.current.key &&
-                      newRecord.current.value &&
-                      newRecord.current.key !== NEW_VARIABLE_KEY
-                    ) {
-                      onAdd(newRecord.current.key, newRecord.current.value);
-                    }
-                  }}
-                />
-                <Button
-                  icon={<OverridableIcon name="close" />}
-                  type="text"
-                  onClick={onCancelEditing}
-                />
-              </div>
-            </div>
+            </InlineEditWithButtons>
           );
         }
 
         return (
-          <div
-            className={styles["editable-cell-wrapper"]}
+          <EditableCellTrigger
             onClick={() =>
               enableEdit && onStartEditing(record.key, record.value)
             }
+            className={styles["value-cell-trigger"]}
           >
             <div className={styles["value-text"]}>
               {isValueHidden
@@ -262,13 +251,16 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
             {record.value.includes("\n") && (
               <OverridableIcon
                 name="fileText"
-                className={`${styles["inline-icon"]} ${styles["multiline-icon"]}`}
+                className={`${editableCellStyles.inlineIcon} ${styles["multiline-icon"]}`}
               />
             )}
             {enableEdit && (
-              <OverridableIcon name="edit" className={styles["inline-icon"]} />
+              <OverridableIcon
+                name="edit"
+                className={editableCellStyles.inlineIcon}
+              />
             )}
-          </div>
+          </EditableCellTrigger>
         );
       },
     },
