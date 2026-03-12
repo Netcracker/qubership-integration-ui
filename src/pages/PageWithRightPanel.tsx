@@ -261,6 +261,22 @@ export const PageWithRightPanel = ({
           ]}
         ></Tabs>
       </Flex>
+      <Flex vertical gap={8} style={{ paddingLeft: "12px" }}>
+        <Flex gap={4} align="center">
+          <SidebarSearch
+            items={allItems.current}
+            onSearch={handleSearch}
+            onClear={() => {
+              setItems(allItems.current);
+              setIsSearch(false);
+              setOpenKeysState(openKeysBeforeSearch.current);
+            }}
+          />
+          <FilterButton
+            count={filterItemStates?.length ?? 0}
+            onClick={addFilter}
+          />
+        </Flex>
       <Flex
         vertical
         gap={activeTab === "textView" ? 0 : 8}

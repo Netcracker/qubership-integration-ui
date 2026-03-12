@@ -35,8 +35,7 @@ jest.mock("../../api/api", () => ({
     getServices: (...args: unknown[]) => mockGetServices(...args),
     filterServices: (...args: unknown[]) => mockFilterSystems(...args),
     searchServices: (...args: unknown[]) => mockSearchSystems(...args),
-    getContextServices: (...args: unknown[]) =>
-      mockGetContextServices(...args),
+    getContextServices: (...args: unknown[]) => mockGetContextServices(...args),
     getApiSpecifications: jest.fn().mockResolvedValue([]),
     exportServices: jest.fn().mockResolvedValue(new File([], "test")),
     exportContextServices: jest.fn().mockResolvedValue(new File([], "test")),
@@ -99,8 +98,7 @@ jest.mock("../../components/services/ServicesTreeTable", () => ({
   isIntegrationSystem: (r: unknown) =>
     !!(r as { type?: string })?.type &&
     (r as { type: string }).type !== "CONTEXT",
-  isContextSystem: (r: unknown) =>
-    (r as { type?: string })?.type === "CONTEXT",
+  isContextSystem: (r: unknown) => (r as { type?: string })?.type === "CONTEXT",
 }));
 
 jest.mock("../../components/services/modals/CreateServiceModal", () => ({
@@ -189,7 +187,7 @@ describe("ServicesListPage", () => {
 
     const searchInput = screen.getByPlaceholderText(
       "Search services...",
-    ) as HTMLInputElement;
+    );
     fireEvent.change(searchInput, { target: { value: "test query" } });
 
     expect(searchInput.value).toBe("test query");
