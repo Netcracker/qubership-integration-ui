@@ -997,15 +997,11 @@ export class VSCodeExtensionApi implements Api {
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
   }
-  createMaasKafkaEntity(
-    _request: CreateMaasKafkaRequest,
-  ): Promise<void> {
+  createMaasKafkaEntity(_request: CreateMaasKafkaRequest): Promise<void> {
     throw new Error("Method createMaasKafkaEntity not implemented.");
   }
 
-  createMaasRabbitMQEntity(
-    _request: CreateMaasRabbitMQRequest,
-  ): Promise<void> {
+  createMaasRabbitMQEntity(_request: CreateMaasRabbitMQRequest): Promise<void> {
     throw new Error("Method createMaasRabbitMQEntity not implemented.");
   }
 

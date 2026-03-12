@@ -491,9 +491,7 @@ export interface Api {
 
   createMaasKafkaEntity(request: CreateMaasKafkaRequest): Promise<void>;
 
-  createMaasRabbitMQEntity(
-    request: CreateMaasRabbitMQRequest,
-  ): Promise<void>;
+  createMaasRabbitMQEntity(request: CreateMaasRabbitMQRequest): Promise<void>;
 
   getMaasKafkaDeclarativeFile(
     request: GetMaasKafkaDeclarativeRequest,

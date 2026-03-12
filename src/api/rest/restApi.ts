@@ -1937,34 +1937,26 @@ export class RestApi implements Api {
   createMaasKafkaEntity = async (
     request: CreateMaasKafkaRequest,
   ): Promise<void> => {
-    await this.instance.post(
-      `/api/cip/v1/maas-actions/kafka`,
-      undefined,
-      {
-        params: {
-          namespace: request.namespace,
-          topicClassifierName: request.topicClassifierName,
-        },
+    await this.instance.post(`/api/cip/v1/maas-actions/kafka`, undefined, {
+      params: {
+        namespace: request.namespace,
+        topicClassifierName: request.topicClassifierName,
       },
-    );
+    });
   };
 
   createMaasRabbitMQEntity = async (
     request: CreateMaasRabbitMQRequest,
   ): Promise<void> => {
-    await this.instance.post(
-      `/api/cip/v1/maas-actions/rabbitmq`,
-      undefined,
-      {
-        params: {
-          namespace: request.namespace,
-          vhost: request.vhost,
-          exchange: request.exchange,
-          queue: request.queue,
-          routingKey: request.routingKey,
-        },
+    await this.instance.post(`/api/cip/v1/maas-actions/rabbitmq`, undefined, {
+      params: {
+        namespace: request.namespace,
+        vhost: request.vhost,
+        exchange: request.exchange,
+        queue: request.queue,
+        routingKey: request.routingKey,
       },
-    );
+    });
   };
 
   getMaasKafkaDeclarativeFile = async (
