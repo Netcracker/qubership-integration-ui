@@ -3,7 +3,9 @@
  */
 export function getMaasDefaultNamespace(): string {
   if (typeof window !== "undefined") {
-    return (window as { routes?: { namespace?: string } }).routes?.namespace ?? "";
+    return (
+      (window as { routes?: { namespace?: string } }).routes?.namespace ?? ""
+    );
   }
   return "";
 }
