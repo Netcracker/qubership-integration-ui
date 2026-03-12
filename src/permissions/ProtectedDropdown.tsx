@@ -1,5 +1,5 @@
 import { Dropdown, DropdownProps, MenuProps } from "antd";
-import { RequiredPermissions } from "./types.ts";
+import { RequiredPermissions, UserPermissions } from "./types.ts";
 import React, { ReactNode, useEffect, useState } from "react";
 import { OnDenied } from "./ProtectedButton.tsx";
 import { usePermissions } from "./usePermissions.tsx";
@@ -17,6 +17,43 @@ export type ProtectedDropdownProps = Omit<DropdownProps, "menu"> & {
   onAllDenied?: OnDenied;
 };
 
+export function squashSubsequentDividers(items: ItemType[]): ItemType[] {
+  const result: ItemType[] = [];
+  let prevItem: ItemType = null;
+  for (const item of items) {
+    if (
+      item?.type !== "divider" ||
+      (prevItem && prevItem?.type !== "divider")
+    ) {
+      result.push(item);
+      prevItem = item;
+    }
+  }
+  // If items list ends with divider then removing it.
+  if (prevItem?.type === "divider") {
+    result.pop();
+  }
+  return result;
+}
+
+export function protectMenuItems(
+  items: ProtectedMenuItem[],
+  permissions: UserPermissions,
+  onItemDenied: OnDenied,
+): ItemType[] {
+  return squashSubsequentDividers(
+    items
+      .map((item) => {
+        return hasPermissions(permissions, item.require ?? {})
+          ? item
+          : (item.onDenied ?? onItemDenied) === "disable"
+            ? ({ ...item, disabled: true } as ItemType)
+            : null;
+      })
+      .filter((item) => !!item),
+  );
+}
+
 export const ProtectedDropdown: React.FC<ProtectedDropdownProps> = ({
   menu,
   children,
@@ -28,27 +65,7 @@ export const ProtectedDropdown: React.FC<ProtectedDropdownProps> = ({
   const [menuItems, setMenuItems] = useState<MenuProps["items"]>([]);
 
   useEffect(() => {
-    const items: ItemType[] = [];
-    let isStartOrDivider: boolean = true;
-    for (const item of menu.items) {
-      if (item.type === "divider") {
-        if (!isStartOrDivider) {
-          items.push(item);
-          isStartOrDivider = true;
-        }
-      } else if (hasPermissions(permissions, item.require ?? {})) {
-        items.push(item);
-        isStartOrDivider = false;
-      } else if (item.onDenied ?? onItemDenied === "disable") {
-        items.push({ ...item, disabled: true } as ItemType);
-        isStartOrDivider = false;
-      }
-    }
-    // If items list ends with divider then removing it.
-    if (items.length > 0 && items[items.length - 1]?.type === "divider") {
-      items.pop();
-    }
-    setMenuItems(items);
+    setMenuItems(protectMenuItems(menu.items, permissions, onItemDenied));
   }, [permissions, menu.items, onItemDenied]);
 
   return menuItems?.length === 0 && onAllDenied === "hide" ? null : (
