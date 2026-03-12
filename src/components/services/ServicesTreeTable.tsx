@@ -16,7 +16,10 @@ import {
   IntegrationSystemType,
 } from "../../api/apiTypes.ts";
 import { useNavigate, useParams } from "react-router-dom";
-import { getColumnsOrderKey, getColumnsVisibleKey } from "../table/ColumnsFilter";
+import {
+  getColumnsOrderKey,
+  getColumnsVisibleKey,
+} from "../table/ColumnsFilter";
 import { OperationInfoModal } from "./modals/OperationInfoModal";
 import { api } from "../../api/api";
 import {
@@ -623,7 +626,9 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
     return storedOrder ? (JSON.parse(storedOrder) as string[]) : allColumnKeys;
   });
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const storedVisible = localStorage.getItem(getColumnsVisibleKey(storageKey));
+    const storedVisible = localStorage.getItem(
+      getColumnsVisibleKey(storageKey),
+    );
     return storedVisible
       ? (JSON.parse(storedVisible) as string[])
       : initialKeys;
