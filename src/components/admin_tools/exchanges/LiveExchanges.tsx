@@ -282,7 +282,7 @@ export const LiveExchanges: React.FC = () => {
           <></>
         ) : (
           <ProtectedButton
-            require={{ liveExchange: ["stop"] }}
+            require={{ liveExchange: ["execute"] }}
             tooltipProps={{ title: "Terminate exchange" }}
             buttonProps={{
               type: "text",

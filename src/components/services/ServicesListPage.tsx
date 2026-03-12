@@ -597,7 +597,7 @@ export const ServicesListPage: React.FC = () => {
             style={{ width: 500 }}
           />
           {tab === "internal" && (
-            <Require permissions={{ service: ["discover"] }}>
+            <Require permissions={{ service: ["execute"] }}>
               <ServiceDiscoveryButton
                 onSystemsDiscovered={(systemIds: string[]) => {
                   if (systemIds.length > 0) {

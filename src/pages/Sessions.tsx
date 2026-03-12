@@ -354,7 +354,7 @@ export const Sessions: React.FC = () => {
               </a>
               {item.checkpoints && item.checkpoints?.length > 0 ? (
                 <ProtectedButton
-                  require={{ snapshot: ["retry"] }}
+                  require={{ session: ["execute"] }}
                   tooltipProps={{}}
                   buttonProps={{
                     size: "small",
@@ -565,7 +565,7 @@ export const Sessions: React.FC = () => {
         />
       )}
       <ProtectedButton
-        require={{ session: ["retry"] }}
+        require={{ session: ["execute"] }}
         tooltipProps={{ title: "Retry selected sessions" }}
         buttonProps={{
           iconName: "redo",

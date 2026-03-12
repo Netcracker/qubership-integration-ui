@@ -48,14 +48,14 @@ const Navigation = ({
         icon: <OverridableIcon name="appstore" />,
       });
     }
-    if (hasPermissions(permissions, { adminTools: ["access"] })) {
+    if (hasPermissions(permissions, { adminTools: ["read"] })) {
       result.push({
         label: <Link to="/admintools">Admin Tools</Link>,
         key: "admintools",
         icon: <OverridableIcon name="desktop" />,
       });
     }
-    if (hasPermissions(permissions, { devTools: ["access"] })) {
+    if (hasPermissions(permissions, { devTools: ["read"] })) {
       result.push({
         label: <Link to="/devtools">Dev Tools</Link>,
         key: "devtools",

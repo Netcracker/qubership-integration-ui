@@ -297,21 +297,21 @@ export const Snapshots: React.FC = () => {
                   icon: <OverridableIcon name="rollback" />,
                   label: "Revert to",
                   onClick: () => revertToSnapshotWithConfirmation(snapshot),
-                  require: { snapshot: ["revert"] },
+                  require: { snapshot: ["read"], chain: ["update"] },
                 },
                 {
                   key: "showXml",
                   icon: <OverridableIcon name="fileText" />,
                   label: "Show XML",
                   onClick: () => showSnapshotXml(snapshot),
-                  require: { snapshot: ["showXml"] },
+                  require: { snapshot: ["read"] },
                 },
                 {
                   key: "showDiagram",
                   icon: <span className="anticon">⭾</span>,
                   label: "Show diagram",
                   onClick: () => showSnapshotDiagram(snapshot),
-                  require: { snapshot: ["generateSequenceDiagram"] },
+                  require: { snapshot: ["read"] },
                 },
               ],
             }}
@@ -361,7 +361,7 @@ export const Snapshots: React.FC = () => {
           },
         },
         {
-          require: { snapshot: ["compare"] },
+          require: { snapshot: ["read"] },
           tooltipProps: { title: "Compare selected snapshots" },
           buttonProps: {
             icon: <>⇄</>,

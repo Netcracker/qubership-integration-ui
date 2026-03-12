@@ -775,7 +775,7 @@ const Chains = () => {
     {
       label: "Generate DDS",
       key: "generateDDS",
-      require: { chain: ["generateDDS"] },
+      require: { chain: ["read"] },
     },
     { type: "divider" },
     { label: "Cut", key: "cut", require: { chain: ["delete"] } },
@@ -981,7 +981,7 @@ const Chains = () => {
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
           <ProtectedButton
-            require={{ chain: ["compare"] }}
+            require={{ chain: ["read"] }}
             tooltipProps={{
               title: "Compare selected chains",
               placement: "bottom",

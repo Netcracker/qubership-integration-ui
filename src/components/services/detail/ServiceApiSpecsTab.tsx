@@ -189,7 +189,7 @@ const getSpecActions =
               key: "deprecate",
               label: "Deprecate",
               icon: <OverridableIcon name="stop" />,
-              require: { specification: ["deprecate" as const] },
+              require: { specification: ["execute" as const] },
               onClick: async () => {
                 try {
                   await api.deprecateModel(spec.id);

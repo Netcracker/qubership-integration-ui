@@ -18,7 +18,7 @@ export const ResourceTypes = [
   "devTools",
   "adminTools",
   "designTemplate",
-  "actionLog"
+  "actionLog",
 ] as const;
 
 export type ResourceType = (typeof ResourceTypes)[number];
@@ -32,34 +32,6 @@ export const Operations = [
   "import",
   "export",
   "execute",
-
-  // chain
-  "generateDDS",
-
-  // chain, snapshot
-  "compare",
-  "generateSequenceDiagram",
-
-  // snapshot
-  "showXml",
-
-  // snapshot
-  "revert", // redundant? chain update?
-
-  // session
-  "retry",
-
-  // specification
-  "deprecate",
-
-  // liveExchange
-  "stop",
-
-  // adminTools, devTools
-  "access",
-
-  // service
-  "discover"
 ] as const;
 
 export type Operation = (typeof Operations)[number];

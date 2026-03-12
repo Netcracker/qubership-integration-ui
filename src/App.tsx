@@ -95,7 +95,7 @@ const router = createBrowserRouter(
           path="/devtools"
           element={
             <Require
-              permissions={{ devTools: ["access"] }}
+              permissions={{ devTools: ["read"] }}
               fallback={<NotAuthorized />}
             >
               <DevTools />
@@ -112,7 +112,7 @@ const router = createBrowserRouter(
           path="/admintools"
           element={
             <Require
-              permissions={{ adminTools: ["access"] }}
+              permissions={{ adminTools: ["read"] }}
               fallback={<NotAuthorized />}
             >
               <AdminTools />
