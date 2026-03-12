@@ -1093,7 +1093,7 @@ export class VSCodeExtensionApi implements Api {
   }
 
   getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
-    throw new Error("Method  not implemented.");
+    throw new Error("Method getElementsAsCode not implemented.");
   }
 }
 

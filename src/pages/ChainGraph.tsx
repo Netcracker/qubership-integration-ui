@@ -582,48 +582,6 @@ const ChainGraphInner: React.FC = () => {
           }}
         >
           <ElementFocusContext.Provider value={fitViewToElementIdRef}>
-            <ReactFlow
-              nodes={nodes}
-              nodeTypes={nodeTypes}
-              defaultEdgeOptions={{ zIndex: 1001 }}
-              edges={renderEdges}
-              onNodeDragStart={onNodeDragStart}
-              onNodeDrag={onNodeDrag}
-              onNodeDragStop={(event, draggedNode) =>
-                void onNodeDragStop(event, draggedNode)
-              }
-              onNodesChange={(changes) => void onNodesChange(changes)}
-              onEdgesChange={(changes) => void onEdgesChange(changes)}
-              onConnect={(connection) => void onConnect(connection)}
-              onDelete={(changes) => {
-                void handleDelete(changes);
-              }}
-              onDrop={(event) => void onDrop(event)}
-              onDragOver={onDragOver}
-              onNodeDoubleClick={onNodeDoubleClick}
-              zoomOnDoubleClick={false}
-              deleteKeyCode={["Backspace", "Delete"]}
-              proOptions={{ hideAttribution: true }}
-              onContextMenu={onContextMenu}
-              onNodeContextMenu={onNodeContextMenu}
-              onPaneClick={closeMenu}
-              fitView
-            >
-              <ElementFocus />
-              <Background variant={BackgroundVariant.Dots} />
-              <MiniMap
-                zoomable
-                pannable
-                position="top-right"
-                nodeColor={getMinimapNodeColor}
-                nodeStrokeColor={getMinimapNodeStrokeColor}
-                nodeStrokeWidth={2}
-              />
-              <CustomControls />
-              {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
-            </ReactFlow>
-            {rightPanel && <PageWithRightPanel />}
-          </ElementFocusContext.Provider>
             <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <ReactFlow

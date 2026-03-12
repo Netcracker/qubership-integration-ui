@@ -350,6 +350,7 @@ export const PageWithRightPanel = ({
           </div>
         )}
       </Flex>
+      </Flex>
     </Sider>
   );
 };
