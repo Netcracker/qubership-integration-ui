@@ -16,10 +16,10 @@ export function isTimestampFilter(obj: unknown): obj is TimestampFilter {
   return (
     typeof obj === "object" &&
     obj !== null &&
-    "value" in obj &&
     "condition" in obj &&
-    Array.isArray(obj.value) &&
-    typeof obj.condition === "string"
+    typeof obj.condition === "string" &&
+    (obj.condition as TimestampFilterCondition) !== undefined &&
+    (!("value" in obj) || Array.isArray(obj.value))
   );
 }
 
@@ -73,7 +73,10 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
 
   const getFilter = useCallback(() => {
     return selectedKeys[0]
-      ? parseJson<TimestampFilter>(selectedKeys[0].toString(), isTimestampFilter)
+      ? parseJson<TimestampFilter>(
+          selectedKeys[0].toString(),
+          isTimestampFilter,
+        )
       : undefined;
   }, [selectedKeys]);
 

@@ -105,6 +105,11 @@ import {
   BulbOutlined,
   BarChartOutlined,
   ToolOutlined,
+  RightSquareOutlined,
+  MenuUnfoldOutlined,
+  InfoCircleOutlined,
+  HddOutlined,
+  CloudSyncOutlined,
 } from "@ant-design/icons";
 
 export const commonIcons = {
@@ -113,7 +118,7 @@ export const commonIcons = {
   inbox: InboxOutlined,
   more: MoreOutlined,
   save: SaveOutlined,
-  user: UserOutlined,
+  sessions: UserOutlined,
   exclamationCircle: ExclamationCircleOutlined,
   fileText: FileTextOutlined,
   rollback: RollbackOutlined,
@@ -185,6 +190,15 @@ export const commonIcons = {
   bulb: BulbOutlined,
   barChart: BarChartOutlined,
   tool: ToolOutlined,
+  rightPanel: RightSquareOutlined,
+  block: BlockOutlined,
+  menuUnfold: MenuUnfoldOutlined,
+  info: InfoCircleOutlined,
+  liveExchanges: NodeIndexOutlined,
+  domains: HddOutlined,
+  accessControl: LockOutlined,
+  refresh: RedoOutlined,
+  cloudSync: CloudSyncOutlined,
 };
 
 export const elementIcons = {

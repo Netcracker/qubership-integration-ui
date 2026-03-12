@@ -1,7 +1,15 @@
+import type {
+  ApiResponse,
+  DiscoveryResponse,
+  SecretWithVariables,
+  Variable,
+} from "../apiTypes.ts";
 import {
+  AccessControlResponse,
   ActionDifference,
   ActionLogResponse,
   BaseEntity,
+  BulkDeploymentResult,
   Chain,
   ChainDeployment,
   ChainDetailedDesign,
@@ -10,10 +18,13 @@ import {
   CheckpointSession,
   Connection,
   ConnectionRequest,
+  ContextSystem,
+  CreateElementRequest,
   Deployment,
   DetailedDesignTemplate,
+  DiagnosticValidation,
+  Element,
   ElementFilter,
-  CreateElementRequest,
   ElementsSequenceDiagrams,
   ElementWithChainName,
   Engine,
@@ -24,39 +35,39 @@ import {
   FolderItem,
   ImportCommitResponse,
   ImportPreview,
-  ImportSpecificationResult,
   ImportSpecificationGroupRequest,
-  SerializedFile,
+  ImportSpecificationResult,
   ImportStatusResponse,
   ImportSystemResult,
+  ImportVariablesResult,
   IntegrationSystem,
+  IntegrationSystemType,
   LibraryData,
   LibraryElement,
+  LiveExchange,
   MaskedField,
+  MaskedFields,
   OperationInfo,
+  PaginationOptions,
   PatchElementRequest,
   RestApiError,
+  SerializedFile,
   Session,
   SessionSearchResponse,
   Snapshot,
+  SpecApiFile,
   Specification,
   SpecificationGroup,
-  SystemRequest,
-  UsedService,
-  Element,
-  MaskedFields,
-  TransferElementRequest,
   SystemOperation,
-  SpecApiFile,
-  LiveExchange,
-  IntegrationSystemType,
-  ContextSystem,
-  DiagnosticValidation,
-  BulkDeploymentResult,
   CreateMaasKafkaRequest,
   CreateMaasRabbitMQRequest,
   GetMaasKafkaDeclarativeRequest,
   GetMaasRabbitMQDeclarativeRequest,
+  SystemRequest,
+  TransferElementRequest,
+  UsedProperty,
+  UsedService,
+  VariableImportPreview,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -317,6 +328,14 @@ export class VSCodeExtensionApi implements Api {
     );
   };
 
+  filterServices(): Promise<IntegrationSystem[]> {
+    throw new Error("Method filterServices not implemented.");
+  }
+
+  searchServices(): Promise<IntegrationSystem[]> {
+    throw new Error("Method searchServices not implemented.");
+  }
+
   createService = async (
     request: SystemRequest,
   ): Promise<IntegrationSystem> => {
@@ -428,14 +447,13 @@ export class VSCodeExtensionApi implements Api {
   ): Promise<ImportSpecificationResult> => {
     const serializedFiles: SerializedFile[] = await Promise.all(
       files.map(async (file) => {
-        const serializedFile = {
+        return {
           name: file.name,
           size: file.size,
           type: file.type,
           lastModified: file.lastModified,
           content: await file.arrayBuffer(),
         };
-        return serializedFile;
       }),
     );
 
@@ -515,11 +533,22 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method exportContextServices not implemented.");
   }
 
+  getEnvironment = async (
+    systemId: string,
+    environmentId: string,
+  ): Promise<Environment> => {
+    return <Environment>(
+      await this.sendMessageToExtension("getEnvironment", {
+        serviceId: systemId,
+        environmentId,
+      })
+    ).payload;
+  };
+
   getEnvironments = async (systemId: string): Promise<Environment[]> => {
-    const result = <Environment[]>(
+    return <Environment[]>(
       (await this.sendMessageToExtension("getEnvironments", systemId)).payload
     );
-    return result;
   };
 
   getApiSpecifications = async (
@@ -583,7 +612,11 @@ export class VSCodeExtensionApi implements Api {
     ).payload;
   };
 
-  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+  getOperations = async (
+    modelId: string,
+    _paginationOptions: PaginationOptions = {},
+  ): Promise<SystemOperation[]> => {
+    console.log("ALSU VSCODE API");
     return <SystemOperation[]>(
       (await this.sendMessageToExtension("getOperations", modelId)).payload
     );
@@ -823,7 +856,7 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method getCheckpointSessions not implemented.");
   }
 
-  retrySessionFromLastCheckpoint(): Promise<void> {
+  retrySessionFromCheckpoint(): Promise<void> {
     throw new Error("Method retrySessionFromLastCheckpoint not implemented.");
   }
 
@@ -941,6 +974,10 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method getExchanges not implemented.");
   }
 
+  getAndFilterExchanges(): Promise<LiveExchange[]> {
+    throw new Error("Method getAndFilterExchanges not implemented.");
+  }
+
   terminateExchange(): Promise<void> {
     throw new Error("Method terminateExchange not implemented.");
   }
@@ -948,12 +985,15 @@ export class VSCodeExtensionApi implements Api {
   getValidations(): Promise<DiagnosticValidation[]> {
     throw new Error("Method getValidations not implemented.");
   }
+
   getValidation(): Promise<DiagnosticValidation> {
     throw new Error("Method getValidation not implemented.");
   }
+
   runValidations(): Promise<void> {
     throw new Error("Method runValidations not implemented.");
   }
+
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
   }
@@ -979,6 +1019,103 @@ export class VSCodeExtensionApi implements Api {
     _request: GetMaasRabbitMQDeclarativeRequest,
   ): Promise<File> {
     throw new Error("Method getMaasRabbitMQDeclarativeFile not implemented.");
+  }
+
+  loadHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method loadHttpTriggerAccessControl not implemented.");
+  };
+
+  updateHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method updateHttpTriggerAccessControl not implemented.");
+  };
+
+  bulkDeployChainsAccessControl = async (): Promise<AccessControlResponse> => {
+    throw new Error("Method bulkDeployChainsAccessControl not implemented.");
+  };
+
+  getCommonVariables(): Promise<ApiResponse<Variable[]>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  createCommonVariable(_variable: Variable): Promise<ApiResponse<string[]>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  updateCommonVariable(_variable: Variable): Promise<ApiResponse<Variable>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  deleteCommonVariables(_keys: string[]): Promise<boolean> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  exportVariables(_keys: string[], _asArchive?: boolean): Promise<File> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  importVariablesPreview(
+    _formData: FormData,
+  ): Promise<ApiResponse<VariableImportPreview[]>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  importVariables(
+    _formData: FormData,
+  ): Promise<ApiResponse<ImportVariablesResult>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  getSecuredVariables(): Promise<ApiResponse<SecretWithVariables[]>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  getSecuredVariablesForSecret(
+    _secretName: string,
+  ): Promise<ApiResponse<Variable[]>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  createSecuredVariables(
+    _secretName: string,
+    _variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  updateSecuredVariables(
+    _secretName: string,
+    _variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  deleteSecuredVariables(
+    _secretName: string,
+    _keys: string[],
+  ): Promise<ApiResponse<boolean>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  createSecret(_secretName: string): Promise<ApiResponse<boolean>> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  downloadHelmChart(_secretName: string): Promise<File> {
+    throw new RestApiError("Not implemented", 501);
+  }
+
+  getUsedProperties(_chainId: string): Promise<UsedProperty[]> {
+    throw new Error("Method getUsedProperties not implemented.");
+  }
+
+  runServiceDiscovery(): Promise<unknown> {
+    throw new Error("Method runServiceDiscovery not implemented.");
+  }
+  isAutodiscoveryInProgress(): Promise<number> {
+    throw new Error("Method isAutodiscoveryInProgress not implemented.");
+  }
+  getAutodiscoveryResult(): Promise<DiscoveryResponse> {
+    throw new Error("Method getAutodiscoveryResult not implemented.");
   }
 }
 

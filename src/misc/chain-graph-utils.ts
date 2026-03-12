@@ -4,7 +4,9 @@ import { ElkDirection } from "../hooks/graph/useElkDirection.tsx";
 import {
   ChainGraphNode,
   ChainGraphNodeData,
+  ChainGraphNodeWithChildren,
 } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
+import { api } from "../api/api.ts";
 
 export function getDataFromElement(
   element: Element,
@@ -15,6 +17,7 @@ export function getDataFromElement(
     label: element.name,
     description: element.description,
     properties: element.properties,
+    mandatoryChecksPassed: element.mandatoryChecksPassed,
   } as ChainGraphNodeData;
 
   if (libraryElement) {
@@ -340,6 +343,64 @@ export function sortParentsBeforeChildren<
   });
 }
 
+function buildTree(
+  nodesToDelete: ChainGraphNode[],
+): ChainGraphNodeWithChildren[] {
+  const nodes: Record<string, ChainGraphNodeWithChildren> = {};
+  nodesToDelete.forEach((node) => (nodes[node.id] = { ...node }));
+  const result: ChainGraphNodeWithChildren[] = [];
+  nodesToDelete.forEach((node) => {
+    if (node.parentId && nodes[node.parentId]) {
+      const parentNode = nodes[node.parentId];
+      if (!parentNode.children) {
+        parentNode.children = [];
+      }
+      parentNode.children.push(nodes[node.id]);
+    } else {
+      result.push(nodes[node.id]);
+    }
+  });
+  return result;
+}
+
+async function getLibraryElementByType(
+  elementType: string,
+): Promise<LibraryElement | undefined> {
+  if (elementType === "container") return;
+  return await api.getLibraryElementByType(elementType);
+}
+
+async function isEmptyContainerFound(
+  elementsTree: ChainGraphNodeWithChildren[],
+): Promise<boolean> {
+  for (const element of elementsTree) {
+    if (!element.children || element.children.length === 0) {
+      continue;
+    }
+    const descriptor: LibraryElement | undefined =
+      await getLibraryElementByType(element.data.elementType);
+    if (!descriptor || Object.keys(descriptor.allowedChildren).length === 0) {
+      return true;
+    } else {
+      for (const child of element.children) {
+        if (child.children && child.children.length > 0) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+export async function nonEmptyContainerExists(
+  nodesToDelete: ChainGraphNode[],
+): Promise<boolean> {
+  const tree = buildTree(nodesToDelete);
+
+  return await isEmptyContainerFound(tree);
+}
+
 export function getContainerIdsForEdges(
   edges: Edge[],
   allNodes: ChainGraphNode[],
@@ -439,4 +500,32 @@ export function depthOf(id: string, byId: Map<string, ChainGraphNode>): number {
     if (depth > 1000) break;
   }
   return depth;
+}
+
+export function normalizeHandleId(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  if (!v) return undefined;
+  if (v === "null" || v === "undefined") return undefined;
+  return v;
+}
+
+export function sanitizeEdge(e: Edge): Edge {
+  const anyEdge = e as Edge & {
+    sourceHandle?: unknown;
+    targetHandle?: unknown;
+  };
+  const { sourceHandle, targetHandle, ...rest } = anyEdge as unknown as Record<
+    string,
+    unknown
+  >;
+
+  const out: Record<string, unknown> = { ...rest };
+
+  const sh = normalizeHandleId(sourceHandle);
+  const th = normalizeHandleId(targetHandle);
+
+  if (sh) out.sourceHandle = sh;
+  if (th) out.targetHandle = th;
+
+  return out as unknown as Edge;
 }

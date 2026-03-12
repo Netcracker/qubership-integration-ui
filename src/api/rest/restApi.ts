@@ -76,19 +76,35 @@ import {
   CreateMaasRabbitMQRequest,
   GetMaasKafkaDeclarativeRequest,
   GetMaasRabbitMQDeclarativeRequest,
+  ImportVariablesResult,
+  VariableImportPreview,
+  UsedProperty,
+  AccessControlSearchRequest,
+  AccessControlResponse,
+  AccessControlUpdateRequest,
+  AccessControlBulkDeployRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
 import qs from "qs";
 import { getAppName, getConfig } from "../../appConfig.ts";
 import { EntityFilterModel } from "../../components/table/filter/filter.ts";
+import { registerRestAxiosInstance } from "./requestHeadersInterceptor.ts";
+import type {
+  ApiError,
+  ApiResponse,
+  DiscoveryResponse,
+  SecretResponse,
+  SecretWithVariables,
+  Variable,
+} from "../apiTypes.ts";
 
 export class RestApi implements Api {
   instance: AxiosInstance;
 
   constructor() {
     const config = getConfig();
-    const gateway = config.apiGateway || import.meta.env.VITE_GATEWAY;
+    const gateway = config.apiGateway;
     this.instance = rateLimit(
       axios.create({
         baseURL: gateway,
@@ -100,6 +116,8 @@ export class RestApi implements Api {
         perMilliseconds: 1000,
       },
     );
+
+    registerRestAxiosInstance(this.instance);
 
     this.instance.interceptors.response.use(
       (response) => response,
@@ -135,30 +153,394 @@ export class RestApi implements Api {
     );
   }
 
+  private v1 = (): string => `/api/v1/${getAppName()}`;
+  private v2 = (): string => `/api/${getAppName()}/v2`;
+  private v3 = (): string => `/api/${getAppName()}/v3`;
+
+  private toApiError = (
+    serviceName: string,
+    message: string,
+    errorDate: string,
+    stacktrace?: string,
+  ): ApiError => {
+    return {
+      responseBody: {
+        serviceName,
+        errorMessage: message,
+        errorDate,
+        stacktrace,
+      },
+    };
+  };
+
+  private wrapApiResponse = async <T>(
+    serviceName: string,
+    fallbackMessage: string,
+    fn: () => Promise<T>,
+  ): Promise<ApiResponse<T>> => {
+    try {
+      const data = await fn();
+      return { success: true, data };
+    } catch (error) {
+      // RestApi converts axios errors into RestApiError with responseBody when possible.
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        (error as { name?: unknown }).name === "RestApiError"
+      ) {
+        const e = error as RestApiError;
+        const body = e.responseBody;
+        if (body?.serviceName && body?.errorMessage && body?.errorDate) {
+          return {
+            success: false,
+            error: this.toApiError(
+              body.serviceName,
+              body.errorMessage,
+              body.errorDate,
+              body.stackTrace,
+            ),
+          };
+        }
+        if (e.message) {
+          return {
+            success: false,
+            error: this.toApiError(
+              serviceName,
+              e.message,
+              new Date().toISOString(),
+            ),
+          };
+        }
+      }
+
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          fallbackMessage,
+          new Date().toISOString(),
+        ),
+      };
+    }
+  };
+
+  private wrapBoolean = async (
+    fallbackMessage: string,
+    fn: () => Promise<void>,
+  ): Promise<boolean> => {
+    try {
+      await fn();
+      return true;
+    } catch (error) {
+      // keep parity with old BaseApi.wrapBoolean(): no throw
+      console.error(fallbackMessage, error);
+      return false;
+    }
+  };
+
   getChains = async (): Promise<Chain[]> => {
     const response = await this.instance.get<Chain[]>(
-      `/api/v1/${getAppName()}/catalog/chains`,
+      `${this.v1()}/catalog/chains`,
     );
     return response.data;
   };
 
+  // Admin Tools: Variables Management
+  getCommonVariables = async (): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch common variables",
+      async () => {
+        const response = await this.instance.get<unknown>(
+          `${prefix}/common-variables`,
+        );
+        const rawData = response.data;
+        if (rawData && typeof rawData === "object" && !Array.isArray(rawData)) {
+          return Object.entries(rawData as Record<string, unknown>).map(
+            ([key, value]) => ({
+              key,
+              value: String(value),
+            }),
+          );
+        }
+        throw new Error("Unexpected response format");
+      },
+    );
+  };
+
+  createCommonVariable = async (
+    variable: Variable,
+  ): Promise<ApiResponse<string[]>> => {
+    return this.createCommonVariables({ [variable.key]: variable.value });
+  };
+
+  private createCommonVariables = async (
+    variables: Record<string, string>,
+  ): Promise<ApiResponse<string[]>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create variables",
+      async () => {
+        const response = await this.instance.post<string[]>(
+          `${prefix}/common-variables`,
+          variables,
+        );
+        return response.data;
+      },
+    );
+  };
+
+  updateCommonVariable = async (
+    variable: Variable,
+  ): Promise<ApiResponse<Variable>> => {
+    const serviceName = "Common Variables API";
+    const prefix = `${this.v1()}/variables-management`;
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update variable",
+      async () => {
+        const response = await this.instance.patch<Variable>(
+          `${prefix}/common-variables/${variable.key}`,
+          variable.value,
+          { headers: { "Content-Type": "text/plain" } },
+        );
+        return response.data;
+      },
+    );
+  };
+
+  deleteCommonVariables = async (keys: string[]): Promise<boolean> => {
+    const prefix = `${this.v1()}/variables-management`;
+    return this.wrapBoolean("Failed to delete variables", async () => {
+      const params = new URLSearchParams();
+      keys.forEach((key) => params.append("variablesNames", key));
+      await this.instance.delete(`${prefix}/common-variables?${params}`);
+    });
+  };
+
+  exportVariables = async (keys: string[], asArchive = true): Promise<File> => {
+    const prefix = `${this.v1()}/variables-management`;
+    const params = new URLSearchParams();
+    keys.forEach((key) => params.append("variablesNames", key));
+    params.append("asArchive", String(asArchive));
+
+    const response = await this.instance.get<Blob>(
+      `${prefix}/common-variables/export?${params}`,
+      { responseType: "blob" },
+    );
+    return getFileFromResponse(response);
+  };
+
+  importVariablesPreview = async (
+    formData: FormData,
+  ): Promise<ApiResponse<VariableImportPreview[]>> => {
+    const serviceName = "Common Variables API";
+    if (!formData) {
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          "No file selected or form data is empty.",
+          new Date().toISOString(),
+        ),
+      };
+    }
+    const path = `${this.v1()}/variables-management/common-variables/preview`;
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to get import variables preview",
+      async () => {
+        const response = await this.instance.post<VariableImportPreview[]>(
+          path,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+        return response.data;
+      },
+    );
+  };
+
+  importVariables = async (
+    formData: FormData,
+  ): Promise<ApiResponse<ImportVariablesResult>> => {
+    const serviceName = "Common Variables API";
+    if (!formData) {
+      return {
+        success: false,
+        error: this.toApiError(
+          serviceName,
+          "No file selected or form data is empty.",
+          new Date().toISOString(),
+        ),
+      };
+    }
+    const path = `${this.v2()}/common-variables/import`;
+    return this.wrapApiResponse(serviceName, "Failed to import", async () => {
+      const response = await this.instance.post<ImportVariablesResult>(
+        path,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      return response.data;
+    });
+  };
+
+  getSecuredVariables = async (): Promise<
+    ApiResponse<SecretWithVariables[]>
+  > => {
+    const serviceName = "Secured Variables API";
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch secured variables",
+      async () => {
+        const response = await this.instance.get<SecretResponse[]>(
+          `${this.v2()}/secured-variables`,
+        );
+        return response.data.map(
+          ({ secretName, variablesNames, defaultSecret }) => ({
+            secretName,
+            variables: variablesNames.map((key: string) => ({
+              key,
+              value: "******",
+            })),
+            isDefaultSecret: defaultSecret,
+          }),
+        );
+      },
+    );
+  };
+
+  getSecuredVariablesForSecret = async (
+    secretName: string,
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to fetch variables for secret",
+      async () => {
+        const response = await this.instance.get<string[]>(
+          `${this.v2()}/secured-variables/${secretName}`,
+        );
+        return response.data.map((key: string) => ({ key, value: "******" }));
+      },
+    );
+  };
+
+  createSecuredVariables = async (
+    secretName: string,
+    variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+    const keyRegex = /^[a-zA-Z0-9_-]+$/;
+    for (const v of variables) {
+      if (!keyRegex.test(v.key)) {
+        return {
+          success: false,
+          error: this.toApiError(
+            serviceName,
+            `Invalid key: ${v.key}`,
+            new Date().toISOString(),
+          ),
+        };
+      }
+    }
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secured variables",
+      async () => {
+        await this.instance.post(`${this.v2()}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
+        });
+        return variables;
+      },
+    );
+  };
+
+  updateSecuredVariables = async (
+    secretName: string,
+    variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>> => {
+    const serviceName = "Secured Variables API";
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to update secured variables",
+      async () => {
+        await this.instance.patch(`${this.v2()}/secured-variables`, {
+          secretName,
+          variables: Object.fromEntries(variables.map((v) => [v.key, v.value])),
+        });
+        return variables;
+      },
+    );
+  };
+
+  deleteSecuredVariables = async (
+    secretName: string,
+    keys: string[],
+  ): Promise<ApiResponse<boolean>> => {
+    const serviceName = "Secured Variables API";
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to delete secured variables",
+      async () => {
+        const params = new URLSearchParams();
+        keys.forEach((key) => params.append("variablesNames", key));
+        await this.instance.delete(
+          `${this.v2()}/secured-variables/${secretName}?${params}`,
+        );
+        return true;
+      },
+    );
+  };
+
+  createSecret = async (secretName: string): Promise<ApiResponse<boolean>> => {
+    const serviceName = "Secured Variables API";
+    return this.wrapApiResponse(
+      serviceName,
+      "Failed to create secret",
+      async () => {
+        await this.instance.post(`${this.v2()}/secret/${secretName}`);
+        return true;
+      },
+    );
+  };
+
+  downloadHelmChart = async (secretName: string): Promise<File> => {
+    const response = await this.instance.get<Blob>(
+      `${this.v2()}/secret/template/${secretName}`,
+      { responseType: "blob" },
+    );
+    return getFileFromResponse(response);
+  };
+
   getChain = async (id: string): Promise<Chain> => {
     const response = await this.instance.get<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${id}`,
+      `${this.v1()}/catalog/chains/${id}`,
     );
     return response.data;
   };
 
   findChainByElementId = async (elementId: string): Promise<Chain> => {
     const response = await this.instance.get<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/find-by-element/${elementId}`,
+      `${this.v1()}/catalog/chains/find-by-element/${elementId}`,
     );
     return response.data;
   };
 
   updateChain = async (id: string, chain: Partial<Chain>): Promise<Chain> => {
     const response = await this.instance.put<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${id}`,
+      `${this.v1()}/catalog/chains/${id}`,
       chain,
     );
     return response.data;
@@ -166,35 +548,33 @@ export class RestApi implements Api {
 
   createChain = async (chain: ChainCreationRequest): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains`,
+      `${this.v1()}/catalog/chains`,
       chain,
     );
     return response.data;
   };
 
   deleteChain = async (chainId: string): Promise<void> => {
-    await this.instance.delete<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}`,
-    );
+    await this.instance.delete<Chain>(`${this.v1()}/catalog/chains/${chainId}`);
   };
 
   deleteChains = async (chainIds: string[]): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/bulk-delete`,
+      `${this.v1()}/catalog/chains/bulk-delete`,
       chainIds,
     );
   };
 
   duplicateChain = async (chainId: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/duplicate`,
+      `${this.v1()}/catalog/chains/${chainId}/duplicate`,
     );
     return response.data;
   };
 
   copyChain = async (chainId: string, folderId?: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/copy`,
+      `${this.v1()}/catalog/chains/${chainId}/copy`,
       null,
       {
         params: { targetFolderId: folderId },
@@ -205,7 +585,7 @@ export class RestApi implements Api {
 
   moveChain = async (chainId: string, folder?: string): Promise<Chain> => {
     const response = await this.instance.post<Chain>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/move`,
+      `${this.v1()}/catalog/chains/${chainId}/move`,
       null,
       {
         params: { targetFolderId: folder },
@@ -216,7 +596,7 @@ export class RestApi implements Api {
 
   exportAllChains = async (): Promise<File> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export`,
+      `${this.v1()}/catalog/export`,
       {
         responseType: "blob",
       },
@@ -229,7 +609,7 @@ export class RestApi implements Api {
     exportSubchains: boolean,
   ): Promise<File> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export/chains`,
+      `${this.v1()}/catalog/export/chains`,
       {
         params: { chainIds, exportWithSubChains: exportSubchains },
         paramsSerializer: {
@@ -243,21 +623,21 @@ export class RestApi implements Api {
 
   getLibrary = async (): Promise<LibraryData> => {
     const response = await this.instance.get<LibraryData>(
-      `/api/v1/${getAppName()}/catalog/library`,
+      `${this.v1()}/catalog/library`,
     );
     return response.data;
   };
 
   getElementTypes = async (): Promise<ElementFilter[]> => {
     const response = await this.instance.get<ElementFilter[]>(
-      `/api/v1/${getAppName()}/catalog/library/elements/types`,
+      `${this.v1()}/catalog/library/elements/types`,
     );
     return response.data;
   };
 
   getElements = async (chainId: string): Promise<Element[]> => {
     const response = await this.instance.get<Element[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
     );
     return response.data;
   };
@@ -267,7 +647,7 @@ export class RestApi implements Api {
     elementType: string,
   ): Promise<ElementWithChainName[]> => {
     const response = await this.instance.get<ElementWithChainName[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/type/${elementType}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/type/${elementType}`,
     );
     return response.data;
   };
@@ -277,7 +657,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
       elementRequest,
     );
     return response.data;
@@ -289,7 +669,7 @@ export class RestApi implements Api {
     elementId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.patch<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/${elementId}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/${elementId}`,
       elementRequest,
     );
     return response.data;
@@ -300,7 +680,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/transfer`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/transfer`,
       transferElementRequest,
     );
     return response.data;
@@ -312,7 +692,7 @@ export class RestApi implements Api {
   ): Promise<ActionDifference> => {
     const elementsIdsParam = elementIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements`,
+      `${this.v1()}/catalog/chains/${chainId}/elements`,
       {
         params: { elementsIds: elementsIdsParam },
       },
@@ -326,7 +706,7 @@ export class RestApi implements Api {
     httpTriggerIds: string[],
   ): Promise<void> => {
     await this.instance.put(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/properties-modification`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/properties-modification`,
       {},
       {
         params: {
@@ -341,7 +721,7 @@ export class RestApi implements Api {
 
   getConnections = async (chainId: string): Promise<Connection[]> => {
     const response = await this.instance.get<Connection[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
     );
     return response.data;
   };
@@ -351,7 +731,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ActionDifference> => {
     const response = await this.instance.post<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
       connectionRequest,
     );
     return response.data;
@@ -363,7 +743,7 @@ export class RestApi implements Api {
   ): Promise<ActionDifference> => {
     const connectionIdsParam = connectionIds.join(",");
     const response = await this.instance.delete<ActionDifference>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/dependencies`,
+      `${this.v1()}/catalog/chains/${chainId}/dependencies`,
       {
         params: { dependenciesIds: connectionIdsParam },
       },
@@ -373,36 +753,33 @@ export class RestApi implements Api {
 
   createSnapshot = async (chainId: string): Promise<Snapshot> => {
     const response = await this.instance.post<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots`,
     );
     return response.data;
   };
 
   getSnapshots = async (chainId: string): Promise<Snapshot[]> => {
     const response = await this.instance.get<Snapshot[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots`,
     );
     return response.data;
   };
 
   getSnapshot = async (snapshotId: string): Promise<Snapshot> => {
     const response = await this.instance.get<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`,
     );
     return response.data;
   };
 
   deleteSnapshot = async (snapshotId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`,
     );
   };
 
   deleteSnapshots = async (snapshotIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `/api/v2/${getAppName()}/catalog/snapshots/bulk-delete`,
-      snapshotIds,
-    );
+    await this.instance.post(`${this.v2()}/snapshots/bulk-delete`, snapshotIds);
   };
 
   revertToSnapshot = async (
@@ -410,7 +787,7 @@ export class RestApi implements Api {
     snapshotId: string,
   ): Promise<Snapshot> => {
     const response = await this.instance.post<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/snapshots/${snapshotId}/revert`,
+      `${this.v1()}/catalog/chains/${chainId}/snapshots/${snapshotId}/revert`,
     );
     return response.data;
   };
@@ -421,7 +798,7 @@ export class RestApi implements Api {
     labels: EntityLabel[],
   ): Promise<Snapshot> => {
     const response = await this.instance.put<Snapshot>(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/chains/chainId/snapshots/${snapshotId}`,
       {
         name,
         labels,
@@ -432,14 +809,14 @@ export class RestApi implements Api {
 
   getLibraryElementByType = async (type: string): Promise<LibraryElement> => {
     const response = await this.instance.get<LibraryElement>(
-      `/api/v1/${getAppName()}/catalog/library/${type}`,
+      `${this.v1()}/catalog/library/${type}`,
     );
     return response.data;
   };
 
   getDeployments = async (chainId: string): Promise<Deployment[]> => {
     const response = await this.instance.get<Deployment[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/deployments`,
+      `${this.v1()}/catalog/chains/${chainId}/deployments`,
     );
     return response.data;
   };
@@ -449,7 +826,7 @@ export class RestApi implements Api {
     request: CreateDeploymentRequest,
   ): Promise<Deployment> => {
     const response = await this.instance.post<Deployment>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/deployments`,
+      `${this.v1()}/catalog/chains/${chainId}/deployments`,
       request,
     );
     return response.data;
@@ -457,13 +834,13 @@ export class RestApi implements Api {
 
   deleteDeployment = async (deploymentId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/chainId/deployments/${deploymentId}`,
+      `${this.v1()}/catalog/chains/chainId/deployments/${deploymentId}`,
     );
   };
 
   getDomains = async (): Promise<EngineDomain[]> => {
     const response = await this.instance.get<EngineDomain[]>(
-      `/api/v1/${getAppName()}/catalog/domains`,
+      `${this.v1()}/catalog/domains`,
     );
     return response.data;
   };
@@ -472,7 +849,7 @@ export class RestApi implements Api {
     chainId: string,
   ): Promise<ChainLoggingSettings> => {
     const response = await this.instance.get<ChainLoggingSettings>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`,
     );
     return response.data;
   };
@@ -482,20 +859,20 @@ export class RestApi implements Api {
     properties: ChainLoggingProperties,
   ): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`,
       properties,
     );
   };
 
   deleteLoggingSettings = async (chainId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/properties/logging`,
+      `${this.v1()}/catalog/chains/${chainId}/properties/logging`,
     );
   };
 
   getMaskedFields = async (chainId: string): Promise<MaskedField[]> => {
     const response = await this.instance.get<MaskedFields>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking`,
+      `${this.v1()}/catalog/chains/${chainId}/masking`,
     );
     return response.data.fields;
   };
@@ -505,7 +882,7 @@ export class RestApi implements Api {
     maskedField: Partial<Omit<MaskedField, "id">>,
   ): Promise<MaskedField> => {
     const response = await this.instance.post<MaskedField>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking`,
+      `${this.v1()}/catalog/chains/${chainId}/masking`,
       maskedField,
     );
     return response.data;
@@ -516,7 +893,7 @@ export class RestApi implements Api {
     maskedFieldIds: string[],
   ): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking/field`,
+      `${this.v1()}/catalog/chains/${chainId}/masking/field`,
       maskedFieldIds,
     );
   };
@@ -526,7 +903,7 @@ export class RestApi implements Api {
     maskedFieldId: string,
   ): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
+      `${this.v1()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
     );
   };
 
@@ -536,7 +913,7 @@ export class RestApi implements Api {
     changes: Partial<Omit<MaskedField, "id">>,
   ): Promise<MaskedField> => {
     const response = await this.instance.put<MaskedField>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
+      `${this.v1()}/catalog/chains/${chainId}/masking/field/${maskedFieldId}`,
       changes,
     );
     return response.data;
@@ -547,7 +924,7 @@ export class RestApi implements Api {
     filters: SessionFilterAndSearchRequest,
     paginationOptions: PaginationOptions,
   ): Promise<SessionSearchResponse> => {
-    const prefix = `/api/v1/${getAppName()}/sessions-management/sessions`;
+    const prefix = `${this.v1()}/sessions-management/sessions`;
     const url = chainId ? `${prefix}/chains/${chainId}` : prefix;
     const params: Record<string, string> = {};
     if (paginationOptions.offset) {
@@ -566,7 +943,7 @@ export class RestApi implements Api {
 
   deleteSessions = async (sessionIds: string[]): Promise<void> => {
     await this.instance.post(
-      `/api/v1/${getAppName()}/sessions-management/sessions/bulk-delete`,
+      `${this.v1()}/sessions-management/sessions/bulk-delete`,
       sessionIds,
     );
   };
@@ -574,14 +951,14 @@ export class RestApi implements Api {
   deleteSessionsByChainId = async (
     chainId: string | undefined,
   ): Promise<void> => {
-    const prefix = `/api/v1/${getAppName()}/sessions-management/sessions`;
+    const prefix = `${this.v1()}/sessions-management/sessions`;
     const url = chainId ? `${prefix}/chains/${chainId}` : prefix;
     await this.instance.delete(url);
   };
 
   exportSessions = async (sessionIds: string[]): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `/api/v1/${getAppName()}/sessions-management/sessions/export`,
+      `${this.v1()}/sessions-management/sessions/export`,
       sessionIds,
       { responseType: "blob" },
     );
@@ -595,26 +972,16 @@ export class RestApi implements Api {
     headers.set("Content-Type", "multipart/form-data");
     headers.set("accept", "*/*");
     const response = await this.instance.post<Session[]>(
-      `/api/v1/${getAppName()}/sessions-management/sessions/import`,
+      `${this.v1()}/sessions-management/sessions/import`,
       formData,
       { headers },
     );
     return response.data;
   };
 
-  retryFromLastCheckpoint = async (
-    chainId: string,
-    sessionId: string,
-  ): Promise<void> => {
-    await this.instance.post(
-      `/api/v1/${getAppName()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
-    );
-  };
-
   getSession = async (sessionId: string): Promise<Session> => {
     const response = await this.instance.get<Session>(
-      `/api/v1/${getAppName()}/sessions-management/sessions/${sessionId}`,
+      `${this.v1()}/sessions-management/sessions/${sessionId}`,
     );
     return response.data;
   };
@@ -623,7 +990,7 @@ export class RestApi implements Api {
     sessionIds: string[],
   ): Promise<CheckpointSession[]> => {
     const response = await this.instance.get<CheckpointSession[]>(
-      `/api/v1/${getAppName()}/engine/sessions`,
+      `${this.v1()}/engine/sessions`,
       {
         params: { ids: sessionIds },
         paramsSerializer: {
@@ -634,19 +1001,19 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  retrySessionFromLastCheckpoint = async (
+  retrySessionFromCheckpoint = async (
     chainId: string,
     sessionId: string,
   ): Promise<void> => {
     return this.instance.post(
-      `/api/v1/${getAppName()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
+      `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
+      {},
     );
   };
 
   getFolder = async (folderId: string): Promise<FolderItem> => {
     const response = await this.instance.get<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}`,
+      `${this.v2()}/folders/${folderId}`,
     );
     return response.data;
   };
@@ -656,7 +1023,7 @@ export class RestApi implements Api {
     openedFolderId: string,
   ): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
-      `/api/v1/${getAppName()}/catalog/folders/`,
+      `${this.v1()}/catalog/folders/`,
       {
         params: {
           filter: filter,
@@ -669,21 +1036,21 @@ export class RestApi implements Api {
 
   getPathToFolder = async (folderId: string): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}/path`,
+      `${this.v2()}/folders/${folderId}/path`,
     );
     return response.data;
   };
 
   getPathToFolderByName = async (folderName: string): Promise<FolderItem[]> => {
     const response = await this.instance.get<FolderItem[]>(
-      `/api/v2/${getAppName()}/catalog/folders/path?name=${folderName}`,
+      `${this.v2()}/folders/path?name=${folderName}`,
     );
     return response.data;
   };
 
   createFolder = async (request: CreateFolderRequest): Promise<FolderItem> => {
     const response = await this.instance.post<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders`,
+      `${this.v2()}/folders`,
       request,
     );
     return response.data;
@@ -694,30 +1061,25 @@ export class RestApi implements Api {
     changes: UpdateFolderRequest,
   ): Promise<FolderItem> => {
     const response = await this.instance.put<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}`,
+      `${this.v2()}/folders/${folderId}`,
       changes,
     );
     return response.data;
   };
 
   deleteFolder = async (folderId: string): Promise<void> => {
-    await this.instance.delete(
-      `/api/v2/${getAppName()}/catalog/folders/${folderId}`,
-    );
+    await this.instance.delete(`${this.v2()}/folders/${folderId}`);
   };
 
   deleteFolders = async (folderIds: string[]): Promise<void> => {
-    await this.instance.post(
-      `/api/v2/${getAppName()}/catalog/folders/bulk-delete`,
-      folderIds,
-    );
+    await this.instance.post(`${this.v2()}/folders/bulk-delete`, folderIds);
   };
 
   listFolder = async (
     request: ListFolderRequest,
   ): Promise<(FolderItem | ChainItem)[]> => {
     const response = await this.instance.post<(FolderItem | ChainItem)[]>(
-      `/api/v2/${getAppName()}/catalog/folders/list`,
+      `${this.v2()}/folders/list`,
       request,
     );
     return response.data;
@@ -732,7 +1094,7 @@ export class RestApi implements Api {
       targetId: targetFolderId,
     };
     const response = await this.instance.post<FolderItem>(
-      `/api/v2/${getAppName()}/catalog/folders/move`,
+      `${this.v2()}/folders/move`,
       request,
     );
     return response.data;
@@ -740,7 +1102,7 @@ export class RestApi implements Api {
 
   getNestedChains = async (folderId: string): Promise<Chain[]> => {
     const response = await this.instance.get<Chain[]>(
-      `/api/v1/${getAppName()}/catalog/folders/${folderId}/chains`,
+      `${this.v1()}/catalog/folders/${folderId}/chains`,
     );
     return response.data;
   };
@@ -749,7 +1111,7 @@ export class RestApi implements Api {
     chainIds: string[],
   ): Promise<UsedService[]> => {
     const response = await this.instance.get<UsedService[]>(
-      `/api/v1/${getAppName()}/catalog/chains/used-systems`,
+      `${this.v1()}/catalog/chains/used-systems`,
       {
         params: { chainIds },
         paramsSerializer: {
@@ -762,7 +1124,7 @@ export class RestApi implements Api {
 
   getChainsUsedByService = async (systemId: string): Promise<BaseEntity[]> => {
     const response = await this.instance.get<BaseEntity[]>(
-      `/api/v1/${getAppName()}/catalog/chains/systems/${systemId}`,
+      `${this.v1()}/catalog/chains/systems/${systemId}`,
     );
     return response.data;
   };
@@ -779,7 +1141,7 @@ export class RestApi implements Api {
       formData.append("usedSystemModelIds", modelIds.join(","));
     }
     const response = await this.instance.post<Blob>(
-      `/api/v1/${getAppName()}/systems-catalog/export/system`,
+      `${this.v1()}/systems-catalog/export/system`,
       formData,
       {
         headers: {
@@ -804,7 +1166,7 @@ export class RestApi implements Api {
       params["specificationGroupId"] = specificationGroupId.join(",");
     }
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/systems-catalog/export/specifications`,
+      `${this.v1()}/systems-catalog/export/specifications`,
       {
         params,
         headers: {
@@ -840,7 +1202,7 @@ export class RestApi implements Api {
     }
 
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/catalog/export/api-spec`,
+      `${this.v1()}/catalog/export/api-spec`,
       {
         params: { ...params, externalRoutes, specificationType, format },
         headers: {
@@ -876,7 +1238,7 @@ export class RestApi implements Api {
     withSpec: boolean,
   ): Promise<IntegrationSystem[]> => {
     const response = await this.instance.get<IntegrationSystem[]>(
-      `/api/v1/${getAppName()}/systems-catalog/systems`,
+      `${this.v1()}/systems-catalog/systems`,
       {
         params: { modelType, withSpec },
       },
@@ -884,9 +1246,34 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  filterServices = async (
+    filters: EntityFilterModel[],
+  ): Promise<IntegrationSystem[]> => {
+    const body = filters.map((f) => ({
+      column: f.column,
+      condition: f.condition,
+      value: f.value,
+    }));
+    const response = await this.instance.post<IntegrationSystem[]>(
+      `${this.v1()}/systems-catalog/systems/filter`,
+      body,
+    );
+    return response.data;
+  };
+
+  searchServices = async (
+    searchCondition: string,
+  ): Promise<IntegrationSystem[]> => {
+    const response = await this.instance.post<IntegrationSystem[]>(
+      `${this.v1()}/systems-catalog/systems/search`,
+      { searchCondition },
+    );
+    return response.data;
+  };
+
   createService = async (system: SystemRequest): Promise<IntegrationSystem> => {
     const response = await this.instance.post<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems`,
+      `${this.v1()}/systems-catalog/systems`,
       system,
     );
     return response.data;
@@ -897,7 +1284,7 @@ export class RestApi implements Api {
     envRequest: EnvironmentRequest,
   ): Promise<Environment> => {
     const response = await this.instance.post<Environment>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments`,
       envRequest,
     );
     return response.data;
@@ -909,7 +1296,7 @@ export class RestApi implements Api {
     envRequest: EnvironmentRequest,
   ): Promise<Environment> => {
     const response = await this.instance.put<Environment>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
       envRequest,
     );
     return response.data;
@@ -920,13 +1307,13 @@ export class RestApi implements Api {
     environmentId: string,
   ): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
     );
   };
 
   deleteService = async (serviceId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${serviceId}`,
+      `${this.v1()}/systems-catalog/systems/${serviceId}`,
     );
   };
 
@@ -934,7 +1321,7 @@ export class RestApi implements Api {
     const formData: FormData = new FormData();
     formData.append("file", file, file.name);
     const response = await this.instance.post<ImportPreview>(
-      `/api/${getAppName()}/v3/import/preview`,
+      `${this.v3()}/import/preview`,
       formData,
       {
         headers: {
@@ -960,7 +1347,7 @@ export class RestApi implements Api {
       formData.append("validateByHash", validateByHash.toString());
     }
     const response = await this.instance.post<ImportCommitResponse>(
-      `/api/${getAppName()}/v3/import`,
+      `${this.v3()}/import`,
       formData,
       {
         headers: {
@@ -974,14 +1361,14 @@ export class RestApi implements Api {
 
   getImportStatus = async (importId: string): Promise<ImportStatusResponse> => {
     const response = await this.instance.get<ImportStatusResponse>(
-      `/api/${getAppName()}/v3/import/${importId}`,
+      `${this.v3()}/import/${importId}`,
     );
     return response.data;
   };
 
   getEvents = async (lastEventId: string): Promise<EventsUpdate> => {
     const response = await this.instance.get<EventsUpdate>(
-      `/api/v1/${getAppName()}/catalog/events`,
+      `${this.v1()}/catalog/events`,
       {
         params: {
           lastEventId: lastEventId,
@@ -996,14 +1383,14 @@ export class RestApi implements Api {
     engineHost: string,
   ): Promise<ChainDeployment[]> => {
     const response = await this.instance.get<ChainDeployment[]>(
-      `/api/v1/${getAppName()}/catalog/domains/${domain}/engines/${engineHost}/deployments`,
+      `${this.v1()}/catalog/domains/${domain}/engines/${engineHost}/deployments`,
     );
     return response.data;
   };
 
   getEnginesByDomain = async (domain: string): Promise<Engine[]> => {
     const response = await this.instance.get<Engine[]>(
-      `/api/v1/${getAppName()}/catalog/domains/${domain}/engines`,
+      `${this.v1()}/catalog/domains/${domain}/engines`,
     );
     return response.data;
   };
@@ -1011,21 +1398,8 @@ export class RestApi implements Api {
   loadCatalogActionsLog = async (
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse> => {
-    return await this.loadActionsLog("catalog", searchRequest);
-  };
-
-  loadVariablesManagementActionsLog = async (
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse> => {
-    return await this.loadActionsLog("variables-management", searchRequest);
-  };
-
-  loadActionsLog = async (
-    serviceName: string,
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse> => {
     const response = await this.instance.post<ActionLogResponse>(
-      `/api/v1/${getAppName()}/${serviceName}/actions-log`,
+      `${this.v1()}/catalog/actions-log`,
       searchRequest,
     );
     return response.data;
@@ -1034,24 +1408,11 @@ export class RestApi implements Api {
   exportCatalogActionsLog = async (
     params: LogExportRequestParams,
   ): Promise<Blob> => {
-    return await this.exportActionLog("catalog", params);
-  };
-
-  exportVariablesManagementActionsLog = async (
-    params: LogExportRequestParams,
-  ): Promise<Blob> => {
-    return await this.exportActionLog("variables-management", params);
-  };
-
-  exportActionLog = async (
-    serviceName: string,
-    params: LogExportRequestParams,
-  ): Promise<Blob> => {
     const response = await this.instance.get<Blob>(
-      `/api/v1/${getAppName()}/${serviceName}/actions-log/export`,
+      `${this.v1()}/catalog/actions-log/export`,
       {
         responseType: "blob",
-        params: params,
+        params,
       },
     );
     return response.data;
@@ -1059,7 +1420,7 @@ export class RestApi implements Api {
 
   getContextServices = async (): Promise<ContextSystem[]> => {
     const response = await this.instance.get<ContextSystem[]>(
-      `/api/v1/${getAppName()}/catalog/context-system`,
+      `${this.v1()}/catalog/context-system`,
     );
     const result = response.data;
     response.data.map(
@@ -1070,7 +1431,7 @@ export class RestApi implements Api {
 
   getContextService = async (id: string): Promise<ContextSystem> => {
     const response = await this.instance.get<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
+      `${this.v1()}/catalog/context-system/${id}`,
     );
     return response.data;
   };
@@ -1079,7 +1440,7 @@ export class RestApi implements Api {
     system: Pick<ContextSystem, "name" | "description">,
   ): Promise<ContextSystem> => {
     const response = await this.instance.post<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system`,
+      `${this.v1()}/catalog/context-system`,
       system,
     );
     return response.data;
@@ -1090,7 +1451,7 @@ export class RestApi implements Api {
     data: Partial<ContextSystem>,
   ): Promise<ContextSystem> => {
     const response = await this.instance.put<ContextSystem>(
-      `/api/v1/${getAppName()}/catalog/context-system/${id}`,
+      `${this.v1()}/catalog/context-system/${id}`,
       data,
     );
     return response.data;
@@ -1098,7 +1459,7 @@ export class RestApi implements Api {
 
   deleteContextService = async (serviceId: string): Promise<void> => {
     await this.instance.delete(
-      `/api/v1/${getAppName()}/catalog/context-system/${serviceId}`,
+      `${this.v1()}/catalog/context-system/${serviceId}`,
     );
   };
 
@@ -1108,7 +1469,7 @@ export class RestApi implements Api {
       formData.append("systemIds", serviceIds.join(","));
     }
     const response = await this.instance.post<Blob>(
-      `/api/v1/${getAppName()}/catalog/context-system/export`,
+      `${this.v1()}/catalog/context-system/export`,
       formData,
       {
         headers: {
@@ -1123,7 +1484,7 @@ export class RestApi implements Api {
 
   getService = async (id: string): Promise<IntegrationSystem> => {
     const response = await this.instance.get<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${id}`,
+      `${this.v1()}/systems-catalog/systems/${id}`,
     );
     return response.data;
   };
@@ -1133,15 +1494,25 @@ export class RestApi implements Api {
     data: Partial<IntegrationSystem>,
   ): Promise<IntegrationSystem> => {
     const response = await this.instance.put<IntegrationSystem>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${id}`,
+      `${this.v1()}/systems-catalog/systems/${id}`,
       data,
+    );
+    return response.data;
+  };
+
+  getEnvironment = async (
+    systemId: string,
+    environmentId: string,
+  ): Promise<Environment> => {
+    const response = await this.instance.get<Environment>(
+      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments/${environmentId}`,
     );
     return response.data;
   };
 
   getEnvironments = async (systemId: string): Promise<Environment[]> => {
     const response = await this.instance.get<Environment[]>(
-      `/api/v1/${getAppName()}/systems-catalog/systems/${systemId}/environments`,
+      `${this.v1()}/systems-catalog/systems/${systemId}/environments`,
     );
     return response.data;
   };
@@ -1150,7 +1521,7 @@ export class RestApi implements Api {
     systemId: string,
   ): Promise<SpecificationGroup[]> => {
     const response = await this.instance.get<SpecificationGroup[]>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups`,
+      `${this.v1()}/systems-catalog/specificationGroups`,
       {
         params: {
           systemId: systemId,
@@ -1164,7 +1535,7 @@ export class RestApi implements Api {
     systemId: string,
   ): Promise<Specification> => {
     const response = await this.instance.get<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/latest`,
+      `${this.v1()}/systems-catalog/models/latest`,
       {
         params: {
           systemId: systemId,
@@ -1179,7 +1550,7 @@ export class RestApi implements Api {
     data: Partial<SpecificationGroup>,
   ): Promise<SpecificationGroup> => {
     const response = await this.instance.patch<SpecificationGroup>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/${id}`,
+      `${this.v1()}/systems-catalog/specificationGroups/${id}`,
       data,
     );
     return response.data;
@@ -1187,7 +1558,7 @@ export class RestApi implements Api {
 
   deleteSpecificationGroup = async (id: string): Promise<void> => {
     await this.instance.delete<SpecificationGroup>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/${id}`,
+      `${this.v1()}/systems-catalog/specificationGroups/${id}`,
     );
   };
 
@@ -1196,7 +1567,7 @@ export class RestApi implements Api {
     data: Partial<Specification>,
   ): Promise<Specification> => {
     const response = await this.instance.patch<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}`,
+      `${this.v1()}/systems-catalog/models/${id}`,
       data,
     );
     return response.data;
@@ -1204,15 +1575,13 @@ export class RestApi implements Api {
 
   getSpecificationModelSource = async (id: string): Promise<string> => {
     const response = await this.instance.get<string>(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}/source`,
+      `${this.v1()}/systems-catalog/models/${id}/source`,
     );
     return response.data;
   };
 
   deleteSpecificationModel = async (id: string): Promise<void> => {
-    await this.instance.delete(
-      `/api/v1/${getAppName()}/systems-catalog/models/${id}`,
-    );
+    await this.instance.delete(`${this.v1()}/systems-catalog/models/${id}`);
   };
 
   getSpecificationModel = async (
@@ -1220,7 +1589,7 @@ export class RestApi implements Api {
     specificationGroupId?: string,
   ): Promise<Specification[]> => {
     const response = await this.instance.get<Specification[]>(
-      `/api/v1/${getAppName()}/systems-catalog/models`,
+      `${this.v1()}/systems-catalog/models`,
       {
         params: {
           systemId: systemId,
@@ -1233,7 +1602,7 @@ export class RestApi implements Api {
 
   deprecateModel = async (modelId: string): Promise<Specification> => {
     const response = await this.instance.post<Specification>(
-      `/api/v1/${getAppName()}/systems-catalog/models/deprecated`,
+      `${this.v1()}/systems-catalog/models/deprecated`,
       modelId,
       {
         headers: { "Content-Type": "text/plain" },
@@ -1242,21 +1611,29 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  getOperations = async (modelId: string): Promise<SystemOperation[]> => {
+  getOperations = async (
+    modelId: string,
+    paginationOptions: PaginationOptions = {},
+  ): Promise<SystemOperation[]> => {
+    const params: Record<string, string> = { modelId };
+
+    if (paginationOptions.offset !== undefined) {
+      params["offset"] = paginationOptions.offset.toString(10);
+    }
+    if (paginationOptions.count !== undefined) {
+      params["count"] = paginationOptions.count.toString(10);
+    }
+
     const response = await this.instance.get<SystemOperation[]>(
-      `/api/v1/${getAppName()}/systems-catalog/operations`,
-      {
-        params: {
-          modelId,
-        },
-      },
+      `${this.v1()}/systems-catalog/operations`,
+      { params },
     );
     return response.data;
   };
 
   getOperationInfo = async (operationId: string): Promise<OperationInfo> => {
     const response = await this.instance.get<OperationInfo>(
-      `/api/v1/${getAppName()}/systems-catalog/operations/${encodeURIComponent(operationId)}/info`,
+      `${this.v1()}/systems-catalog/operations/${encodeURIComponent(operationId)}/info`,
     );
     return response.data;
   };
@@ -1287,8 +1664,8 @@ export class RestApi implements Api {
 
     const url =
       systemType === IntegrationSystemType.CONTEXT
-        ? `/api/v1/${getAppName()}/catalog/context-system/import`
-        : `/api/v1/${getAppName()}/systems-catalog/import/system`;
+        ? `${this.v1()}/catalog/context-system/import`
+        : `${this.v1()}/systems-catalog/import/system`;
     const response = await this.instance.post<ImportSystemResult[]>(
       url,
       formData,
@@ -1312,7 +1689,7 @@ export class RestApi implements Api {
       specificationGroupId: specificationGroupId,
     };
     const response = await this.instance.post<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/import`,
+      `${this.v1()}/systems-catalog/import`,
       formData,
       {
         params,
@@ -1336,7 +1713,7 @@ export class RestApi implements Api {
     };
     if (protocol) params.protocol = protocol;
     const response = await this.instance.post<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/specificationGroups/import`,
+      `${this.v1()}/systems-catalog/specificationGroups/import`,
       formData,
       {
         params,
@@ -1350,7 +1727,7 @@ export class RestApi implements Api {
     importId: string,
   ): Promise<ImportSpecificationResult> => {
     const response = await this.instance.get<ImportSpecificationResult>(
-      `/api/v1/${getAppName()}/systems-catalog/import/${importId}`,
+      `${this.v1()}/systems-catalog/import/${importId}`,
     );
     return response.data;
   };
@@ -1359,7 +1736,7 @@ export class RestApi implements Api {
     includeContent: boolean,
   ): Promise<DetailedDesignTemplate[]> => {
     const response = await this.instance.get<DetailedDesignTemplate[]>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       {
         params: {
           includeContent,
@@ -1373,7 +1750,7 @@ export class RestApi implements Api {
     templateId: string,
   ): Promise<DetailedDesignTemplate> => {
     const response = await this.instance.get<DetailedDesignTemplate>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates/${templateId}`,
+      `${this.v1()}/catalog/detailed-design/templates/${templateId}`,
     );
     return response.data;
   };
@@ -1383,7 +1760,7 @@ export class RestApi implements Api {
     content: string,
   ): Promise<DetailedDesignTemplate> => {
     const response = await this.instance.put<DetailedDesignTemplate>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       { name, content },
     );
     return response.data;
@@ -1391,7 +1768,7 @@ export class RestApi implements Api {
 
   deleteDetailedDesignTemplates = async (ids: string[]): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/templates`,
+      `${this.v1()}/catalog/detailed-design/templates`,
       {
         params: {
           ids,
@@ -1405,7 +1782,7 @@ export class RestApi implements Api {
     templateId: string,
   ): Promise<ChainDetailedDesign> => {
     const response = await this.instance.get<ChainDetailedDesign>(
-      `/api/v1/${getAppName()}/catalog/detailed-design/chains/${chainId}`,
+      `${this.v1()}/catalog/detailed-design/chains/${chainId}`,
       {
         params: {
           templateId,
@@ -1420,7 +1797,7 @@ export class RestApi implements Api {
     diagramModes: DiagramMode[],
   ): Promise<ElementsSequenceDiagrams> => {
     const response = await this.instance.post<ElementsSequenceDiagrams>(
-      `/api/v1/${getAppName()}/catalog/design-generator/chains/${chainId}`,
+      `${this.v1()}/catalog/design-generator/chains/${chainId}`,
       {
         diagramModes,
       },
@@ -1434,7 +1811,7 @@ export class RestApi implements Api {
     diagramModes: DiagramMode[],
   ): Promise<ElementsSequenceDiagrams> => {
     const response = await this.instance.post<ElementsSequenceDiagrams>(
-      `/api/v1/${getAppName()}/catalog/design-generator/chains/${chainId}/snapshots/${snapshotId}`,
+      `${this.v1()}/catalog/design-generator/chains/${chainId}/snapshots/${snapshotId}`,
       {
         diagramModes,
       },
@@ -1459,7 +1836,7 @@ export class RestApi implements Api {
     elementIds: string[],
   ): Promise<Element> => {
     const response = await this.instance.post<Element>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/groups`,
       elementIds,
     );
     return response.data;
@@ -1470,18 +1847,34 @@ export class RestApi implements Api {
     groupId: string,
   ): Promise<Element[]> => {
     const response = await this.instance.delete<Element[]>(
-      `/api/v1/${getAppName()}/catalog/chains/${chainId}/elements/groups/${groupId}`,
+      `${this.v1()}/catalog/chains/${chainId}/elements/groups/${groupId}`,
     );
     return response.data;
   };
 
   getExchanges = async (limit: number): Promise<LiveExchange[]> => {
     const response = await this.instance.get<LiveExchange[]>(
-      `/api/v1/${getAppName()}/catalog/live-exchanges`,
+      `${this.v1()}/catalog/live-exchanges`,
       {
         params: {
           limit: limit,
         },
+      },
+    );
+    return response.status === 204 ? [] : response.data;
+  };
+
+  getAndFilterExchanges = async (
+    limit: number,
+    filters: EntityFilterModel[],
+  ): Promise<LiveExchange[]> => {
+    const response = await this.instance.post<LiveExchange[]>(
+      `${this.v1()}/catalog/live-exchanges`,
+      {
+        params: {
+          limit: limit,
+        },
+        filters,
       },
     );
     return response.status === 204 ? [] : response.data;
@@ -1493,7 +1886,7 @@ export class RestApi implements Api {
     exchangeId: string,
   ): Promise<void> => {
     await this.instance.delete<void>(
-      `/api/v1/${getAppName()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`,
+      `${this.v1()}/catalog/live-exchanges/${podIp}/${deploymentId}/${exchangeId}`,
     );
   };
 
@@ -1506,7 +1899,7 @@ export class RestApi implements Api {
     searchString: string,
   ): Promise<DiagnosticValidation[]> => {
     const response = await this.instance.post<DiagnosticValidation[]>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
+      `${this.v1()}/catalog/diagnostic/validations`,
       { searchString, filters },
     );
     return response.data;
@@ -1516,14 +1909,14 @@ export class RestApi implements Api {
     validationId: string,
   ): Promise<DiagnosticValidation> => {
     const response = await this.instance.get<DiagnosticValidation>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations/${validationId}`,
+      `${this.v1()}/catalog/diagnostic/validations/${validationId}`,
     );
     return response.data;
   };
 
   runValidations = async (ids: string[]): Promise<void> => {
     await this.instance.patch<void>(
-      `/api/v1/${getAppName()}/catalog/diagnostic/validations`,
+      `${this.v1()}/catalog/diagnostic/validations`,
       undefined,
       {
         params: { validationIds: ids },
@@ -1535,7 +1928,7 @@ export class RestApi implements Api {
     request: BulkDeploymentRequest,
   ): Promise<BulkDeploymentResult[]> => {
     const response = await this.instance.post<BulkDeploymentResult[]>(
-      `/api/v1/${getAppName()}/catalog/chains/deployments/bulk`,
+      `${this.v1()}/catalog/chains/deployments/bulk`,
       request,
     );
     return response.data;
@@ -1605,5 +1998,65 @@ export class RestApi implements Api {
       },
     );
     return getFileFromResponse(response);
+  };
+
+  getUsedProperties = async (chainId: string): Promise<UsedProperty[]> => {
+    const response = await this.instance.get<UsedProperty[]>(
+      `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`,
+    );
+
+    return response.data;
+  };
+
+  loadHttpTriggerAccessControl = async (
+    searchRequest: AccessControlSearchRequest,
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.post<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
+    return response.data;
+  };
+
+  updateHttpTriggerAccessControl = async (
+    searchRequest: AccessControlUpdateRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles`,
+      searchRequest,
+    );
+
+    return response.data;
+  };
+
+  bulkDeployChainsAccessControl = async (
+    searchRequest: AccessControlBulkDeployRequest[],
+  ): Promise<AccessControlResponse> => {
+    const response = await this.instance.put<AccessControlResponse>(
+      `${this.v1()}/catalog/chains/roles/redeploy`,
+      searchRequest,
+    );
+
+    return response.data;
+  };
+
+  runServiceDiscovery = async (): Promise<unknown> => {
+    return await this.instance.post<unknown>(
+      `${this.v1()}/systems-catalog/systems/discovery`,
+    );
+  };
+
+  isAutodiscoveryInProgress = async (): Promise<number> => {
+    const response = await this.instance.get<number>(
+      `${this.v1()}/systems-catalog/systems/discovery/progress`,
+    );
+    return response.data;
+  };
+
+  getAutodiscoveryResult = async (): Promise<DiscoveryResponse> => {
+    const response = await this.instance.get<DiscoveryResponse>(
+      `${this.v1()}/systems-catalog/systems/discovery/result`,
+    );
+    return response.data;
   };
 }

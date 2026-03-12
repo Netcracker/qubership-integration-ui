@@ -184,6 +184,24 @@ const config: Config = {
         tsconfig: {
           target: "ES2021",
           lib: ["ES2021", "DOM"],
+          esModuleInterop: true,
+        },
+        diagnostics: { ignoreDiagnostics: [1343] },
+        astTransformers: {
+          before: [
+            {
+              path: "ts-jest-mock-import-meta",
+              options: {
+                metaObjectReplacement: {
+                  env: {
+                    DEV: false,
+                    PROD: true,
+                    MODE: "test",
+                  },
+                },
+              },
+            },
+          ],
         },
       },
     ],

@@ -3,14 +3,14 @@ import React, { useEffect, useState } from "react";
 import { ElementWithChainName } from "../../../../api/apiTypes";
 import { useNotificationService } from "../../../../hooks/useNotificationService";
 import { api } from "../../../../api/api";
-import { Chain, ChainColumn } from "../../../services/ChainColumn";
+import { Chain, ChainColumn } from "../../../services/ui/ChainColumn";
 import { JSONSchema7 } from "json-schema";
 import { FormContext } from "../ChainElementModification";
 import styles from "../ChainElementModification.module.css";
 
 const ChainTriggerUsedByField: React.FC<
   FieldProps<string, JSONSchema7, FormContext>
-> = ({ id, formData}) => {
+> = ({ id, formData }) => {
   const notificationService = useNotificationService();
 
   const [chains, setChains] = useState<Chain[]>([]);

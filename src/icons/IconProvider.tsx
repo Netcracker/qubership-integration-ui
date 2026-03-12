@@ -10,6 +10,13 @@ import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
 import parse from "html-react-parser";
 import { commonIcons, elementIcons } from "./IconDefenitions";
 import { getConfig, onConfigChange } from "../appConfig.ts";
+import {
+  isMonochromeSvgElement,
+  isMonochromeSvgString,
+  normalizeSvgElementPaintToCurrentColor,
+  normalizeSvgStringPaintToCurrentColor,
+} from "./svgColorNormalization.ts";
+import { IconWithDomColorNormalize } from "./IconWithDomColorNormalize.tsx";
 
 export type IconSource =
   | React.ComponentType<AntdIconProps>
@@ -20,50 +27,6 @@ const allIcons = {
   ...commonIcons,
   ...elementIcons,
 };
-
-function normalizeSvgForTheme(svgString: string): string {
-  let normalized = svgString;
-
-  normalized = normalized.replace(
-    /fill\s*=\s*["']#[0-9a-fA-F]{3,8}["']/gi,
-    'fill="currentColor"',
-  );
-
-  normalized = normalized.replace(
-    /stroke\s*=\s*["']#[0-9a-fA-F]{3,8}["']/gi,
-    'stroke="currentColor"',
-  );
-
-  normalized = normalized.replace(
-    /style\s*=\s*["']([^"']*)["']/gi,
-    (_match: string, styleContent: string): string => {
-      const newStyle = styleContent
-        .replace(/fill:\s*#[0-9a-fA-F]{3,8}/gi, "fill: currentColor")
-        .replace(/stroke:\s*#[0-9a-fA-F]{3,8}/gi, "stroke: currentColor");
-      return `style="${newStyle}"`;
-    },
-  );
-
-  const elementsWithFill = ["path", "circle", "rect", "ellipse", "polygon"];
-  elementsWithFill.forEach((tag: string) => {
-    const regex = new RegExp(`<${tag}([^>]*)>`, "gi");
-    normalized = normalized.replace(
-      regex,
-      (match: string, attributes: string): string => {
-        if (
-          !attributes.includes("fill=") &&
-          !attributes.includes("fill:") &&
-          !attributes.includes('fill="none"')
-        ) {
-          return `<${tag}${attributes} fill="currentColor">`;
-        }
-        return match;
-      },
-    );
-  });
-
-  return normalized;
-}
 
 export interface IconContextType {
   icons: IconOverrides;
@@ -134,30 +97,52 @@ export const OverridableIcon: React.FC<OverridableIconProps> = ({
 }) => {
   const icons = useIcons();
   const IconComponent = icons.icons[name];
-
   if (!IconComponent) {
     return null;
   }
 
+  // ReactElement (e.g. <svg>...</svg> passed directly)
   if (React.isValidElement(IconComponent)) {
-    return React.cloneElement(IconComponent, props);
-  }
-
-  if (typeof IconComponent === "string") {
-    const normalizedSvg = normalizeSvgForTheme(IconComponent);
-    const parsed = parse(normalizedSvg);
-    if (!React.isValidElement(parsed)) {
-      console.warn("Parsed icon is not a React element:", parsed);
-      return null;
-    }
-    const sizedSvg = React.cloneElement(parsed, {
+    const normalized = isMonochromeSvgElement(IconComponent)
+      ? normalizeSvgElementPaintToCurrentColor(IconComponent)
+      : IconComponent;
+    const wrappedNode = React.cloneElement(normalized, {
       width: "1em",
       height: "1em",
-      ...props,
     });
-    return <Icon component={() => sizedSvg} />;
+    return <Icon {...props} component={() => wrappedNode} />;
   }
 
-  // @ts-expect-error all cases covered
-  return <IconComponent {...props} />;
+  // SVG string (e.g. "<svg>...</svg>" from config)
+  if (typeof IconComponent === "string") {
+    const normalizedSvg = isMonochromeSvgString(IconComponent)
+      ? normalizeSvgStringPaintToCurrentColor(IconComponent)
+      : IconComponent;
+    const parsed = parse(normalizedSvg);
+    // Handle case where parse returns an array (text nodes + SVG element)
+    const svgElement = Array.isArray(parsed)
+      ? parsed.find((el) => React.isValidElement(el))
+      : parsed;
+
+    if (!React.isValidElement(svgElement)) {
+      console.warn(
+        `[IconProvider] Failed to parse icon "${name}". Parse result:`,
+        parsed,
+      );
+      return null;
+    }
+    const sizedSvg = React.cloneElement(
+      svgElement as React.ReactElement<React.SVGProps<SVGSVGElement>>,
+      { width: "1em", height: "1em" },
+    );
+    return <Icon {...props} component={() => sizedSvg} />;
+  }
+
+  // Component (function or class) — use DOM-based color normalization
+  return (
+    <IconWithDomColorNormalize
+      IconComponent={IconComponent as React.ComponentType<AntdIconProps>}
+      props={props}
+    />
+  );
 };

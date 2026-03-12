@@ -1,5 +1,5 @@
-import { EntityFilterModel } from "../components/table/filter/filter.ts";
-import {
+import type { EntityFilterModel } from "../components/table/filter/filter.ts";
+import type {
   Chain,
   ChainCreationRequest,
   Connection,
@@ -63,6 +63,7 @@ import {
   LiveExchange,
   ContextSystem,
   IntegrationSystemType,
+  UsedProperty,
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
@@ -70,6 +71,16 @@ import {
   CreateMaasRabbitMQRequest,
   GetMaasKafkaDeclarativeRequest,
   GetMaasRabbitMQDeclarativeRequest,
+  ApiResponse,
+  ImportVariablesResult,
+  VariableImportPreview,
+  SecretWithVariables,
+  Variable,
+  AccessControlSearchRequest,
+  AccessControlResponse,
+  AccessControlUpdateRequest,
+  AccessControlBulkDeployRequest,
+  DiscoveryResponse,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -214,16 +225,11 @@ export interface Api {
 
   importSessions(files: File[]): Promise<Session[]>;
 
-  retryFromLastCheckpoint(chainId: string, sessionId: string): Promise<void>;
-
   getSession(sessionId: string): Promise<Session>;
 
   getCheckpointSessions(sessionIds: string[]): Promise<CheckpointSession[]>;
 
-  retrySessionFromLastCheckpoint(
-    chainId: string,
-    sessionId: string,
-  ): Promise<void>;
+  retrySessionFromCheckpoint(chainId: string, sessionId: string): Promise<void>;
 
   getFolder(folderId: string): Promise<FolderItem>;
 
@@ -296,20 +302,16 @@ export interface Api {
     searchRequest: ActionLogSearchRequest,
   ): Promise<ActionLogResponse>;
 
-  loadVariablesManagementActionsLog(
-    searchRequest: ActionLogSearchRequest,
-  ): Promise<ActionLogResponse>;
-
   exportCatalogActionsLog(params: LogExportRequestParams): Promise<Blob>;
-
-  exportVariablesManagementActionsLog(
-    params: LogExportRequestParams,
-  ): Promise<Blob>;
 
   getServices(
     modelType: string,
     withSpec: boolean,
   ): Promise<IntegrationSystem[]>;
+
+  filterServices(filters: EntityFilterModel[]): Promise<IntegrationSystem[]>;
+
+  searchServices(searchCondition: string): Promise<IntegrationSystem[]>;
 
   createService(system: SystemRequest): Promise<IntegrationSystem>;
 
@@ -381,6 +383,8 @@ export interface Api {
 
   exportContextServices(serviceIds: string[]): Promise<File>;
 
+  getEnvironment(systemId: string, environmentId: string): Promise<Environment>;
+
   getEnvironments(systemId: string): Promise<Environment[]>;
 
   getApiSpecifications(systemId: string): Promise<SpecificationGroup[]>;
@@ -402,7 +406,10 @@ export interface Api {
     data: Partial<Specification>,
   ): Promise<Specification>;
 
-  getOperations(modelId: string): Promise<SystemOperation[]>;
+  getOperations(
+    modelId: string,
+    paginationOptions: PaginationOptions,
+  ): Promise<SystemOperation[]>;
 
   getOperationInfo(operationId: string): Promise<OperationInfo>;
 
@@ -460,6 +467,11 @@ export interface Api {
 
   getExchanges(limit: number): Promise<LiveExchange[]>;
 
+  getAndFilterExchanges(
+    limit: number,
+    filters: EntityFilterModel[],
+  ): Promise<LiveExchange[]>;
+
   terminateExchange(
     podIp: string,
     deploymentId: string,
@@ -490,6 +502,70 @@ export interface Api {
   getMaasRabbitMQDeclarativeFile(
     request: GetMaasRabbitMQDeclarativeRequest,
   ): Promise<File>;
+
+  // Admin Tools: Variables Management
+  getCommonVariables(): Promise<ApiResponse<Variable[]>>;
+
+  createCommonVariable(variable: Variable): Promise<ApiResponse<string[]>>;
+
+  updateCommonVariable(variable: Variable): Promise<ApiResponse<Variable>>;
+
+  deleteCommonVariables(keys: string[]): Promise<boolean>;
+
+  exportVariables(keys: string[], asArchive?: boolean): Promise<File>;
+
+  importVariablesPreview(
+    formData: FormData,
+  ): Promise<ApiResponse<VariableImportPreview[]>>;
+
+  importVariables(
+    formData: FormData,
+  ): Promise<ApiResponse<ImportVariablesResult>>;
+
+  getSecuredVariables(): Promise<ApiResponse<SecretWithVariables[]>>;
+
+  getSecuredVariablesForSecret(
+    secretName: string,
+  ): Promise<ApiResponse<Variable[]>>;
+
+  createSecuredVariables(
+    secretName: string,
+    variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>>;
+
+  updateSecuredVariables(
+    secretName: string,
+    variables: Variable[],
+  ): Promise<ApiResponse<Variable[]>>;
+
+  deleteSecuredVariables(
+    secretName: string,
+    keys: string[],
+  ): Promise<ApiResponse<boolean>>;
+
+  createSecret(secretName: string): Promise<ApiResponse<boolean>>;
+
+  downloadHelmChart(secretName: string): Promise<File>;
+
+  getUsedProperties(chainId: string): Promise<UsedProperty[]>;
+
+  loadHttpTriggerAccessControl(
+    searchRequest: AccessControlSearchRequest,
+  ): Promise<AccessControlResponse>;
+
+  updateHttpTriggerAccessControl(
+    searchRequest: AccessControlUpdateRequest[],
+  ): Promise<AccessControlResponse>;
+
+  bulkDeployChainsAccessControl(
+    searchRequest: AccessControlBulkDeployRequest[],
+  ): Promise<AccessControlResponse>;
+
+  runServiceDiscovery(): Promise<unknown>;
+
+  isAutodiscoveryInProgress(): Promise<number>;
+
+  getAutodiscoveryResult(): Promise<DiscoveryResponse>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

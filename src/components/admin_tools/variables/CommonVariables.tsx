@@ -1,22 +1,21 @@
 import { useCallback, useState } from "react";
-import { Flex, FloatButton, message, Modal, Typography } from "antd";
+import { Button, Flex, message, Modal, Tooltip, Typography } from "antd";
 import styles from "../CommonStyle.module.css";
 import ImportVariablesModal from "./ImportVariablesModal.tsx";
 import { useModalsContext } from "../../../Modals.tsx";
 import VariablesTable from "./VariablesTable.tsx";
 import { useVariablesState } from "./useVariablesState";
-import { variablesApi } from "../../../api/admin-tools/variables/variablesApi.ts";
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
-import { ApiResponse, Variable } from "../../../api/admin-tools/variables/types.ts";
+import { ApiResponse, Variable } from "../../../api/apiTypes.ts";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import { api } from "../../../api/api.ts";
 
 const { Title } = Typography;
 
 async function getVariables(): Promise<ApiResponse<Variable[]>> {
-  return variablesApi.getCommonVariables();
+  return api.getCommonVariables();
 }
 
 export const CommonVariables = () => {
@@ -56,12 +55,12 @@ export const CommonVariables = () => {
     fetchVariables,
   } = useVariablesState({
     getVariables,
-    createVariable: (variable) => variablesApi.createCommonVariable(variable),
-    updateVariable: (variable) => variablesApi.updateCommonVariable(variable),
-    deleteVariables: (keys) => variablesApi.deleteCommonVariables(keys),
+    createVariable: (variable) => api.createCommonVariable(variable),
+    updateVariable: (variable) => api.updateCommonVariable(variable),
+    deleteVariables: (keys) => api.deleteCommonVariables(keys),
     exportVariables: async (keys) => {
       try {
-        downloadFile(await variablesApi.exportVariables(keys, true));
+        downloadFile(await api.exportVariables(keys, true));
         return true;
       } catch (error) {
         notificationService.requestFailed("Failed to export variables", error);
@@ -72,7 +71,7 @@ export const CommonVariables = () => {
 
   const onDeleteSelected = async () => {
     try {
-      const success = await variablesApi.deleteCommonVariables(selectedRowKeys);
+      const success = await api.deleteCommonVariables(selectedRowKeys);
       if (success) {
         message.success("Deleted selected variables");
         setSelectedRowKeys([]);
@@ -88,11 +87,63 @@ export const CommonVariables = () => {
 
   return (
     <Flex vertical className={styles["container"]}>
-      <Flex vertical={false}>
+      <Flex
+        vertical={false}
+        justify="space-between"
+        align="center"
+        style={{ marginBottom: 16 }}
+      >
         <Title level={4} className={styles["title"]}>
           <OverridableIcon name="table" className={styles["icon"]} />
           Common Variables
         </Title>
+        <Flex vertical={false} gap={4}>
+          <Tooltip title="Delete selected variables" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="delete" />}
+              onClick={() => {
+                if (!selectedRowKeys.length) return;
+                Modal.confirm({
+                  title: `Delete ${selectedRowKeys.length} selected variable(s)?`,
+                  content: `Are you sure you want to delete ${selectedRowKeys.length} variables(s)?`,
+                  onOk: onDeleteSelected,
+                });
+              }}
+              disabled={!selectedRowKeys.length}
+            />
+          </Tooltip>
+          <Tooltip title="Export selected variables" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="cloudDownload" />}
+              onClick={() => {
+                if (!selectedRowKeys.length) return;
+                void onExport(selectedRowKeys);
+              }}
+              disabled={!selectedRowKeys.length}
+            />
+          </Tooltip>
+          <Tooltip title="Import variables" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="cloudUpload" />}
+              onClick={() =>
+                showModal({
+                  component: (
+                    <ImportVariablesModal
+                      onSuccess={() => void fetchVariables()}
+                    />
+                  ),
+                })
+              }
+            />
+          </Tooltip>
+          <Tooltip title="Add variable" placement="bottom">
+            <Button
+              type="primary"
+              icon={<OverridableIcon name="plus" />}
+              onClick={() => setIsAddingNew(true)}
+            />
+          </Tooltip>
+        </Flex>
       </Flex>
       <VariablesTable
         flex
@@ -116,47 +167,6 @@ export const CommonVariables = () => {
         columnsWidth={columnsWidth}
         onResize={handleResize}
       />
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          tooltip={{ title: "Import variables", placement: "left" }}
-          icon={<OverridableIcon name="cloudUpload" />}
-          onClick={() =>
-            showModal({
-              component: (
-                <ImportVariablesModal onSuccess={() => void fetchVariables()} />
-              ),
-            })
-          }
-        />
-        <FloatButton
-          tooltip={{ title: "Export selected variables", placement: "left" }}
-          icon={<OverridableIcon name="cloudDownload" />}
-          onClick={() => {
-            if (!selectedRowKeys.length) return;
-            void onExport(selectedRowKeys);
-          }}
-        />
-        <FloatButton
-          tooltip={{
-            title: "Delete selected variables",
-            placement: "left",
-          }}
-          icon={<OverridableIcon name="delete" />}
-          onClick={() => {
-            if (!selectedRowKeys.length) return;
-            Modal.confirm({
-              title: `Delete ${selectedRowKeys.length} selected variable(s)?`,
-              content: `Are you sure you want to delete ${selectedRowKeys.length} variables(s)?`,
-              onOk: onDeleteSelected,
-            });
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Add variable", placement: "left" }}
-          icon={<OverridableIcon name="plus" />}
-          onClick={() => setIsAddingNew(true)}
-        />
-      </FloatButtonGroup>
     </Flex>
   );
 };

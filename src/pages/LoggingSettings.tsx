@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Form, Select, SelectProps, Spin } from "antd";
+import { Form, Select, SelectProps, Spin } from "antd";
 import { useParams } from "react-router";
 import { useForm } from "antd/lib/form/Form";
 import Checkbox from "antd/lib/checkbox";
@@ -15,6 +15,9 @@ import { capitalize } from "../misc/format-utils.ts";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import styles from "./Chain.module.css";
+import { LoggingSettingsSourceTag } from "../components/logging/LoggingSettingsSourceTag.tsx";
+import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
+import { ApplyFormButton } from "../components/ApplyFormButton.tsx";
 
 type LogSettingsFormState = ChainLoggingProperties & { custom: boolean };
 
@@ -150,6 +153,14 @@ export const LoggingSettings: React.FC = () => {
     label: capitalize(value),
   }));
 
+  useRegisterChainHeaderActions(
+    <ApplyFormButton
+      formId="logging-settings-form"
+      loading={isLoggingSettingsLoading}
+    />,
+    [isLoggingSettingsLoading],
+  );
+
   return (
     <div className={styles.pageContainer as string}>
       <div
@@ -167,6 +178,7 @@ export const LoggingSettings: React.FC = () => {
           />
         ) : null}
         <Form<LogSettingsFormState>
+          id="logging-settings-form"
           disabled={isLoggingSettingsLoading}
           labelWrap
           form={form}
@@ -185,6 +197,15 @@ export const LoggingSettings: React.FC = () => {
             {...formItemStyle}
           >
             <Checkbox>Override default properties</Checkbox>
+          </Form.Item>
+          <Form.Item
+            label="Logging settings source"
+            name="loggingSettingsSource"
+          >
+            <LoggingSettingsSourceTag
+              isCustom={isCustom}
+              isConsulDefault={loggingSettings?.consulDefault !== undefined}
+            />
           </Form.Item>
           <Form.Item label="Session level" name="sessionsLoggingLevel">
             <Select<SessionsLoggingLevel>
@@ -221,15 +242,6 @@ export const LoggingSettings: React.FC = () => {
             {...formItemStyle}
           >
             <Checkbox disabled={!isCustom}>Enable logging masking</Checkbox>
-          </Form.Item>
-          <Form.Item label={null} {...formItemStyle}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isLoggingSettingsLoading}
-            >
-              Apply
-            </Button>
           </Form.Item>
         </Form>
       </div>

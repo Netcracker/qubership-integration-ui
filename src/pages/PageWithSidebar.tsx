@@ -20,7 +20,7 @@ export const PageWithSidebar: React.FC<PageWithSidebarProps> = ({
   sidebar,
   children,
   initialCollapsed = false,
-  sidebarWidth = 240,
+  sidebarWidth = 180,
   sidebarCollapsedWidth = 80,
   showDivider = true,
   contentClassName,
@@ -59,10 +59,16 @@ export const PageWithSidebar: React.FC<PageWithSidebarProps> = ({
         </div>
       </Sider>
       {showDivider && (
-        <Divider type="vertical" size="small" style={{ height: "100%", margin: 0 }} />
+        <Divider
+          type="vertical"
+          size="small"
+          style={{ height: "100%", margin: 0 }}
+        />
       )}
       <Content
-        className={[styles.contentArea, contentClassName].filter(Boolean).join(" ")}
+        className={[styles.contentArea, contentClassName]
+          .filter(Boolean)
+          .join(" ")}
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

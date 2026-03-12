@@ -6,15 +6,19 @@ import {
   Drawer,
   Dropdown,
   Flex,
-  FloatButton,
   MenuProps,
   Table,
+  Tooltip,
   Typography,
 } from "antd";
 import { TableProps } from "antd/lib/table";
 import React, { UIEvent, useRef, useState } from "react";
 import { useActionLog } from "../../hooks/useActionLog.tsx";
-import {capitalize, formatSnakeCased, formatTimestamp} from "../../misc/format-utils.ts";
+import {
+  capitalize,
+  formatSnakeCased,
+  formatTimestamp,
+} from "../../misc/format-utils.ts";
 import DateRangePicker from "../modal/DateRangePicker.tsx";
 import { exportActionsLogAsExcel } from "../../misc/log-export-utils.ts";
 import type { FilterDropdownProps } from "antd/lib/table/interface";
@@ -29,7 +33,6 @@ import {
 import { makeEnumColumnFilterDropdown } from "../EnumColumnFilterDropdown.tsx";
 import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
 import { ResizableTitle } from "../ResizableTitle.tsx";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import commonStyles from "./CommonStyle.module.css";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
@@ -453,7 +456,9 @@ export const ActionsLog: React.FC = () => {
   };
 
   const getIconByEntityType = (type: EntityType): React.ReactNode => {
-    const icon = EntityTypeIconsMap[type] ?? <OverridableIcon name="question" />;
+    const icon = EntityTypeIconsMap[type] ?? (
+      <OverridableIcon name="question" />
+    );
     return React.cloneElement(icon as React.ReactElement, {
       style: { marginRight: 10 },
     });
@@ -470,7 +475,7 @@ export const ActionsLog: React.FC = () => {
           <OverridableIcon name="audit" className={commonStyles["icon"]} />
           Audit
         </Title>
-        <Flex vertical={false} gap={8} className={commonStyles["actions"]}>
+        <Flex vertical={false} gap={4} className={commonStyles["actions"]}>
           <Dropdown
             menu={{
               items: columnVisibilityMenuItems,
@@ -483,6 +488,26 @@ export const ActionsLog: React.FC = () => {
           >
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
+          <Tooltip title="Refresh" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="refresh" />}
+              onClick={() => void refresh()}
+            />
+          </Tooltip>
+          {!(isLoading || isFetching) && (
+            <Tooltip title="Export action logs" placement="bottom">
+              <span>
+                <DateRangePicker
+                  trigger={
+                    <Button icon={<OverridableIcon name="cloudDownload" />} />
+                  }
+                  onRangeApply={(from, to) => {
+                    void exportActionLogs(from, to);
+                  }}
+                />
+              </span>
+            </Tooltip>
+          )}
         </Flex>
       </Flex>
       <Flex
@@ -577,31 +602,6 @@ export const ActionsLog: React.FC = () => {
                 };
               }}
             />
-            <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-              <FloatButton
-                tooltip={{ title: "Refresh", placement: "left" }}
-                icon={<OverridableIcon name="redo" />}
-                onClick={() => void refresh()}
-              />
-              {isLoading || isFetching ? (
-                <></>
-              ) : (
-                <DateRangePicker
-                  trigger={
-                    <FloatButton
-                      tooltip={{
-                        title: "Export action logs",
-                        placement: "left",
-                      }}
-                      icon={<OverridableIcon name="cloudDownload" />}
-                    />
-                  }
-                  onRangeApply={(from, to) => {
-                    void exportActionLogs(from, to);
-                  }}
-                />
-              )}
-            </FloatButtonGroup>
             <div ref={observerRef} style={{ height: 1 }} />
           </div>
         </Flex>

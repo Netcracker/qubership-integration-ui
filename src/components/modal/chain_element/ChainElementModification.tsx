@@ -1,6 +1,13 @@
 /// <reference types="vite/client" />
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { Button, Modal, Tabs, Flex } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
 import { Element, PatchElementRequest } from "../../../api/apiTypes.ts";
@@ -20,16 +27,16 @@ import StringAsMultipleSelectWidget from "./widget/StringAsMultipleSelectWidget.
 import MultipleSelectWidget from "./widget/MultipleSelectWidget.tsx";
 import SingleColumnTableWidget from "./widget/SingleColumnTableWidget.tsx";
 import { DebouncedTextareaWidget } from "./widget/DebouncedTextareaWidget.tsx";
-import { DebouncedTextWidget } from "./widget/DebouncedTextWidget.tsx";
 import OneOfAsSingleInputField from "./field/OneOfAsSingleInputField.tsx";
 import PatternPropertiesField from "./field/PatternPropertiesField.tsx";
 import {
   INITIAL_UI_SCHEMA,
+  conditionalTabs,
   desiredTabOrder,
   getTabForPath,
+  getStaleProtocolProperties,
 } from "./ChainElementModificationConstants.ts";
 import { ChainGraphNode } from "../../graph/nodes/ChainGraphNodeTypes.ts";
-import AnyOfAsSingleSelectField from "./field/select/AnyOfAsSingleSelectField.tsx";
 import MappingField from "./field/MappingField.tsx";
 import CustomArrayField from "./field/CustomArrayField.tsx";
 import ScriptField from "./field/ScriptField.tsx";
@@ -39,22 +46,30 @@ import SpecificationField from "./field/select/SpecificationField.tsx";
 import SystemOperationField from "./field/select/SystemOperationField.tsx";
 import EnhancedPatternPropertiesField from "./field/EnhancedPatternPropertiesField.tsx";
 import BodyMimeTypeField from "./field/BodyMimeTypeField.tsx";
-import type { BodyFormEntry } from "../../../misc/body-form-data-utils.ts";
-import { toBodyFormData } from "../../../misc/body-form-data-utils.ts";
 import { useModalsContext } from "../../../Modals.tsx";
 import { UnsavedChangesModal } from "../UnsavedChangesModal.tsx";
-import {
-  isKafkaProtocol,
-  normalizeProtocol,
-} from "../../../misc/protocol-utils.ts";
+import { normalizeProtocol } from "../../../misc/protocol-utils.ts";
 import CustomOneOfField from "./field/CustomOneOfField.tsx";
 import SingleSelectField from "./field/select/SingleSelectField.tsx";
 import ContextServiceField from "./field/select/ContextServiceField.tsx";
 import { FullscreenButton } from "../FullscreenButton.tsx";
 import { useDocumentation } from "../../../hooks/useDocumentation.ts";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
-import { isVsCode } from "../../../api/rest/vscodeExtensionApi.ts";
 import ChainTriggerElementIdField from "./field/ChainTriggerElementIdField.tsx";
+import {
+  type FormContext,
+  buildFormContextFromProperties,
+  enrichProperties as enrichPropertiesUtil,
+} from "./ChainElementModificationContext.ts";
+import {
+  validateKafkaGroupId,
+  transformValidationErrors,
+  hasCriticalErrors,
+} from "./formValidationHelpers.ts";
+import BasePathField from "./field/BasePathField.tsx";
+import ExternalRouteCheckbox from "./field/ExternalRouteCheckbox.tsx";
+import ContextPathWithPrefixField from "./field/ContextPathWithPrefixField.tsx";
+import DescriptionTooltipFieldTemplate from "./DescriptionTooltipFieldTemplate.tsx";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -70,55 +85,18 @@ type TabField = {
   schema: JSONSchema7;
 };
 
-const getOptionalString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
 
-const validateKafkaGroupId = (
-  properties?: Record<string, unknown>,
-  elementType?: string,
-) => {
-  if (!properties || elementType !== "async-api-trigger") return;
-  if (
-    !isKafkaProtocol(properties["integrationOperationProtocolType"] as string)
-  )
-    return;
-
-  const asyncProperties = properties["integrationOperationAsyncProperties"] as
-    | Record<string, unknown>
-    | undefined;
-  const groupIdValue = asyncProperties?.["groupId"];
-  const groupId = typeof groupIdValue === "string" ? groupIdValue.trim() : "";
-  if (!groupId) {
-    throw new Error("Group ID is required for Kafka operations.");
-  }
-};
-
-export type FormContext = {
-  contextServiceId?: string;
-  integrationOperationId?: string;
-  integrationOperationPath?: string;
-  integrationOperationMethod?: string;
-  integrationOperationPathParameters?: Record<string, string>;
-  integrationOperationQueryParameters?: Record<string, string>;
-  integrationOperationProtocolType?: string;
-  elementType?: string;
-  integrationSystemId?: string;
-  integrationSpecificationGroupId?: string;
-  integrationSpecificationId?: string;
-  systemType?: string;
-  integrationOperationSkipEmptyQueryParameters?: boolean;
-  bodyFormData?: BodyFormEntry[];
-  synchronousGrpcCall?: boolean;
-  chainId?: string;
-  updateContext?: (newContext: Record<string, unknown>) => void;
-};
-
-function constructTitle(name: string, type?: string): string {
-  return type ? `${name} (${type})` : `${name}`;
-}
-
-function ErrorListTemplate() {
-  return <div></div>;
+function constructTitle(name: string, type?: string): React.ReactNode {
+  return (
+    <>
+      <span className={styles["modal-title-name"]} title={name}>
+        {name}
+      </span>
+      {type && (
+        <span className={styles["modal-title-type"]}>&nbsp;({type})</span>
+      )}
+    </>
+  );
 }
 
 // WA to hide array properties
@@ -140,7 +118,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const { updateElement } = useElement();
   const notificationService = useNotificationService();
   const { openElementDoc } = useDocumentation();
-  const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
+  const [title, setTitle] = useState<React.ReactNode>(
+    constructTitle(`${node.data.label}`),
+  );
   const [schema, setSchema] = useState<JSONSchema7>({});
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [formContext, setFormContext] = useState<FormContext>({});
@@ -149,6 +129,28 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const { showModal } = useModalsContext();
   const [hasChanges, setHasChanges] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [elementDescription, setElementDescription] = useState<string>("");
+  const [missingRequiredParamsMap, setMissingRequiredParamsMap] = useState<
+    Record<string, string[]>
+  >({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const formRef = useRef<any>(null);
+
+  const reportMissingRequiredParams = useCallback(
+    (key: string, params: string[]) => {
+      setMissingRequiredParamsMap((prev) => {
+        const prevParams = prev[key];
+        if (
+          prevParams?.length === params.length &&
+          prevParams?.every((p, i) => p === params[i])
+        ) {
+          return prev;
+        }
+        return { ...prev, [key]: params };
+      });
+    },
+    [],
+  );
 
   const handleFullscreen = useCallback(() => {
     setIsFullscreen((prevValue) => !prevValue);
@@ -157,27 +159,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   useEffect(() => {
     setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
   }, [libraryElement, node]);
-
-  const enrichProperties = useCallback(
-    (
-      targetProperties: Record<string, unknown>,
-      sourceProperties: Record<string, unknown>,
-    ): Record<string, unknown> => {
-      const result = { ...targetProperties };
-      Object.entries(sourceProperties).forEach(([key, value]) => {
-        if (key === "integrationOperationProtocolType") {
-          value = normalizeProtocol(value as string);
-        }
-        if (value === undefined) {
-          delete result[key];
-        } else {
-          result[key] = value === null ? undefined : value;
-        }
-      });
-      return result;
-    },
-    [],
-  );
 
   const schemaModules = useMemo(
     () =>
@@ -203,7 +184,14 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
     try {
       const parsed = yaml.load(raw) as JSONSchema7;
-      setSchema(parsed);
+
+      // Extract description before setting schema to avoid mutating state
+      if (parsed.description) {
+        setElementDescription(parsed.description.trim());
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { description: _, ...schemaWithoutDescription } = parsed;
+      setSchema(schemaWithoutDescription as JSONSchema7);
 
       const initialFormData = {
         ...node.data,
@@ -217,48 +205,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         unknown
       >;
 
-      setFormContext({
-        contextServiceId: getOptionalString(
-          formProperties.contextServiceId,
-        ),
-        integrationOperationId: getOptionalString(
-          formProperties.integrationOperationId,
-        ),
-        integrationOperationProtocolType: normalizeProtocol(
-          formProperties.integrationOperationProtocolType as string,
-        ),
-        elementType: node.data.elementType,
-        integrationSystemId: getOptionalString(
-          formProperties.integrationSystemId,
-        ),
-        systemType: getOptionalString(formProperties.systemType),
-        integrationSpecificationGroupId: getOptionalString(
-          formProperties.integrationSpecificationGroupId,
-        ),
-        integrationSpecificationId: getOptionalString(
-          formProperties.integrationSpecificationId,
-        ),
-        integrationOperationPath: getOptionalString(
-          formProperties.integrationOperationPath,
-        ),
-        integrationOperationMethod: getOptionalString(
-          formProperties.integrationOperationMethod,
-        ),
-        integrationOperationPathParameters:
-          formProperties.integrationOperationPathParameters as Record<
-            string,
-            string
-          >,
-        integrationOperationQueryParameters:
-          formProperties.integrationOperationQueryParameters as Record<
-            string,
-            string
-          >,
-        bodyFormData: toBodyFormData(formProperties.bodyFormData),
-        synchronousGrpcCall: Boolean(formProperties.synchronousGrpcCall),
-        chainId: chainId,
-        integrationOperationSkipEmptyQueryParameters: formProperties.integrationOperationSkipEmptyQueryParameters as boolean | undefined,
-        updateContext: (updatedProperties: Record<string, unknown>) => {
+      const initialContext = buildFormContextFromProperties(
+        formProperties,
+        node.data.elementType,
+        chainId,
+        (updatedProperties: Record<string, unknown>) => {
           if (
             updatedProperties.integrationOperationProtocolType !== undefined
           ) {
@@ -266,21 +217,52 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               normalizeProtocol(
                 updatedProperties.integrationOperationProtocolType as string,
               );
+
+            // Clean up properties that belong to other protocols
+            const newProtocol =
+              updatedProperties.integrationOperationProtocolType as string;
+            for (const prop of getStaleProtocolProperties(
+              newProtocol,
+              updatedProperties,
+            )) {
+              updatedProperties[prop] = undefined;
+            }
+          }
+          // For http-trigger, method is stored as httpMethodRestrict, not integrationOperationMethod
+          if (
+            node.data.elementType === "http-trigger" &&
+            "integrationOperationMethod" in updatedProperties
+          ) {
+            updatedProperties.httpMethodRestrict =
+              updatedProperties.integrationOperationMethod;
+            delete updatedProperties.integrationOperationMethod;
           }
           setFormContext((prevContext) =>
-            enrichProperties(prevContext, updatedProperties),
+            enrichPropertiesUtil(prevContext, updatedProperties),
           );
 
-          setFormData((prevFormData) => ({
-            ...prevFormData,
-            properties: enrichProperties(
-              prevFormData.properties as Record<string, unknown>,
-              updatedProperties,
-            ),
-          }));
+          // Directly clean formData.properties for keys not tracked in FormContext
+          setFormData((prevFormData) => {
+            const props = {
+              ...(prevFormData.properties as Record<string, unknown>),
+            };
+            let changed = false;
+            for (const [key, value] of Object.entries(updatedProperties)) {
+              if (value === undefined && key in props) {
+                delete props[key];
+                changed = true;
+              }
+            }
+            return changed
+              ? { ...prevFormData, properties: props }
+              : prevFormData;
+          });
+
           setHasChanges(true);
         },
-      });
+      );
+
+      setFormContext({ ...initialContext, reportMissingRequiredParams });
     } catch (err) {
       console.error("Failed to parse schema:", err);
       notificationService.errorWithDetails(
@@ -289,14 +271,16 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         err,
       );
     }
-  }, [
-    node.data,
-    node.id,
-    notificationService,
-    schemaModules,
-    enrichProperties,
-    chainId,
-  ]);
+  }, [node.data, node.id, notificationService, schemaModules, chainId]);
+
+  // WA Trigger initial validation after form mounts so required fields are highlighted
+  useEffect(() => {
+    if (schema && Object.keys(schema).length > 0) {
+      setTimeout(() => {
+        formRef.current?.validateForm();
+      }, 50);
+    }
+  }, [schema]);
 
   const handleClose = useCallback(() => {
     closeContainingModal();
@@ -320,23 +304,63 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     }
   }, [showModal, handleClose, hasChanges]);
 
-  const handleOk = useCallback(async () => {
-    try {
+  // Sync formContext → formData.properties whenever context changes
+  useEffect(() => {
+    setFormData((prevFormData) => {
+      const contextProperties = {
+        ...formContext,
+        integrationOperationProtocolType: normalizeProtocol(
+          formContext?.integrationOperationProtocolType as string,
+        ),
+        updateContext: undefined,
+        elementType: undefined,
+        chainId: undefined,
+        reportMissingRequiredParams: undefined,
+      };
+      const enrichedProps = enrichPropertiesUtil(
+        prevFormData.properties as Record<string, unknown>,
+        contextProperties,
+      );
+
+      if (
+        JSON.stringify(enrichedProps) ===
+        JSON.stringify(prevFormData.properties)
+      ) {
+        return prevFormData;
+      }
+
+      return {
+        ...prevFormData,
+        properties: enrichedProps,
+      };
+    });
+  }, [formContext]);
+
+  const validationErrors = useMemo(() => {
+    if (!schema || !formData || Object.keys(schema).length === 0) return [];
+    const result = validator.validateFormData(formData, schema);
+    return transformValidationErrors(formContext)(result.errors);
+  }, [formData, schema, formContext]);
+
+  const kafkaError = useMemo(
+    () =>
       validateKafkaGroupId(
         formData?.properties as Record<string, unknown> | undefined,
         node.data.elementType,
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : typeof error === "string"
-            ? error
-            : "Unknown error";
-      notificationService.info("Validation failed", message);
-      return;
-    }
+      ),
+    [formData?.properties, node.data.elementType],
+  );
 
+  const hasMissingRequiredParams = Object.values(missingRequiredParamsMap).some(
+    (params) => params.length > 0,
+  );
+
+  const isSaveDisabled =
+    hasCriticalErrors(validationErrors) ||
+    !!kafkaError ||
+    hasMissingRequiredParams;
+
+  const handleOk = useCallback(async () => {
     setIsLoading(true);
     try {
       const request: PatchElementRequest = {
@@ -352,7 +376,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         request,
       );
       if (changedElement) {
-        onSubmit?.(changedElement, node);
+        // API response doesn't include properties, so preserve them from formData
+        const elementWithProperties = {
+          ...changedElement,
+          properties: formData.properties,
+        } as Element;
+        onSubmit?.(elementWithProperties, node);
       }
     } catch (error) {
       notificationService.errorWithDetails(
@@ -386,7 +415,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
       if (schema.properties && typeof schema.properties === "object") {
         for (const [key, subSchema] of Object.entries(schema.properties)) {
-          collectTabFields(subSchema as JSONSchema7, [...path, key], acc, elementType);
+          collectTabFields(
+            subSchema as JSONSchema7,
+            [...path, key],
+            acc,
+            elementType,
+          );
         }
       }
 
@@ -447,43 +481,20 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
   const uniqueTabs = useMemo(() => {
     const rawTabs = new Set(tabFields.map((f) => f.tab));
-    return desiredTabOrder.filter(rawTabs.has.bind(rawTabs));
-  }, [tabFields]);
+    return desiredTabOrder.filter(rawTabs.has.bind(rawTabs)).filter((tab) => {
+      const condition = conditionalTabs.find((ct) => ct.tab === tab);
+      return !condition || condition.isVisible(formContext);
+    });
+  }, [tabFields, formContext]);
 
   useEffect(() => {
-    if (uniqueTabs.length > 0 && !activeKey) {
+    if (
+      uniqueTabs.length > 0 &&
+      (!activeKey || !uniqueTabs.includes(activeKey))
+    ) {
       setActiveKey(uniqueTabs[0]);
     }
   }, [uniqueTabs, activeKey]);
-
-  useEffect(() => {
-    setFormData((prevFormData) => {
-      const newContextProperties = {
-        ...formContext,
-        integrationOperationProtocolType: normalizeProtocol(
-          formContext?.integrationOperationProtocolType as string,
-        ),
-        updateContext: undefined,
-      };
-      const enrichedProps = enrichProperties(
-        prevFormData.properties as Record<string, unknown>,
-        newContextProperties,
-      );
-
-      // Only update if properties actually changed
-      if (
-        JSON.stringify(enrichedProps) ===
-        JSON.stringify(prevFormData.properties)
-      ) {
-        return prevFormData;
-      }
-
-      return {
-        ...prevFormData,
-        properties: enrichedProps,
-      };
-    });
-  }, [formContext, enrichProperties]);
 
   const applyHiddenUiSchema = useCallback(
     (target: UiSchema, hidden: UiSchema) => {
@@ -507,11 +518,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     (
       tabFields: TabField[],
       tab: string,
-      schema: JSONSchema7,
       initialUiSchema: UiSchema,
     ): UiSchema => {
-      const hiddenUiSchema: UiSchema = {};
-
+      // Helper to set value at path in UI Schema
       function setPath(obj: UiSchema, path: string[], value: object) {
         let curr = obj;
         for (let i = 0; i < path.length - 1; i++) {
@@ -521,62 +530,27 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         curr[path[path.length - 1]] = value;
       }
 
-      const visiblePaths = tabFields
-        .filter((f) => f.tab === tab)
-        .map((f) => f.path.map((p) => ["properties", p]).flat());
+      const visiblePathsSet = new Set(
+        tabFields.filter((f) => f.tab === tab).map((f) => f.path.join(".")),
+      );
 
-      function buildHiddenUiSchema(schema: JSONSchema7, path: string[] = []) {
-        const combinators = ["allOf", "anyOf", "oneOf"] as const;
-        for (const keyword of combinators) {
-          if (Array.isArray(schema[keyword])) {
-            for (const subSchema of schema[keyword]) {
-              if (typeof subSchema === "object" && subSchema !== null) {
-                buildHiddenUiSchema(subSchema, path);
-              }
-            }
-          }
-        }
+      const allPaths = tabFields.map((f) => f.path);
 
-        if (schema.if) {
-          if (schema.then) {
-            buildHiddenUiSchema(schema.then as JSONSchema7, path);
-          }
-          if (schema.else) {
-            buildHiddenUiSchema(schema.else as JSONSchema7, path);
-          }
-        }
+      const finalUiSchema: UiSchema = structuredClone(initialUiSchema || {});
 
-        if (schema && schema.properties) {
-          for (const key of Object.keys(schema.properties)) {
-            const currentPath = [...path, key];
-            const fullPath = currentPath.map((p) => ["properties", p]).flat();
+      for (const path of allPaths) {
+        const pathKey = path.join(".");
+        // Don't hide the "properties" object itself, only its children
+        if (pathKey === "properties") continue;
 
-            const isVisible = visiblePaths.some(
-              (v) => v.join(".") === fullPath.join("."),
-            );
-
-            const subSchema = schema.properties[key];
-            const isObjectSchema =
-              typeof subSchema === "object" &&
-              "type" in subSchema &&
-              subSchema.type === "object";
-
-            if ((isObjectSchema && isVisible) || key === "properties") {
-              buildHiddenUiSchema(subSchema as JSONSchema7, currentPath);
-            } else if (!isVisible) {
-              setPath(hiddenUiSchema, currentPath, { "ui:widget": "hidden" });
-            }
-          }
+        if (!visiblePathsSet.has(pathKey)) {
+          setPath(finalUiSchema, path, { "ui:widget": "hidden" });
         }
       }
 
-      buildHiddenUiSchema(schema);
-
-      const finalUiSchema: UiSchema = structuredClone(initialUiSchema || {});
-      applyHiddenUiSchema(finalUiSchema, hiddenUiSchema);
       return finalUiSchema;
     },
-    [applyHiddenUiSchema],
+    [],
   );
 
   const widgets: RegistryWidgetsType = {
@@ -584,7 +558,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     multipleSelectWidget: MultipleSelectWidget,
     singleColumnTableWidget: SingleColumnTableWidget,
     debouncedTextareaWidget: DebouncedTextareaWidget,
-    TextWidget: DebouncedTextWidget,
     textarea: DebouncedTextareaWidget,
   };
 
@@ -600,6 +573,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
       if (node.data.elementType === "checkpoint") {
         props["httpMethodRestrict"] = { "ui:widget": "hidden" };
+      }
+
+      if (node.data.elementType === "http-trigger") {
+        props["contextPath"] = { "ui:field": "contextPathWithPrefixField" };
+        props["integrationOperationPath"] = { "ui:field": "basePathField" };
+        props["externalRoute"] = { "ui:field": "externalRouteCheckbox" };
       }
 
       if (activeKey && activeKey !== "Endpoint") {
@@ -630,7 +609,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     if (!schema) return undefined;
 
     const baseUi: UiSchema = uiSchemaForTab(INITIAL_UI_SCHEMA, activeKey);
-    return buildUiSchemaForTab(tabFields, activeKey ?? "", schema, baseUi);
+    return buildUiSchemaForTab(tabFields, activeKey ?? "", baseUi);
   }, [tabFields, activeKey, schema, uiSchemaForTab, buildUiSchemaForTab]);
 
   const handleTabChange = (newTab: string) => {
@@ -641,9 +620,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     <Modal
       open
       title={
-        <Flex align="center" gap={8}>
-          <span>{title}</span>
-          {!isVsCode && (
+        <Flex align="center" gap={4} wrap={false} justify="space-between">
+          <span className={styles["modal-title"]}>{title}</span>
+          <Flex align="center" gap={4} wrap={false} style={{ flexShrink: 0 }}>
             <Button
               icon={<OverridableIcon name="questionCircle" />}
               onClick={() => openElementDoc(node.data.elementType)}
@@ -651,73 +630,88 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               title="Help"
               size="small"
             />
-          )}
+            <FullscreenButton
+              isFullscreen={isFullscreen}
+              onClick={handleFullscreen}
+            />
+            <Button
+              icon={<CloseOutlined />}
+              onClick={handleCheckUnsavedAndClose}
+              type="text"
+              title="Close"
+              size="small"
+            />
+          </Flex>
         </Flex>
       }
       onCancel={handleCheckUnsavedAndClose}
+      closable={false}
       maskClosable={false}
       loading={libraryElementIsLoading}
       style={isFullscreen ? { top: 0, margin: 0, padding: 0 } : {}}
-      footer={[
-        <Button
-          key="submit"
-          type="primary"
-          form="elementModificationForm"
-          htmlType={"submit"}
-          loading={isLoading}
-          onClick={() => void handleOk()}
-        >
-          Save
-        </Button>,
-        <Button key="cancel" onClick={handleCheckUnsavedAndClose}>
-          Cancel
-        </Button>,
-      ]}
+      footer={
+        <Flex justify="space-between" align="center">
+          <span>{elementDescription}</span>
+          <Flex gap={8}>
+            <Button
+              key="submit"
+              type="primary"
+              form="elementModificationForm"
+              htmlType={"submit"}
+              loading={isLoading}
+              disabled={isSaveDisabled}
+              onClick={() => void handleOk()}
+            >
+              Save
+            </Button>
+            <Button key="cancel" onClick={handleCheckUnsavedAndClose}>
+              Cancel
+            </Button>
+          </Flex>
+        </Flex>
+      }
       classNames={{
         footer: styles["modal-footer"],
-        content: isFullscreen ?  [styles["modal"], styles["modal-fullscreen"]].join(' ') : styles["modal"],
-        body: isFullscreen ? [styles["modal-body"], styles["modal-body-fullscreen"]].join(' ') : styles["modal-body"],
+        content: isFullscreen
+          ? [styles["modal"], styles["modal-fullscreen"]].join(" ")
+          : styles["modal"],
+        body: isFullscreen
+          ? [styles["modal-body"], styles["modal-body-fullscreen"]].join(" ")
+          : styles["modal-body"],
         header: styles["modal-header"],
       }}
     >
       {schema && activeKey && (
         <>
-          <FullscreenButton isFullscreen={isFullscreen} onClick={handleFullscreen} />
           <Tabs
             activeKey={activeKey}
             onChange={handleTabChange}
             items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
           />
           <Form
+            ref={formRef}
             className={styles["parameters-form"]}
             schema={schema}
             formData={formData}
             validator={validator}
             uiSchema={uiSchema}
-            transformErrors={(errors) => {
-              // Suppress oneOf error when protocol is grpc (no matching oneOf branch by design)
-              const proto = normalizeProtocol(
-                formContext?.integrationOperationProtocolType as string,
-              );
-              if (proto === "grpc") {
-                return errors.filter((e) => e.name !== "oneOf");
-              }
-              return errors;
-            }}
-            liveValidate={false}
+            transformErrors={transformValidationErrors(formContext)}
+            liveValidate={"onChange"}
+            showErrorList={false}
             experimental_defaultFormStateBehavior={{
               allOf: "populateDefaults",
-              mergeDefaultsIntoFormData: "useFormDataIfPresent",
+              arrayMinItems: {
+                populate: "never",
+              },
             }}
             formContext={formContext}
             templates={{
               ObjectFieldTemplate: CustomObjectFieldTemplate,
-              ErrorListTemplate,
+              FieldTemplate: DescriptionTooltipFieldTemplate,
             }}
             fields={{
               OneOfField: CustomOneOfField, //Rewrite default oneOfField
               oneOfAsSingleInputField: OneOfAsSingleInputField,
-              anyOfAsSingleSelectField: AnyOfAsSingleSelectField,
               patternPropertiesField: PatternPropertiesField,
               enhancedPatternPropertiesField: EnhancedPatternPropertiesField,
               mappingField: MappingField,
@@ -731,18 +725,14 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               singleSelectField: SingleSelectField,
               contextServiceField: ContextServiceField,
               chainTriggerElementIdField: ChainTriggerElementIdField,
+              basePathField: BasePathField,
+              externalRouteCheckbox: ExternalRouteCheckbox,
+              contextPathWithPrefixField: ContextPathWithPrefixField,
             }}
             widgets={widgets}
             onChange={(e) => {
-              const newFormData = e.formData as Record<string, object>;
-              if (
-                newFormData.type &&
-                formData.type &&
-                JSON.stringify(newFormData) !== JSON.stringify(formData)
-              ) {
-                setHasChanges(true);
-              }
-              setFormData(newFormData);
+              setFormData(e.formData as Record<string, unknown>);
+              setHasChanges(true);
             }}
           />
         </>

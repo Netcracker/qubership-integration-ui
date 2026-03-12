@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { Flex, FloatButton, Table } from "antd";
+import { Button, Flex, Table, Tooltip } from "antd";
 import { TableProps } from "antd/lib/table";
 import { Session, SessionElement } from "../api/apiTypes.ts";
 import {
@@ -94,7 +94,8 @@ export const SessionPage: React.FC = () => {
             {element.elementName}
           </a>
           {session?.chainId && element.chainElementId ? (
-            <OverridableIcon name="link"
+            <OverridableIcon
+              name="link"
               onClick={() =>
                 window.open(
                   `/chains/${element.actualElementChainId ?? session?.chainId}/graph/${element.chainElementId}`,
@@ -152,19 +153,28 @@ export const SessionPage: React.FC = () => {
       <Flex
         vertical={false}
         justify="space-between"
+        align="center"
         style={{ paddingLeft: 8, paddingRight: 8 }}
       >
         <span>
           {session ? formatUTCSessionDate(session.started) : PLACEHOLDER}
         </span>
-        {session?.executionStatus ? (
-          <SessionStatus
-            status={session?.executionStatus}
-            suffix={`in ${formatDuration(session.duration)}`}
-          />
-        ) : (
-          <span>{PLACEHOLDER}</span>
-        )}
+        <Flex vertical={false} gap={4} align="center">
+          {session?.executionStatus ? (
+            <SessionStatus
+              status={session?.executionStatus}
+              suffix={`in ${formatDuration(session.duration)}`}
+            />
+          ) : (
+            <span>{PLACEHOLDER}</span>
+          )}
+          <Tooltip title="Export session" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="cloudDownload" />}
+              onClick={() => void onExportBtnClick()}
+            />
+          </Tooltip>
+        </Flex>
       </Flex>
       <Table<SessionElement>
         size="small"
@@ -175,11 +185,6 @@ export const SessionPage: React.FC = () => {
         loading={isLoading}
         className="flex-table"
         scroll={{ y: "" }}
-      />
-      <FloatButton
-        tooltip={{ title: "Export session", placement: "left" }}
-        icon={<OverridableIcon name="cloudDownload" />}
-        onClick={() => void onExportBtnClick()}
       />
     </Flex>
   );

@@ -50,6 +50,10 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       /* kafka trigger - maas*/
       "maxPollRecords",
       "maxPollIntervalMs",
+      /* http trigger */
+      "accessControlType",
+      "roles",
+      "abacParameters",
       "*",
     ],
     contextPath: {
@@ -100,6 +104,9 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       },
       mappingDescription: {
         "ui:field": "mappingField",
+      },
+      elementId: {
+        "ui:field": "chainTriggerElementIdField",
       },
     },
     exportFileExtension: {
@@ -296,19 +303,15 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     },
     keySerializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     valueSerializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     keyDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     valueDeserializer: {
       "ui:fieldReplacesAnyOrOneOf": true,
-      "ui:field": "anyOfAsSingleSelectField",
     },
     retryCount: {
       "ui:fieldReplacesAnyOrOneOf": true,
@@ -363,6 +366,14 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
       "ui:field": "singleSelectField",
     },
     abacParameters: {
+      "ui:order": [
+        "*",
+        "resourceType",
+        "operation",
+        "resourceDataType",
+        "resourceString",
+        "resourceMap",
+      ],
       resourceMap: {
         "ui:fieldReplacesAnyOrOneOf": true,
         "ui:field": "enhancedPatternPropertiesField",
@@ -486,18 +497,31 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
   children: { "ui:widget": "hidden" },
 };
 
-export const contextPathAndHttpMethodRestrictTabMapping: Record<
-  string,
-  string
-> = {
-  checkpoint: "Parameters",
-  "http-trigger": "Endpoint",
+type Path2TabMapping = {
+  paths: string[];
+  mapping: Record<string, string>;
 };
 
-export const keyTabMapping: Record<string, string> = {
-  "kafka-sender-2": "Parameters",
-  "context-storage": "Operation",
-};
+const pathToTabExceptions: Path2TabMapping[] = [
+  {
+    paths: ["properties.after"],
+    mapping: {
+      "async-api-trigger": "Validate Request",
+    },
+  },
+  {
+    paths: ["properties.key"],
+    mapping: {
+      "kafka-sender-2": "Parameters",
+    },
+  },
+  {
+    paths: ["properties.contextPath", "properties.httpMethodRestrict"],
+    mapping: {
+      checkpoint: "Parameters",
+    },
+  },
+];
 
 export const pathToTabMap: Record<string, string> = {
   "properties.contextServiceId": "Operation",
@@ -511,6 +535,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.target": "Operation",
   "properties.targetName": "Operation",
   "properties.unwrap": "Operation",
+  "properties.contextPath": "Endpoint",
   "properties.integrationOperationId": "Endpoint",
   "properties.integrationSpecificationGroupId": "Endpoint",
   "properties.integrationSpecificationId": "Endpoint",
@@ -535,6 +560,7 @@ export const pathToTabMap: Record<string, string> = {
   "properties.handlerContainer": "Handle Validation Failure",
   "properties.handlerContainer.script": "Handle Validation Failure",
   "properties.handlerContainer.mappingDescription": "Handle Validation Failure",
+  "properties.handlerContainer.throwException": "Handle Validation Failure",
   "properties.handleChainFailureAction": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.elementId":
@@ -542,15 +568,9 @@ export const pathToTabMap: Record<string, string> = {
   "properties.chainFailureHandlerContainer.script": "Failure Response Mapping",
   "properties.chainFailureHandlerContainer.mappingDescription":
     "Failure Response Mapping",
+  "properties.chainFailureHandlerContainer.throwException":
+    "Failure Response Mapping",
   "properties.validationSchema": "Validate Request",
-  "properties.roles": "Access Control",
-  "properties.accessControlType": "Access Control",
-  "properties.abacParameters": "Access Control",
-  "properties.abacParameters.resourceType": "Access Control",
-  "properties.abacParameters.operation": "Access Control",
-  "properties.abacParameters.resourceDataType": "Access Control",
-  "properties.abacParameters.resourceString": "Access Control",
-  "properties.abacParameters.resourceMap": "Access Control",
   "properties.allowedContentTypes": "Validate Request",
   "properties.rejectRequestIfNonNullBodyGetDelete": "Validate Request",
   "properties.authorizationConfiguration": "Authorization",
@@ -566,9 +586,13 @@ export const pathToTabMap: Record<string, string> = {
   "properties.idempotency.chainTriggerParameters.chainCallTimeout":
     "Idempotency",
   "properties.before": "Prepare Request",
+  "properties.before.script": "Prepare Request",
+  "properties.before.mappingDescription": "Prepare Request",
   "properties.after": "Handle Response",
+  "properties.after.items.script": "Handle Response",
+  "properties.after.items.mappingDescription": "Handle Response",
   "properties.afterValidation": "Validations",
-  "properties.requestFilterHeaderAllowlist": "Filer Request",
+  "properties.requestFilterHeaderAllowlist": "Filter Request",
   "properties.logLevel": "Logging",
   "properties.sender": "Logging",
   "properties.receiver": "Logging",
@@ -590,8 +614,7 @@ export const desiredTabOrder = [
   "Handle Validation Failure",
   "Handle Response",
   "Failure Response Mapping",
-  "Access Control",
-  "Filer Request",
+  "Filter Request",
   "Logging",
   "Script",
   "Mapping",
@@ -600,27 +623,90 @@ export const desiredTabOrder = [
   "Idempotency",
 ];
 
+/**
+ * Tabs that should only be visible when a condition on formContext is met.
+ * If a tab is not listed here, it's always visible.
+ */
+type ConditionalTab = {
+  tab: string;
+  isVisible: (formContext: Record<string, unknown>) => boolean;
+};
+
+export const conditionalTabs: ConditionalTab[] = [
+  {
+    tab: "Validations",
+    isVisible: (ctx) => ctx.integrationOperationProtocolType === "http",
+  },
+];
+
 export function getTabForPath(
   path: string,
   elementType?: string,
 ): string | undefined {
-  if (
-    (path === "properties.contextPath" ||
-      path === "properties.httpMethodRestrict") &&
-    elementType
-  ) {
-    const customTab = contextPathAndHttpMethodRestrictTabMapping[elementType];
-    if (customTab) {
-      return customTab;
-    }
-  }
-
-  if (path === "properties.key" && elementType) {
-    const customTab = keyTabMapping[elementType];
-    if (customTab) {
-      return customTab;
+  if (elementType) {
+    for (const mapping of pathToTabExceptions) {
+      if (mapping.paths.includes(path)) {
+        const customTab: string = mapping.mapping[elementType];
+        if (customTab) {
+          return customTab;
+        }
+      }
     }
   }
 
   return pathToTabMap[path];
+}
+
+/**
+ * Properties specific to each protocol. Used to clean up stale properties
+ * when switching between protocols in the service-call element.
+ */
+export const PROTOCOL_SPECIFIC_PROPERTIES: Record<string, string[]> = {
+  http: [
+    "integrationOperationPathParameters",
+    "integrationOperationQueryParameters",
+    "integrationAdditionalParameters",
+    "bodyMimeType",
+    "bodyFormData",
+    "integrationOperationSkipEmptyQueryParameters",
+    "afterValidation",
+  ],
+  soap: [
+    "integrationOperationPathParameters",
+    "integrationOperationQueryParameters",
+    "integrationAdditionalParameters",
+    "bodyMimeType",
+    "bodyFormData",
+    "integrationOperationSkipEmptyQueryParameters",
+  ],
+  kafka: ["integrationOperationAsyncProperties"],
+  amqp: ["integrationOperationAsyncProperties"],
+  grpc: ["synchronousGrpcCall"],
+  graphql: [
+    "integrationGqlQuery",
+    "integrationGqlOperationName",
+    "integrationGqlVariablesJSON",
+    "integrationGqlQueryHeader",
+    "integrationGqlVariablesHeader",
+  ],
+};
+
+/**
+ * Returns property names that should be set to undefined when switching
+ * to the given protocol, excluding properties already present in `updates`.
+ */
+export function getStaleProtocolProperties(
+  newProtocol: string,
+  updates: Record<string, unknown>,
+): string[] {
+  const allowed = new Set(PROTOCOL_SPECIFIC_PROPERTIES[newProtocol] ?? []);
+  const stale: string[] = [];
+  for (const props of Object.values(PROTOCOL_SPECIFIC_PROPERTIES)) {
+    for (const prop of props) {
+      if (!allowed.has(prop) && !(prop in updates)) {
+        stale.push(prop);
+      }
+    }
+  }
+  return [...new Set(stale)];
 }

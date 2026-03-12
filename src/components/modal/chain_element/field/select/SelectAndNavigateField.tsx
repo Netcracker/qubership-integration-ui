@@ -14,8 +14,11 @@ type SelectFieldProps = {
   selectOptions: SelectProps<string>["options"];
   selectOnChange: SelectProps<string>["onChange"];
   selectDisabled: boolean;
+  selectLoading?: boolean;
+  selectOnPopupScroll?: SelectProps<string>["onPopupScroll"];
   selectOptionLabelProp?: string;
   selectNotFoundMessage?: string;
+  selectOptionFilterProp?: string;
   buttonTitle: string;
   buttonDisabled: boolean;
   buttonOnClick: string | MouseEventHandler<HTMLElement>;
@@ -45,6 +48,8 @@ export const SelectAndNavigateField: React.FC<SelectFieldProps> = (props) => {
           optionLabelProp={props.selectOptionLabelProp}
           onChange={props.selectOnChange}
           disabled={props.selectDisabled}
+          loading={props.selectLoading}
+          onPopupScroll={props.selectOnPopupScroll}
           {...(props.selectNotFoundMessage && {
             notFoundContent: (
               <Empty
@@ -53,6 +58,10 @@ export const SelectAndNavigateField: React.FC<SelectFieldProps> = (props) => {
               />
             ),
           })}
+          {...(props.selectOptionFilterProp && {
+            showSearch: true,
+            optionFilterProp: props.selectOptionFilterProp,
+          })}
         />
         <Tooltip title={props.buttonTitle}>
           <Button
@@ -60,9 +69,7 @@ export const SelectAndNavigateField: React.FC<SelectFieldProps> = (props) => {
             disabled={props.buttonDisabled}
             onClick={
               typeof props.buttonOnClick === "string"
-                ? () => {
-                    handleClick(props.buttonOnClick as string);
-                  }
+                ? () => handleClick(props.buttonOnClick as string)
                 : props.buttonOnClick
             }
           />

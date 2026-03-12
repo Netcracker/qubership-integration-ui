@@ -9,23 +9,18 @@ import {
   Table,
   Tag,
   Flex,
-  FloatButton,
   Tooltip,
 } from "antd";
 import commonStyles from "../CommonStyle.module.css";
 import styles from "./SecuredVariables.module.css";
 import VariablesTable from "./VariablesTable";
-import { variablesApi } from "../../../api/admin-tools/variables/variablesApi.ts";
-import {
-  SecretWithVariables,
-  Variable,
-} from "../../../api/admin-tools/variables/types.ts";
+import { SecretWithVariables, Variable } from "../../../api/apiTypes.ts";
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { LongActionButton } from "../../LongActionButton.tsx";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import { api } from "../../../api/api.ts";
 
 const { Title } = Typography;
 
@@ -64,7 +59,7 @@ export const SecuredVariables: React.FC = () => {
 
   const refreshSecretVariables = useCallback(
     async (secret: string): Promise<boolean> => {
-      const response = await variablesApi.getSecuredVariablesForSecret(secret);
+      const response = await api.getSecuredVariablesForSecret(secret);
       if (response.success && response.data) {
         setVariables((prev) => ({
           ...prev,
@@ -88,7 +83,7 @@ export const SecuredVariables: React.FC = () => {
   );
 
   const loadSecrets = useCallback(async () => {
-    const response = await variablesApi.getSecuredVariables();
+    const response = await api.getSecuredVariables();
 
     if (response.success && response.data) {
       const secretsWithVariables: SecretWithVariables[] = response.data;
@@ -130,7 +125,7 @@ export const SecuredVariables: React.FC = () => {
     async (values: { secretName: string }) => {
       const name = values.secretName.trim();
       if (!name) return;
-      const response = await variablesApi.createSecret(name);
+      const response = await api.createSecret(name);
       if (response.success) {
         message.success(`Secret "${name}" created`);
         setCreateModalVisible(false);
@@ -151,7 +146,7 @@ export const SecuredVariables: React.FC = () => {
   const handleAddVariable = useCallback(
     async (secret: string, key: string, value: string) => {
       if (!key || !value) return;
-      const response = await variablesApi.createSecuredVariables(secret, [
+      const response = await api.createSecuredVariables(secret, [
         { key, value },
       ]);
       if (response.success) {
@@ -173,7 +168,7 @@ export const SecuredVariables: React.FC = () => {
 
   const handleUpdateVariable = useCallback(
     async (secret: string, key: string, value: string) => {
-      const response = await variablesApi.updateSecuredVariables(secret, [
+      const response = await api.updateSecuredVariables(secret, [
         { key, value },
       ]);
       if (response.success) {
@@ -196,7 +191,7 @@ export const SecuredVariables: React.FC = () => {
 
   const handleDeleteVariable = useCallback(
     async (secret: string, key: string) => {
-      const response = await variablesApi.deleteSecuredVariables(secret, [key]);
+      const response = await api.deleteSecuredVariables(secret, [key]);
       if (response.success) {
         const refreshed = await refreshSecretVariables(secret);
         if (refreshed) {
@@ -228,7 +223,7 @@ export const SecuredVariables: React.FC = () => {
     try {
       let allSuccessful = true;
       for (const secret of Object.keys(toDelete)) {
-        const response = await variablesApi.deleteSecuredVariables(
+        const response = await api.deleteSecuredVariables(
           secret,
           toDelete[secret],
         );
@@ -324,7 +319,7 @@ export const SecuredVariables: React.FC = () => {
   const exportHelmChart = useCallback(
     async (secret: string) => {
       try {
-        downloadFile(await variablesApi.downloadHelmChart(secret));
+        downloadFile(await api.downloadHelmChart(secret));
       } catch (error) {
         notificationService.requestFailed("Failed to get helm chart", error);
       }
@@ -334,11 +329,38 @@ export const SecuredVariables: React.FC = () => {
 
   return (
     <Flex vertical className={commonStyles["container"]}>
-      <Flex vertical={false}>
+      <Flex
+        vertical={false}
+        justify="space-between"
+        align="center"
+        style={{ marginBottom: 16 }}
+      >
         <Title level={4} className={commonStyles["title"]}>
           <OverridableIcon name="lock" className={commonStyles["icon"]} />
           Secured Variables
         </Title>
+        <Flex vertical={false} gap={4}>
+          <Tooltip title="Delete selected variables" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="delete" />}
+              onClick={() => {
+                if (!hasSelected) return;
+                Modal.confirm({
+                  title: `Delete selected variable(s)?`,
+                  content: `Are you sure you want to delete variables(s)?`,
+                  onOk: handleDeleteSelected,
+                });
+              }}
+              disabled={!hasSelected}
+            />
+          </Tooltip>
+          <Tooltip title="Add secret" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="plus" />}
+              onClick={() => setCreateModalVisible(true)}
+            />
+          </Tooltip>
+        </Flex>
       </Flex>
 
       <Modal
@@ -347,7 +369,7 @@ export const SecuredVariables: React.FC = () => {
         onCancel={() => setCreateModalVisible(false)}
         footer={null}
       >
-        <Form<{secretName: string }>
+        <Form<{ secretName: string }>
           layout="vertical"
           form={createForm}
           onFinish={(values) => void handleCreateSecret(values)}
@@ -432,28 +454,6 @@ export const SecuredVariables: React.FC = () => {
         sticky
         scroll={{ y: "" }}
       />
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          tooltip={{
-            title: "Delete selected variables",
-            placement: "left",
-          }}
-          icon={<OverridableIcon name="delete" />}
-          onClick={() => {
-            if (!hasSelected) return;
-            Modal.confirm({
-              title: `Delete selected variable(s)?`,
-              content: `Are you sure you want to delete variables(s)?`,
-              onOk: handleDeleteSelected,
-            });
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Add secret", placement: "left" }}
-          icon={<OverridableIcon name="plus" />}
-          onClick={() => setCreateModalVisible(true)}
-        />
-      </FloatButtonGroup>
     </Flex>
   );
 };

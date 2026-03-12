@@ -1,17 +1,20 @@
 /* eslint-disable react/prop-types */
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { MermaidDiagram } from "@lightenna/react-mermaid-diagram";
 import {
-  DOCUMENTATION_ASSETS_BASE_URL,
+  getDocumentationAssetsBaseUrl,
   DOCUMENTATION_ROUTE_BASE,
   isAbsoluteUrl,
   isSafeHref,
+  resolveDocLink,
 } from "../../services/documentation/documentationUrlUtils";
 import { useVSCodeTheme } from "../../hooks/useVSCodeTheme";
+import styles from "./DocumentationViewer.module.css";
 
 /**
  * Props for the DocumentationViewer component.
@@ -41,7 +44,8 @@ export const DocumentationViewer: React.FC<DocumentationViewerProps> = ({
   pathNormalizers = [],
 }) => {
   const { isDark } = useVSCodeTheme();
-  const effectiveAssetsBaseUrl = baseUrl || DOCUMENTATION_ASSETS_BASE_URL;
+  const navigate = useNavigate();
+  const effectiveAssetsBaseUrl = baseUrl || getDocumentationAssetsBaseUrl();
   const effectiveRouteBase = DOCUMENTATION_ROUTE_BASE;
   const docDir = (() => {
     const raw = (docPath ?? "").replace(/^\/+/, "");
@@ -90,27 +94,24 @@ export const DocumentationViewer: React.FC<DocumentationViewerProps> = ({
     const normalized = normalizePath(src).replace(/^\.\//, "");
 
     // If src already points to a docs-relative path like "00__Overview/.../img/x.svg"
-    if (/^\d{2}__/.test(normalized) || normalized.startsWith("docs/")) {
-      const withoutDocsPrefix = normalized.startsWith("docs/")
-        ? normalized.slice("docs/".length)
-        : normalized;
-      return encodeURI(`${effectiveAssetsBaseUrl}/docs/${withoutDocsPrefix}`);
+    if (/^\d{2}__/.test(normalized)) {
+      return encodeURI(`${effectiveAssetsBaseUrl}/${normalized}`);
     }
 
     // Typical case: "img/..." relative to current document folder.
     if (normalized.startsWith("img/")) {
       return encodeURI(
         docDir
-          ? `${effectiveAssetsBaseUrl}/docs/${docDir}/${normalized}`
-          : `${effectiveAssetsBaseUrl}/docs/${normalized}`,
+          ? `${effectiveAssetsBaseUrl}/${docDir}/${normalized}`
+          : `${effectiveAssetsBaseUrl}/${normalized}`,
       );
     }
 
     // Fallback: resolve as relative to current document folder.
     return encodeURI(
       docDir
-        ? `${effectiveAssetsBaseUrl}/docs/${docDir}/${normalized}`
-        : `${effectiveAssetsBaseUrl}/docs/${normalized}`,
+        ? `${effectiveAssetsBaseUrl}/${docDir}/${normalized}`
+        : `${effectiveAssetsBaseUrl}/${normalized}`,
     );
   };
 
@@ -141,34 +142,7 @@ export const DocumentationViewer: React.FC<DocumentationViewerProps> = ({
   } as const;
 
   return (
-    <div
-      className="documentation-viewer"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        padding: "12px 24px 0 24px",
-        width: "100%",
-        maxWidth: "1200px",
-        margin: "0 auto",
-        boxSizing: "border-box",
-        color: "var(--vscode-foreground, rgba(0, 0, 0, 0.88))",
-        background: "transparent",
-      }}
-    >
-      <style>
-        {`
-          /* Invert monochrome SVG icons in dark theme for better visibility */
-          ${
-            isDark
-              ? `
-            .documentation-viewer img[src*="/img/"][src$=".svg"] {
-              filter: invert(1) hue-rotate(180deg);
-            }
-          `
-              : ""
-          }
-        `}
-      </style>
+    <div className={`${styles.viewer}${isDark ? ` ${styles.dark}` : ""}`}>
       <Markdown
         rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
         remarkPlugins={[remarkGfm]}
@@ -198,13 +172,20 @@ export const DocumentationViewer: React.FC<DocumentationViewerProps> = ({
               !hrefValue.startsWith("/") &&
               !isAbsoluteUrl(hrefValue);
             if (isRelativeDocLink) {
-              const href = `${effectiveRouteBase}/${hrefValue}`;
+              const normalizedHref = normalizePath(hrefValue).replace(
+                /^docs\//,
+                "",
+              );
+              const resolved = resolveDocLink(normalizedHref, docPath ?? "");
+              const href = `${effectiveRouteBase}/${resolved}`;
               return (
                 <a
                   {...props}
                   href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void navigate(href);
+                  }}
                 >
                   {props.children}
                 </a>

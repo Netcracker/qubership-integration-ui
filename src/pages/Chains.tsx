@@ -3,11 +3,11 @@ import {
   Button,
   Dropdown,
   Flex,
-  FloatButton,
   MenuProps,
   message,
   Modal,
   Table,
+  Tooltip,
 } from "antd";
 import { useNavigate, useSearchParams } from "react-router";
 import { useModalsContext } from "../Modals.tsx";
@@ -23,13 +23,10 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
-import { TextColumnFilterDropdown } from "../components/table/TextColumnFilterDropdown.tsx";
 import { formatTimestamp } from "../misc/format-utils.ts";
-import { TimestampColumnFilterDropdown } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import { TableRowSelection } from "antd/lib/table/interface";
 import Search from "antd/lib/input/Search";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { DeploymentsCumulativeState } from "../components/deployment_runtime_states/DeploymentsCumulativeState.tsx";
 import { FolderEdit, FolderEditMode } from "../components/modal/FolderEdit.tsx";
@@ -41,9 +38,9 @@ import {
   ExportChains,
 } from "../components/modal/ExportChains.tsx";
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
+import { exportAdditionsForChains } from "../misc/export-additions.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import { commonVariablesApi } from "../api/admin-tools/variables/commonVariablesApi.ts";
 import { useChainFilters } from "../hooks/useChainFilter.ts";
 import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
 import { DdsPreview } from "../components/modal/DdsPreview.tsx";
@@ -53,6 +50,7 @@ import {
   DeployChains,
   DeployOptions,
 } from "../components/modal/DeployChains.tsx";
+import { toStringIds } from "../misc/selection-utils.ts";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -481,9 +479,6 @@ const Chains = () => {
       chainsInFolders
         .flatMap((chains) => chains)
         .forEach((chain) => ids.add(chain.id));
-      if (ids.size === 0) {
-        return;
-      }
       const chainsFile =
         ids.size === 0
           ? await api.exportAllChains()
@@ -493,27 +488,16 @@ const Chains = () => {
             );
       const data = [chainsFile];
 
-      if (options.exportServices) {
-        const usedServices = await api.getServicesUsedByChains(
-          Array.from(ids.values()),
-        );
-        if (usedServices.length > 0) {
-          const serviceIds = usedServices.map((i) => i.systemId);
-          const modelIds = usedServices.flatMap(
-            (i) => i.usedSystemModelIds ?? [],
-          );
-          const servicesData = await api.exportServices(serviceIds, modelIds);
-          data.push(servicesData);
-        }
-      }
-
-      if (options.exportVariables) {
-        const variablesData = await commonVariablesApi.exportVariables(
-          [],
-          true,
-        );
-        data.push(variablesData);
-      }
+      data.push(
+        ...(await exportAdditionsForChains({
+          api,
+          chainIdsForUsedSystems: Array.from(ids.values()),
+          options: {
+            exportServices: options.exportServices,
+            exportVariables: options.exportVariables,
+          },
+        })),
+      );
 
       const nonEmptyData = data.filter((d) => d.size !== 0);
       const archiveData = await mergeZipArchives(nonEmptyData);
@@ -597,7 +581,7 @@ const Chains = () => {
   };
 
   const onExportBtnClick = () => {
-    return exportChainsWithOptions(selectedRowKeys.map((k) => k.toString()));
+    return exportChainsWithOptions(toStringIds(selectedRowKeys));
   };
 
   const onDeleteBtnClick = () => {
@@ -612,7 +596,13 @@ const Chains = () => {
 
   const onImportBtnClick = () => {
     showModal({
-      component: <ImportChains onSuccess={() => void updateFolderItems()} />,
+      component: (
+        <ImportChains
+          onSuccess={() => {
+            updateFolderItems().catch(() => undefined);
+          }}
+        />
+      ),
     });
   };
 
@@ -621,9 +611,9 @@ const Chains = () => {
       showModal({
         component: (
           <DeployChains
-            onSubmit={(options: DeployOptions) =>
-              void deploySelectedChains(options)
-            }
+            onSubmit={(options: DeployOptions) => {
+              deploySelectedChains(options).catch(() => undefined);
+            }}
           />
         ),
       });
@@ -640,14 +630,14 @@ const Chains = () => {
         <ExportChains
           multiple={multiple}
           onSubmit={(options) => {
-            const items = folderItems.filter((i) => ids.includes(i.id));
+            const items = folderItems.filter((item) => ids.includes(item.id));
             const folderIds = items
-              .filter((i) => i.itemType === CatalogItemType.FOLDER)
-              .map((i) => i.id);
+              .filter((item) => item.itemType === CatalogItemType.FOLDER)
+              .map((item) => item.id);
             const chainIds = items
-              .filter((i) => i.itemType === CatalogItemType.CHAIN)
-              .map((i) => i.id);
-            void exportChains(folderIds, chainIds, options);
+              .filter((item) => item.itemType === CatalogItemType.CHAIN)
+              .map((item) => item.id);
+            exportChains(folderIds, chainIds, options).catch(() => undefined);
           }}
         />
       ),
@@ -702,15 +692,15 @@ const Chains = () => {
       case "copyFolderLink":
         return copyToClipboard(
           `${window.location.origin}/chains?folder=${item.id}`,
-        ).then(() => {
-          messageApi.info("Link to a folder was copied to the clipboard");
-        });
+        ).then(() =>
+          messageApi.info("Link to a folder was copied to the clipboard"),
+        );
       case "copyChainLink":
         return copyToClipboard(
           `${window.location.origin}/chains/${item.id}`,
-        ).then(() => {
-          messageApi.info("Link to a chain was copied to the clipboard");
-        });
+        ).then(() =>
+          messageApi.info("Link to a chain was copied to the clipboard"),
+        );
       case "deleteFolder":
         return Modal.confirm({
           title: "Delete Folder",
@@ -789,7 +779,6 @@ const Chains = () => {
       key: "name",
       dataIndex: "name",
       sorter: compareChainTableItemsByTypeAndName,
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       render: (_, item) => (
         <Flex vertical={false} gap={4}>
           {item.itemType === CatalogItemType.FOLDER ? (
@@ -817,7 +806,6 @@ const Chains = () => {
       key: "id",
       dataIndex: "id",
       hidden: !selectedKeys.includes("id"),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
     },
     {
       title: "Description",
@@ -825,7 +813,6 @@ const Chains = () => {
       dataIndex: "description",
       hidden: !selectedKeys.includes("description"),
       sorter: (a, b) => a.description.localeCompare(b.description),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
     },
     {
       title: "Status",
@@ -844,9 +831,6 @@ const Chains = () => {
       key: "labels",
       dataIndex: "labels",
       hidden: !selectedKeys.includes("labels"),
-      filterDropdown: (props) => (
-        <TextColumnFilterDropdown {...props} enableExact />
-      ),
       render: (_, item) =>
         item.itemType === CatalogItemType.CHAIN ? (
           <EntityLabels labels={(item as ChainItem).labels} />
@@ -862,10 +846,6 @@ const Chains = () => {
         (a.createdBy?.username ?? "").localeCompare(
           b.createdBy?.username ?? "",
         ),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
-      // onFilter: getTextColumnFilterFn(
-      //   (item) => item.createdBy.username,
-      // ),
     },
     {
       title: "Created At",
@@ -876,8 +856,6 @@ const Chains = () => {
         <>{item.createdWhen ? formatTimestamp(item.createdWhen) : "-"}</>
       ),
       sorter: (a, b) => (a.createdWhen ?? 0) - (b.createdWhen ?? 0),
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      // onFilter: getTimestampColumnFilterFn((item) => item.createdWhen),
     },
     {
       title: "Modified By",
@@ -889,10 +867,6 @@ const Chains = () => {
         (a.modifiedBy?.username ?? "").localeCompare(
           b.modifiedBy?.username ?? "",
         ),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
-      // onFilter: getTextColumnFilterFn(
-      //   (item) => item.modifiedBy.username,
-      // ),
     },
     {
       title: "Modified At",
@@ -903,8 +877,6 @@ const Chains = () => {
         <>{item.modifiedWhen ? formatTimestamp(item.modifiedWhen) : "-"}</>
       ),
       sorter: (a, b) => (a.modifiedWhen ?? 0) - (b.modifiedWhen ?? 0),
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      // onFilter: getTimestampColumnFilterFn((item) => item.modifiedWhen),
     },
     {
       title: "",
@@ -954,28 +926,93 @@ const Chains = () => {
     <>
       {contextHolder}
       <Flex vertical gap={16} className={styles.container}>
-        {pathItems && pathItems.length > 0 ? (
-          <Breadcrumb items={pathItems} />
-        ) : null}
-        <Flex vertical={false} gap={8}>
+        <Flex vertical={false} gap={4} align="center">
+          {pathItems && pathItems.length > 0 ? (
+            <Breadcrumb items={pathItems} style={{ marginLeft: 9 }} />
+          ) : null}
+          <div style={{ flex: 1 }} />
           <Search
             placeholder="Full text search"
             allowClear
             onSearch={(value) => setSearchString(value)}
+            style={{ width: 500, flex: "none" }}
           />
+          {filterButton}
           <Dropdown
             menu={{
               items: columnVisibilityMenuItems,
               selectable: true,
               multiple: true,
               selectedKeys,
-              onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
+              onSelect: ({ selectedKeys: newSelectedKeys }) =>
+                setSelectedKeys(newSelectedKeys),
+              onDeselect: ({ selectedKeys: newSelectedKeys }) =>
+                setSelectedKeys(newSelectedKeys),
             }}
           >
             <Button icon={<OverridableIcon name="settings" />} />
           </Dropdown>
-          {filterButton}
+          <Tooltip title="Compare selected chains" placement="bottom">
+            <Button icon={<>⇄</>} disabled />
+          </Tooltip>
+          <Tooltip title="Paste" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="carryOut" />}
+              onClick={() => {
+                Promise.resolve(pasteItem(getFolderId())).catch(
+                  () => undefined,
+                );
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Deploy selected chains" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="send" />}
+              onClick={onDeployBtnClick}
+            />
+          </Tooltip>
+          <Tooltip title="Export selected chains" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="cloudDownload" />}
+              onClick={onExportBtnClick}
+            />
+          </Tooltip>
+          <Tooltip title="Import chains" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="cloudUpload" />}
+              onClick={onImportBtnClick}
+            />
+          </Tooltip>
+          <Tooltip
+            title="Delete selected chains and folders"
+            placement="bottom"
+          >
+            <Button
+              icon={<OverridableIcon name="delete" />}
+              onClick={onDeleteBtnClick}
+            />
+          </Tooltip>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "folder",
+                  label: "New Folder",
+                  onClick: () => onCreateFolderBtnClick(getFolderId()),
+                },
+                {
+                  key: "chain",
+                  label: "New Chain",
+                  onClick: () => onCreateChainBtnClick(getFolderId()),
+                },
+              ],
+            }}
+            trigger={["click"]}
+          >
+            <Button type="primary">
+              Create <OverridableIcon name="down" />
+            </Button>
+          </Dropdown>
         </Flex>
         <Table<ChainTableItem>
           className="flex-table"
@@ -1000,54 +1037,6 @@ const Chains = () => {
             },
           }}
         />
-        <FloatButtonGroup
-          trigger="hover"
-          icon={<OverridableIcon name="more" />}
-        >
-          <FloatButton
-            tooltip={{ title: "Deploy selected chains", placement: "left" }}
-            icon={<OverridableIcon name="send" />}
-            onClick={onDeployBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Paste", placement: "left" }}
-            icon={<OverridableIcon name="carryOut" />}
-            onClick={() => void pasteItem(getFolderId())}
-          />
-          <FloatButton
-            tooltip={{ title: "Compare selected chains", placement: "left" }}
-            icon={<>⇄</>}
-            // onClick={onCompareBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Import chains", placement: "left" }}
-            icon={<OverridableIcon name="cloudUpload" />}
-            onClick={onImportBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Export selected chains", placement: "left" }}
-            icon={<OverridableIcon name="cloudDownload" />}
-            onClick={onExportBtnClick}
-          />
-          <FloatButton
-            tooltip={{
-              title: "Delete selected chains and folders",
-              placement: "left",
-            }}
-            icon={<OverridableIcon name="delete" />}
-            onClick={onDeleteBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Create folder", placement: "left" }}
-            icon={<OverridableIcon name="folderAdd" />}
-            onClick={() => onCreateFolderBtnClick(getFolderId())}
-          />
-          <FloatButton
-            tooltip={{ title: "Create chain", placement: "left" }}
-            icon={<OverridableIcon name="fileAdd" />}
-            onClick={() => onCreateChainBtnClick(getFolderId())}
-          />
-        </FloatButtonGroup>
       </Flex>
     </>
   );
