@@ -2,11 +2,10 @@
  * Returns namespace from window.routes or empty string when not set.
  */
 export function getMaasDefaultNamespace(): string {
-  return (
-    (typeof window !== "undefined" &&
-      (window as { routes?: { namespace?: string } }).routes?.namespace) ??
-    ""
-  );
+  if (typeof window !== "undefined") {
+    return (window as { routes?: { namespace?: string } }).routes?.namespace ?? "";
+  }
+  return "";
 }
 
 /**
