@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Form, Input, Flex, Tooltip } from "antd";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Form, Input, Flex, Tooltip, message } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { useForm } from "antd/lib/form/Form";
+import { api } from "../../../api/api.ts";
+import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
+import { downloadFile } from "../../../misc/download-utils.ts";
 import { MaasFormActions } from "./MaasFormActions.tsx";
 import { MaasPageHeader } from "./MaasPageHeader.tsx";
 import { NamespaceField } from "./NamespaceField.tsx";
@@ -10,6 +13,7 @@ import {
   NON_WHITESPACE_PATTERN,
   DEFAULT_VHOST,
   RABBITMQ_FIELD_NAMES,
+  getMaasDefaultNamespace,
 } from "./types.ts";
 import sharedStyles from "../DevTools.module.css";
 import styles from "./Maas.module.css";
@@ -18,29 +22,46 @@ export const RabbitMQMaasPage: React.FC = () => {
   const [form] = useForm<RabbitMQMaasFormData>();
   const [exportInProgress, setExportInProgress] = useState(false);
   const [createInProgress, setCreateInProgress] = useState(false);
+  const notificationService = useNotificationService();
+
+  const formValues = Form.useWatch((values) => values, form) as
+    | Partial<RabbitMQMaasFormData>
+    | undefined;
+
+  const isFormValid = useMemo(() => {
+    const namespace = formValues?.namespace;
+    const vhost = formValues?.vhost;
+    const exchange = formValues?.exchange?.trim() ?? "";
+    const queue = formValues?.queue?.trim() ?? "";
+    const routingKey = formValues?.routingKey?.trim() ?? "";
+    if (
+      !namespace ||
+      !vhost ||
+      !NON_WHITESPACE_PATTERN.test(namespace) ||
+      !NON_WHITESPACE_PATTERN.test(vhost)
+    ) {
+      return false;
+    }
+    if (!exchange && !queue) return false;
+    if (routingKey && (!exchange || !queue)) return false;
+    return true;
+  }, [formValues]);
+
+  const getInitialFormValues = useCallback((): Partial<RabbitMQMaasFormData> => ({
+    [RABBITMQ_FIELD_NAMES.NAMESPACE]: getMaasDefaultNamespace(),
+    [RABBITMQ_FIELD_NAMES.VHOST]: DEFAULT_VHOST,
+    [RABBITMQ_FIELD_NAMES.EXCHANGE]: "",
+    [RABBITMQ_FIELD_NAMES.QUEUE]: "",
+    [RABBITMQ_FIELD_NAMES.ROUTING_KEY]: "",
+  }), []);
 
   useEffect(() => {
-    const namespace = (window as any)?.routes?.namespace || "";
-    form.setFieldsValue({
-      [RABBITMQ_FIELD_NAMES.NAMESPACE]: namespace,
-      [RABBITMQ_FIELD_NAMES.VHOST]: DEFAULT_VHOST,
-      [RABBITMQ_FIELD_NAMES.EXCHANGE]: "",
-      [RABBITMQ_FIELD_NAMES.QUEUE]: "",
-      [RABBITMQ_FIELD_NAMES.ROUTING_KEY]: "",
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    form.setFieldsValue(getInitialFormValues());
+  }, [form, getInitialFormValues]);
 
   const handleReset = useCallback(() => {
-    const namespace = (window as any)?.routes?.namespace || "";
-    form.setFieldsValue({
-      [RABBITMQ_FIELD_NAMES.NAMESPACE]: namespace,
-      [RABBITMQ_FIELD_NAMES.VHOST]: DEFAULT_VHOST,
-      [RABBITMQ_FIELD_NAMES.EXCHANGE]: "",
-      [RABBITMQ_FIELD_NAMES.QUEUE]: "",
-      [RABBITMQ_FIELD_NAMES.ROUTING_KEY]: "",
-    });
-  }, [form]);
+    form.setFieldsValue(getInitialFormValues());
+  }, [form, getInitialFormValues]);
 
   const handleExport = useCallback(async () => {
     try {
@@ -50,37 +71,53 @@ export const RabbitMQMaasPage: React.FC = () => {
         RABBITMQ_FIELD_NAMES.QUEUE,
         RABBITMQ_FIELD_NAMES.ROUTING_KEY,
       ]);
-      // TODO: Implement export functionality
       setExportInProgress(true);
-      // await exportDeclarativeFile(values.vhost, values.exchange, values.queue, values.routingKey);
-      console.log("Export functionality to be implemented", values);
+      const file = await api.getMaasRabbitMQDeclarativeFile({
+        vhost: values.vhost,
+        exchange: values.exchange ?? "",
+        queue: values.queue ?? "",
+        routingKey: values.routingKey,
+      });
+      downloadFile(file);
+      message.success("Declarative file downloaded.");
     } catch (error) {
-      console.error("Export validation failed:", error);
+      notificationService.requestFailed(
+        "Unable to export RabbitMQ declarative file.",
+        error,
+      );
     } finally {
       setExportInProgress(false);
     }
-  }, [form]);
+  }, [form, notificationService]);
 
   const handleCreate = useCallback(async () => {
     try {
       const values = await form.validateFields();
       setCreateInProgress(true);
-      // TODO: Implement create functionality
-      // await createEntity(values.namespace, values.vhost, values.exchange, values.queue, values.routingKey);
-      console.log("Create functionality to be implemented", values);
+      await api.createMaasRabbitMQEntity({
+        namespace: values.namespace,
+        vhost: values.vhost,
+        exchange: values.exchange ?? "",
+        queue: values.queue ?? "",
+        routingKey: values.routingKey,
+      });
+      message.success(
+        `MaaS RabbitMQ entity created successfully: Namespace=[${values.namespace}] Vhost=[${values.vhost}] Exchange=[${values.exchange ?? ""}] Queue=[${values.queue ?? ""}] Routing key=[${values.routingKey ?? ""}]`,
+      );
     } catch (error) {
-      console.error("Create validation failed:", error);
+      notificationService.requestFailed(
+        "Unable to create MaaS RabbitMQ entity with given values.",
+        error,
+      );
     } finally {
       setCreateInProgress(false);
     }
-  }, [form]);
+  }, [form, notificationService]);
 
-  // Validator: At least one of exchange or queue must be provided
   const validateExchangeOrQueue = useCallback(
     (_: unknown) => {
       const exchange = form.getFieldValue(RABBITMQ_FIELD_NAMES.EXCHANGE);
       const queue = form.getFieldValue(RABBITMQ_FIELD_NAMES.QUEUE);
-      // If both are empty (or whitespace), show error
       const exchangeTrimmed = exchange?.trim() || "";
       const queueTrimmed = queue?.trim() || "";
       if (!exchangeTrimmed && !queueTrimmed) {
@@ -95,7 +132,6 @@ export const RabbitMQMaasPage: React.FC = () => {
     [form]
   );
 
-  // Validator: If routingKey is provided, both exchange and queue must be provided
   const validateRoutingKey = useCallback(
     (_: unknown, value: string) => {
       const routingKeyTrimmed = value?.trim() || "";
@@ -117,46 +153,12 @@ export const RabbitMQMaasPage: React.FC = () => {
     [form]
   );
 
-  const isFormValid = useCallback(() => {
-    try {
-      const namespace = form.getFieldValue(RABBITMQ_FIELD_NAMES.NAMESPACE);
-      const vhost = form.getFieldValue(RABBITMQ_FIELD_NAMES.VHOST);
-      const exchange = form.getFieldValue(RABBITMQ_FIELD_NAMES.EXCHANGE);
-      const queue = form.getFieldValue(RABBITMQ_FIELD_NAMES.QUEUE);
-      const routingKey = form.getFieldValue(RABBITMQ_FIELD_NAMES.ROUTING_KEY);
-
-      if (
-        !namespace ||
-        !vhost ||
-        !NON_WHITESPACE_PATTERN.test(namespace) ||
-        !NON_WHITESPACE_PATTERN.test(vhost)
-      ) {
-        return false;
-      }
-
-      const exchangeTrimmed = exchange?.trim() || "";
-      const queueTrimmed = queue?.trim() || "";
-      if (!exchangeTrimmed && !queueTrimmed) {
-        return false;
-      }
-
-      const routingKeyTrimmed = routingKey?.trim() || "";
-      if (routingKeyTrimmed && (!exchangeTrimmed || !queueTrimmed)) {
-        return false;
-      }
-
-      return true;
-    } catch {
-      return false;
-    }
-  }, [form]);
-
   return (
     <Flex vertical className={sharedStyles["container"]}>
       <MaasPageHeader
         title="RabbitMQ - MaaS"
         exportInProgress={exportInProgress}
-        isFormValid={isFormValid()}
+        isFormValid={isFormValid}
         onExport={handleExport}
       />
 
@@ -212,7 +214,10 @@ export const RabbitMQMaasPage: React.FC = () => {
                   title='When both "Exchange Name" and "Queue Name" are specified, there will be binding created with routing key value from this field.'
                   placement="top"
                 >
-                  <InfoCircleOutlined className={styles["infoIcon"]} />
+                  <InfoCircleOutlined
+                    className={styles["infoIcon"]}
+                    aria-label="Routing key help"
+                  />
                 </Tooltip>
               </span>
             }
@@ -228,7 +233,7 @@ export const RabbitMQMaasPage: React.FC = () => {
       <div className={styles["footer"]}>
         <MaasFormActions
           createInProgress={createInProgress}
-          isFormValid={isFormValid()}
+          isFormValid={isFormValid}
           onCreate={handleCreate}
           onReset={handleReset}
         />

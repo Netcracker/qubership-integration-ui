@@ -1,4 +1,15 @@
 /**
+ * Returns namespace from window.routes or empty string when not set.
+ */
+export function getMaasDefaultNamespace(): string {
+  return (
+    (typeof window !== "undefined" &&
+      (window as { routes?: { namespace?: string } }).routes?.namespace) ??
+    ""
+  );
+}
+
+/**
  * Non-whitespace pattern validator for MaaS form fields.
  * Ensures the field contains at least one non-whitespace character.
  */

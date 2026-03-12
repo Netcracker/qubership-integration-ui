@@ -53,6 +53,10 @@ import {
   ContextSystem,
   DiagnosticValidation,
   BulkDeploymentResult,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -954,10 +958,27 @@ export class VSCodeExtensionApi implements Api {
     throw new Error("Method bulkDeploy not implemented.");
   }
   createMaasKafkaEntity(
-    _namespace: string,
-    _topicClassifierName: string,
+    _request: CreateMaasKafkaRequest,
   ): Promise<void> {
     throw new Error("Method createMaasKafkaEntity not implemented.");
+  }
+
+  createMaasRabbitMQEntity(
+    _request: CreateMaasRabbitMQRequest,
+  ): Promise<void> {
+    throw new Error("Method createMaasRabbitMQEntity not implemented.");
+  }
+
+  getMaasKafkaDeclarativeFile(
+    _request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File> {
+    throw new Error("Method getMaasKafkaDeclarativeFile not implemented.");
+  }
+
+  getMaasRabbitMQDeclarativeFile(
+    _request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File> {
+    throw new Error("Method getMaasRabbitMQDeclarativeFile not implemented.");
   }
 }
 

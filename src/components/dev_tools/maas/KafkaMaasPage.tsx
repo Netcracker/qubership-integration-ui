@@ -3,10 +3,11 @@ import { Form, Input, Flex, message } from "antd";
 import { useForm } from "antd/lib/form/Form";
 import { api } from "../../../api/api.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
+import { downloadFile } from "../../../misc/download-utils.ts";
 import { MaasFormActions } from "./MaasFormActions.tsx";
 import { MaasPageHeader } from "./MaasPageHeader.tsx";
 import { NamespaceField } from "./NamespaceField.tsx";
-import { KafkaMaasFormData, NON_WHITESPACE_PATTERN } from "./types.ts";
+import { KafkaMaasFormData, NON_WHITESPACE_PATTERN, getMaasDefaultNamespace } from "./types.ts";
 import sharedStyles from "../DevTools.module.css";
 import styles from "./Maas.module.css";
 
@@ -32,18 +33,15 @@ export const KafkaMaasPage: React.FC = () => {
   }, [formValues]);
 
   useEffect(() => {
-    const namespace = (window as any)?.routes?.namespace || "";
     form.setFieldsValue({
-      namespace: namespace,
+      namespace: getMaasDefaultNamespace(),
       topicClassifierName: "",
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [form]);
 
   const handleReset = useCallback(() => {
-    const namespace = (window as any)?.routes?.namespace || "";
     form.setFieldsValue({
-      namespace: namespace,
+      namespace: getMaasDefaultNamespace(),
       topicClassifierName: "",
     });
   }, [form]);
@@ -51,25 +49,30 @@ export const KafkaMaasPage: React.FC = () => {
   const handleExport = useCallback(async () => {
     try {
       const values = await form.validateFields(["topicClassifierName"]);
-      // TODO: Implement export functionality
       setExportInProgress(true);
-      // await exportDeclarativeFile(values.topicClassifierName);
-      console.log("Export functionality to be implemented", values);
+      const file = await api.getMaasKafkaDeclarativeFile({
+        topicClassifierName: values.topicClassifierName,
+      });
+      downloadFile(file);
+      message.success("Declarative file downloaded.");
     } catch (error) {
-      console.error("Export validation failed:", error);
+      notificationService.requestFailed(
+        "Unable to export Kafka declarative file.",
+        error,
+      );
     } finally {
       setExportInProgress(false);
     }
-  }, [form]);
+  }, [form, notificationService]);
 
   const handleCreate = useCallback(async () => {
     try {
       const values = await form.validateFields();
       setCreateInProgress(true);
-      await api.createMaasKafkaEntity(
-        values.namespace,
-        values.topicClassifierName,
-      );
+      await api.createMaasKafkaEntity({
+        namespace: values.namespace,
+        topicClassifierName: values.topicClassifierName,
+      });
       message.success(
         `MaaS Kafka entity created successfully: Namespace=[${values.namespace}] Topic Classifier=[${values.topicClassifierName}]`,
       );

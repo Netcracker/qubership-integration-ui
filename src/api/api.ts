@@ -66,6 +66,10 @@ import {
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -473,10 +477,19 @@ export interface Api {
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
 
-  createMaasKafkaEntity(
-    namespace: string,
-    topicClassifierName: string,
+  createMaasKafkaEntity(request: CreateMaasKafkaRequest): Promise<void>;
+
+  createMaasRabbitMQEntity(
+    request: CreateMaasRabbitMQRequest,
   ): Promise<void>;
+
+  getMaasKafkaDeclarativeFile(
+    request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File>;
+
+  getMaasRabbitMQDeclarativeFile(
+    request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();
