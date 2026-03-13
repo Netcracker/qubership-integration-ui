@@ -145,6 +145,31 @@ describe("KafkaMaasPage", () => {
     });
   });
 
+  test("shows error when export fails", async () => {
+    mockGetMaasKafkaDeclarativeFile.mockRejectedValue(
+      new Error("Export failed"),
+    );
+    render(<KafkaMaasPage />);
+    fireEvent.change(screen.getByLabelText(/namespace/i), {
+      target: { value: TEST_NAMESPACE },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/topic classifier name/i), {
+      target: { value: "export-classifier" },
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /export/i }),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /export/i }));
+    await waitFor(() => {
+      expect(mockRequestFailed).toHaveBeenCalledWith(
+        "Unable to export Kafka declarative file.",
+        expect.any(Error),
+      );
+    });
+  });
+
   test("shows error when create fails", async () => {
     mockCreateMaasKafkaEntity.mockRejectedValue(new Error("API error"));
     render(<KafkaMaasPage />);
