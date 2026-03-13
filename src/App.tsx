@@ -57,6 +57,7 @@ import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValid
 import { KafkaMaasPage } from "./components/dev_tools/maas/KafkaMaasPage.tsx";
 import { RabbitMQMaasPage } from "./components/dev_tools/maas/RabbitMQMaasPage.tsx";
 import { DesignTemplates } from "./components/admin_tools/design-templates/DesignTemplates.tsx";
+import { ImportInstructions } from "./components/admin_tools/ImportInstructions.tsx";
 
 const { Header } = Layout;
 
@@ -110,9 +111,13 @@ const router = createBrowserRouter(
           <Route path="variables/secured" element={<SecuredVariables />} />
           <Route path="audit" element={<ActionsLog />} />
           <Route path="sessions" element={<SessionsPage />} />
+          <Route path="import-instructions" element={<ImportInstructions />} />
           <Route path="access-control" element={<AccessControl />} />
           <Route path="exchanges" element={<LiveExchanges />} />
-          <Route path="detailed-design/templates" element={<DesignTemplates />} />
+          <Route
+            path="detailed-design/templates"
+            element={<DesignTemplates />}
+          />
         </Route>
         <Route index path="/" element={<Navigate to="/chains" />} />
         <Route index path="/chains" element={<Chains />} />
