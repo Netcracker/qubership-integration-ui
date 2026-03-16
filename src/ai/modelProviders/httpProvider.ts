@@ -18,15 +18,13 @@ function getApiErrorMessage(data: unknown): string | undefined {
   return typeof maybe.error === "string" ? maybe.error : undefined;
 }
 
-function getRequestHeaders(serviceUrl: string, path: string): Record<string, string> {
+function getBearerHeader(serviceUrl: string, path: string): Record<string, string> {
   const base = serviceUrl.replace(/\/$/, "");
   const url = `${base}${path}`;
   const raw = getHeadersForContext({ url, baseURL: base });
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(raw)) {
-    if (typeof v === "string") out[k] = v;
-  }
-  return out;
+  const auth = raw?.Authorization;
+  if (typeof auth !== "string") return {};
+  return { Authorization: auth };
 }
 
 export class HttpAiModelProvider implements AiModelProvider {
@@ -57,7 +55,7 @@ export class HttpAiModelProvider implements AiModelProvider {
       const response = await axios.post<ChatResponse>(url, requestBody, {
         headers: {
           "Content-Type": "application/json",
-          ...getRequestHeaders(this.serviceUrl, "/api/chat"),
+          ...getBearerHeader(this.serviceUrl, "/api/chat"),
         },
         timeout: 600000,
         signal: request.abortSignal,
@@ -94,7 +92,7 @@ export class HttpAiModelProvider implements AiModelProvider {
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        ...getRequestHeaders(this.serviceUrl, "/api/chat/stream"),
+        ...getBearerHeader(this.serviceUrl, "/api/chat/stream"),
       };
       const response = await fetch(url, {
         method: "POST",
@@ -188,7 +186,7 @@ export class HttpAiModelProvider implements AiModelProvider {
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...getRequestHeaders(this.serviceUrl, "/api/chat/with-progress"),
+      ...getBearerHeader(this.serviceUrl, "/api/chat/with-progress"),
     };
     const response = await fetch(url, {
       method: "POST",
@@ -279,7 +277,7 @@ export class HttpAiModelProvider implements AiModelProvider {
     const response = await axios.post<{ url: string }>(url, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
-        ...getRequestHeaders(this.serviceUrl, "/api/upload"),
+        ...getBearerHeader(this.serviceUrl, "/api/upload"),
       },
       timeout: 60000,
       maxContentLength: 10 * 1024 * 1024,
