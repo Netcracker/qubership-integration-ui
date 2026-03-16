@@ -179,6 +179,15 @@ jest.mock("../../../../src/components/modal/FullscreenButton", () => ({
   ),
 }));
 
+jest.mock("../../../../src/components/InlineEdit.module.css", () => ({
+  __esModule: true,
+  default: {
+    inlineEditValueWrap: "inline-edit-value-wrap",
+    inlineEditButtons: "inline-edit-buttons",
+    inlineEditFormWrap: "inline-edit-form-wrap",
+  },
+}));
+
 jest.mock(
   "../../../../src/components/modal/chain_element/ChainElementModification.module.css",
   () => ({
@@ -191,6 +200,13 @@ jest.mock(
       "modal-footer": "modal-footer",
       "modal-header": "modal-header",
       "parameters-form": "parameters-form",
+      "element-name-edit-wrapper": "element-name-edit-wrapper",
+      "element-name-inline-editor": "element-name-inline-editor",
+      "element-name-input": "element-name-input",
+      "modal-title-name": "modal-title-name",
+      "modal-title-type": "modal-title-type",
+      "element-name-edit-icon": "element-name-edit-icon",
+      "element-name-inline-viewer": "element-name-inline-viewer",
     },
   }),
 );
@@ -397,6 +413,35 @@ describe("ChainElementModification", () => {
     });
 
     expect(mockCloseContainingModal).toHaveBeenCalled();
+  });
+
+  it("handleNameSave: inline name edit calls updateElement and onSubmit", async () => {
+    renderWithPermissions({ chain: ["update"] });
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /edit name/i }));
+
+    const input = screen.getByTestId("element-name-input");
+    fireEvent.change(input, { target: { value: "Updated Script Name" } });
+    fireEvent.click(screen.getByTestId("element-name-apply"));
+
+    await waitFor(() => {
+      expect(mockUpdateElement).toHaveBeenCalledWith(
+        "chain-1",
+        "el-1",
+        expect.objectContaining({
+          name: "Updated Script Name",
+          type: "script",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(defaultProps.onSubmit).toHaveBeenCalled();
+    });
   });
 
   describe("Schema errors", () => {
