@@ -62,7 +62,7 @@ export const CustomControls = ({
         type={"text"}
         title="Expand All"
         onClick={onExpandAllContainers}
-        icon={<OverridableIcon name="expandCollapse" />}
+        icon={<OverridableIcon name="expandAll" />}
       />
       {extraButtons ? (
         <>
