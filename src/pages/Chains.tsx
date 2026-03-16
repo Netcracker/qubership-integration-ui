@@ -3,7 +3,6 @@ import {
   Button,
   Dropdown,
   Flex,
-  FloatButton,
   MenuProps,
   message,
   Modal,
@@ -23,13 +22,10 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
-import { TextColumnFilterDropdown } from "../components/table/TextColumnFilterDropdown.tsx";
 import { formatTimestamp } from "../misc/format-utils.ts";
-import { TimestampColumnFilterDropdown } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import { TableRowSelection } from "antd/lib/table/interface";
-import Search from "antd/lib/input/Search";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
+import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { DeploymentsCumulativeState } from "../components/deployment_runtime_states/DeploymentsCumulativeState.tsx";
 import { FolderEdit, FolderEditMode } from "../components/modal/FolderEdit.tsx";
@@ -53,6 +49,14 @@ import {
   DeployChains,
   DeployOptions,
 } from "../components/modal/DeployChains.tsx";
+import { toStringIds } from "../misc/selection-utils.ts";
+import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+import {
+  ProtectedDropdown,
+  ProtectedMenuItem,
+} from "../permissions/ProtectedDropdown.tsx";
+import { MenuInfo } from "rc-menu/lib/interface";
+import { useColumnSettingsBasedOnColumnsType } from "../components/table/useColumnSettingsButton.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -136,14 +140,6 @@ const Chains = () => {
   const [loadedFolders, setLoadedFolders] = useState<Set<string>>(new Set());
   const [searchParams] = useSearchParams();
   const [pathItems, setPathItems] = useState<BreadcrumbProps["items"]>([]);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([
-    "status",
-    "labels",
-    "createdBy",
-    "createdWhen",
-    "modifiedBy",
-    "modifiedWhen",
-  ]);
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [operation, setOperation] = useState<Operation | undefined>(undefined);
   const [searchString, setSearchString] = useState<string>("");
@@ -583,7 +579,7 @@ const Chains = () => {
   };
 
   const onExportBtnClick = () => {
-    return exportChainsWithOptions(selectedRowKeys.map((k) => k.toString()));
+    return exportChainsWithOptions(toStringIds(selectedRowKeys));
   };
 
   const onDeleteBtnClick = () => {
@@ -598,7 +594,13 @@ const Chains = () => {
 
   const onImportBtnClick = () => {
     showModal({
-      component: <ImportChains onSuccess={() => void updateFolderItems()} />,
+      component: (
+        <ImportChains
+          onSuccess={() => {
+            updateFolderItems().catch(() => undefined);
+          }}
+        />
+      ),
     });
   };
 
@@ -607,9 +609,9 @@ const Chains = () => {
       showModal({
         component: (
           <DeployChains
-            onSubmit={(options: DeployOptions) =>
-              void deploySelectedChains(options)
-            }
+            onSubmit={(options: DeployOptions) => {
+              deploySelectedChains(options).catch(() => undefined);
+            }}
           />
         ),
       });
@@ -626,14 +628,14 @@ const Chains = () => {
         <ExportChains
           multiple={multiple}
           onSubmit={(options) => {
-            const items = folderItems.filter((i) => ids.includes(i.id));
+            const items = folderItems.filter((item) => ids.includes(item.id));
             const folderIds = items
-              .filter((i) => i.itemType === CatalogItemType.FOLDER)
-              .map((i) => i.id);
+              .filter((item) => item.itemType === CatalogItemType.FOLDER)
+              .map((item) => item.id);
             const chainIds = items
-              .filter((i) => i.itemType === CatalogItemType.CHAIN)
-              .map((i) => i.id);
-            void exportChains(folderIds, chainIds, options);
+              .filter((item) => item.itemType === CatalogItemType.CHAIN)
+              .map((item) => item.id);
+            exportChains(folderIds, chainIds, options).catch(() => undefined);
           }}
         />
       ),
@@ -688,15 +690,15 @@ const Chains = () => {
       case "copyFolderLink":
         return copyToClipboard(
           `${window.location.origin}/chains?folder=${item.id}`,
-        ).then(() => {
-          messageApi.info("Link to a folder was copied to the clipboard");
-        });
+        ).then(() =>
+          messageApi.info("Link to a folder was copied to the clipboard"),
+        );
       case "copyChainLink":
         return copyToClipboard(
           `${window.location.origin}/chains/${item.id}`,
-        ).then(() => {
-          messageApi.info("Link to a chain was copied to the clipboard");
-        });
+        ).then(() =>
+          messageApi.info("Link to a chain was copied to the clipboard"),
+        );
       case "deleteFolder":
         return Modal.confirm({
           title: "Delete Folder",
@@ -730,43 +732,53 @@ const Chains = () => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  const folderMenuItems: MenuProps["items"] = [
-    { label: "Create New Folder", key: "createNewFolder" },
-    { label: "Create New Chain", key: "createNewChain" },
+  const folderMenuItems: ProtectedMenuItem[] = [
+    {
+      label: "Create New Folder",
+      key: "createNewFolder",
+      require: { folder: ["create"] },
+    },
+    {
+      label: "Create New Chain",
+      key: "createNewChain",
+      require: { chain: ["create"] },
+    },
     { type: "divider" },
     { label: "Expand All", key: "expandAll" },
     { label: "Collapse All", key: "collapseAll" },
     { type: "divider" },
     { label: "Copy Link", key: "copyFolderLink" },
-    { label: "Edit", key: "editFolder" },
-    { label: "Export", key: "export" },
+    { label: "Edit", key: "editFolder", require: { folder: ["update"] } },
+    { label: "Export", key: "export", require: { chain: ["export"] } },
     { type: "divider" },
-    { label: "Cut", key: "cut" },
-    { label: "Paste", key: "paste", disabled: operation === undefined },
-    { label: "Delete", key: "deleteFolder" },
+    { label: "Cut", key: "cut", require: { folder: ["delete"] } },
+    {
+      label: "Paste",
+      key: "paste",
+      disabled: operation === undefined,
+      require: { anyOf: [{ folder: ["update"] }, { chain: ["create"] }] },
+    },
+    { label: "Delete", key: "deleteFolder", require: { folder: ["delete"] } },
   ];
 
-  const chainMenuItems: MenuProps["items"] = [
+  const chainMenuItems: ProtectedMenuItem[] = [
     { label: "Copy Link", key: "copyChainLink" },
-    { label: "Edit", key: "editChain" },
-    { label: "Export", key: "export" },
-    { label: "Generate DDS", key: "generateDDS" },
+    { label: "Edit", key: "editChain", require: { chain: ["update"] } },
+    { label: "Export", key: "export", require: { chain: ["export"] } },
+    {
+      label: "Generate DDS",
+      key: "generateDDS",
+      require: { chain: ["read"] },
+    },
     { type: "divider" },
-    { label: "Cut", key: "cut" },
-    { label: "Copy", key: "copy" },
-    { label: "Duplicate", key: "duplicateChain" },
-    { label: "Delete", key: "deleteChain" },
-  ];
-
-  const columnVisibilityMenuItems: MenuProps["items"] = [
-    { label: "ID", key: "id" },
-    { label: "Description", key: "description" },
-    { label: "Status", key: "status" },
-    { label: "Labels", key: "labels" },
-    { label: "Created At", key: "createdWhen" },
-    { label: "Created By", key: "createdBy" },
-    { label: "Modified At", key: "modifiedWhen" },
-    { label: "Modified By", key: "modifiedBy" },
+    { label: "Cut", key: "cut", require: { chain: ["delete"] } },
+    { label: "Copy", key: "copy", require: { chain: ["create"] } },
+    {
+      label: "Duplicate",
+      key: "duplicateChain",
+      require: { chain: ["create"] },
+    },
+    { label: "Delete", key: "deleteChain", require: { chain: ["delete"] } },
   ];
 
   const columns: TableProps<ChainTableItem>["columns"] = [
@@ -775,7 +787,6 @@ const Chains = () => {
       key: "name",
       dataIndex: "name",
       sorter: compareChainTableItemsByTypeAndName,
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       render: (_, item) => (
         <Flex vertical={false} gap={4}>
           {item.itemType === CatalogItemType.FOLDER ? (
@@ -802,21 +813,17 @@ const Chains = () => {
       title: "ID",
       key: "id",
       dataIndex: "id",
-      hidden: !selectedKeys.includes("id"),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
+      hidden: true,
     },
     {
       title: "Description",
       key: "description",
       dataIndex: "description",
-      hidden: !selectedKeys.includes("description"),
       sorter: (a, b) => a.description.localeCompare(b.description),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
     },
     {
       title: "Status",
       key: "status",
-      hidden: !selectedKeys.includes("status"),
       render: (_, item) => (
         <>
           {item.itemType === CatalogItemType.FOLDER ? null : (
@@ -829,10 +836,6 @@ const Chains = () => {
       title: "Labels",
       key: "labels",
       dataIndex: "labels",
-      hidden: !selectedKeys.includes("labels"),
-      filterDropdown: (props) => (
-        <TextColumnFilterDropdown {...props} enableExact />
-      ),
       render: (_, item) =>
         item.itemType === CatalogItemType.CHAIN ? (
           <EntityLabels labels={(item as ChainItem).labels} />
@@ -842,55 +845,43 @@ const Chains = () => {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
-      hidden: !selectedKeys.includes("createdBy"),
+      hidden: true,
       render: (_, item) => <>{item.createdBy?.username}</>,
       sorter: (a, b) =>
         (a.createdBy?.username ?? "").localeCompare(
           b.createdBy?.username ?? "",
         ),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
-      // onFilter: getTextColumnFilterFn(
-      //   (item) => item.createdBy.username,
-      // ),
     },
     {
       title: "Created At",
       dataIndex: "createdWhen",
       key: "createdWhen",
-      hidden: !selectedKeys.includes("createdWhen"),
+      hidden: true,
       render: (_, item) => (
         <>{item.createdWhen ? formatTimestamp(item.createdWhen) : "-"}</>
       ),
       sorter: (a, b) => (a.createdWhen ?? 0) - (b.createdWhen ?? 0),
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      // onFilter: getTimestampColumnFilterFn((item) => item.createdWhen),
     },
     {
       title: "Modified By",
       dataIndex: "modifiedBy",
       key: "modifiedBy",
-      hidden: !selectedKeys.includes("modifiedBy"),
+      hidden: true,
       render: (_, item) => <>{item.modifiedBy?.username ?? "-"}</>,
       sorter: (a, b) =>
         (a.modifiedBy?.username ?? "").localeCompare(
           b.modifiedBy?.username ?? "",
         ),
-      filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
-      // onFilter: getTextColumnFilterFn(
-      //   (item) => item.modifiedBy.username,
-      // ),
     },
     {
       title: "Modified At",
       dataIndex: "modifiedWhen",
       key: "modifiedWhen",
-      hidden: !selectedKeys.includes("modifiedWhen"),
+      hidden: true,
       render: (_, item) => (
         <>{item.modifiedWhen ? formatTimestamp(item.modifiedWhen) : "-"}</>
       ),
       sorter: (a, b) => (a.modifiedWhen ?? 0) - (b.modifiedWhen ?? 0),
-      filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
-      // onFilter: getTimestampColumnFilterFn((item) => item.modifiedWhen),
     },
     {
       title: "",
@@ -899,13 +890,15 @@ const Chains = () => {
       className: "actions-column",
       render: (_, item) => (
         <>
-          <Dropdown
+          <ProtectedDropdown
             menu={{
               items:
                 item.itemType === CatalogItemType.FOLDER
                   ? folderMenuItems
                   : chainMenuItems,
-              onClick: ({ key }) => void onContextMenuItemClick(item, key),
+              // @ts-expect-error Some mistake with types: onClick presents in menu props.
+              onClick: ({ key }: MenuInfo) =>
+                void onContextMenuItemClick(item, key),
             }}
             trigger={["click"]}
             placement="bottomRight"
@@ -915,11 +908,14 @@ const Chains = () => {
               type="text"
               icon={<OverridableIcon name="more" />}
             />
-          </Dropdown>
+          </ProtectedDropdown>
         </>
       ),
     },
   ];
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<ChainTableItem>("chainsTable", columns);
 
   const rowSelection: TableRowSelection<ChainTableItem> = {
     type: "checkbox",
@@ -940,34 +936,110 @@ const Chains = () => {
     <>
       {contextHolder}
       <Flex vertical gap={16} className={styles.container}>
-        {pathItems && pathItems.length > 0 ? (
-          <Breadcrumb items={pathItems} />
-        ) : null}
-        <Flex vertical={false} gap={8}>
-          <Search
+        <Flex vertical={false} gap={4} align="center">
+          {pathItems && pathItems.length > 0 ? (
+            <Breadcrumb items={pathItems} style={{ marginLeft: 9 }} />
+          ) : null}
+          <div style={{ flex: 1 }} />
+          <CompactSearch
+            value={searchString}
+            onChange={setSearchString}
             placeholder="Full text search"
             allowClear
-            onSearch={(value) => setSearchString(value)}
+            style={{ width: 500, flex: "none" }}
           />
-          <Dropdown
-            menu={{
-              items: columnVisibilityMenuItems,
-              selectable: true,
-              multiple: true,
-              selectedKeys,
-              onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-            }}
-          >
-            <Button icon={<OverridableIcon name="settings" />} />
-          </Dropdown>
           {filterButton}
+          {columnSettingsButton}
+          <ProtectedButton
+            require={{ chain: ["read"] }}
+            tooltipProps={{
+              title: "Compare selected chains",
+              placement: "bottom",
+            }}
+            buttonProps={{ icon: <>⇄</>, disabled: true }}
+          />
+          <ProtectedButton
+            require={{ chain: ["create"] }}
+            tooltipProps={{ title: "Paste", placement: "bottom" }}
+            buttonProps={{
+              iconName: "carryOut",
+              onClick: () => {
+                Promise.resolve(pasteItem(getFolderId())).catch(
+                  () => undefined,
+                );
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ deployment: ["create"] }}
+            tooltipProps={{
+              title: "Deploy selected chains",
+              placement: "bottom",
+            }}
+            buttonProps={{
+              iconName: "send",
+              onClick: onDeployBtnClick,
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["import"] }}
+            tooltipProps={{
+              title: "Export selected chains",
+              placement: "bottom",
+            }}
+            buttonProps={{
+              iconName: "cloudDownload",
+              onClick: onExportBtnClick,
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["export"] }}
+            tooltipProps={{ title: "Import chains", placement: "bottom" }}
+            buttonProps={{
+              iconName: "cloudUpload",
+              onClick: onImportBtnClick,
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["delete"] }}
+            tooltipProps={{
+              title: "Delete selected chains and folders",
+              placement: "bottom",
+            }}
+            buttonProps={{
+              iconName: "delete",
+              onClick: onDeleteBtnClick,
+            }}
+          />
+          <ProtectedDropdown
+            menu={{
+              items: [
+                {
+                  key: "folder",
+                  label: "New Folder",
+                  onClick: () => onCreateFolderBtnClick(getFolderId()),
+                  require: { folder: ["create"] },
+                },
+                {
+                  key: "chain",
+                  label: "New Chain",
+                  onClick: () => onCreateChainBtnClick(getFolderId()),
+                  require: { chain: ["create"] },
+                },
+              ],
+            }}
+            trigger={["click"]}
+          >
+            <Button type="primary">
+              Create <OverridableIcon name="down" />
+            </Button>
+          </ProtectedDropdown>
         </Flex>
         <Table<ChainTableItem>
           className="flex-table"
           size="small"
           dataSource={tableItems}
-          columns={columns}
+          columns={orderedColumns}
           rowSelection={rowSelection}
           pagination={false}
           scroll={{ y: "" }}
@@ -986,54 +1058,6 @@ const Chains = () => {
             },
           }}
         />
-        <FloatButtonGroup
-          trigger="hover"
-          icon={<OverridableIcon name="more" />}
-        >
-          <FloatButton
-            tooltip={{ title: "Deploy selected chains", placement: "left" }}
-            icon={<OverridableIcon name="send" />}
-            onClick={onDeployBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Paste", placement: "left" }}
-            icon={<OverridableIcon name="carryOut" />}
-            onClick={() => void pasteItem(getFolderId())}
-          />
-          <FloatButton
-            tooltip={{ title: "Compare selected chains", placement: "left" }}
-            icon={<>⇄</>}
-            // onClick={onCompareBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Import chains", placement: "left" }}
-            icon={<OverridableIcon name="cloudUpload" />}
-            onClick={onImportBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Export selected chains", placement: "left" }}
-            icon={<OverridableIcon name="cloudDownload" />}
-            onClick={onExportBtnClick}
-          />
-          <FloatButton
-            tooltip={{
-              title: "Delete selected chains and folders",
-              placement: "left",
-            }}
-            icon={<OverridableIcon name="delete" />}
-            onClick={onDeleteBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Create folder", placement: "left" }}
-            icon={<OverridableIcon name="folderAdd" />}
-            onClick={() => onCreateFolderBtnClick(getFolderId())}
-          />
-          <FloatButton
-            tooltip={{ title: "Create chain", placement: "left" }}
-            icon={<OverridableIcon name="fileAdd" />}
-            onClick={() => onCreateChainBtnClick(getFolderId())}
-          />
-        </FloatButtonGroup>
       </Flex>
     </>
   );

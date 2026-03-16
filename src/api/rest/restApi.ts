@@ -79,6 +79,12 @@ import {
   AccessControlResponse,
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
+  GeneralImportInstructions,
+  ImportInstruction,
+  ImportInstructionRequest,
+  ImportInstructionResult,
+  DeleteImportInstructionsRequest,
+  ImportEntityType,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -89,6 +95,7 @@ import { registerRestAxiosInstance } from "./requestHeadersInterceptor.ts";
 import type {
   ApiError,
   ApiResponse,
+  DiscoveryResponse,
   SecretResponse,
   SecretWithVariables,
   Variable,
@@ -974,16 +981,6 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  retryFromLastCheckpoint = async (
-    chainId: string,
-    sessionId: string,
-  ): Promise<void> => {
-    await this.instance.post(
-      `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
-    );
-  };
-
   getSession = async (sessionId: string): Promise<Session> => {
     const response = await this.instance.get<Session>(
       `${this.v1()}/sessions-management/sessions/${sessionId}`,
@@ -1006,13 +1003,13 @@ export class RestApi implements Api {
     return response.data;
   };
 
-  retrySessionFromLastCheckpoint = async (
+  retrySessionFromCheckpoint = async (
     chainId: string,
     sessionId: string,
   ): Promise<void> => {
     return this.instance.post(
       `${this.v1()}/engine/chains/${chainId}/sessions/${sessionId}/retry`,
-      null,
+      {},
     );
   };
 
@@ -1247,6 +1244,31 @@ export class RestApi implements Api {
       {
         params: { modelType, withSpec },
       },
+    );
+    return response.data;
+  };
+
+  filterServices = async (
+    filters: EntityFilterModel[],
+  ): Promise<IntegrationSystem[]> => {
+    const body = filters.map((f) => ({
+      column: f.column,
+      condition: f.condition,
+      value: f.value,
+    }));
+    const response = await this.instance.post<IntegrationSystem[]>(
+      `${this.v1()}/systems-catalog/systems/filter`,
+      body,
+    );
+    return response.data;
+  };
+
+  searchServices = async (
+    searchCondition: string,
+  ): Promise<IntegrationSystem[]> => {
+    const response = await this.instance.post<IntegrationSystem[]>(
+      `${this.v1()}/systems-catalog/systems/search`,
+      { searchCondition },
     );
     return response.data;
   };
@@ -1844,6 +1866,22 @@ export class RestApi implements Api {
     return response.status === 204 ? [] : response.data;
   };
 
+  getAndFilterExchanges = async (
+    limit: number,
+    filters: EntityFilterModel[],
+  ): Promise<LiveExchange[]> => {
+    const response = await this.instance.post<LiveExchange[]>(
+      `${this.v1()}/catalog/live-exchanges`,
+      {
+        params: {
+          limit: limit,
+        },
+        filters,
+      },
+    );
+    return response.status === 204 ? [] : response.data;
+  };
+
   terminateExchange = async (
     podIp: string,
     deploymentId: string,
@@ -1936,5 +1974,159 @@ export class RestApi implements Api {
     );
 
     return response.data;
+  };
+
+  runServiceDiscovery = async (): Promise<unknown> => {
+    return await this.instance.post<unknown>(
+      `${this.v1()}/systems-catalog/systems/discovery`,
+    );
+  };
+
+  isAutodiscoveryInProgress = async (): Promise<number> => {
+    const response = await this.instance.get<number>(
+      `${this.v1()}/systems-catalog/systems/discovery/progress`,
+    );
+    return response.data;
+  };
+
+  getAutodiscoveryResult = async (): Promise<DiscoveryResponse> => {
+    const response = await this.instance.get<DiscoveryResponse>(
+      `${this.v1()}/systems-catalog/systems/discovery/result`,
+    );
+    return response.data;
+  };
+
+  // Admin Tools: Import Instructions
+  getImportInstructions = async (): Promise<GeneralImportInstructions> => {
+    const [catalog, variables] = await Promise.all([
+      this.instance.get<GeneralImportInstructions>(
+        `${this.v1()}/systems-catalog/import-instructions`,
+      ),
+      this.instance.get<{
+        ignore?: ImportInstruction[];
+        delete?: ImportInstruction[];
+      }>(
+        `${this.v1()}/variables-management/common-variables/import-instructions`,
+      ),
+    ]);
+    const cv = variables.data as {
+      commonVariables?: {
+        delete?: ImportInstruction[];
+        ignore?: ImportInstruction[];
+      };
+      delete?: ImportInstruction[];
+      ignore?: ImportInstruction[];
+    };
+    const cvData = cv?.commonVariables ?? cv;
+    return {
+      chains: catalog.data.chains ?? { delete: [], ignore: [], override: [] },
+      services: catalog.data.services ?? { delete: [], ignore: [] },
+      specificationGroups: catalog.data.specificationGroups ?? {
+        delete: [],
+        ignore: [],
+      },
+      specifications: catalog.data.specifications ?? { delete: [], ignore: [] },
+      commonVariables: {
+        delete: cvData?.delete ?? [],
+        ignore: cvData?.ignore ?? [],
+      },
+    };
+  };
+
+  addImportInstruction = async (
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction> => {
+    if (request.entityType === ImportEntityType.COMMON_VARIABLE) {
+      const response = await this.instance.post<ImportInstruction>(
+        `${this.v1()}/variables-management/common-variables/import-instructions`,
+        request,
+        { headers: { "content-type": "application/json" } },
+      );
+      return response.data;
+    }
+    const response = await this.instance.post<ImportInstruction>(
+      `${this.v1()}/systems-catalog/import-instructions`,
+      request,
+      { headers: { "content-type": "application/json" } },
+    );
+    return response.data;
+  };
+
+  updateImportInstruction = async (
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction> => {
+    if (request.entityType === ImportEntityType.COMMON_VARIABLE) {
+      const response = await this.instance.patch<ImportInstruction>(
+        `${this.v1()}/variables-management/common-variables/import-instructions`,
+        request,
+        { headers: { "content-type": "application/json" } },
+      );
+      return response.data;
+    }
+    const response = await this.instance.patch<ImportInstruction>(
+      `${this.v1()}/systems-catalog/import-instructions`,
+      request,
+      { headers: { "content-type": "application/json" } },
+    );
+    return response.data;
+  };
+
+  deleteImportInstructions = async (
+    payload: DeleteImportInstructionsRequest,
+  ): Promise<void> => {
+    const hasCatalog =
+      (payload.chains?.length ?? 0) > 0 || (payload.services?.length ?? 0) > 0;
+    const hasVariables = (payload.commonVariables?.length ?? 0) > 0;
+
+    const promises: Promise<unknown>[] = [];
+    if (hasCatalog) {
+      promises.push(
+        this.instance.delete(
+          `${this.v1()}/systems-catalog/import-instructions`,
+          {
+            headers: { "content-type": "application/json" },
+            data: {
+              chains: payload.chains ?? [],
+              services: payload.services ?? [],
+            },
+          },
+        ),
+      );
+    }
+    if (hasVariables) {
+      promises.push(
+        this.instance.delete(
+          `${this.v1()}/variables-management/common-variables/import-instructions`,
+          {
+            headers: { "content-type": "application/json" },
+            data: { chains: [], services: payload.commonVariables ?? [] },
+          },
+        ),
+      );
+    }
+    await Promise.all(promises);
+  };
+
+  uploadImportInstructions = async (
+    file: File,
+  ): Promise<ImportInstructionResult[]> => {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    const response = await this.instance.post<ImportInstructionResult[]>(
+      `${this.v1()}/catalog/import-instructions/upload`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data;
+  };
+
+  exportImportInstructions = async (): Promise<File> => {
+    const response = await this.instance.get<Blob>(
+      `${this.v1()}/catalog/import-instructions/export`,
+      { responseType: "blob" },
+    );
+    return getFileFromResponse(response);
   };
 }

@@ -5,7 +5,7 @@ import { OverridableIcon } from "../../icons/IconProvider.tsx";
 const menuItems = [
   {
     key: "/admintools/domains",
-    icon: <OverridableIcon name="appstore" />,
+    icon: <OverridableIcon name="domains" />,
     label: "Domains",
   },
   {
@@ -30,29 +30,35 @@ const menuItems = [
     icon: <OverridableIcon name="audit" />,
     label: "Audit",
   },
-  // {
-  //   key: "/admintools/import-instructions",
-  //   icon: <OverridableIcon name="cloudUpload" />,
-  //   label: "Import Instructions",
-  // },
+  {
+    key: "/admintools/import-instructions",
+    icon: <OverridableIcon name="importInstructions" />,
+    label: (
+      <span style={{ display: "block", lineHeight: 1.3 }}>
+        Import
+        <br />
+        Instructions
+      </span>
+    ),
+  },
   {
     key: "/admintools/sessions",
-    icon: <OverridableIcon name="user" />,
+    icon: <OverridableIcon name="sessions" />,
     label: "Sessions",
   },
   {
     key: "/admintools/access-control",
-    icon: <OverridableIcon name="settings" />,
+    icon: <OverridableIcon name="accessControl" />,
     label: "Access Control",
   },
-  // {
-  //   key: "/admintools/design-templates",
-  //   icon: <OverridableIcon name="fileText" />,
-  //   label: "Design Templates",
-  // },
+  {
+    key: "/admintools/detailed-design/templates",
+    icon: <OverridableIcon name="fileText" />,
+    label: "Design Templates",
+  },
   {
     key: "/admintools/exchanges",
-    icon: <OverridableIcon name="unorderedList" />,
+    icon: <OverridableIcon name="liveExchanges" />,
     label: "Live Exchanges",
   },
 ];

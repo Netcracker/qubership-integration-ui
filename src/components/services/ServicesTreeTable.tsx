@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Table, Dropdown, Button, Modal } from "antd";
+import { Table, Button, Modal } from "antd";
 import type {
   FilterDropdownProps,
   TableRowSelection,
 } from "antd/es/table/interface";
 import { formatTimestamp } from "../../misc/format-utils";
 import { UsageStatusTag } from "./utils";
-import { SourceFlagTag } from "./SourceFlagTag";
+import { SourceFlagTag } from "./ui/SourceFlagTag";
 import { EntityLabels } from "../labels/EntityLabels";
 import {
   EntityLabel,
@@ -16,8 +16,11 @@ import {
   IntegrationSystemType,
 } from "../../api/apiTypes.ts";
 import { useNavigate, useParams } from "react-router-dom";
-import { ColumnsFilter } from "../table/ColumnsFilter";
-import { OperationInfoModal } from "./OperationInfoModal";
+import {
+  getColumnsOrderKey,
+  getColumnsVisibleKey,
+} from "../table/ColumnsFilter";
+import { OperationInfoModal } from "./modals/OperationInfoModal";
 import { api } from "../../api/api";
 import {
   TextColumnFilterDropdown,
@@ -31,9 +34,12 @@ import type {
 } from "../../api/apiTypes";
 import { InlineEdit } from "../InlineEdit";
 import { LabelsEdit } from "../table/LabelsEdit";
-import { ChainColumn } from "./ChainColumn";
+import { ChainColumn } from "./ui/ChainColumn";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
-import { HttpMethod } from "./HttpMethod.tsx";
+import { HttpMethod } from "./ui/HttpMethod.tsx";
+import { ProtectedDropdown } from "../../permissions/ProtectedDropdown.tsx";
+import { RequiredPermissions } from "../../permissions/types.ts";
+import { ColumnSettingsButton } from "../table/ColumnSettingsButton.tsx";
 
 export type ServiceEntity =
   | IntegrationSystem
@@ -82,6 +88,7 @@ export interface ServicesTableColumn<T extends ServiceEntity = ServiceEntity> {
   dataIndex?: string;
   render?: (value: unknown, record: T, index: number) => React.ReactNode;
   width?: number;
+  minWidth?: number;
   align?: "left" | "center" | "right";
   filterDropdown?: (props: FilterDropdownProps) => React.ReactNode;
   onFilter?: (value: React.Key | boolean, record: T) => boolean;
@@ -103,6 +110,8 @@ export interface ServicesTreeTableProps<
   size?: "small" | "middle" | "large";
   pagination?: false | object;
   style?: React.CSSProperties;
+  scroll?: { y?: string | number };
+  className?: string;
   actionsColumn?: ServicesTableColumn;
   enableSelection?: boolean;
   isRootEntity?: (record: T) => boolean;
@@ -247,7 +256,10 @@ function renderLabelsCell(
 
   if (onUpdateLabels) {
     return (
-      <div className="inline-edit-labels">
+      <div
+        className="inline-edit-labels"
+        style={{ overflow: "hidden", maxWidth: "100%" }}
+      >
         <InlineEdit
           values={{ labels: filtered.map((l) => l.name) }}
           editor={<LabelsEdit name="labels" />}
@@ -266,7 +278,9 @@ function renderLabelsCell(
 function getLabelsColumn(
   onUpdateLabels?: (record: ServiceEntity, labels: string[]) => Promise<void>,
 ): ServicesTableColumn {
+  const base = allServicesTreeTableColumns.find((c) => c.key === "labels");
   return {
+    ...base,
     title: "Labels",
     dataIndex: "labels",
     key: "labels",
@@ -283,6 +297,8 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Name",
       dataIndex: "name",
       key: "name",
+      width: 200,
+      minWidth: 120,
       filterDropdown: (props: FilterDropdownProps) => (
         <TextColumnFilterDropdown {...props} />
       ),
@@ -293,6 +309,7 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Protocol",
       dataIndex: "protocol",
       key: "protocol",
+      width: 120,
       render: (text) => (
         <SourceFlagTag
           source={typeof text === "string" ? text : ""}
@@ -304,30 +321,35 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Extended Protocol",
       dataIndex: "extendedProtocol",
       key: "extendedProtocol",
+      width: 150,
       render: (value: unknown) => (typeof value === "string" ? value : ""),
     },
     {
       title: "Specification",
       dataIndex: "specification",
       key: "specification",
+      width: 150,
       render: (value: unknown) => (typeof value === "string" ? value : ""),
     },
     {
       title: "Internal Service Name",
       dataIndex: "internalServiceName",
       key: "internalServiceName",
+      width: 180,
       render: (value: unknown) => (typeof value === "string" ? value : ""),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
+      width: 100,
       render: (_value, record) => <UsageStatusTag element={record} />,
     },
     {
       title: "Source",
       dataIndex: "source",
       key: "source",
+      width: 100,
       render: (value) =>
         typeof value === "string" ? <SourceFlagTag source={value} /> : "",
     },
@@ -335,12 +357,14 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Labels",
       dataIndex: "labels",
       key: "labels",
+      width: 200,
       render: undefined,
     },
     {
       title: "Used by",
       dataIndex: "usedBy",
       key: "usedBy",
+      width: 120,
       render: (_: unknown, record: ServiceEntity) => {
         if (isIntegrationSystem(record))
           return (
@@ -375,12 +399,14 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Created When",
       dataIndex: "createdWhen",
       key: "createdWhen",
+      width: 160,
       render: (createdWhen) => <>{formatTimestamp(createdWhen as number)}</>,
     },
     {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
+      width: 130,
       render: (value: unknown) => {
         const createdBy = value as User | undefined;
         return createdBy?.username || "";
@@ -390,12 +416,14 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Modified When",
       dataIndex: "modifiedWhen",
       key: "modifiedWhen",
+      width: 160,
       render: (modifiedWhen) => <>{formatTimestamp(modifiedWhen as number)}</>,
     },
     {
       title: "Modified By",
       dataIndex: "modifiedBy",
       key: "modifiedBy",
+      width: 130,
       render: (value: unknown) => {
         const modifiedBy = value as User | undefined;
         return modifiedBy?.username || "";
@@ -405,12 +433,14 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Method",
       dataIndex: "method",
       key: "method",
+      width: 100,
       render: (value: unknown) => <HttpMethod value={value} />,
     },
     {
       title: "URL",
       dataIndex: "url",
       key: "url",
+      width: 200,
       render: (_value: unknown, record: ServiceEntity) => {
         return "path" in record ? record.path : "";
       },
@@ -428,6 +458,7 @@ export interface ActionConfig<T = never> {
     cancelText?: string;
   };
   visible?: (record: T) => boolean;
+  require?: RequiredPermissions;
 }
 
 function ActionMenu<T>({
@@ -443,6 +474,7 @@ function ActionMenu<T>({
       key: action.key,
       icon: action.icon,
       label: action.label,
+      require: action.require,
       onClick: () => {
         if (action.confirm) {
           Modal.confirm({
@@ -458,7 +490,7 @@ function ActionMenu<T>({
     }));
 
   return (
-    <Dropdown
+    <ProtectedDropdown
       menu={{
         items,
       }}
@@ -466,7 +498,7 @@ function ActionMenu<T>({
       placement="bottomRight"
     >
       <Button type="text" icon={<OverridableIcon name="more" />} />
-    </Dropdown>
+    </ProtectedDropdown>
   );
 }
 
@@ -511,6 +543,7 @@ export function getServiceActions({
         label: "Edit",
         icon: <OverridableIcon name="edit" />,
         onClick: onEdit,
+        require: { service: ["update"] },
       },
       {
         key: "delete",
@@ -522,6 +555,7 @@ export function getServiceActions({
           okText: "Delete",
           cancelText: "Cancel",
         },
+        require: { service: ["delete"] },
       },
     ];
     if (isExpandAvailable(record)) {
@@ -547,6 +581,7 @@ export function getServiceActions({
         label: "Export",
         icon: <OverridableIcon name="cloudDownload" />,
         onClick: (rec) => onExportSelected([rec]),
+        require: { service: ["export"] },
       });
     }
     return actions;
@@ -570,6 +605,9 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   rowClassName,
   onUpdateLabels,
   onRowClick,
+  scroll,
+  className,
+  style,
 }: ServicesTreeTableProps<T>) {
   const allColumnKeys = useMemo(() => {
     return allColumns && allColumns.length > 0
@@ -584,11 +622,13 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   }, [defaultVisibleKeys, allColumnKeys]);
 
   const [columnsOrder, setColumnsOrder] = useState<string[]>(() => {
-    const storedOrder = localStorage.getItem(`${storageKey}_columnsOrder`);
+    const storedOrder = localStorage.getItem(getColumnsOrderKey(storageKey));
     return storedOrder ? (JSON.parse(storedOrder) as string[]) : allColumnKeys;
   });
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const storedVisible = localStorage.getItem(`${storageKey}_columnsVisible`);
+    const storedVisible = localStorage.getItem(
+      getColumnsVisibleKey(storageKey),
+    );
     return storedVisible
       ? (JSON.parse(storedVisible) as string[])
       : initialKeys;
@@ -606,22 +646,15 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   };
 
   const FilterButton = () => (
-    <Dropdown
-      popupRender={() => (
-        <ColumnsFilter
-          allColumns={allColumnKeys}
-          defaultColumns={initialKeys}
-          storageKey={storageKey}
-          labelsByKey={Object.fromEntries(
-            allServicesTreeTableColumns.map((c) => [c.key, c.title]),
-          )}
-          onChange={handleColumnsChange}
-        />
+    <ColumnSettingsButton
+      allColumns={allColumnKeys}
+      defaultColumns={initialKeys}
+      storageKey={storageKey}
+      labelsByKey={Object.fromEntries(
+        allServicesTreeTableColumns.map((c) => [c.key, c.title]),
       )}
-      trigger={["click"]}
-    >
-      <Button icon={<OverridableIcon name="settings" />} />
-    </Dropdown>
+      onChange={handleColumnsChange}
+    />
   );
 
   const finalColumns = useMemo(() => {
@@ -660,13 +693,17 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
         columns={finalColumns}
         rowKey={rowKey}
         loading={loading}
-        expandable={expandable}
+        expandable={{ ...expandable, indentSize: 24 }}
         size={"small"}
         pagination={pagination}
+        tableLayout="fixed"
+        scroll={scroll}
+        className={className}
         style={{
           background: "var(--vscode-editor-background)",
           borderRadius: 12,
           width: "100%",
+          ...(style ?? {}),
         }}
         rowClassName={rowClassName}
         onRow={

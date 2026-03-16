@@ -9,17 +9,20 @@ import {
   SystemOperation,
 } from "../../../../../api/apiTypes.ts";
 
-import { HttpMethod } from "../../../../services/HttpMethod.tsx";
+import { HttpMethod } from "../../../../services/ui/HttpMethod.tsx";
 import { SelectTag } from "./SelectTag.tsx";
 import {
   isHttpProtocol,
   normalizeProtocol,
 } from "../../../../../misc/protocol-utils.ts";
 import { SelectAndNavigateField } from "./SelectAndNavigateField.tsx";
-import { OperationPath } from "../../../../services/OperationPath.tsx";
+import { OperationPath } from "../../../../services/ui/OperationPath.tsx";
 import { isVsCode } from "../../../../../api/rest/vscodeExtensionApi";
 import { JSONSchema7 } from "json-schema";
-import {uniqueListById, uniqueMapById} from "../../../../../misc/operations-utils.ts";
+import {
+  uniqueListById,
+  uniqueMapById,
+} from "../../../../../misc/operations-utils.ts";
 
 const SystemOperationField: React.FC<
   FieldProps<string, JSONSchema7, FormContext>
@@ -258,9 +261,9 @@ const SystemOperationField: React.FC<
           integrationOperationPath: operation.path,
           integrationOperationMethod: operation.method,
           integrationOperationProtocolType: protocolType,
-          integrationOperationPathParameters: {},
+          integrationOperationPathParameters: undefined,
           integrationOperationQueryParameters:
-            Object.keys(queryParams).length > 0 ? queryParams : {},
+            Object.keys(queryParams).length > 0 ? queryParams : undefined,
         });
       };
 

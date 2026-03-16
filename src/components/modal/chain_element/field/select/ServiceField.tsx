@@ -68,6 +68,7 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
 
       const serviceOptions: SelectProps["options"] =
         filteredServices?.map((service: IntegrationSystem) => ({
+          labelString: service.name,
           label: (
             <>
               <SelectTag value={capitalize(service.type)} />
@@ -103,15 +104,18 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
         integrationOperationId: "",
         integrationOperationPath: "",
         integrationOperationMethod: "",
-        integrationOperationPathParameters: {},
-        integrationOperationQueryParameters: {},
-        integrationAdditionalParameters: {},
-        integrationOperationAsyncProperties: {},
-        integrationGqlQuery: "",
-        integrationGqlOperationName: "",
-        integrationGqlVariablesJSON: "",
-        integrationGqlQueryHeader: "",
-        integrationGqlVariablesHeader: "",
+        integrationOperationPathParameters: undefined,
+        integrationOperationQueryParameters: undefined,
+        integrationAdditionalParameters: undefined,
+        integrationOperationAsyncProperties: undefined,
+        integrationGqlQuery: undefined,
+        integrationGqlOperationName: undefined,
+        integrationGqlVariablesJSON: undefined,
+        integrationGqlQueryHeader: undefined,
+        integrationGqlVariablesHeader: undefined,
+        bodyMimeType: undefined,
+        bodyFormData: undefined,
+        synchronousGrpcCall: undefined,
       });
     },
     [registry, servicesMap],
@@ -133,6 +137,7 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
       buttonTitle="Go to service"
       buttonDisabled={!serviceId}
       buttonOnClick={navigationPath}
+      selectOptionFilterProp="labelString"
     />
   );
 };

@@ -9,7 +9,6 @@ import {
   Table,
   Tag,
   Flex,
-  FloatButton,
   Tooltip,
 } from "antd";
 import commonStyles from "../CommonStyle.module.css";
@@ -19,10 +18,13 @@ import { SecretWithVariables, Variable } from "../../../api/apiTypes.ts";
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { ResizeCallbackData } from "react-resizable";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { LongActionButton } from "../../LongActionButton.tsx";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 import { api } from "../../../api/api.ts";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { Require } from "../../../permissions/Require.tsx";
+import { usePermissions } from "../../../permissions/usePermissions.tsx";
+import { hasPermissions } from "../../../permissions/funcs.ts";
 
 const { Title } = Typography;
 
@@ -45,8 +47,10 @@ export const SecuredVariables: React.FC = () => {
   const [createForm] = Form.useForm();
   const [columnsWidth, setColumnsWidth] = useState<{ [key: string]: number }>({
     key: 300,
+    value: 400,
   });
   const notificationService = useNotificationService();
+  const permissions = usePermissions();
 
   const handleResize = useCallback(
     (dataIndex: string) =>
@@ -275,9 +279,9 @@ export const SecuredVariables: React.FC = () => {
         isAddingNew={newVariableKeys[secret]}
         editingKey={editing?.secret === secret ? editing.key : null}
         editingValue={editing?.secret === secret ? editingValue : ""}
-        onStartEditing={(key) => {
+        onStartEditing={(key, value) => {
           setEditing({ secret, key });
-          setEditingValue("");
+          setEditingValue(value);
         }}
         onChangeEditingValue={setEditingValue}
         onCancelEditing={() => {
@@ -300,6 +304,12 @@ export const SecuredVariables: React.FC = () => {
         columnsWidth={columnsWidth}
         onResize={handleResize}
         calculateScrollHeight={calculateSecuredScrollHeight}
+        enableEdit={hasPermissions(permissions, {
+          securedVariable: ["update"],
+        })}
+        enableDelete={hasPermissions(permissions, {
+          securedVariable: ["delete"],
+        })}
       />
     ),
     [
@@ -311,10 +321,10 @@ export const SecuredVariables: React.FC = () => {
       columnsWidth,
       handleResize,
       calculateSecuredScrollHeight,
+      permissions,
       handleUpdateVariable,
       handleDeleteVariable,
       handleAddVariable,
-      setSelectedKeys,
     ],
   );
 
@@ -331,11 +341,45 @@ export const SecuredVariables: React.FC = () => {
 
   return (
     <Flex vertical className={commonStyles["container"]}>
-      <Flex vertical={false}>
+      <Flex
+        vertical={false}
+        justify="space-between"
+        align="center"
+        style={{ marginBottom: 16 }}
+      >
         <Title level={4} className={commonStyles["title"]}>
           <OverridableIcon name="lock" className={commonStyles["icon"]} />
           Secured Variables
         </Title>
+        <Flex vertical={false} gap={4}>
+          <ProtectedButton
+            require={{ securedVariable: ["delete"] }}
+            tooltipProps={{
+              title: "Delete selected variables",
+              placement: "bottom",
+            }}
+            buttonProps={{
+              iconName: "delete",
+              onClick: () => {
+                if (!hasSelected) return;
+                Modal.confirm({
+                  title: `Delete selected variable(s)?`,
+                  content: `Are you sure you want to delete variables(s)?`,
+                  onOk: handleDeleteSelected,
+                });
+              },
+              disabled: !hasSelected,
+            }}
+          />
+          <ProtectedButton
+            require={{ secret: ["create"] }}
+            tooltipProps={{ title: "Add secret", placement: "bottom" }}
+            buttonProps={{
+              iconName: "plus",
+              onClick: () => setCreateModalVisible(true),
+            }}
+          />
+        </Flex>
       </Flex>
 
       <Modal
@@ -390,30 +434,36 @@ export const SecuredVariables: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <Tooltip
-                    placement="topRight"
-                    title="Export secret as Helm Chart"
-                  >
-                    <LongActionButton
-                      size="small"
-                      type="text"
-                      icon={<OverridableIcon name="cloudDownload" />}
-                      onSubmit={async () => exportHelmChart(secret)}
-                    />
-                  </Tooltip>
-                  <Tooltip placement="topRight" title="Add variable">
-                    <Button
-                      icon={<OverridableIcon name="plus" />}
-                      size="small"
-                      type="text"
-                      onClick={() =>
+                  <Require permissions={{ secret: ["export"] }}>
+                    <Tooltip
+                      placement="topRight"
+                      title="Export secret as Helm Chart"
+                    >
+                      <LongActionButton
+                        size="small"
+                        type="text"
+                        icon={<OverridableIcon name="cloudDownload" />}
+                        onSubmit={async () => exportHelmChart(secret)}
+                      />
+                    </Tooltip>
+                  </Require>
+                  <ProtectedButton
+                    require={{ securedVariable: ["create"] }}
+                    tooltipProps={{
+                      placement: "topRight",
+                      title: "Add variable",
+                    }}
+                    buttonProps={{
+                      iconName: "plus",
+                      size: "small",
+                      type: "text",
+                      onClick: () =>
                         setNewVariableKeys((prev) => ({
                           ...prev,
                           [secret]: true,
-                        }))
-                      }
-                    />
-                  </Tooltip>
+                        })),
+                    }}
+                  />
                 </div>
               </div>
             ),
@@ -429,28 +479,6 @@ export const SecuredVariables: React.FC = () => {
         sticky
         scroll={{ y: "" }}
       />
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          tooltip={{
-            title: "Delete selected variables",
-            placement: "left",
-          }}
-          icon={<OverridableIcon name="delete" />}
-          onClick={() => {
-            if (!hasSelected) return;
-            Modal.confirm({
-              title: `Delete selected variable(s)?`,
-              content: `Are you sure you want to delete variables(s)?`,
-              onOk: handleDeleteSelected,
-            });
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Add secret", placement: "left" }}
-          icon={<OverridableIcon name="plus" />}
-          onClick={() => setCreateModalVisible(true)}
-        />
-      </FloatButtonGroup>
     </Flex>
   );
 };

@@ -1,17 +1,21 @@
 import {
+  Alert,
   Badge,
   BadgeProps,
   Button,
-  Dropdown,
   Flex,
-  MenuProps,
   Table,
+  Tag,
   Tooltip,
 } from "antd";
-import Search from "antd/lib/input/Search";
-import { DiagnosticValidation, ValidationState } from "../../api/apiTypes";
+import { CompactSearch } from "../table/CompactSearch";
+import {
+  DiagnosticValidation,
+  ValidationSeverity,
+  ValidationState,
+} from "../../api/apiTypes";
 import { TableProps } from "antd/lib/table";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TableRowSelection } from "antd/lib/table/interface";
 import { api } from "../../api/api";
 import { useNotificationService } from "../../hooks/useNotificationService";
@@ -20,6 +24,7 @@ import { IconName, OverridableIcon } from "../../icons/IconProvider";
 import { useModalsContext } from "../../Modals";
 import { DiagnosticValidationModal } from "./DiagnosticValidationModal";
 import { useDiagnosticValidationFilters } from "./useDiagnosticValidationFilters";
+import { useColumnSettingsBasedOnColumnsType } from "../table/useColumnSettingsButton";
 
 export const VALIDATION_STATE_TO_LABEL: { [key: string]: string } = {
   [ValidationState.OK]: "Finished",
@@ -48,6 +53,7 @@ type BaseTableItem = {
   children?: BaseTableItem[];
   icon?: IconName;
   alertsCount?: number;
+  severity?: ValidationSeverity;
 };
 
 type DiagnosticValidationTableItem = DiagnosticValidation & BaseTableItem;
@@ -68,6 +74,9 @@ export const Diagnostic: React.FC = () => {
   const { showModal } = useModalsContext();
   const [isLoading, setIsLoading] = useState(false);
   const [diagnosticInProgress, setDiagnosticInProgress] = useState<boolean>();
+  const diagnosticInProgressRef = useRef(diagnosticInProgress);
+  diagnosticInProgressRef.current = diagnosticInProgress;
+  const pollingTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [loadedValidations, setLoadedValidations] = useState<Set<string>>(
@@ -77,35 +86,13 @@ export const Diagnostic: React.FC = () => {
     [],
   );
   const [searchString, setSearchString] = useState<string>("");
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([
-    "title",
-    "status",
-    "alertsCount",
-    "hint",
-    "startTime",
-  ]);
   const { filters, filterButton } = useDiagnosticValidationFilters();
 
-  const columnVisibilityMenuItems: MenuProps["items"] = [
-    { label: "Name", key: "title" },
-    { label: "Status", key: "status" },
-    { label: "Alerts", key: "alertsCount" },
-    { label: "Hint", key: "hint" },
-    { label: "Start Time", key: "startTime" },
-  ];
-
   const columns: TableProps<DiagnosticValidationTableItem>["columns"] = [
-    {
-      title: "Table Id",
-      dataIndex: "itemId",
-      key: "itemId",
-      hidden: true,
-    },
     {
       title: "Name",
       dataIndex: "title",
       key: "title",
-      hidden: !selectedKeys.includes("title"),
       sorter: (a, b) => a.title.localeCompare(b.title),
       defaultSortOrder: "ascend",
       render: (_, validation) => {
@@ -155,7 +142,7 @@ export const Diagnostic: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      hidden: !selectedKeys.includes("status"),
+      width: 130,
       render: (_, validation) =>
         isDiagnosticValidation(validation) && (
           <Badge
@@ -176,14 +163,29 @@ export const Diagnostic: React.FC = () => {
       title: "Alerts",
       dataIndex: "alertsCount",
       key: "alertsCount",
-      hidden: !selectedKeys.includes("alertsCount"),
+      width: 90,
       sorter: (a, b) => (a.alertsCount ?? 0) - (b.alertsCount ?? 0),
+      render: (_, record) => {
+        const count = record.alertsCount;
+        if (count == null) return null;
+        if (count === 0) {
+          return isDiagnosticValidation(record) ? <Tag>{count}</Tag> : null;
+        }
+        const color =
+          record.severity === ValidationSeverity.ERROR ? "red" : "gold";
+        const bordered = isDiagnosticValidation(record);
+        return (
+          <Tag color={color} bordered={bordered}>
+            {count}
+          </Tag>
+        );
+      },
     },
     {
       title: "Hint",
       dataIndex: "hint",
       key: "hint",
-      hidden: !selectedKeys.includes("hint"),
+      width: 70,
       render: (_, validation) =>
         isDiagnosticValidation(validation) && (
           <Tooltip placement="left" title={validation.suggestion}>
@@ -195,7 +197,7 @@ export const Diagnostic: React.FC = () => {
       title: "Start Time",
       dataIndex: "startedWhen",
       key: "startTime",
-      hidden: !selectedKeys.includes("startTime"),
+      width: 180,
       render: (_, validation) =>
         isDiagnosticValidation(validation) &&
         validation?.status?.startedWhen &&
@@ -203,17 +205,22 @@ export const Diagnostic: React.FC = () => {
     },
   ];
 
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    setSelectedRowKeys(newSelectedRowKeys);
-  };
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<DiagnosticValidationTableItem>(
+      "diagnosticTable",
+      columns,
+    );
 
   const rowSelection: TableRowSelection<DiagnosticValidationTableItem> = {
     type: "checkbox",
     selectedRowKeys,
     checkStrictly: false,
-    onChange: onSelectChange,
+    onChange: setSelectedRowKeys,
     getCheckboxProps: (record) => ({
       disabled: !isDiagnosticValidation(record),
+      style: !isDiagnosticValidation(record)
+        ? { visibility: "hidden" as const }
+        : undefined,
     }),
   };
 
@@ -272,9 +279,12 @@ export const Diagnostic: React.FC = () => {
           break;
         }
       }
-      if (diagnosticInProgress) {
+      if (diagnosticInProgressRef.current) {
         if (stillInProgress) {
-          setTimeout(() => void loadValidations(), updateStatusDelay);
+          pollingTimerRef.current = setTimeout(
+            () => void loadValidations(),
+            updateStatusDelay,
+          );
         } else {
           setDiagnosticInProgress(false);
         }
@@ -284,10 +294,11 @@ export const Diagnostic: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [notificationService, diagnosticInProgress, searchString, filters]);
+  }, [notificationService, searchString, filters]);
 
   useEffect(() => {
     void loadValidations();
+    return () => clearTimeout(pollingTimerRef.current);
   }, [loadValidations]);
 
   const buildValidationWithChildren = (
@@ -295,6 +306,19 @@ export const Diagnostic: React.FC = () => {
   ): DiagnosticValidationTableItem => {
     const chainsMap: Map<string, BaseTableItem> = new Map();
     validation.chainEntities.forEach((element) => {
+      if (!element.elementId) {
+        if (!chainsMap.has(element.chainId)) {
+          chainsMap.set(element.chainId, {
+            itemId: `${validation.id}_${element.chainId}`,
+            id: element.chainId,
+            title: element.chainName,
+            type: "chain",
+            icon: "unorderedList",
+            severity: validation.severity,
+          });
+        }
+        return;
+      }
       let chain = chainsMap.get(element.chainId);
       if (!chain) {
         chain = {
@@ -304,6 +328,7 @@ export const Diagnostic: React.FC = () => {
           type: "chain",
           children: [],
           icon: "unorderedList",
+          severity: validation.severity,
         };
         chainsMap.set(chain.id, chain);
       }
@@ -331,26 +356,20 @@ export const Diagnostic: React.FC = () => {
   const openValidation = async (validationId: string) => {
     setIsLoading(true);
     try {
-      return api
-        .getValidation(validationId)
-        .then((validation: DiagnosticValidation) => {
-          if (!validation) {
-            return;
-          }
+      const validation = await api.getValidation(validationId);
+      if (!validation) {
+        return;
+      }
 
-          setTableData((prevState: DiagnosticValidationTableItem[]) => {
-            const newState = [...prevState];
-            return newState.map((tableItem) => {
-              const validatioItem = tableItem as DiagnosticValidation;
+      setTableData((prevState) =>
+        prevState.map((tableItem) =>
+          tableItem.id === validationId
+            ? buildValidationWithChildren(validation)
+            : tableItem,
+        ),
+      );
 
-              return validatioItem.id === validationId
-                ? buildValidationWithChildren(validation)
-                : tableItem;
-            });
-          });
-
-          updateLoadedValidations([validationId]);
-        });
+      updateLoadedValidations([validationId]);
     } catch (error) {
       notificationService.requestFailed(
         "Error while loading diagnostic validation details",
@@ -375,26 +394,23 @@ export const Diagnostic: React.FC = () => {
 
   return (
     <Flex vertical gap={16} style={{ height: "100%" }}>
-      <Flex vertical={false} gap={8}>
-        <Search
+      <Alert
+        type="info"
+        showIcon
+        message="This menu is only available for testing environment and won't be accessible on production. Data, created via this tab won't be exported with the chains."
+      />
+      <Flex vertical={false} gap={4}>
+        <CompactSearch
+          value={searchString}
+          onChange={setSearchString}
           placeholder="Full text search"
           allowClear
-          onSearch={(value) => setSearchString(value)}
         />
-        <Dropdown
-          menu={{
-            items: columnVisibilityMenuItems,
-            selectable: true,
-            multiple: true,
-            selectedKeys,
-            onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-            onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-          }}
-        >
-          <Button icon={<OverridableIcon name="settings" />} />
-        </Dropdown>
+        {columnSettingsButton}
         {filterButton}
         <Button
+          type="primary"
+          icon={<OverridableIcon name="caretRightFilled" />}
           title="Run Diagnostic"
           disabled={diagnosticInProgress || isLoading}
           onClick={() => void handleRunValidations()}
@@ -406,7 +422,7 @@ export const Diagnostic: React.FC = () => {
       <Table<DiagnosticValidationTableItem>
         size="small"
         className="flex-table"
-        columns={columns}
+        columns={orderedColumns}
         rowSelection={rowSelection}
         dataSource={tableData}
         pagination={false}
@@ -415,6 +431,16 @@ export const Diagnostic: React.FC = () => {
         sticky
         scroll={{ y: "" }}
         expandable={{
+          expandIcon: ({ expanded, onExpand, record, expandable }) =>
+            expandable ? (
+              <OverridableIcon
+                name={expanded ? "down" : "right"}
+                style={{ cursor: "pointer", marginRight: 8, fontSize: 12 }}
+                onClick={(e) => onExpand(record, e)}
+              />
+            ) : (
+              <span style={{ display: "inline-block", width: 20 }} />
+            ),
           expandedRowKeys,
           onExpandedRowsChange: (rowKeys) => {
             setExpandedRowKeys([...rowKeys]);

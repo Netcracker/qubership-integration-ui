@@ -1,4 +1,4 @@
-import { Button, Form, Input, Select } from "antd";
+import { Form, Input, Select } from "antd";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import TextArea from "antd/lib/input/TextArea";
 import { Chain } from "../api/apiTypes.ts";
@@ -16,6 +16,11 @@ import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { useBlocker } from "react-router-dom";
 import { useModalsContext } from "../Modals.tsx";
 import { UnsavedChangesModal } from "../components/modal/UnsavedChangesModal.tsx";
+import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
+import { ApplyFormButton } from "../components/ApplyFormButton.tsx";
+import { usePermissions } from "../permissions/usePermissions.tsx";
+import { hasPermissions } from "../permissions/funcs.ts";
+import { Require } from "../permissions/Require.tsx";
 
 export type FormData = {
   name: string;
@@ -36,8 +41,13 @@ export const ChainProperties: React.FC = () => {
   const { showModal } = useModalsContext();
   const notificationService = useNotificationService();
   const [form] = useForm();
-
   const chainContext = useContext(ChainContext);
+  const permissions = usePermissions();
+  const [disabled, setDisabled] = useState<boolean>(false);
+
+  useEffect(() => {
+    setDisabled(!hasPermissions(permissions, { chain: ["update"] }));
+  }, [permissions]);
 
   const getPathToFolder = useCallback(
     async (folderName: string | undefined) => {
@@ -166,12 +176,24 @@ export const ChainProperties: React.FC = () => {
     }
   };
 
+  useRegisterChainHeaderActions(
+    <Require permissions={{ chain: ["update"] }}>
+      <ApplyFormButton
+        formId="chain-properties-form"
+        loading={isUpdating}
+        disabled={!hasChanges}
+      />
+    </Require>,
+    [isUpdating, hasChanges],
+  );
+
   return (
-    <div className={styles.pageContainer as string}>
-      <div className={styles.formContent as string}>
+    <div className={styles.pageContainer}>
+      <div className={styles.formContent}>
         <Form<FormData>
+          id="chain-properties-form"
           form={form}
-          disabled={isUpdating}
+          disabled={isUpdating || disabled}
           labelCol={{ flex: "150px" }}
           wrapperCol={{ flex: "auto" }}
           labelWrap
@@ -196,28 +218,30 @@ export const ChainProperties: React.FC = () => {
             />
           </Form.Item>
           <Form.Item label="Description" name="description">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <TextArea
+              style={{ height: 120, resize: "none" }}
+              disabled={disabled}
+            />
           </Form.Item>
           <Form.Item label="Business Description" name="businessDescription">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <TextArea
+              style={{ height: 120, resize: "none" }}
+              disabled={disabled}
+            />
           </Form.Item>
           <Form.Item label="Assumptions" name="assumptions">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <TextArea
+              style={{ height: 120, resize: "none" }}
+              disabled={disabled}
+            />
           </Form.Item>
           <Form.Item label="Out of Scope" name="outOfScope">
-            <TextArea style={{ height: 120, resize: "none" }} />
+            <TextArea
+              style={{ height: 120, resize: "none" }}
+              disabled={disabled}
+            />
           </Form.Item>
           <ChainExtensionProperties onChange={() => setHasChanges(true)} />
-          <Form.Item wrapperCol={{ offset: 0 }} style={{ textAlign: "right" }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isUpdating}
-              disabled={!hasChanges}
-            >
-              Apply
-            </Button>
-          </Form.Item>
         </Form>
       </div>
     </div>

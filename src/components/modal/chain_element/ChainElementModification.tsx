@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { Button, Modal, Tabs, Flex } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
 import { Element, PatchElementRequest } from "../../../api/apiTypes.ts";
@@ -33,6 +34,7 @@ import {
   conditionalTabs,
   desiredTabOrder,
   getTabForPath,
+  getStaleProtocolProperties,
 } from "./ChainElementModificationConstants.ts";
 import { ChainGraphNode } from "../../graph/nodes/ChainGraphNodeTypes.ts";
 import MappingField from "./field/MappingField.tsx";
@@ -67,6 +69,7 @@ import {
 import BasePathField from "./field/BasePathField.tsx";
 import ExternalRouteCheckbox from "./field/ExternalRouteCheckbox.tsx";
 import ContextPathWithPrefixField from "./field/ContextPathWithPrefixField.tsx";
+import DescriptionTooltipFieldTemplate from "./DescriptionTooltipFieldTemplate.tsx";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -82,8 +85,17 @@ type TabField = {
   schema: JSONSchema7;
 };
 
-function constructTitle(name: string, type?: string): string {
-  return type ? `${name} (${type})` : `${name}`;
+function constructTitle(name: string, type?: string): React.ReactNode {
+  return (
+    <>
+      <span className={styles["modal-title-name"]} title={name}>
+        {name}
+      </span>
+      {type && (
+        <span className={styles["modal-title-type"]}>&nbsp;({type})</span>
+      )}
+    </>
+  );
 }
 
 // WA to hide array properties
@@ -105,7 +117,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const { updateElement } = useElement();
   const notificationService = useNotificationService();
   const { openElementDoc } = useDocumentation();
-  const [title, setTitle] = useState(constructTitle(`${node.data.label}`));
+  const [title, setTitle] = useState<React.ReactNode>(
+    constructTitle(`${node.data.label}`),
+  );
   const [schema, setSchema] = useState<JSONSchema7>({});
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [formContext, setFormContext] = useState<FormContext>({});
@@ -202,10 +216,47 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               normalizeProtocol(
                 updatedProperties.integrationOperationProtocolType as string,
               );
+
+            // Clean up properties that belong to other protocols
+            const newProtocol =
+              updatedProperties.integrationOperationProtocolType as string;
+            for (const prop of getStaleProtocolProperties(
+              newProtocol,
+              updatedProperties,
+            )) {
+              updatedProperties[prop] = undefined;
+            }
+          }
+          // For http-trigger, method is stored as httpMethodRestrict, not integrationOperationMethod
+          if (
+            node.data.elementType === "http-trigger" &&
+            "integrationOperationMethod" in updatedProperties
+          ) {
+            updatedProperties.httpMethodRestrict =
+              updatedProperties.integrationOperationMethod;
+            delete updatedProperties.integrationOperationMethod;
           }
           setFormContext((prevContext) =>
             enrichPropertiesUtil(prevContext, updatedProperties),
           );
+
+          // Directly clean formData.properties for keys not tracked in FormContext
+          setFormData((prevFormData) => {
+            const props = {
+              ...(prevFormData.properties as Record<string, unknown>),
+            };
+            let changed = false;
+            for (const [key, value] of Object.entries(updatedProperties)) {
+              if (value === undefined && key in props) {
+                delete props[key];
+                changed = true;
+              }
+            }
+            return changed
+              ? { ...prevFormData, properties: props }
+              : prevFormData;
+          });
+
           setHasChanges(true);
         },
       );
@@ -568,9 +619,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     <Modal
       open
       title={
-        <Flex align="center" gap={8}>
-          <span>{title}</span>
-          {
+        <Flex align="center" gap={4} wrap={false} justify="space-between">
+          <span className={styles["modal-title"]}>{title}</span>
+          <Flex align="center" gap={4} wrap={false} style={{ flexShrink: 0 }}>
             <Button
               icon={<OverridableIcon name="questionCircle" />}
               onClick={() => openElementDoc(node.data.elementType)}
@@ -578,10 +629,22 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               title="Help"
               size="small"
             />
-          }
+            <FullscreenButton
+              isFullscreen={isFullscreen}
+              onClick={handleFullscreen}
+            />
+            <Button
+              icon={<CloseOutlined />}
+              onClick={handleCheckUnsavedAndClose}
+              type="text"
+              title="Close"
+              size="small"
+            />
+          </Flex>
         </Flex>
       }
       onCancel={handleCheckUnsavedAndClose}
+      closable={false}
       maskClosable={false}
       loading={libraryElementIsLoading}
       style={isFullscreen ? { top: 0, margin: 0, padding: 0 } : {}}
@@ -619,10 +682,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     >
       {schema && activeKey && (
         <>
-          <FullscreenButton
-            isFullscreen={isFullscreen}
-            onClick={handleFullscreen}
-          />
           <Tabs
             activeKey={activeKey}
             onChange={handleTabChange}
@@ -640,11 +699,14 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             showErrorList={false}
             experimental_defaultFormStateBehavior={{
               allOf: "populateDefaults",
-              mergeDefaultsIntoFormData: "useFormDataIfPresent",
+              arrayMinItems: {
+                populate: "never",
+              },
             }}
             formContext={formContext}
             templates={{
               ObjectFieldTemplate: CustomObjectFieldTemplate,
+              FieldTemplate: DescriptionTooltipFieldTemplate,
             }}
             fields={{
               OneOfField: CustomOneOfField, //Rewrite default oneOfField

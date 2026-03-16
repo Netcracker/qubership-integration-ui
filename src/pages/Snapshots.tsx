@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Dropdown, FloatButton, Modal, Table } from "antd";
+import { Button, Table } from "antd";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
@@ -7,7 +7,6 @@ import { TableProps } from "antd/lib/table";
 import { DiagramMode, EntityLabel, Snapshot } from "../api/apiTypes.ts";
 import { formatTimestamp } from "../misc/format-utils.ts";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { TableRowSelection } from "antd/lib/table/interface";
 import { api } from "../api/api.ts";
 import { SnapshotXmlView } from "../components/modal/SnapshotXml.tsx";
@@ -28,6 +27,13 @@ import { LabelsEdit } from "../components/table/LabelsEdit.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
+import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
+import { ChainHeaderToolbar } from "../components/ChainHeaderToolbar.tsx";
+import { TablePageLayout } from "../components/TablePageLayout.tsx";
+import { filterOutByIds, toStringIds } from "../misc/selection-utils.ts";
+import { confirmAndRun } from "../misc/confirm-utils.ts";
+import { ProtectedDropdown } from "../permissions/ProtectedDropdown.tsx";
+import { Require } from "../permissions/Require.tsx";
 
 export const Snapshots: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
@@ -44,18 +50,18 @@ export const Snapshots: React.FC = () => {
 
   const onDeleteBtnClick = () => {
     if (selectedRowKeys.length === 0) return;
-    Modal.confirm({
+    confirmAndRun({
       title: "Delete Snapshots",
       content: `Are you sure you want to delete ${selectedRowKeys.length} snapshot(s) and related deployments?`,
-      onOk: async () => deleteSelectedSnapshots(),
+      onOk: deleteSelectedSnapshots,
     });
   };
 
   const deleteSnapshotWithConfirmation = (snapshot: Snapshot) => {
-    Modal.confirm({
+    confirmAndRun({
       title: "Delete Snapshot",
       content: `Are you sure you want to delete snapshot and related deployments?`,
-      onOk: async () => deleteSnapshot(snapshot),
+      onOk: () => deleteSnapshot(snapshot),
     });
   };
 
@@ -70,13 +76,9 @@ export const Snapshots: React.FC = () => {
 
   const deleteSelectedSnapshots = async () => {
     try {
-      const ids = selectedRowKeys.map((key) => key.toString());
+      const ids = toStringIds(selectedRowKeys);
       await api.deleteSnapshots(ids);
-      setSnapshots(
-        snapshots?.filter(
-          (snapshot) => !ids.some((id) => snapshot.id === id),
-        ) ?? [],
-      );
+      setSnapshots(filterOutByIds(snapshots, ids));
     } catch (error) {
       notificationService.requestFailed("Failed to delete snapshots", error);
     }
@@ -106,14 +108,14 @@ export const Snapshots: React.FC = () => {
 
   const onCompareBtnClick = () => {
     if (selectedRowKeys.length !== 2) return;
-    const [oneId, otherId] = selectedRowKeys.map((key) => key.toString());
+    const [oneId, otherId] = toStringIds(selectedRowKeys);
     showModal({
       component: <SnapshotsCompare oneId={oneId} otherId={otherId} />,
     });
   };
 
   const revertToSnapshotWithConfirmation = (snapshot: Snapshot) => {
-    Modal.confirm({
+    confirmAndRun({
       title: "Revert to Snapshot",
       content: (
         <>
@@ -122,7 +124,7 @@ export const Snapshots: React.FC = () => {
           All unsaved changes in the chain will be permanently lost!
         </>
       ),
-      onOk: async () => revertToSnapshot(snapshot.id),
+      onOk: () => revertToSnapshot(snapshot.id),
     });
   };
 
@@ -172,14 +174,19 @@ export const Snapshots: React.FC = () => {
       filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       onFilter: getTextColumnFilterFn((snapshot) => snapshot.name),
       render: (_, snapshot) => (
-        <InlineEdit<{ name: string }>
-          values={{ name: snapshot.name }}
-          editor={<TextValueEdit name={"name"} />}
-          viewer={snapshot.name}
-          onSubmit={async ({ name }) => {
-            await updateSnapshot(snapshot.id, name, snapshot.labels);
-          }}
-        />
+        <Require
+          permissions={{ snapshot: ["update"] }}
+          fallback={snapshot.name}
+        >
+          <InlineEdit<{ name: string }>
+            values={{ name: snapshot.name }}
+            editor={<TextValueEdit name={"name"} />}
+            viewer={snapshot.name}
+            onSubmit={async ({ name }) => {
+              await updateSnapshot(snapshot.id, name, snapshot.labels);
+            }}
+          />
+        </Require>
       ),
     },
     {
@@ -193,29 +200,34 @@ export const Snapshots: React.FC = () => {
         snapshot.labels.map((l) => l.name),
       ),
       render: (_, snapshot) => (
-        <InlineEdit<{ labels: string[] }>
-          values={{
-            labels: snapshot.labels
-              ?.filter((l) => !l.technical)
-              .map((l) => l.name),
-          }}
-          editor={<LabelsEdit name={"labels"} />}
-          viewer={<EntityLabels labels={snapshot.labels} />}
-          onSubmit={async ({ labels }) => {
-            await updateSnapshot(
-              snapshot.id,
-              snapshot.name,
-              labels.map((name) => ({ name, technical: false })),
-            );
-          }}
-        />
+        <Require
+          permissions={{ snapshot: ["update"] }}
+          fallback={<EntityLabels labels={snapshot.labels} />}
+        >
+          <InlineEdit<{ labels: string[] }>
+            values={{
+              labels: snapshot.labels
+                ?.filter((l) => !l.technical)
+                .map((l) => l.name),
+            }}
+            editor={<LabelsEdit name={"labels"} />}
+            viewer={<EntityLabels labels={snapshot.labels} />}
+            onSubmit={async ({ labels }) => {
+              await updateSnapshot(
+                snapshot.id,
+                snapshot.name,
+                labels.map((name) => ({ name, technical: false })),
+              );
+            }}
+          />
+        </Require>
       ),
     },
     {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
-      render: (_, snapshot) => <>{snapshot.createdBy?.username ?? "—"}</>,
+      render: (_, snapshot) => snapshot.createdBy?.username ?? "—",
       sorter: (a, b) =>
         (a.createdBy?.username ?? "").localeCompare(
           b.createdBy?.username ?? "",
@@ -229,11 +241,8 @@ export const Snapshots: React.FC = () => {
       title: "Created At",
       dataIndex: "createdWhen",
       key: "createdWhen",
-      render: (_, snapshot) => (
-        <>
-          {snapshot.createdWhen ? formatTimestamp(snapshot.createdWhen) : "-"}
-        </>
-      ),
+      render: (_, snapshot) =>
+        snapshot.createdWhen ? formatTimestamp(snapshot.createdWhen) : "-",
       sorter: (a, b) => (a.createdWhen ?? 0) - (b.createdWhen ?? 0),
       filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
       onFilter: getTimestampColumnFilterFn(
@@ -244,7 +253,7 @@ export const Snapshots: React.FC = () => {
       title: "Modified By",
       dataIndex: "modifiedBy",
       key: "modifiedBy",
-      render: (_, snapshot) => <>{snapshot.modifiedBy?.username ?? "—"}</>,
+      render: (_, snapshot) => snapshot.modifiedBy?.username ?? "—",
       sorter: (a, b) =>
         (a.modifiedBy?.username ?? "").localeCompare(
           b.modifiedBy?.username ?? "",
@@ -258,11 +267,8 @@ export const Snapshots: React.FC = () => {
       title: "Modified At",
       dataIndex: "modifiedWhen",
       key: "modifiedWhen",
-      render: (_, snapshot) => (
-        <>
-          {snapshot.modifiedWhen ? formatTimestamp(snapshot.modifiedWhen) : "-"}
-        </>
-      ),
+      render: (_, snapshot) =>
+        snapshot.modifiedWhen ? formatTimestamp(snapshot.modifiedWhen) : "-",
       sorter: (a, b) => (a.modifiedWhen ?? 0) - (b.modifiedWhen ?? 0),
       filterDropdown: (props) => <TimestampColumnFilterDropdown {...props} />,
       onFilter: getTimestampColumnFilterFn(
@@ -276,7 +282,7 @@ export const Snapshots: React.FC = () => {
       className: "actions-column",
       render: (_, snapshot) => (
         <>
-          <Dropdown
+          <ProtectedDropdown
             menu={{
               items: [
                 {
@@ -284,24 +290,28 @@ export const Snapshots: React.FC = () => {
                   icon: <OverridableIcon name="delete" />,
                   label: "Delete",
                   onClick: () => deleteSnapshotWithConfirmation(snapshot),
+                  require: { snapshot: ["delete"] },
                 },
                 {
                   key: "revert",
                   icon: <OverridableIcon name="rollback" />,
                   label: "Revert to",
                   onClick: () => revertToSnapshotWithConfirmation(snapshot),
+                  require: { snapshot: ["read"], chain: ["update"] },
                 },
                 {
                   key: "showXml",
                   icon: <OverridableIcon name="fileText" />,
                   label: "Show XML",
                   onClick: () => showSnapshotXml(snapshot),
+                  require: { snapshot: ["read"] },
                 },
                 {
                   key: "showDiagram",
                   icon: <span className="anticon">⭾</span>,
                   label: "Show diagram",
                   onClick: () => showSnapshotDiagram(snapshot),
+                  require: { snapshot: ["read"] },
                 },
               ],
             }}
@@ -313,7 +323,7 @@ export const Snapshots: React.FC = () => {
               type="text"
               icon={<OverridableIcon name="more" />}
             />
-          </Dropdown>
+          </ProtectedDropdown>
         </>
       ),
     },
@@ -329,8 +339,43 @@ export const Snapshots: React.FC = () => {
     onChange: onSelectChange,
   };
 
+  useRegisterChainHeaderActions(
+    <ChainHeaderToolbar
+      buttons={[
+        {
+          require: { snapshot: ["create"] },
+          tooltipProps: { title: "Create snapshot" },
+          buttonProps: {
+            type: "primary",
+            iconName: "plus",
+            onClick: onCreateBtnClick,
+          },
+        },
+        {
+          require: { snapshot: ["delete"] },
+          tooltipProps: { title: "Delete selected snapshots" },
+          buttonProps: {
+            iconName: "delete",
+            onClick: onDeleteBtnClick,
+            disabled: selectedRowKeys.length === 0,
+          },
+        },
+        {
+          require: { snapshot: ["read"] },
+          tooltipProps: { title: "Compare selected snapshots" },
+          buttonProps: {
+            icon: <>⇄</>,
+            onClick: onCompareBtnClick,
+            disabled: selectedRowKeys.length !== 2,
+          },
+        },
+      ]}
+    />,
+    [selectedRowKeys.length],
+  );
+
   return (
-    <>
+    <TablePageLayout>
       <Table
         size="small"
         columns={columns}
@@ -340,26 +385,9 @@ export const Snapshots: React.FC = () => {
         loading={isLoading}
         rowKey="id"
         className="flex-table"
-        style={{ height: "100%" }}
+        style={{ flex: 1, minHeight: 0 }}
         scroll={{ y: "" }}
       />
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          tooltip={{ title: "Compare selected snapshots", placement: "left" }}
-          icon={<>⇄</>}
-          onClick={onCompareBtnClick}
-        />
-        <FloatButton
-          tooltip={{ title: "Delete selected snapshots", placement: "left" }}
-          icon={<OverridableIcon name="delete" />}
-          onClick={onDeleteBtnClick}
-        />
-        <FloatButton
-          tooltip={{ title: "Create snapshot", placement: "left" }}
-          icon={<OverridableIcon name="plus" />}
-          onClick={onCreateBtnClick}
-        />
-      </FloatButtonGroup>
-    </>
+    </TablePageLayout>
   );
 };

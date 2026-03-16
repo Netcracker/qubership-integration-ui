@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
-  Dropdown,
+  Empty,
   Flex,
-  FloatButton,
   InputNumber,
-  MenuProps,
+  Modal,
   Space,
   Table,
   TableProps,
@@ -16,15 +15,6 @@ import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 import { LiveExchange, SessionsLoggingLevel } from "../../../api/apiTypes.ts";
 import { ResizableTitle } from "../../ResizableTitle.tsx";
 import commonStyles from "../CommonStyle.module.css";
-import {
-  getTextColumnFilterFn,
-  TextColumnFilterDropdown,
-} from "../../table/TextColumnFilterDropdown.tsx";
-import { FilterDropdownProps } from "antd/lib/table/interface";
-import {
-  getTimestampColumnFilterFn,
-  TimestampColumnFilterDropdown,
-} from "../../table/TimestampColumnFilterDropdown.tsx";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import { api } from "../../../api/api.ts";
 import {
@@ -33,14 +23,9 @@ import {
   PLACEHOLDER,
 } from "../../../misc/format-utils.ts";
 import { useNavigate } from "react-router";
-import {
-  EnumColumnFilterDropdown,
-  getEnumColumnFilterFn,
-} from "../../table/EnumColumnFilterDropdown.tsx";
-import {
-  getNumberColumnFilterFn,
-  NumberColumnFilterDropdown,
-} from "../../table/NumberColumnFilterDropdown.tsx";
+import { useLiveExchangeFilters } from "./useLiveExchangeFilters.tsx";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { useColumnSettingsBasedOnColumnsType } from "../../table/useColumnSettingsButton.tsx";
 
 const { Title } = Typography;
 
@@ -80,20 +65,12 @@ function buildTableItems(exchanges: LiveExchange[]): LiveExchangeTableItem[] {
 export const LiveExchanges: React.FC = () => {
   const notificationService = useNotificationService();
   const navigate = useNavigate();
+  const { filters, filterButton } = useLiveExchangeFilters();
 
   const [exchanges, setExchanges] = useState<LiveExchange[]>([]);
   const [items, setItems] = useState<LiveExchangeTableItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [limit, setLimit] = useState<number>(10);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    "sessionId",
-    "chainName",
-    "sessionDuration",
-    "duration",
-    "sessionStartTime",
-    "main",
-    "podIp",
-  ]);
 
   const [columnWidths, setColumnWidths] = useState<{ [key: string]: number }>({
     sessionId: 200,
@@ -141,18 +118,25 @@ export const LiveExchanges: React.FC = () => {
     [notificationService],
   );
 
+  const showTerminateExchangeModal = useCallback(
+    (liveExchange: LiveExchange) => {
+      Modal.confirm({
+        title: "Terminate Exchange",
+        content:
+          "Are you sure you want to terminate current exchange? That will cause current session to end with error.",
+        onOk: () => void terminateExchange(liveExchange),
+      });
+    },
+    [terminateExchange],
+  );
+
   const columns: TableProps<LiveExchangeTableItem>["columns"] = [
     {
       title: "Session ID",
       key: "sessionId",
       dataIndex: "sessionId",
-      hidden: !visibleColumns.includes("sessionId"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.sessionId ?? "").localeCompare(a.sessionId ?? ""),
-      filterDropdown: (props: FilterDropdownProps) => (
-        <TextColumnFilterDropdown {...props} />
-      ),
-      onFilter: getTextColumnFilterFn((item) => item?.sessionId ?? ""),
       onHeaderCell: () => ({
         width: columnWidths.sessionId,
         onResize: handleResize("sessionId"),
@@ -177,17 +161,10 @@ export const LiveExchanges: React.FC = () => {
       title: "Chain",
       key: "chainName",
       dataIndex: "chainName",
-      hidden: !visibleColumns.includes("chainName"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.chainName ?? b.chainId ?? "").localeCompare(
           a.chainName ?? a.chainId ?? "",
         ),
-      filterDropdown: (props: FilterDropdownProps) => (
-        <TextColumnFilterDropdown {...props} />
-      ),
-      onFilter: getTextColumnFilterFn(
-        (item) => item?.chainName ?? item.chainId ?? "",
-      ),
       onHeaderCell: () => ({
         width: columnWidths.chainName,
         onResize: handleResize("chainName"),
@@ -202,13 +179,8 @@ export const LiveExchanges: React.FC = () => {
       title: "Session Duration",
       key: "sessionDuration",
       dataIndex: "sessionDuration",
-      hidden: !visibleColumns.includes("sessionDuration"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.sessionDuration ?? 0) - (a.sessionDuration ?? 0),
-      filterDropdown: (props: FilterDropdownProps) => (
-        <NumberColumnFilterDropdown minValue={0} {...props} />
-      ),
-      onFilter: getNumberColumnFilterFn((item) => item.sessionDuration),
       onHeaderCell: () => ({
         width: columnWidths.sessionDuration,
         onResize: handleResize("sessionDuration"),
@@ -221,16 +193,9 @@ export const LiveExchanges: React.FC = () => {
       title: "Exchange Duration",
       key: "duration",
       dataIndex: "duration",
-      hidden: !visibleColumns.includes("duration"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (isLiveExchangeGroup(b) ? 0 : (b.duration ?? 0)) -
         (isLiveExchangeGroup(a) ? 0 : (a.duration ?? 0)),
-      filterDropdown: (props: FilterDropdownProps) => (
-        <NumberColumnFilterDropdown minValue={0} {...props} />
-      ),
-      onFilter: getNumberColumnFilterFn((item) =>
-        isLiveExchangeGroup(item) ? 0 : item.duration,
-      ),
       onHeaderCell: () => ({
         width: columnWidths.duration,
         onResize: handleResize("duration"),
@@ -247,15 +212,8 @@ export const LiveExchanges: React.FC = () => {
       title: "Session Started",
       key: "sessionStartTime",
       dataIndex: "sessionStartTime",
-      hidden: !visibleColumns.includes("sessionStartTime"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.sessionStartTime ?? 0) - (a.sessionStartTime ?? 0),
-      filterDropdown: (props: FilterDropdownProps) => (
-        <TimestampColumnFilterDropdown {...props} />
-      ),
-      onFilter: getTimestampColumnFilterFn(
-        (item) => item.sessionStartTime ?? 0,
-      ),
       onHeaderCell: () => ({
         width: columnWidths.sessionStartTime,
         onResize: handleResize("sessionStartTime"),
@@ -272,22 +230,9 @@ export const LiveExchanges: React.FC = () => {
       title: "Main thread",
       key: "main",
       dataIndex: "main",
-      hidden: !visibleColumns.includes("main"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (!isLiveExchangeGroup(b) && b.main ? 1 : 0) -
         (!isLiveExchangeGroup(a) && a.main ? 1 : 0),
-      filterDropdown: (props: FilterDropdownProps) => (
-        <EnumColumnFilterDropdown
-          options={[
-            { value: "true", label: "true" },
-            { value: "false", label: "false" },
-          ]}
-          {...props}
-        />
-      ),
-      onFilter: getEnumColumnFilterFn((item) =>
-        (!isLiveExchangeGroup(item) && (item.main ?? false)).toString(),
-      ),
       onHeaderCell: () => ({
         width: columnWidths.main,
         onResize: handleResize("main"),
@@ -303,15 +248,8 @@ export const LiveExchanges: React.FC = () => {
       title: "Pod IP",
       key: "podIp",
       dataIndex: "podIp",
-      hidden: !visibleColumns.includes("podIp"),
       sorter: (a: LiveExchangeTableItem, b: LiveExchangeTableItem) =>
         (b.podIp ?? "").localeCompare(a.podIp ?? ""),
-      filterDropdown: (props: FilterDropdownProps) => (
-        <TextColumnFilterDropdown {...props} />
-      ),
-      onFilter: getTextColumnFilterFn(
-        (liveExchange) => liveExchange?.podIp ?? "",
-      ),
       onHeaderCell: () => ({
         width: columnWidths.podIp,
         onResize: handleResize("podIp"),
@@ -326,27 +264,24 @@ export const LiveExchanges: React.FC = () => {
         isLiveExchangeGroup(item) ? (
           <></>
         ) : (
-          <Tooltip title={"Terminate exchange"}>
-            <Button
-              type="text"
-              icon={<OverridableIcon name="stop" />}
-              onClick={() => void terminateExchange(item)}
-            />
-          </Tooltip>
+          <ProtectedButton
+            require={{ liveExchange: ["execute"] }}
+            tooltipProps={{ title: "Terminate exchange" }}
+            buttonProps={{
+              type: "text",
+              iconName: "stop",
+              onClick: () => void showTerminateExchangeModal(item),
+            }}
+          />
         ),
     },
   ];
 
-  const columnVisibilityMenuItems: MenuProps["items"] = columns.map(
-    (column, index) => ({
-      label:
-        typeof column.title === "string"
-          ? column.title
-          : (column.key?.toString() ?? index),
-      key: column.key ?? index,
-      disabled: column.key === "sessionId",
-    }),
-  );
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<LiveExchangeTableItem>(
+      "liveExchangesTable",
+      columns,
+    );
 
   const totalColumnsWidth = Object.values(columnWidths).reduce(
     (acc, width) => acc + width,
@@ -356,14 +291,14 @@ export const LiveExchanges: React.FC = () => {
   const refresh = useCallback(async () => {
     try {
       setIsLoading(true);
-      const result = await api.getExchanges(limit);
+      const result = await api.getAndFilterExchanges(limit, filters);
       setExchanges(result);
     } catch (error) {
       notificationService.requestFailed("Failed to get live exchanges", error);
     } finally {
       setIsLoading(false);
     }
-  }, [notificationService, limit]);
+  }, [notificationService, limit, filters]);
 
   useEffect(() => {
     void refresh();
@@ -378,14 +313,14 @@ export const LiveExchanges: React.FC = () => {
       <Flex className={commonStyles["header"]}>
         <Title level={4} className={commonStyles["title"]}>
           <OverridableIcon
-            name="unorderedList"
+            name="liveExchanges"
             className={commonStyles["icon"]}
           />
           Live Exchanges
         </Title>
         <Flex
           vertical={false}
-          gap={8}
+          gap={4}
           className={commonStyles["actions"]}
           align={"center"}
         >
@@ -399,18 +334,14 @@ export const LiveExchanges: React.FC = () => {
               }}
             />
           </Space>
-          <Dropdown
-            menu={{
-              items: columnVisibilityMenuItems,
-              selectable: true,
-              multiple: true,
-              selectedKeys: visibleColumns,
-              onSelect: ({ selectedKeys }) => setVisibleColumns(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setVisibleColumns(selectedKeys),
-            }}
-          >
-            <Button type="text" icon={<OverridableIcon name="settings" />} />
-          </Dropdown>
+          {filterButton}
+          {columnSettingsButton}
+          <Tooltip title="Refresh" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="refresh" />}
+              onClick={() => void refresh()}
+            />
+          </Tooltip>
         </Flex>
       </Flex>
       <Flex
@@ -426,7 +357,7 @@ export const LiveExchanges: React.FC = () => {
         <Table<LiveExchangeTableItem>
           className="flex-table"
           size="small"
-          columns={columns}
+          columns={orderedColumns}
           dataSource={items}
           scroll={{ x: totalColumnsWidth, y: "" }}
           pagination={false}
@@ -440,11 +371,14 @@ export const LiveExchanges: React.FC = () => {
               cell: ResizableTitle,
             },
           }}
-        />
-        <FloatButton
-          tooltip={{ title: "Refresh", placement: "left" }}
-          icon={<OverridableIcon name="redo" />}
-          onClick={() => void refresh()}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No running chains available at the moment"
+              />
+            ),
+          }}
         />
       </Flex>
     </Flex>

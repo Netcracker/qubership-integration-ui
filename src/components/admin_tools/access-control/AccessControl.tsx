@@ -4,10 +4,8 @@ import {
   Table,
   Typography,
   Button,
-  Dropdown,
-  MenuProps,
-  FloatButton,
   Tag,
+  Tooltip,
   Drawer,
   Descriptions,
 } from "antd";
@@ -34,20 +32,11 @@ import { AbacAttributesPopUp } from "./AbacAttributesPopUp.tsx";
 import { AddDeleteRolesPopUp } from "./AddDeleteRolesPopUp.tsx";
 import { useNavigate } from "react-router";
 import { DeploymentsCumulativeState } from "../../deployment_runtime_states/DeploymentsCumulativeState.tsx";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { useColumnSettingsBasedOnColumnsType } from "../../table/useColumnSettingsButton.tsx";
 
 const { Title } = Typography;
-
-const columnVisibilityMenuItems: MenuProps["items"] = [
-  { label: "Endpoint", key: "endpoint" },
-  { label: "Type", key: "type" },
-  { label: "Access Control Type", key: "accessControlType" },
-  { label: "Roles", key: "roles" },
-  { label: "Attributes", key: "attributes" },
-  { label: "Chain", key: "chain" },
-  { label: "Chain Status", key: "chainStatus" },
-];
 
 const typeOptions = [
   { label: "External", value: "External" },
@@ -77,6 +66,8 @@ export const AccessControl: React.FC = () => {
     setAccessControlData,
     getAccessControl,
     bulkDeployAccessControl,
+    loadMore,
+    allDataLoaded,
   } = useAccessControl();
   const { showModal } = useModalsContext();
   const navigate = useNavigate();
@@ -91,16 +82,6 @@ export const AccessControl: React.FC = () => {
   const [deployedChainIds, setDeployedChainIds] = useState<Set<string>>(
     new Set(),
   );
-
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([
-    "endpoint",
-    "type",
-    "accessControlType",
-    "roles",
-    "attributes",
-    "chain",
-    "chainStatus",
-  ]);
 
   const [columnsWidth] = useState<{ [key: string]: number }>({
     checkbox: 50,
@@ -137,7 +118,14 @@ export const AccessControl: React.FC = () => {
     true,
   );
 
-  const onScroll = async (_event: UIEvent<HTMLDivElement>) => {};
+  const onScroll = async (event: UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    const isScrolledToTheEnd =
+      target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
+    if (!allDataLoaded && isScrolledToTheEnd && !isLoading) {
+      await loadMore();
+    }
+  };
 
   const showDrawer = (record: AccessControlData) => {
     setCurrentRecord(record);
@@ -220,11 +208,9 @@ export const AccessControl: React.FC = () => {
         if (record.chainId) {
           return (
             <a
-              onClick={() =>
-                void navigate(
-                  `/chains/${record.chainId}/graph/${record.elementId}`,
-                )
-              }
+              href={`/chains/${record.chainId}/graph/${record.elementId}`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               {(record.properties as unknown as AccessControlProperty)
                 ?.contextPath || "—"}
@@ -273,7 +259,6 @@ export const AccessControl: React.FC = () => {
       title: "Access Control Type",
       key: "accessControlType",
       dataIndex: "accessControlType",
-      hidden: !selectedKeys.includes("accessControlType"),
       filterDropdown: accessControlTypeFilter,
       onFilter: (value: React.Key | boolean, record: AccessControlData) => {
         const recordValue = (
@@ -409,33 +394,163 @@ export const AccessControl: React.FC = () => {
         return <>—</>;
       },
     },
-    {
-      title: "ID",
-      key: "id",
-      hidden: true,
-    },
   ];
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<AccessControlData>(
+      "accessControlTable",
+      columns,
+    );
 
   return (
     <Flex vertical className={commonStyles["container"]}>
       <Flex className={commonStyles["header"]}>
         <Title level={4} className={commonStyles["title"]}>
-          <OverridableIcon name="settings" className={commonStyles["icon"]} />
+          <OverridableIcon
+            name="accessControl"
+            className={commonStyles["icon"]}
+          />
           Access Control
         </Title>
-        <Flex vertical={false} gap={8} className={commonStyles["actions"]}>
-          <Dropdown
-            menu={{
-              items: columnVisibilityMenuItems,
-              selectable: true,
-              multiple: true,
-              selectedKeys,
-              onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
+        <Flex vertical={false} gap={4} className={commonStyles["actions"]}>
+          {columnSettingsButton}
+          <ProtectedButton
+            require={{ deployment: ["create"] }}
+            tooltipProps={{ title: "Redeploy", placement: "bottom" }}
+            buttonProps={{
+              iconName: "send",
+              onClick: () => {
+                if (selectedRowKeys.length === 0) {
+                  notificationService.info(
+                    "No selection",
+                    "Please select at least one row to modify",
+                  );
+                  return;
+                }
+                const selectedRecords = (accessControlData?.roles ?? []).filter(
+                  (record: AccessControlData) => {
+                    const rowKey = `${record.chainId}-${record.elementId}`;
+                    return selectedRowKeys.includes(rowKey);
+                  },
+                );
+                if (selectedRecords.length > 0) {
+                  void handleBulkDeploy(selectedRecords);
+                } else {
+                  notificationService.info(
+                    "Error",
+                    "Selected records not found",
+                  );
+                }
+              },
             }}
-          >
-            <Button icon={<OverridableIcon name="settings" />} />
-          </Dropdown>
+          />
+          <ProtectedButton
+            require={{ chain: ["update"] }}
+            tooltipProps={{ title: "Add Roles", placement: "bottom" }}
+            buttonProps={{
+              iconName: "plus",
+              onClick: () => {
+                if (selectedRowKeys.length === 0) {
+                  notificationService.info(
+                    "No selection",
+                    "Please select at least one row to modify",
+                  );
+                  return;
+                }
+                const selectedRecords = (accessControlData?.roles ?? []).filter(
+                  (record: AccessControlData) => {
+                    const rowKey = `${record.chainId}-${record.elementId}`;
+                    return selectedRowKeys.includes(rowKey);
+                  },
+                );
+                if (selectedRecords.length > 0) {
+                  const validRecords = selectedRecords.filter((record) => {
+                    const accessControlType = (
+                      record.properties as unknown as AccessControlProperty
+                    )?.accessControlType;
+                    return accessControlType !== AccessControlType.ABAC;
+                  });
+                  if (validRecords.length === 0) {
+                    notificationService.info(
+                      "Error",
+                      "Can't apply roles to ABAC endpoint",
+                    );
+                    return;
+                  }
+                  showModal({
+                    component: (
+                      <AddDeleteRolesPopUp
+                        records={validRecords}
+                        onSuccess={() => void getAccessControl()}
+                      />
+                    ),
+                  });
+                } else {
+                  notificationService.info(
+                    "Error",
+                    "Selected record not found",
+                  );
+                }
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["update"] }}
+            tooltipProps={{ title: "Delete Roles", placement: "bottom" }}
+            buttonProps={{
+              iconName: "minus",
+              onClick: () => {
+                if (selectedRowKeys.length === 0) {
+                  notificationService.info(
+                    "No selection",
+                    "Please select at least one row to delete roles",
+                  );
+                  return;
+                }
+                const selectedRecords = (accessControlData?.roles ?? []).filter(
+                  (record: AccessControlData) => {
+                    const rowKey = `${record.chainId}-${record.elementId}`;
+                    return selectedRowKeys.includes(rowKey);
+                  },
+                );
+                if (selectedRecords.length > 0) {
+                  const validRecords = selectedRecords.filter((record) => {
+                    const accessControlType = (
+                      record.properties as unknown as AccessControlProperty
+                    )?.accessControlType;
+                    return accessControlType !== AccessControlType.ABAC;
+                  });
+                  if (validRecords.length === 0) {
+                    notificationService.info(
+                      "Error",
+                      "Can't apply roles to ABAC endpoint",
+                    );
+                    return;
+                  }
+                  showModal({
+                    component: (
+                      <AddDeleteRolesPopUp
+                        records={validRecords}
+                        mode="delete"
+                        onSuccess={() => void getAccessControl()}
+                      />
+                    ),
+                  });
+                } else {
+                  notificationService.info(
+                    "Error",
+                    "Selected record not found",
+                  );
+                }
+              },
+            }}
+          />
+          <Tooltip title="Refresh" placement="bottom">
+            <Button
+              icon={<OverridableIcon name="refresh" />}
+              onClick={() => void getAccessControl()}
+            />
+          </Tooltip>
         </Flex>
       </Flex>
       <Flex
@@ -460,11 +575,9 @@ export const AccessControl: React.FC = () => {
               <Descriptions.Item label="Endpoint">
                 {currentRecord.chainId ? (
                   <a
-                    onClick={() =>
-                      void navigate(
-                        `/chains/${currentRecord?.chainId}/graph/${currentRecord?.elementId}`,
-                      )
-                    }
+                    href={`/chains/${currentRecord?.chainId}/graph/${currentRecord?.elementId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     {(
                       currentRecord.properties as unknown as AccessControlProperty
@@ -590,10 +703,7 @@ export const AccessControl: React.FC = () => {
           }}
         >
           <div
-            ref={
-              // ResizeObserver ref from useResizeHeight is compatible with div
-              containerRef as unknown as React.Ref<HTMLDivElement>
-            }
+            ref={containerRef as unknown as React.Ref<HTMLDivElement>}
             style={{
               height: "100%",
               display: "flex",
@@ -603,8 +713,7 @@ export const AccessControl: React.FC = () => {
             <Table<AccessControlData>
               className="flex-table"
               size="small"
-              /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- columns type from ColumnsType */
-              columns={columns}
+              columns={orderedColumns}
               dataSource={accessControlData?.roles}
               scroll={{
                 x: totalColumnsWidth,
@@ -652,128 +761,6 @@ export const AccessControl: React.FC = () => {
           </div>
         </Flex>
       </Flex>
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          tooltip={{ title: "Redeploy", placement: "left" }}
-          icon={<OverridableIcon name="send" />}
-          onClick={() => {
-            if (selectedRowKeys.length === 0) {
-              notificationService.info(
-                "No selection",
-                "Please select at least one row to modify",
-              );
-              return;
-            }
-
-            const selectedRecords = (accessControlData?.roles ?? []).filter(
-              (record: AccessControlData) => {
-                const rowKey = `${record.chainId}-${record.elementId}`;
-                return selectedRowKeys.includes(rowKey);
-              },
-            );
-
-            if (selectedRecords.length > 0) {
-              void handleBulkDeploy(selectedRecords);
-            } else {
-              notificationService.info("Error", "Selected records not found");
-            }
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Add Roles", placement: "left" }}
-          icon={<OverridableIcon name="plus" />}
-          onClick={() => {
-            if (selectedRowKeys.length === 0) {
-              notificationService.info(
-                "No selection",
-                "Please select at least one row to modify",
-              );
-              return;
-            }
-            const selectedRecords = (accessControlData?.roles ?? []).filter(
-              (record: AccessControlData) => {
-                const rowKey = `${record.chainId}-${record.elementId}`;
-                return selectedRowKeys.includes(rowKey);
-              },
-            );
-            if (selectedRecords.length > 0) {
-              const validRecords = selectedRecords.filter((record) => {
-                const accessControlType = (
-                  record.properties as unknown as AccessControlProperty
-                )?.accessControlType;
-                return accessControlType !== AccessControlType.ABAC;
-              });
-              if (validRecords.length === 0) {
-                notificationService.info(
-                  "Error",
-                  "Can't apply roles to ABAC endpoint",
-                );
-                return;
-              }
-              showModal({
-                component: (
-                  <AddDeleteRolesPopUp
-                    records={validRecords}
-                    onSuccess={() => void getAccessControl()}
-                  />
-                ),
-              });
-            } else {
-              notificationService.info("Error", "Selected record not found");
-            }
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Delete Roles", placement: "left" }}
-          icon={<OverridableIcon name="minus" />}
-          onClick={() => {
-            if (selectedRowKeys.length === 0) {
-              notificationService.info(
-                "No selection",
-                "Please select at least one row to delete roles",
-              );
-              return;
-            }
-            const selectedRecords = (accessControlData?.roles ?? []).filter(
-              (record: AccessControlData) => {
-                const rowKey = `${record.chainId}-${record.elementId}`;
-                return selectedRowKeys.includes(rowKey);
-              },
-            );
-            if (selectedRecords.length > 0) {
-              const validRecords = selectedRecords.filter((record) => {
-                const accessControlType = (
-                  record.properties as unknown as AccessControlProperty
-                )?.accessControlType;
-                return accessControlType !== AccessControlType.ABAC;
-              });
-              if (validRecords.length === 0) {
-                notificationService.info(
-                  "Error",
-                  "Can't apply roles to ABAC endpoint",
-                );
-                return;
-              }
-              showModal({
-                component: (
-                  <AddDeleteRolesPopUp
-                    records={validRecords}
-                    mode="delete"
-                    onSuccess={() => void getAccessControl()}
-                  />
-                ),
-              });
-            } else {
-              notificationService.info("Error", "Selected record not found");
-            }
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Refresh", placement: "left" }}
-          icon={<OverridableIcon name="redo" />}
-          onClick={() => void getAccessControl()}
-        />
-      </FloatButtonGroup>
     </Flex>
   );
 };

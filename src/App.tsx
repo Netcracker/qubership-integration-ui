@@ -35,15 +35,15 @@ import { AccessControl } from "./components/admin_tools/access-control/AccessCon
 import { NotImplemented } from "./pages/NotImplemented.tsx";
 import { SessionsPage } from "./pages/SessionsPage.tsx";
 import Services from "./pages/Services.tsx";
-import { ServiceParametersPage } from "./components/services/ServiceParametersPage.tsx";
+import { ServiceParametersPage } from "./components/services/detail/ServiceParametersPage.tsx";
 import AdminTools from "./pages/AdminTools.tsx";
 import { Masking } from "./pages/Masking.tsx";
 import { DocumentationPage } from "./pages/DocumentationPage.tsx";
 import {
+  applyThemeToDOM,
   initializeBrowserTheme,
   setupThemeListener,
   ThemeMode,
-  applyThemeToDOM,
 } from "./theme/themeInit.ts";
 import { getAntdThemeConfig } from "./theme/antdTokens.ts";
 import { IconProvider } from "./icons/IconProvider.tsx";
@@ -54,6 +54,11 @@ import { LiveExchanges } from "./components/admin_tools/exchanges/LiveExchanges.
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
 import DevTools from "./pages/DevTools.tsx";
 import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValidationPage.tsx";
+import { DesignTemplates } from "./components/admin_tools/design-templates/DesignTemplates.tsx";
+import { ImportInstructions } from "./components/admin_tools/ImportInstructions.tsx";
+import { UserPermissionsProvider } from "./permissions/UserPermissionsProvider.tsx";
+import { Require } from "./permissions/Require.tsx";
+import { NotAuthorized } from "./permissions/NotAuthorized.tsx";
 
 const { Header } = Layout;
 
@@ -87,14 +92,34 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       <Route element={<RootLayout />}>
-        <Route path="/devtools" element={<DevTools />}>
+        <Route
+          path="/devtools"
+          element={
+            <Require
+              permissions={{ devTools: ["read"] }}
+              fallback={<NotAuthorized />}
+            >
+              <DevTools />
+            </Require>
+          }
+        >
           <Route path="" element={<Navigate to="diagnostic/validations" />} />
           <Route
             path="diagnostic/validations"
             element={<DiagnosticValidationPage />}
           />
         </Route>
-        <Route path="/admintools" element={<AdminTools />}>
+        <Route
+          path="/admintools"
+          element={
+            <Require
+              permissions={{ adminTools: ["read"] }}
+              fallback={<NotAuthorized />}
+            >
+              <AdminTools />
+            </Require>
+          }
+        >
           <Route path="" element={<Navigate to="domains" />} />
           <Route path="domains" element={<Domains />} />
           <Route
@@ -105,12 +130,38 @@ const router = createBrowserRouter(
           <Route path="variables/secured" element={<SecuredVariables />} />
           <Route path="audit" element={<ActionsLog />} />
           <Route path="sessions" element={<SessionsPage />} />
+          <Route path="import-instructions" element={<ImportInstructions />} />
           <Route path="access-control" element={<AccessControl />} />
           <Route path="exchanges" element={<LiveExchanges />} />
+          <Route
+            path="detailed-design/templates"
+            element={<DesignTemplates />}
+          />
         </Route>
         <Route index path="/" element={<Navigate to="/chains" />} />
-        <Route index path="/chains" element={<Chains />} />
-        <Route path="/chains/:chainId" element={<ChainPage />}>
+        <Route
+          index
+          path="/chains"
+          element={
+            <Require
+              permissions={{ chain: ["list"] }}
+              fallback={<NotAuthorized />}
+            >
+              <Chains />
+            </Require>
+          }
+        />
+        <Route
+          path="/chains/:chainId"
+          element={
+            <Require
+              permissions={{ chain: ["read"] }}
+              fallback={<NotAuthorized />}
+            >
+              <ChainPage />
+            </Require>
+          }
+        >
           <Route index element={<ChainGraph />} />
           <Route index path="graph" element={<ChainGraph />} />
           <Route path="graph/:elementId" element={<ChainGraph />} />
@@ -122,7 +173,17 @@ const router = createBrowserRouter(
           <Route path="masking" element={<Masking />} />
           <Route path="properties" element={<ChainProperties />} />
         </Route>
-        <Route path="/services" element={<Services />} />
+        <Route
+          path="/services"
+          element={
+            <Require
+              permissions={{ service: ["list"] }}
+              fallback={<NotAuthorized />}
+            >
+              <Services />
+            </Require>
+          }
+        />
         <Route
           path="/services/systems/:systemId/parameters"
           element={<ServiceParametersPage />}
@@ -161,8 +222,7 @@ const router = createBrowserRouter(
 
 const App = () => {
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    const initialTheme = initializeBrowserTheme();
-    return initialTheme;
+    return initializeBrowserTheme();
   });
   const [, setThemeUpdateKey] = useState(0);
 
@@ -218,17 +278,19 @@ const App = () => {
 
   return (
     <ConfigProvider theme={antdConfig}>
-      <AntdApp>
-        <IconProvider>
-          <ThemeContext.Provider value={themeContextValue}>
-            <EventNotification>
-              <Modals>
-                <RouterProvider router={router} />
-              </Modals>
-            </EventNotification>
-          </ThemeContext.Provider>
-        </IconProvider>
-      </AntdApp>
+      <UserPermissionsProvider>
+        <AntdApp>
+          <IconProvider>
+            <ThemeContext.Provider value={themeContextValue}>
+              <EventNotification>
+                <Modals>
+                  <RouterProvider router={router} />
+                </Modals>
+              </EventNotification>
+            </ThemeContext.Provider>
+          </IconProvider>
+        </AntdApp>
+      </UserPermissionsProvider>
     </ConfigProvider>
   );
 };

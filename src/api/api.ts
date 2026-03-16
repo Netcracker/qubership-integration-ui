@@ -76,6 +76,12 @@ import type {
   AccessControlResponse,
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
+  DiscoveryResponse,
+  GeneralImportInstructions,
+  ImportInstruction,
+  ImportInstructionRequest,
+  ImportInstructionResult,
+  DeleteImportInstructionsRequest,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -220,16 +226,11 @@ export interface Api {
 
   importSessions(files: File[]): Promise<Session[]>;
 
-  retryFromLastCheckpoint(chainId: string, sessionId: string): Promise<void>;
-
   getSession(sessionId: string): Promise<Session>;
 
   getCheckpointSessions(sessionIds: string[]): Promise<CheckpointSession[]>;
 
-  retrySessionFromLastCheckpoint(
-    chainId: string,
-    sessionId: string,
-  ): Promise<void>;
+  retrySessionFromCheckpoint(chainId: string, sessionId: string): Promise<void>;
 
   getFolder(folderId: string): Promise<FolderItem>;
 
@@ -308,6 +309,10 @@ export interface Api {
     modelType: string,
     withSpec: boolean,
   ): Promise<IntegrationSystem[]>;
+
+  filterServices(filters: EntityFilterModel[]): Promise<IntegrationSystem[]>;
+
+  searchServices(searchCondition: string): Promise<IntegrationSystem[]>;
 
   createService(system: SystemRequest): Promise<IntegrationSystem>;
 
@@ -463,6 +468,11 @@ export interface Api {
 
   getExchanges(limit: number): Promise<LiveExchange[]>;
 
+  getAndFilterExchanges(
+    limit: number,
+    filters: EntityFilterModel[],
+  ): Promise<LiveExchange[]>;
+
   terminateExchange(
     podIp: string,
     deploymentId: string,
@@ -537,6 +547,31 @@ export interface Api {
   bulkDeployChainsAccessControl(
     searchRequest: AccessControlBulkDeployRequest[],
   ): Promise<AccessControlResponse>;
+
+  runServiceDiscovery(): Promise<unknown>;
+
+  isAutodiscoveryInProgress(): Promise<number>;
+
+  getAutodiscoveryResult(): Promise<DiscoveryResponse>;
+
+  // Admin Tools: Import Instructions
+  getImportInstructions(): Promise<GeneralImportInstructions>;
+
+  addImportInstruction(
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction>;
+
+  updateImportInstruction(
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction>;
+
+  deleteImportInstructions(
+    payload: DeleteImportInstructionsRequest,
+  ): Promise<void>;
+
+  uploadImportInstructions(file: File): Promise<ImportInstructionResult[]>;
+
+  exportImportInstructions(): Promise<File>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

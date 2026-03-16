@@ -517,12 +517,25 @@ export type ImportInstructions = {
 
 export type ImportInstruction = {
   id: string;
-  name: string;
-  overriddenById: string;
-  overriddenByName: string;
-  labels: string[];
-  modifiedWhen: number;
-  preview: boolean;
+  name?: string;
+  overriddenById?: string;
+  overriddenByName?: string;
+  labels?: string[];
+  modifiedWhen?: number;
+  preview?: boolean;
+};
+
+export type ImportInstructionRequest = {
+  id: string;
+  entityType: ImportEntityType;
+  action: ImportInstructionAction;
+  overriddenBy?: string | null;
+};
+
+export type DeleteImportInstructionsRequest = {
+  chains?: string[];
+  services?: string[];
+  commonVariables?: string[];
 };
 
 export enum SystemImportStatus {
@@ -969,6 +982,7 @@ export type ChainDeployment = {
 };
 
 export type DetailedDesignTemplate = BaseEntity & {
+  builtIn: boolean;
   content?: string;
 };
 
@@ -1362,4 +1376,17 @@ export interface UsedPropertyElement {
   name: string;
   type: string;
   operations: UsedPropertyElementOperation[];
+}
+
+export interface DiscoveryError {
+  serviceName: string;
+  message: string;
+}
+
+export interface DiscoveryResponse {
+  discoveredSystemIds: string[];
+  discoveredGroupIds: string[];
+  discoveredSpecificationIds: string[];
+  updatedSystemsIds: string[];
+  errorMessages: DiscoveryError[];
 }
