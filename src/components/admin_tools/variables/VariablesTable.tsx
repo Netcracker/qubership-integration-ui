@@ -300,7 +300,6 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
     ...(isAddingNew ? [{ key: NEW_VARIABLE_KEY, value: "" }] : []),
     ...variables,
   ];
-  /* eslint-enable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
 
   return (
     <Table<Variable>

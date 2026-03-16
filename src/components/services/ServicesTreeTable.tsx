@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Table, Dropdown, Button, Modal } from "antd";
+import { Table, Button, Modal } from "antd";
 import type {
   FilterDropdownProps,
   TableRowSelection,
@@ -458,7 +458,7 @@ export interface ActionConfig<T = never> {
     cancelText?: string;
   };
   visible?: (record: T) => boolean;
-  require?: RequiredPermissions,
+  require?: RequiredPermissions;
 }
 
 function ActionMenu<T>({
@@ -543,7 +543,7 @@ export function getServiceActions({
         label: "Edit",
         icon: <OverridableIcon name="edit" />,
         onClick: onEdit,
-        require: { service: ["update"] }
+        require: { service: ["update"] },
       },
       {
         key: "delete",
@@ -555,7 +555,7 @@ export function getServiceActions({
           okText: "Delete",
           cancelText: "Cancel",
         },
-        require: { service: ["delete"] }
+        require: { service: ["delete"] },
       },
     ];
     if (isExpandAvailable(record)) {
@@ -581,7 +581,7 @@ export function getServiceActions({
         label: "Export",
         icon: <OverridableIcon name="cloudDownload" />,
         onClick: (rec) => onExportSelected([rec]),
-        require: { service: ["export"] }
+        require: { service: ["export"] },
       });
     }
     return actions;
