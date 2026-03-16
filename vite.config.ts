@@ -7,15 +7,9 @@ export default defineConfig({
   plugins: [react(), sassDts()],
   server: {
     host: true,
-    port: 4300,
+    port: 4200,
     hmr: {
-      clientPort: 4300,
-    },
-    proxy: {
-      "/api": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
+      clientPort: 4200,
     },
   },
   optimizeDeps: {
