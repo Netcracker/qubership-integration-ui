@@ -6,11 +6,15 @@ import { useElkDirectionContext } from "../../pages/ElkDirectionContext.tsx";
 import { Button } from "antd";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
+type CustomControlsProps = {
+  extraButtons?: React.ReactNode;
+  onExpandAllContainers?: () => void;
+};
+
 export const CustomControls = ({
   extraButtons,
-}: {
-  extraButtons?: React.ReactNode;
-}) => {
+  onExpandAllContainers,
+}: CustomControlsProps) => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { toggleDirection, toggleRightPanel } = useElkDirectionContext();
 
@@ -49,9 +53,16 @@ export const CustomControls = ({
       <Button
         className={styles.button}
         type={"text"}
-        title="Right panel"
+        title="Right Panel"
         onClick={toggleRightPanel}
         icon={<OverridableIcon name="rightPanel" />}
+      />
+      <Button
+        className={styles.button}
+        type={"text"}
+        title="Expand All"
+        onClick={onExpandAllContainers}
+        icon={<OverridableIcon name="expandCollapse" />}
       />
       {extraButtons ? (
         <>

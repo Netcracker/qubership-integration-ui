@@ -299,6 +299,31 @@ export function useExpandCollapse(
     [nodes, edges, setNodes, setEdges, setNestedUnitCounts, structureChanged],
   );
 
+  const expandAllContainers = useCallback(() => {
+    const allContainerIds = nodes
+      .filter((node) => node.type === "container")
+      .map((node) => node.id);
+
+    if (!allContainerIds.length) return;
+
+    const nextNodes = nodes.map((node) =>
+      node.type === "container"
+        ? { ...node, data: { ...node.data, collapsed: false } }
+        : node,
+    );
+
+    const hiddenIds = computeHiddenNodeIds(nextNodes);
+    const processedNodes = setNestedUnitCounts(
+      reapplyNodeFlags(nextNodes, hiddenIds),
+    );
+    const processedEdges = reapplyEdgeFlags(processedNodes, edges);
+
+    setNodes(processedNodes);
+    setEdges(processedEdges);
+
+    structureChanged(allContainerIds);
+  }, [nodes, edges, setNodes, setEdges, setNestedUnitCounts, structureChanged]);
+
   return {
     attachToggle,
     setNestedUnitCounts,
@@ -307,5 +332,6 @@ export function useExpandCollapse(
     buildDecorativeEdges,
     expandContainers,
     toggle,
+    expandAllContainers,
   };
 }
