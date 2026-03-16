@@ -544,7 +544,9 @@ export const ImportInstructions: React.FC = () => {
           if (!showOverriddenBy) return "";
           if (!enableEdit) {
             return (
-              <span>{row.overriddenByName ?? row.overriddenById ?? PLACEHOLDER}</span>
+              <span>
+                {row.overriddenByName ?? row.overriddenById ?? PLACEHOLDER}
+              </span>
             );
           }
 

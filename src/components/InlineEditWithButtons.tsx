@@ -61,13 +61,23 @@ export function InlineEditWithButtons<Values>(
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle();
+    }
+  };
+
   if (!active) {
     return (
       <InlineEditContext.Provider value={{ toggle }}>
         <div
+          role="button"
+          tabIndex={0}
           className={styles.inlineEditValueWrap}
           style={{ paddingInlineEnd: 24 }}
           onClick={toggle}
+          onKeyDown={handleKeyDown}
         >
           {props.viewer}
         </div>

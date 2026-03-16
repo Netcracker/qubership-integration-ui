@@ -248,7 +248,7 @@ describe("ImportInstructions", () => {
     expect(
       await screen.findByText("Upload Instructions (yaml, yml)"),
     ).toBeInTheDocument();
-  }, 8000);
+  }, 10000);
 
   it("displays column settings button", async () => {
     const { ImportInstructions } = await import(

@@ -184,8 +184,10 @@ export const CommonVariables = () => {
         isValueHidden={false}
         columnsWidth={columnsWidth}
         onResize={handleResize}
-        enableEdit={hasPermissions(permissions, { commonVariable: ["update"]})}
-        enableDelete={hasPermissions(permissions, { commonVariable: ["delete"]})}
+        enableEdit={hasPermissions(permissions, { commonVariable: ["update"] })}
+        enableDelete={hasPermissions(permissions, {
+          commonVariable: ["delete"],
+        })}
       />
     </Flex>
   );
