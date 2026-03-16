@@ -236,6 +236,7 @@ export const useChainGraph = (
     reapplyNodesVisibility,
     reapplyEdgesVisibility,
     expandAllContainers,
+    collapseAllContainers,
   } = useExpandCollapse(
     nodes as ChainGraphNode[],
     setNodes,
@@ -1039,5 +1040,6 @@ export const useChainGraph = (
     onContextMenuCall,
     isLoading: isLoading && isLibraryLoading,
     expandAllContainers,
+    collapseAllContainers,
   };
 };

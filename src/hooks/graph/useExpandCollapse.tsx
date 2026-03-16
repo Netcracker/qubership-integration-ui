@@ -299,30 +299,41 @@ export function useExpandCollapse(
     [nodes, edges, setNodes, setEdges, setNestedUnitCounts, structureChanged],
   );
 
+  const setAllContainersCollapsed = useCallback(
+    (collapsed: boolean) => {
+      const allContainerIds = nodes
+        .filter((node) => node.type === "container")
+        .map((node) => node.id);
+
+      if (!allContainerIds.length) return;
+
+      const nextNodes = nodes.map((node) =>
+        node.type === "container"
+          ? { ...node, data: { ...node.data, collapsed } }
+          : node,
+      );
+
+      const hiddenIds = computeHiddenNodeIds(nextNodes);
+      const processedNodes = setNestedUnitCounts(
+        reapplyNodeFlags(nextNodes, hiddenIds),
+      );
+      const processedEdges = reapplyEdgeFlags(processedNodes, edges);
+
+      setNodes(processedNodes);
+      setEdges(processedEdges);
+
+      structureChanged(allContainerIds);
+    },
+    [nodes, edges, setNodes, setEdges, setNestedUnitCounts, structureChanged],
+  );
+
   const expandAllContainers = useCallback(() => {
-    const allContainerIds = nodes
-      .filter((node) => node.type === "container")
-      .map((node) => node.id);
+    setAllContainersCollapsed(false);
+  }, [setAllContainersCollapsed]);
 
-    if (!allContainerIds.length) return;
-
-    const nextNodes = nodes.map((node) =>
-      node.type === "container"
-        ? { ...node, data: { ...node.data, collapsed: false } }
-        : node,
-    );
-
-    const hiddenIds = computeHiddenNodeIds(nextNodes);
-    const processedNodes = setNestedUnitCounts(
-      reapplyNodeFlags(nextNodes, hiddenIds),
-    );
-    const processedEdges = reapplyEdgeFlags(processedNodes, edges);
-
-    setNodes(processedNodes);
-    setEdges(processedEdges);
-
-    structureChanged(allContainerIds);
-  }, [nodes, edges, setNodes, setEdges, setNestedUnitCounts, structureChanged]);
+  const collapseAllContainers = useCallback(() => {
+    setAllContainersCollapsed(true);
+  }, [setAllContainersCollapsed]);
 
   return {
     attachToggle,
@@ -333,5 +344,6 @@ export function useExpandCollapse(
     expandContainers,
     toggle,
     expandAllContainers,
+    collapseAllContainers,
   };
 }

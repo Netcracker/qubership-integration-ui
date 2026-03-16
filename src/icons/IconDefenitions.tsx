@@ -111,7 +111,8 @@ import {
   HddOutlined,
   CloudSyncOutlined,
   ImportOutlined,
-  ExpandAltOutlined,
+  ShrinkOutlined,
+  ArrowsAltOutlined,
 } from "@ant-design/icons";
 
 export const commonIcons = {
@@ -159,7 +160,8 @@ export const commonIcons = {
   closeCircle: CloseCircleOutlined,
   minus: MinusOutlined,
   expand: ExpandOutlined,
-  expandAll: ExpandAltOutlined,
+  expandAll: ArrowsAltOutlined,
+  collapseAll: ShrinkOutlined,
   rotateRight: RotateRightOutlined,
   clear: ClearOutlined,
   ellipsis: EllipsisOutlined,

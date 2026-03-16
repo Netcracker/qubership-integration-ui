@@ -9,11 +9,13 @@ import { OverridableIcon } from "../../icons/IconProvider.tsx";
 type CustomControlsProps = {
   extraButtons?: React.ReactNode;
   onExpandAllContainers?: () => void;
+  onCollapseAllContainers?: () => void;
 };
 
 export const CustomControls = ({
   extraButtons,
   onExpandAllContainers,
+  onCollapseAllContainers,
 }: CustomControlsProps) => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { toggleDirection, toggleRightPanel } = useElkDirectionContext();
@@ -53,16 +55,23 @@ export const CustomControls = ({
       <Button
         className={styles.button}
         type={"text"}
-        title="Right Panel"
-        onClick={toggleRightPanel}
-        icon={<OverridableIcon name="rightPanel" />}
+        title="Expand All"
+        onClick={onExpandAllContainers}
+        icon={<OverridableIcon name="expandAll" />}
       />
       <Button
         className={styles.button}
         type={"text"}
-        title="Expand All"
-        onClick={onExpandAllContainers}
-        icon={<OverridableIcon name="expandAll" />}
+        title="Collapse All"
+        onClick={onCollapseAllContainers}
+        icon={<OverridableIcon name="collapseAll" />}
+      />
+      <Button
+        className={styles.button}
+        type={"text"}
+        title="Right Panel"
+        onClick={toggleRightPanel}
+        icon={<OverridableIcon name="rightPanel" />}
       />
       {extraButtons ? (
         <>
