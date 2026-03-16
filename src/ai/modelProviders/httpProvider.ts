@@ -22,10 +22,19 @@ export class HttpAiModelProvider implements AiModelProvider {
   displayName = "HTTP AI Service Provider";
   capabilities = capabilities;
 
-  constructor(private serviceUrl: string) {
+  constructor(
+    private serviceUrl: string,
+    private getToken?: () => string | null | undefined,
+  ) {
     if (!serviceUrl) {
       throw new Error("AI service URL is required");
     }
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    const token = this.getToken?.();
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
   }
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
@@ -45,6 +54,7 @@ export class HttpAiModelProvider implements AiModelProvider {
       const response = await axios.post<ChatResponse>(url, requestBody, {
         headers: {
           "Content-Type": "application/json",
+          ...this.getAuthHeaders(),
         },
         timeout: 600000,
         signal: request.abortSignal,
@@ -79,11 +89,13 @@ export class HttpAiModelProvider implements AiModelProvider {
         attachmentUrls: request.attachmentUrls,
       };
 
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(),
+      };
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(requestBody),
         signal,
       });
@@ -171,11 +183,13 @@ export class HttpAiModelProvider implements AiModelProvider {
       attachmentUrls: request.attachmentUrls,
     };
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...this.getAuthHeaders(),
+    };
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(requestBody),
       signal,
     });
@@ -260,7 +274,10 @@ export class HttpAiModelProvider implements AiModelProvider {
     formData.append("file", file);
     if (sessionId) formData.append("sessionId", sessionId);
     const response = await axios.post<{ url: string }>(url, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: {
+        "Content-Type": "multipart/form-data",
+        ...this.getAuthHeaders(),
+      },
       timeout: 60000,
       maxContentLength: 10 * 1024 * 1024,
       maxBodyLength: 10 * 1024 * 1024,

@@ -1,14 +1,17 @@
 import { resetAiProvider } from "./ai/config.ts";
-import { setAiServiceUrl } from "./ai/appConfig.ts";
+import { setAiServiceUrl, setAuthTokenGetter } from "./ai/appConfig.ts";
 import { setAiServiceUrlOverride } from "./config/aiServiceUrlOverride.ts";
 import { IconOverrides } from "./icons/IconProvider";
 import type { ThemeConfig } from "antd";
 import { UserPermissions } from "./permissions/types.ts";
 
+export type GetAuthToken = () => string | null | undefined;
+
 export type AppConfig = {
   apiGateway?: string;
   appName?: string;
   aiServiceUrl?: string;
+  getAuthToken?: GetAuthToken;
   aiAssistantName?: string;
   icons?: IconOverrides;
   cssVariables?: Record<string, string>;
@@ -102,6 +105,12 @@ export function configure(config: Partial<AppConfig>): void {
     setAiServiceUrl(config.aiServiceUrl);
     resetAiProvider();
     overrides.push(`aiServiceUrl: "${oldValue}" -> "${config.aiServiceUrl}"`);
+  }
+  if (config.getAuthToken !== undefined) {
+    appConfigValue.getAuthToken = config.getAuthToken;
+    setAuthTokenGetter(config.getAuthToken);
+    resetAiProvider();
+    overrides.push("getAuthToken: set (Bearer token for REST and AI)");
   }
   if (config.aiAssistantName !== undefined) {
     const oldValue = appConfigValue.aiAssistantName;
