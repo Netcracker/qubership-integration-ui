@@ -1,6 +1,7 @@
 import { AiModelProvider } from "./AiModelProvider.ts";
 import { ChatRequest, ChatResponse, ChatMessage, ProviderCapabilities, StreamingChunk } from "./types.ts";
 import axios, { AxiosError } from "axios";
+import { getHeadersForContext } from "../../api/rest/requestHeadersInterceptor.ts";
 
 const capabilities: ProviderCapabilities = {
   supportsStreaming: false,
@@ -17,24 +18,26 @@ function getApiErrorMessage(data: unknown): string | undefined {
   return typeof maybe.error === "string" ? maybe.error : undefined;
 }
 
+function getRequestHeaders(serviceUrl: string, path: string): Record<string, string> {
+  const base = serviceUrl.replace(/\/$/, "");
+  const url = `${base}${path}`;
+  const raw = getHeadersForContext({ url, baseURL: base });
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
 export class HttpAiModelProvider implements AiModelProvider {
   id = "http";
   displayName = "HTTP AI Service Provider";
   capabilities = capabilities;
 
-  constructor(
-    private serviceUrl: string,
-    private getToken?: () => string | null | undefined,
-  ) {
+  constructor(private serviceUrl: string) {
     if (!serviceUrl) {
       throw new Error("AI service URL is required");
     }
-  }
-
-  private getAuthHeaders(): Record<string, string> {
-    const token = this.getToken?.();
-    if (!token) return {};
-    return { Authorization: `Bearer ${token}` };
   }
 
   async chat(request: ChatRequest): Promise<ChatResponse> {
@@ -54,7 +57,7 @@ export class HttpAiModelProvider implements AiModelProvider {
       const response = await axios.post<ChatResponse>(url, requestBody, {
         headers: {
           "Content-Type": "application/json",
-          ...this.getAuthHeaders(),
+          ...getRequestHeaders(this.serviceUrl, "/api/chat"),
         },
         timeout: 600000,
         signal: request.abortSignal,
@@ -91,7 +94,7 @@ export class HttpAiModelProvider implements AiModelProvider {
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        ...this.getAuthHeaders(),
+        ...getRequestHeaders(this.serviceUrl, "/api/chat/stream"),
       };
       const response = await fetch(url, {
         method: "POST",
@@ -185,7 +188,7 @@ export class HttpAiModelProvider implements AiModelProvider {
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...this.getAuthHeaders(),
+      ...getRequestHeaders(this.serviceUrl, "/api/chat/with-progress"),
     };
     const response = await fetch(url, {
       method: "POST",
@@ -276,7 +279,7 @@ export class HttpAiModelProvider implements AiModelProvider {
     const response = await axios.post<{ url: string }>(url, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
-        ...this.getAuthHeaders(),
+        ...getRequestHeaders(this.serviceUrl, "/api/upload"),
       },
       timeout: 60000,
       maxContentLength: 10 * 1024 * 1024,

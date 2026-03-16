@@ -9,7 +9,7 @@ export type {
   VSCodeMessage,
   VSCodeResponse,
 } from "./api/rest/vscodeExtensionApi";
-export type { AppExtensionProps, AppConfig, GetAuthToken } from "./appConfig";
+export type { AppExtensionProps, AppConfig } from "./appConfig";
 export type {
   IconOverrides,
   IconName,
@@ -26,6 +26,7 @@ export type {
 export {
   installRequestHeaders,
   installBearerAuth,
+  getHeadersForContext,
   getRestAxiosInstance,
 } from "./api/rest/requestHeadersInterceptor";
 export {

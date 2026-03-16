@@ -1,6 +1,6 @@
 import { AiModelProvider } from "./modelProviders/AiModelProvider.ts";
 import { HttpAiModelProvider } from "./modelProviders/httpProvider.ts";
-import { getAiServiceUrl, getAuthTokenGetter } from "./appConfig.ts";
+import { getAiServiceUrl } from "./appConfig.ts";
 
 let cachedProvider: AiModelProvider | null = null;
 
@@ -15,8 +15,7 @@ export function getDefaultAiProvider(): AiModelProvider {
       );
     }
 
-    const getToken = getAuthTokenGetter() ?? undefined;
-    cachedProvider = new HttpAiModelProvider(serviceUrl, getToken);
+    cachedProvider = new HttpAiModelProvider(serviceUrl);
   }
   return cachedProvider;
 }

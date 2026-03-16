@@ -1,18 +1,9 @@
 import { getAiServiceUrlOverride } from "../config/aiServiceUrlOverride.ts";
 
 let aiServiceUrl: string | null = null;
-let getAuthToken: (() => string | null | undefined) | null = null;
 
 export function setAiServiceUrl(url: string | undefined): void {
   aiServiceUrl = url || null;
-}
-
-export function setAuthTokenGetter(getter: (() => string | null | undefined) | undefined): void {
-  getAuthToken = getter ?? null;
-}
-
-export function getAuthTokenGetter(): (() => string | null | undefined) | null {
-  return getAuthToken;
 }
 
 /**
