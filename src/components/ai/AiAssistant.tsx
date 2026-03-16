@@ -149,12 +149,10 @@ const MarkdownRendererInner: React.FC<{ children: string }> = ({ children }) => 
   );
 };
 
-// Memoized MarkdownRenderer to prevent expensive re-parsing on every render
 const MarkdownRenderer = React.memo(MarkdownRendererInner, (prev, next) => {
   return prev.children === next.children;
 });
 
-// Progress line from backend: "> 💡 Creating element...\n" or "> 💡 Creating element - completed"
 const PROGRESS_LINE_REGEX = /^>\s*💡\s*(.+)$/gm;
 const COMPLETED_SUFFIX = / - completed/i;
 const ERROR_SUFFIX = / - error:\s*/i;
@@ -180,7 +178,6 @@ function parseProgressLines(content: string): ParsedProgressLine[] {
   return lines;
 }
 
-/** Collapse progress: show completed steps + current in-progress. Current = last line if pending, else last pending after last completed (avoids duplicate after completed). */
 function collapseProgressLines(lines: ParsedProgressLine[]): ParsedProgressLine[] {
   if (lines.length === 0) return [];
   const completed = lines.filter((l) => l.status === "success" || l.status === "error");
@@ -197,7 +194,6 @@ function collapseProgressLines(lines: ParsedProgressLine[]): ParsedProgressLine[
   return [...completed, ...(currentStep ? [currentStep] : [])];
 }
 
-/** Remove progress blocks ("> 💡 ...") from content so narrative can be rendered without duplication */
 function stripProgressBlocks(content: string): string {
   return content
     .replace(/(\n\n>\s*💡\s*[^\n]+)+/g, "\n\n")
@@ -205,14 +201,12 @@ function stripProgressBlocks(content: string): string {
     .trim();
 }
 
-/** Remove inline progress summary lines (e.g. "💡 Chain: ... - completed 💡 Elements: ... - completed") */
 function stripInlineProgressSummary(content: string): string {
   return content
     .split("\n")
     .filter((line) => {
       const t = line.trim();
       if (!t) return true;
-      // Drop lines that consist only of "💡 ... - completed" (one or more such segments)
       return !/^(💡[^💡]*?- completed\s*)+$/u.test(t);
     })
     .join("\n")
@@ -220,7 +214,6 @@ function stripInlineProgressSummary(content: string): string {
     .trim();
 }
 
-/** Return start/end indices of chain-modification-proposal JSON in content, or null */
 function findChainModificationProposalRange(content: string): { start: number; end: number } | null {
   const marker = '"type":"chain-modification-proposal"';
   const idx = content.indexOf(marker);
@@ -254,7 +247,6 @@ function replaceChainModificationProposalForDisplay(content: string): string {
   return [before, summary, after].join("").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/** Detect if assistant message looks like a design-execution plan (to-do list + confirm CTA) */
 function looksLikePlanResponse(content: string): boolean {
   if (!content || content.length < 30) return false;
   const lower = content.toLowerCase();
@@ -750,10 +742,6 @@ export const AiAssistant: React.FC = () => {
     flushRefresh,
   ]);
 
-  // ---------------------------------------------------------------------------
-  // chatWithProgress path
-  // ---------------------------------------------------------------------------
-
   const runChatWithProgress = useCallback(async (
     aiProvider: AiModelProvider,
     requestPayload: ChatRequest,
@@ -956,10 +944,6 @@ export const AiAssistant: React.FC = () => {
       runPlainChat,
     ],
   );
-
-  // ---------------------------------------------------------------------------
-  // UI actions
-  // ---------------------------------------------------------------------------
 
   const showDrawer = useCallback(() => {
     setOpen(true);
@@ -1223,11 +1207,6 @@ export const AiAssistant: React.FC = () => {
     label: session.title,
     children: null,
   }));
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <>
       <div

@@ -1,4 +1,5 @@
 import { getAiServiceUrlOverride } from "../config/aiServiceUrlOverride.ts";
+import React, { useState, useEffect } from "react";
 
 let aiServiceUrl: string | null = null;
 
@@ -6,11 +7,6 @@ export function setAiServiceUrl(url: string | undefined): void {
   aiServiceUrl = url || null;
 }
 
-/**
- * Returns the AI service URL: runtime override (from configure()) first,
- * then module state, then env, then window origin. Reading the override
- * at runtime ensures the built library respects configure({ aiServiceUrl }).
- */
 export function getAiServiceUrl(): string | null {
   const configured = getAiServiceUrlOverride();
   if (configured) {
@@ -33,6 +29,27 @@ export function getAiServiceUrl(): string | null {
   }
 
   return null;
+}
+
+export function getIsAiServiceAvailable(): boolean {
+  const [ isAiServiceAvailable, setIsAiServiceAvailable] = useState(true);
+
+  const url = getAiServiceUrl();
+
+  useEffect(() => {
+      const url = getAiServiceUrl();
+      if (!url) {
+        setIsAiServiceAvailable(false);
+        return;
+      }
+      const base = url.replace(/\/$/, "");
+      fetch(`${base}/api/chat/with-progress`, { method: "POST" })
+        .then(response => {
+            console.log("status:" , response.status);
+            setIsAiServiceAvailable(response.ok)})
+        .catch(() => setIsAiServiceAvailable(false));
+    }, []);
+  return isAiServiceAvailable;
 }
 
 
