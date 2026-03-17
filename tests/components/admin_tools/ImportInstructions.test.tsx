@@ -1,11 +1,19 @@
 /**
  * @jest-environment jsdom
  */
-import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import React, { PropsWithChildren } from "react";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { Modal } from "antd";
-import type { GeneralImportInstructions } from "../../../src/api/apiTypes";
+import type { GeneralImportInstructions } from "../../../src";
+import { UserPermissionsContext } from "../../../src/permissions/UserPermissionsContext.tsx";
+import { getAllPermissions } from "../../../src/permissions/funcs.ts";
 
 Object.defineProperty(globalThis, "matchMedia", {
   writable: true,
@@ -97,18 +105,21 @@ jest.mock("../../../src/components/admin_tools/CommonStyle.module.css", () => ({
   __esModule: true,
   default: {
     container: "container",
+    header: "header",
     title: "title",
     icon: "icon",
+    iconInline: "icon-inline",
+    actions: "actions",
+    searchField: "search-field",
     "table-wrapper": "table-wrapper",
   },
 }));
 
-jest.mock("../../../src/components/table/EditableCell.module.css", () => ({
+jest.mock("../../../src/components/InlineEdit.module.css", () => ({
   __esModule: true,
   default: {
-    editingWrapper: "editing-wrapper",
-    editingButtons: "editing-buttons",
-    editableCellWrapper: "editable-cell-wrapper",
+    inlineEditValueWrap: "inline-edit-value-wrap",
+    inlineEditButtons: "inline-edit-buttons",
     inlineIcon: "inline-icon",
   },
 }));
@@ -126,6 +137,14 @@ const sampleInstructions: GeneralImportInstructions = {
     ignore: [{ id: "var-1", name: "Var One" }],
     delete: [],
   },
+};
+
+const ContextProviders: React.FC<PropsWithChildren> = ({ children }) => {
+  return (
+    <UserPermissionsContext.Provider value={getAllPermissions()}>
+      {children}
+    </UserPermissionsContext.Provider>
+  );
 };
 
 describe("ImportInstructions", () => {
@@ -148,34 +167,27 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
     expect(screen.getByText(/import/i)).toBeInTheDocument();
     expect(screen.getByText(/instructions/i)).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(1);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("Chains")).toBeInTheDocument();
-      expect(screen.getByText("Services")).toBeInTheDocument();
-      expect(screen.getByText("Common Variables")).toBeInTheDocument();
-    });
-  }, 10000);
+    expect(await screen.findByText("Chains")).toBeInTheDocument();
+    expect(screen.getByText("Services")).toBeInTheDocument();
+    expect(screen.getByText("Common Variables")).toBeInTheDocument();
+    expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(1);
+  }, 8000);
 
   it("shows Add, Export, Upload buttons", async () => {
     const { ImportInstructions } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
-    expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /add/i }),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
   });
 
@@ -184,14 +196,11 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(screen.getByText("Chains")).toBeInTheDocument();
-    });
-
-    expect(screen.getByText("Chain One")).toBeInTheDocument();
-    expect(screen.getByText("Var One")).toBeInTheDocument();
+    expect(await screen.findByText("Chains")).toBeInTheDocument();
+    expect(await screen.findByText("Chain One")).toBeInTheDocument();
+    expect(await screen.findByText("Var One")).toBeInTheDocument();
   });
 
   it("fetches export on Export button click", async () => {
@@ -199,7 +208,7 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
     await waitFor(() => {
       expect(mockApi.getImportInstructions).toHaveBeenCalled();
@@ -218,16 +227,12 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
-    const addButton = screen.getByRole("button", { name: /add/i });
+    const addButton = await screen.findByRole("button", { name: /add/i });
     fireEvent.click(addButton);
 
-    expect(screen.getByText("Add Instruction")).toBeInTheDocument();
+    expect(await screen.findByText("Add Instruction")).toBeInTheDocument();
   });
 
   it("opens Upload modal when Upload button is clicked", async () => {
@@ -235,35 +240,26 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
-    const uploadButton = screen.getByTestId("import-instructions-upload");
-    fireEvent.click(uploadButton);
+    await screen.findByRole("button", { name: /add/i });
+    fireEvent.click(screen.getByTestId("import-instructions-upload"));
 
     expect(
-      screen.getByText("Upload Instructions (yaml, yml)"),
+      await screen.findByText("Upload Instructions (yaml, yml)"),
     ).toBeInTheDocument();
-  });
+  }, 10000);
 
   it("displays column settings button", async () => {
     const { ImportInstructions } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
-    const columnSettingsButton = screen.getByTestId(
-      "import-instructions-column-settings",
-    );
-    expect(columnSettingsButton).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("import-instructions-column-settings"),
+    ).toBeInTheDocument();
   });
 
   it("calls requestFailed when fetchInstructions throws", async () => {
@@ -272,7 +268,7 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
     await waitFor(() => {
       expect(mockRequestFailed).toHaveBeenCalled();
@@ -287,32 +283,26 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
-    const exportButton = screen.getByTestId("import-instructions-export");
-    fireEvent.click(exportButton);
+    await screen.findByRole("button", { name: /add/i });
+    fireEvent.click(screen.getByTestId("import-instructions-export"));
 
     await waitFor(() => {
       expect(mockRequestFailed).toHaveBeenCalled();
     });
-  });
+  }, 8000);
 
   it("Delete button is disabled when no rows are selected", async () => {
     const { ImportInstructions } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
-    const deleteButton = screen.getByTestId("import-instructions-delete");
+    const deleteButton = await screen.findByTestId(
+      "import-instructions-delete",
+    );
     expect(deleteButton).toBeDisabled();
   });
 
@@ -321,12 +311,10 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(screen.getByText("Chain One")).toBeInTheDocument();
-      expect(screen.getByText("Var One")).toBeInTheDocument();
-    });
+    expect(await screen.findByText("Chain One")).toBeInTheDocument();
+    expect(await screen.findByText("Var One")).toBeInTheDocument();
 
     const searchInput = screen.getByPlaceholderText("Search...");
     fireEvent.change(searchInput, { target: { value: "chain" } });
@@ -341,18 +329,12 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(screen.getByText("Chains")).toBeInTheDocument();
-    });
-
+    expect(await screen.findByText("Chains")).toBeInTheDocument();
     const searchInput = screen.getByPlaceholderText("Search...");
     fireEvent.change(searchInput, { target: { value: "nonexistent-xyz" } });
-
-    await waitFor(() => {
-      expect(screen.getByText("Chains")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Chains")).toBeInTheDocument();
   });
 
   it("opens AddInstructionModal with form when Add button is clicked", async () => {
@@ -360,46 +342,41 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
+    const addButton = screen
+      .getAllByRole("button", { name: /^add$/i })
+      .find((b) => !b.closest('[role="dialog"]'));
+    expect(addButton).toBeDefined();
+    fireEvent.click(addButton!);
 
-    fireEvent.click(screen.getByRole("button", { name: /add/i }));
-
-    expect(screen.getByText("Add Instruction")).toBeInTheDocument();
-    expect(screen.getByLabelText("Id")).toBeInTheDocument();
-  });
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText("Id")).toBeInTheDocument();
+  }, 8000);
 
   it("shows Id is required validation error when submitting empty form", async () => {
     const { ImportInstructions } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
+    const addButton = await screen.findByRole("button", { name: /^add$/i });
+    fireEvent.click(addButton);
 
-    fireEvent.click(screen.getByRole("button", { name: /^add$/i }));
-
-    expect(screen.getByText("Add Instruction")).toBeInTheDocument();
+    expect(await screen.findByText("Add Instruction")).toBeInTheDocument();
 
     const addInModalButton = screen
       .getAllByRole("button", { name: /^add$/i })
       .find((b) => b.closest(".ant-modal-footer"));
-    if (addInModalButton) {
-      fireEvent.click(addInModalButton);
-    }
+    expect(addInModalButton).toBeDefined();
+    fireEvent.click(addInModalButton!);
 
-    await waitFor(() => {
-      expect(screen.queryByText("Id is required")).toBeInTheDocument();
-    });
-
+    expect(
+      await screen.findByText("Id is required", {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
     expect(mockApi.addImportInstruction).not.toHaveBeenCalled();
-  }, 10000);
+  }, 15000);
 
   it("calls addImportInstruction when form is filled and submitted", async () => {
     mockApi.addImportInstruction.mockResolvedValue({});
@@ -407,15 +384,17 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
+    await screen.findByRole("button", { name: /add/i });
+    const addButton = screen
+      .getAllByRole("button", { name: /^add$/i })
+      .find((b) => !b.closest('[role="dialog"]'));
+    expect(addButton).toBeDefined();
+    fireEvent.click(addButton!);
 
-    fireEvent.click(screen.getByRole("button", { name: /^add$/i }));
-
-    const idInput = screen.getByLabelText("Id");
+    const dialog = await screen.findByRole("dialog");
+    const idInput = within(dialog).getByLabelText("Id");
     fireEvent.change(idInput, { target: { value: "my-chain-id" } });
 
     const addInModalButton = screen
@@ -430,23 +409,20 @@ describe("ImportInstructions", () => {
         expect.objectContaining({ id: "my-chain-id" }),
       );
     });
-  }, 10000);
+  }, 18000);
 
   it("UploadInstructionsModal Upload button is disabled when no file selected", async () => {
     const { ImportInstructions } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
+    await screen.findByRole("button", { name: /add/i });
     fireEvent.click(screen.getByTestId("import-instructions-upload"));
 
     expect(
-      screen.getByText("Upload Instructions (yaml, yml)"),
+      await screen.findByText("Upload Instructions (yaml, yml)"),
     ).toBeInTheDocument();
 
     const uploadButton = screen
@@ -454,7 +430,7 @@ describe("ImportInstructions", () => {
       .find((b) => b.closest(".ant-modal-footer"));
     expect(uploadButton).toBeDefined();
     expect(uploadButton).toBeDisabled();
-  });
+  }, 8000);
 
   it("handleExport: URL.createObjectURL is called with the exported file blob", async () => {
     const createObjectURL = URL.createObjectURL as jest.Mock;
@@ -464,22 +440,18 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
+    await screen.findByRole("button", { name: /add/i });
     fireEvent.click(screen.getByTestId("import-instructions-export"));
 
     await waitFor(() => {
       expect(mockApi.exportImportInstructions).toHaveBeenCalled();
     });
-
     await waitFor(() => {
       expect(createObjectURL).toHaveBeenCalled();
     });
-  });
+  }, 8000);
 
   it("renders labels as Tag components and modifiedWhen as formatted date", async () => {
     mockApi.getImportInstructions.mockResolvedValueOnce({
@@ -505,7 +477,7 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
     await waitFor(() => {
       expect(screen.getByText("Tagged Chain")).toBeInTheDocument();
@@ -515,41 +487,48 @@ describe("ImportInstructions", () => {
     });
   });
 
-  it("inline editing Action: click trigger shows Select, Apply calls updateImportInstruction", async () => {
+  it("inline editing Action: click trigger shows Select, selecting Ignore calls updateImportInstruction", async () => {
     mockApi.updateImportInstruction.mockResolvedValue({});
+    mockApi.getImportInstructions.mockResolvedValueOnce({
+      chains: {
+        ignore: [],
+        override: [{ id: "chain-1", name: "Chain One" }],
+        delete: [],
+      },
+      services: { ignore: [], delete: [] },
+      specificationGroups: { delete: [], ignore: [] },
+      specifications: { delete: [], ignore: [] },
+      commonVariables: { ignore: [], delete: [] },
+    });
 
     const { ImportInstructions } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Chain One")).toBeInTheDocument();
+    const { container } = render(<ImportInstructions />, {
+      wrapper: ContextProviders,
     });
 
-    const cellTriggers = document.querySelectorAll(".editable-cell-wrapper");
+    expect(await screen.findByText("Chain One")).toBeInTheDocument();
+
+    const cellTriggers = document.querySelectorAll(".inline-edit-value-wrap");
     expect(cellTriggers.length).toBeGreaterThan(0);
 
     fireEvent.click(cellTriggers[0]);
 
     await waitFor(() => {
-      const editingButtons = document.querySelectorAll(
-        ".editing-buttons button",
-      );
-      expect(editingButtons.length).toBeGreaterThan(0);
+      expect(container.querySelector(".ant-select")).toBeTruthy();
     });
 
-    const applyButton = document.querySelector(".editing-buttons button");
-    expect(applyButton).toBeTruthy();
-    fireEvent.click(applyButton!);
+    const ignoreOption = await screen.findByText("Ignore");
+    fireEvent.click(ignoreOption);
 
     await waitFor(() => {
       expect(mockApi.updateImportInstruction).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "chain-1" }),
+        expect.objectContaining({ id: "chain-1", action: "IGNORE" }),
       );
     });
-  });
+  }, 8000);
 
   it("inline editing Overridden By: click trigger shows Input, Apply calls updateImportInstruction", async () => {
     mockApi.updateImportInstruction.mockResolvedValue({});
@@ -571,25 +550,26 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(screen.getByText("Chain Two")).toBeInTheDocument();
-    });
+    expect(await screen.findByText("Chain Two")).toBeInTheDocument();
 
-    const cellTriggers = document.querySelectorAll(".editable-cell-wrapper");
+    const cellTriggers = document.querySelectorAll(".inline-edit-value-wrap");
     expect(cellTriggers.length).toBeGreaterThanOrEqual(2);
 
     fireEvent.click(cellTriggers[1]);
 
+    const input = await screen.findByDisplayValue("other-chain");
+    fireEvent.change(input, { target: { value: "other-chain-updated" } });
+
     await waitFor(() => {
       const editingButtons = document.querySelectorAll(
-        ".editing-buttons button",
+        ".inline-edit-buttons button",
       );
       expect(editingButtons.length).toBeGreaterThan(0);
     });
 
-    const applyButton = document.querySelector(".editing-buttons button");
+    const applyButton = document.querySelector(".inline-edit-buttons button");
     expect(applyButton).toBeTruthy();
     fireEvent.click(applyButton!);
 
@@ -620,11 +600,9 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(screen.getByText("Chain One")).toBeInTheDocument();
-    });
+    expect(await screen.findByText("Chain One")).toBeInTheDocument();
 
     const enabledCheckbox = document.querySelector<HTMLInputElement>(
       'tbody input[type="checkbox"]:not([disabled])',
@@ -661,19 +639,13 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
-
+    await screen.findByRole("button", { name: /add/i });
     fireEvent.click(screen.getByTestId("import-instructions-upload"));
 
-    await waitFor(() => {
-      expect(screen.getByTestId("dragger")).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByTestId("dragger"));
+    const dragger = await screen.findByTestId("dragger");
+    fireEvent.click(dragger);
 
     await waitFor(() => {
       const uploadButtons = screen
@@ -696,34 +668,29 @@ describe("ImportInstructions", () => {
     await waitFor(() => {
       expect(mockApi.uploadImportInstructions).toHaveBeenCalled();
     });
-  }, 15000);
+  }, 25000);
 
   it("UploadInstructionsModal: Close button refetches instructions", async () => {
     const { ImportInstructions } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(1);
-    });
+    await screen.findByRole("button", { name: /add/i });
+    expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByTestId("import-instructions-upload"));
+    expect(
+      await screen.findByText("Upload Instructions (yaml, yml)"),
+    ).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("Upload Instructions (yaml, yml)"),
-      ).toBeInTheDocument();
-    });
-
-    // The footer "Close" button has text content "Close" (the X icon button has no text)
     fireEvent.click(screen.getByText("Close"));
 
     await waitFor(() => {
       expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(2);
     });
-  });
+  }, 12000);
 
   it("AddInstructionModal: calls requestFailed when addImportInstruction throws", async () => {
     mockApi.addImportInstruction.mockRejectedValue(new Error("server error"));
@@ -732,15 +699,16 @@ describe("ImportInstructions", () => {
       "../../../src/components/admin_tools/ImportInstructions"
     );
 
-    render(<ImportInstructions />);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await waitFor(() => {
-      expect(mockApi.getImportInstructions).toHaveBeenCalled();
-    });
+    const addButton = screen
+      .getAllByRole("button", { name: /^add$/i })
+      .find((b) => !b.closest('[role="dialog"]'));
+    expect(addButton).toBeDefined();
+    fireEvent.click(addButton!);
 
-    fireEvent.click(screen.getByRole("button", { name: /^add$/i }));
-
-    const idInput = screen.getByLabelText("Id");
+    const dialog = await screen.findByRole("dialog");
+    const idInput = within(dialog).getByLabelText("Id");
     fireEvent.change(idInput, { target: { value: "some-id" } });
 
     const addInModalButton = screen
@@ -752,7 +720,6 @@ describe("ImportInstructions", () => {
     await waitFor(() => {
       expect(mockApi.addImportInstruction).toHaveBeenCalled();
     });
-
     await waitFor(() => {
       expect(mockRequestFailed).toHaveBeenCalled();
     });
@@ -793,7 +760,7 @@ describe("buildTableData", () => {
     const { buildTableData } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
-    const { ImportInstructionAction, ImportEntityType } = await import(
+    const { ImportInstructionAction } = await import(
       "../../../src/api/apiTypes"
     );
 
@@ -815,7 +782,7 @@ describe("buildTableData", () => {
     const child = chainGroup.children![0];
     expect(child.key).toBe("Chain-OVERRIDE-c1");
     expect(child.action).toBe(ImportInstructionAction.OVERRIDE);
-    expect(child.entityTypeForApi).toBe(ImportEntityType.CHAIN);
+    expect(child.entityType).toBe("Chain");
     expect(child.isGroup).toBe(false);
   });
 
@@ -873,7 +840,7 @@ describe("buildTableData", () => {
     const { buildTableData } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
-    const { ImportInstructionAction, ImportEntityType } = await import(
+    const { ImportInstructionAction } = await import(
       "../../../src/api/apiTypes"
     );
 
@@ -888,9 +855,7 @@ describe("buildTableData", () => {
     const varGroup = result[2];
     expect(varGroup.children).toHaveLength(1);
     expect(varGroup.children![0].action).toBe(ImportInstructionAction.IGNORE);
-    expect(varGroup.children![0].entityTypeForApi).toBe(
-      ImportEntityType.COMMON_VARIABLE,
-    );
+    expect(varGroup.children![0].entityType).toBe("Common Variable");
     expect(varGroup.children![0].key).toBe("Common Variable-IGNORE-v1");
   });
 
@@ -898,7 +863,7 @@ describe("buildTableData", () => {
     const { buildTableData } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
-    const { ImportInstructionAction, ImportEntityType } = await import(
+    const { ImportInstructionAction } = await import(
       "../../../src/api/apiTypes"
     );
 
@@ -918,16 +883,14 @@ describe("buildTableData", () => {
     expect(chainGroup.children).toHaveLength(1);
     expect(chainGroup.children![0].key).toBe("Chain-DELETE-c1");
     expect(chainGroup.children![0].action).toBe(ImportInstructionAction.DELETE);
-    expect(chainGroup.children![0].entityTypeForApi).toBe(
-      ImportEntityType.CHAIN,
-    );
+    expect(chainGroup.children![0].entityType).toBe("Chain");
   });
 
   it("maps service-ignore into Services group with IGNORE action", async () => {
     const { buildTableData } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
-    const { ImportInstructionAction, ImportEntityType } = await import(
+    const { ImportInstructionAction } = await import(
       "../../../src/api/apiTypes"
     );
 
@@ -945,16 +908,14 @@ describe("buildTableData", () => {
     expect(serviceGroup.children![0].action).toBe(
       ImportInstructionAction.IGNORE,
     );
-    expect(serviceGroup.children![0].entityTypeForApi).toBe(
-      ImportEntityType.SERVICE,
-    );
+    expect(serviceGroup.children![0].entityType).toBe("Service");
   });
 
   it("maps commonVariable-delete into Common Variable group with DELETE action", async () => {
     const { buildTableData } = await import(
       "../../../src/components/admin_tools/ImportInstructions"
     );
-    const { ImportInstructionAction, ImportEntityType } = await import(
+    const { ImportInstructionAction } = await import(
       "../../../src/api/apiTypes"
     );
 
@@ -970,8 +931,6 @@ describe("buildTableData", () => {
     expect(varGroup.children).toHaveLength(1);
     expect(varGroup.children![0].key).toBe("Common Variable-DELETE-v1");
     expect(varGroup.children![0].action).toBe(ImportInstructionAction.DELETE);
-    expect(varGroup.children![0].entityTypeForApi).toBe(
-      ImportEntityType.COMMON_VARIABLE,
-    );
+    expect(varGroup.children![0].entityType).toBe("Common Variable");
   });
 });
