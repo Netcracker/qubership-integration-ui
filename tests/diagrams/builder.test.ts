@@ -1571,9 +1571,7 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(
-        messages.some((m) => m.includes("env-topic-override")),
-      ).toBe(true);
+      expect(messages.some((m) => m.includes("env-topic-override"))).toBe(true);
     });
 
     it("should show classifier for kafka service-call with MAAS environment", async () => {
@@ -1606,7 +1604,9 @@ describe("buildSequenceDiagram", () => {
 
       const messages = collectMessages(diagram.actions);
       expect(
-        messages.some((m) => m.includes("classifier") && m.includes("my-classifier")),
+        messages.some(
+          (m) => m.includes("classifier") && m.includes("my-classifier"),
+        ),
       ).toBe(true);
     });
 
@@ -1704,9 +1704,9 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(
-        messages.some((m) => m.includes("trigger-kafka-topic")),
-      ).toBe(true);
+      expect(messages.some((m) => m.includes("trigger-kafka-topic"))).toBe(
+        true,
+      );
     });
 
     it("should show queues from asyncProperties for amqp async-api-trigger", async () => {
@@ -1752,9 +1752,7 @@ describe("buildSequenceDiagram", () => {
       const diagram = await buildSequenceDiagram(chain, DiagramMode.FULL);
 
       const messages = collectMessages(diagram.actions);
-      expect(
-        messages.some((m) => m.includes("trigger-classifier")),
-      ).toBe(true);
+      expect(messages.some((m) => m.includes("trigger-classifier"))).toBe(true);
     });
   });
 });
