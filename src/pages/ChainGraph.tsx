@@ -102,8 +102,8 @@ const readTheme = () => {
   return "light";
 };
 
-const MIN_PANEL_WIDTH = 180;
-const MAX_PANEL_WIDTH = 600;
+const MIN_PANEL_WIDTH = 230;
+const MAX_PANEL_WIDTH = 500;
 const DEFAULT_LEFT_PANEL_WIDTH = 230;
 const DEFAULT_RIGHT_PANEL_WIDTH = 240;
 
@@ -570,15 +570,7 @@ const ChainGraphInner: React.FC = () => {
   return (
     <Flex className={styles["graph-wrapper"]}>
       <Require permissions={{ chain: ["update"] }}>
-            <div
-              style={{
-                width: leftPanelWidth,
-                flexShrink: 0,
-                minWidth: MIN_PANEL_WIDTH,
-              }}
-            >
-        <ElementsLibrarySidebar />
-          </div>
+          <ElementsLibrarySidebar width={leftPanelWidth}  />
           <PanelResizeHandle
                 direction="left"
                 onResize={(delta) =>

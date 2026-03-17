@@ -263,49 +263,12 @@ export const PageWithRightPanel = ({
       </Flex>
       <Flex
         vertical
-        gap={8}
-        style={{ paddingLeft: "12px", paddingRight: "8px" }}
-      >
-        <Flex gap={4} align="center">
-          <SidebarSearch
-            items={allItems.current}
-            onSearch={handleSearch}
-            onClear={() => {
-              setItems(allItems.current);
-              setIsSearch(false);
-              setOpenKeysState(openKeysBeforeSearch.current);
-            }}
-          />
-          <FilterButton
-            count={filterItemStates?.length ?? 0}
-            onClick={addFilter}
-          />
-        </Flex>
-      <Flex
-        vertical
         gap={activeTab === "textView" ? 0 : 8}
         style={{
           paddingLeft:
             activeTab === "textView" ? 0 : "12px",
         }}
       >
-        {(activeTab === "listElements" || activeTab === "elementProperties") && (
-          <Flex gap={8} align="center">
-            <SidebarSearch
-              items={allItems.current}
-              onSearch={handleSearch}
-              onClear={() => {
-                setItems(allItems.current);
-                setIsSearch(false);
-                setOpenKeysState(openKeysBeforeSearch.current);
-              }}
-            />
-            <FilterButton
-              count={filterItemStates?.length ?? 0}
-              onClick={addFilter}
-            />
-          </Flex>
-        )}
         {activeTab === "listElements" && (
           <Menu
             className={styles.libraryElements}
@@ -330,7 +293,7 @@ export const PageWithRightPanel = ({
           </div>
         )}
         {activeTab === "textView" && (
-          <div style={{ width: "100%", height: 400 }}>
+          <div style={{ width: "100%", height: 2110 }}>
             <AceEditor
               mode="yaml"
               theme="eclipse"
@@ -341,7 +304,7 @@ export const PageWithRightPanel = ({
               options="editorOptions"
               editorProps={{ $blockScrolling: true }}
               width="100%"
-              height="400px"
+              height="2110px"
               fontSize={14}
               readOnly={true}
               showPrintMargin={false}
@@ -353,7 +316,6 @@ export const PageWithRightPanel = ({
             />
           </div>
         )}
-      </Flex>
       </Flex>
     </Sider>
   );
