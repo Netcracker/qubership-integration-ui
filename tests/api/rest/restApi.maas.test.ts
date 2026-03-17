@@ -55,7 +55,9 @@ describe("RestApi MaaS", () => {
     const api = new RestApi();
     api.instance.defaults.adapter = (async (config: AxiosRequestConfig) => {
       lastUrl = config.url ?? "";
-      lastParams = config.params as Record<string, string | undefined> | undefined;
+      lastParams = config.params as
+        | Record<string, string | undefined>
+        | undefined;
       return {
         data: undefined,
         status: 200,
@@ -118,7 +120,9 @@ describe("RestApi MaaS", () => {
     const { RestApi } = await import("../../../src/api/rest/restApi");
     const api = new RestApi();
     api.instance.defaults.adapter = (async (config: AxiosRequestConfig) => {
-      lastParams = config.params as Record<string, string | undefined> | undefined;
+      lastParams = config.params as
+        | Record<string, string | undefined>
+        | undefined;
       const blob = new Blob(["declarative json"]);
       return {
         data: blob,
