@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Table, Dropdown, Button, Modal } from "antd";
+import { Table, Button, Modal } from "antd";
 import type {
   FilterDropdownProps,
   TableRowSelection,
@@ -16,7 +16,10 @@ import {
   IntegrationSystemType,
 } from "../../api/apiTypes.ts";
 import { useNavigate, useParams } from "react-router-dom";
-import { ColumnsFilter } from "../table/ColumnsFilter";
+import {
+  getColumnsOrderKey,
+  getColumnsVisibleKey,
+} from "../table/ColumnsFilter";
 import { OperationInfoModal } from "./modals/OperationInfoModal";
 import { api } from "../../api/api";
 import {
@@ -34,6 +37,9 @@ import { LabelsEdit } from "../table/LabelsEdit";
 import { ChainColumn } from "./ui/ChainColumn";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { HttpMethod } from "./ui/HttpMethod.tsx";
+import { ProtectedDropdown } from "../../permissions/ProtectedDropdown.tsx";
+import { RequiredPermissions } from "../../permissions/types.ts";
+import { ColumnSettingsButton } from "../table/ColumnSettingsButton.tsx";
 
 export type ServiceEntity =
   | IntegrationSystem
@@ -452,6 +458,7 @@ export interface ActionConfig<T = never> {
     cancelText?: string;
   };
   visible?: (record: T) => boolean;
+  require?: RequiredPermissions;
 }
 
 function ActionMenu<T>({
@@ -467,6 +474,7 @@ function ActionMenu<T>({
       key: action.key,
       icon: action.icon,
       label: action.label,
+      require: action.require,
       onClick: () => {
         if (action.confirm) {
           Modal.confirm({
@@ -482,7 +490,7 @@ function ActionMenu<T>({
     }));
 
   return (
-    <Dropdown
+    <ProtectedDropdown
       menu={{
         items,
       }}
@@ -490,7 +498,7 @@ function ActionMenu<T>({
       placement="bottomRight"
     >
       <Button type="text" icon={<OverridableIcon name="more" />} />
-    </Dropdown>
+    </ProtectedDropdown>
   );
 }
 
@@ -535,6 +543,7 @@ export function getServiceActions({
         label: "Edit",
         icon: <OverridableIcon name="edit" />,
         onClick: onEdit,
+        require: { service: ["update"] },
       },
       {
         key: "delete",
@@ -546,6 +555,7 @@ export function getServiceActions({
           okText: "Delete",
           cancelText: "Cancel",
         },
+        require: { service: ["delete"] },
       },
     ];
     if (isExpandAvailable(record)) {
@@ -571,6 +581,7 @@ export function getServiceActions({
         label: "Export",
         icon: <OverridableIcon name="cloudDownload" />,
         onClick: (rec) => onExportSelected([rec]),
+        require: { service: ["export"] },
       });
     }
     return actions;
@@ -611,11 +622,13 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   }, [defaultVisibleKeys, allColumnKeys]);
 
   const [columnsOrder, setColumnsOrder] = useState<string[]>(() => {
-    const storedOrder = localStorage.getItem(`${storageKey}_columnsOrder`);
+    const storedOrder = localStorage.getItem(getColumnsOrderKey(storageKey));
     return storedOrder ? (JSON.parse(storedOrder) as string[]) : allColumnKeys;
   });
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const storedVisible = localStorage.getItem(`${storageKey}_columnsVisible`);
+    const storedVisible = localStorage.getItem(
+      getColumnsVisibleKey(storageKey),
+    );
     return storedVisible
       ? (JSON.parse(storedVisible) as string[])
       : initialKeys;
@@ -633,22 +646,15 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   };
 
   const FilterButton = () => (
-    <Dropdown
-      popupRender={() => (
-        <ColumnsFilter
-          allColumns={allColumnKeys}
-          defaultColumns={initialKeys}
-          storageKey={storageKey}
-          labelsByKey={Object.fromEntries(
-            allServicesTreeTableColumns.map((c) => [c.key, c.title]),
-          )}
-          onChange={handleColumnsChange}
-        />
+    <ColumnSettingsButton
+      allColumns={allColumnKeys}
+      defaultColumns={initialKeys}
+      storageKey={storageKey}
+      labelsByKey={Object.fromEntries(
+        allServicesTreeTableColumns.map((c) => [c.key, c.title]),
       )}
-      trigger={["click"]}
-    >
-      <Button icon={<OverridableIcon name="settings" />} />
-    </Dropdown>
+      onChange={handleColumnsChange}
+    />
   );
 
   const finalColumns = useMemo(() => {

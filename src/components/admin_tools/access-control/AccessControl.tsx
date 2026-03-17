@@ -4,8 +4,6 @@ import {
   Table,
   Typography,
   Button,
-  Dropdown,
-  MenuProps,
   Tag,
   Tooltip,
   Drawer,
@@ -35,18 +33,10 @@ import { AddDeleteRolesPopUp } from "./AddDeleteRolesPopUp.tsx";
 import { useNavigate } from "react-router";
 import { DeploymentsCumulativeState } from "../../deployment_runtime_states/DeploymentsCumulativeState.tsx";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { useColumnSettingsBasedOnColumnsType } from "../../table/useColumnSettingsButton.tsx";
 
 const { Title } = Typography;
-
-const columnVisibilityMenuItems: MenuProps["items"] = [
-  { label: "Endpoint", key: "endpoint" },
-  { label: "Type", key: "type" },
-  { label: "Access Control Type", key: "accessControlType" },
-  { label: "Roles", key: "roles" },
-  { label: "Attributes", key: "attributes" },
-  { label: "Chain", key: "chain" },
-  { label: "Chain Status", key: "chainStatus" },
-];
 
 const typeOptions = [
   { label: "External", value: "External" },
@@ -92,16 +82,6 @@ export const AccessControl: React.FC = () => {
   const [deployedChainIds, setDeployedChainIds] = useState<Set<string>>(
     new Set(),
   );
-
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([
-    "endpoint",
-    "type",
-    "accessControlType",
-    "roles",
-    "attributes",
-    "chain",
-    "chainStatus",
-  ]);
 
   const [columnsWidth] = useState<{ [key: string]: number }>({
     checkbox: 50,
@@ -279,7 +259,6 @@ export const AccessControl: React.FC = () => {
       title: "Access Control Type",
       key: "accessControlType",
       dataIndex: "accessControlType",
-      hidden: !selectedKeys.includes("accessControlType"),
       filterDropdown: accessControlTypeFilter,
       onFilter: (value: React.Key | boolean, record: AccessControlData) => {
         const recordValue = (
@@ -415,12 +394,13 @@ export const AccessControl: React.FC = () => {
         return <>—</>;
       },
     },
-    {
-      title: "ID",
-      key: "id",
-      hidden: true,
-    },
   ];
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<AccessControlData>(
+      "accessControlTable",
+      columns,
+    );
 
   return (
     <Flex vertical className={commonStyles["container"]}>
@@ -433,22 +413,13 @@ export const AccessControl: React.FC = () => {
           Access Control
         </Title>
         <Flex vertical={false} gap={4} className={commonStyles["actions"]}>
-          <Dropdown
-            menu={{
-              items: columnVisibilityMenuItems,
-              selectable: true,
-              multiple: true,
-              selectedKeys,
-              onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-            }}
-          >
-            <Button icon={<OverridableIcon name="settings" />} />
-          </Dropdown>
-          <Tooltip title="Redeploy" placement="bottom">
-            <Button
-              icon={<OverridableIcon name="send" />}
-              onClick={() => {
+          {columnSettingsButton}
+          <ProtectedButton
+            require={{ deployment: ["create"] }}
+            tooltipProps={{ title: "Redeploy", placement: "bottom" }}
+            buttonProps={{
+              iconName: "send",
+              onClick: () => {
                 if (selectedRowKeys.length === 0) {
                   notificationService.info(
                     "No selection",
@@ -470,13 +441,15 @@ export const AccessControl: React.FC = () => {
                     "Selected records not found",
                   );
                 }
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Add Roles" placement="bottom">
-            <Button
-              icon={<OverridableIcon name="plus" />}
-              onClick={() => {
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["update"] }}
+            tooltipProps={{ title: "Add Roles", placement: "bottom" }}
+            buttonProps={{
+              iconName: "plus",
+              onClick: () => {
                 if (selectedRowKeys.length === 0) {
                   notificationService.info(
                     "No selection",
@@ -518,13 +491,15 @@ export const AccessControl: React.FC = () => {
                     "Selected record not found",
                   );
                 }
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete Roles" placement="bottom">
-            <Button
-              icon={<OverridableIcon name="minus" />}
-              onClick={() => {
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ chain: ["update"] }}
+            tooltipProps={{ title: "Delete Roles", placement: "bottom" }}
+            buttonProps={{
+              iconName: "minus",
+              onClick: () => {
                 if (selectedRowKeys.length === 0) {
                   notificationService.info(
                     "No selection",
@@ -567,9 +542,9 @@ export const AccessControl: React.FC = () => {
                     "Selected record not found",
                   );
                 }
-              }}
-            />
-          </Tooltip>
+              },
+            }}
+          />
           <Tooltip title="Refresh" placement="bottom">
             <Button
               icon={<OverridableIcon name="refresh" />}
@@ -738,7 +713,7 @@ export const AccessControl: React.FC = () => {
             <Table<AccessControlData>
               className="flex-table"
               size="small"
-              columns={columns}
+              columns={orderedColumns}
               dataSource={accessControlData?.roles}
               scroll={{
                 x: totalColumnsWidth,

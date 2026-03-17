@@ -261,7 +261,11 @@ export const PageWithRightPanel = ({
           ]}
         ></Tabs>
       </Flex>
-      <Flex vertical gap={8} style={{ paddingLeft: "12px" }}>
+      <Flex
+        vertical
+        gap={8}
+        style={{ paddingLeft: "12px", paddingRight: "8px" }}
+      >
         <Flex gap={4} align="center">
           <SidebarSearch
             items={allItems.current}

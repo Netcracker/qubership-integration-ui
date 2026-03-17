@@ -235,6 +235,8 @@ export const useChainGraph = (
     setNestedUnitCounts,
     reapplyNodesVisibility,
     reapplyEdgesVisibility,
+    expandAllContainers,
+    collapseAllContainers,
   } = useExpandCollapse(
     nodes as ChainGraphNode[],
     setNodes,
@@ -959,9 +961,7 @@ export const useChainGraph = (
           }
         });
 
-        const childrenElementIds = (container.children).map(
-          (node) => node.id,
-        );
+        const childrenElementIds = container.children.map((node) => node.id);
         nodesWithoutChangedElements = (nodes as ChainGraphNode[]).filter(
           (node) => !childrenElementIds.includes(node.id),
         );
@@ -1039,5 +1039,7 @@ export const useChainGraph = (
     closeMenu,
     onContextMenuCall,
     isLoading: isLoading && isLibraryLoading,
+    expandAllContainers,
+    collapseAllContainers,
   };
 };

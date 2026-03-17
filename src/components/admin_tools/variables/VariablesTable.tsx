@@ -11,7 +11,7 @@ import {
   getTextColumnFilterFn,
 } from "../../table/TextColumnFilterDropdown";
 import type { FilterDropdownProps } from "antd/lib/table/interface";
-import { Variable } from "../../../api/admin-tools/variables/types";
+import type { Variable } from "../../../api/apiTypes.ts";
 import { ResizableTitle } from "../../ResizableTitle.tsx";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 
@@ -37,6 +37,8 @@ interface VariablesTableProps {
   enableValueFilter?: boolean;
   calculateScrollHeight?: () => number;
   flex?: boolean;
+  enableEdit?: boolean;
+  enableDelete?: boolean;
 }
 
 const VariablesTable: React.FC<VariablesTableProps> = ({
@@ -60,6 +62,8 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
   enableKeyFilter,
   enableValueFilter,
   flex,
+  enableEdit = true,
+  enableDelete = true,
 }) => {
   const newKeyInputRef = useRef<InputRef>(null);
   const newValueInputRef = useRef<HTMLTextAreaElement>(null);
@@ -98,7 +102,6 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
   );
 
   /* Ant Design Table column/row types infer as error/any in strict mode; types are safe for Variable. */
-  /* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
   const columns: TableProps<Variable>["columns"] = [
     {
       title: "Key",
@@ -154,7 +157,7 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
         ? getTextColumnFilterFn<Variable>((record) => record.value)
         : undefined,
       render: (_: string, record: Variable) => {
-        const isEditing = editingKey === record.key;
+        const isEditing = enableEdit && editingKey === record.key;
 
         if (isEditing) {
           const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -247,7 +250,9 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
         return (
           <div
             className={styles["editable-cell-wrapper"]}
-            onClick={() => onStartEditing(record.key, record.value)}
+            onClick={() =>
+              enableEdit && onStartEditing(record.key, record.value)
+            }
           >
             <div className={styles["value-text"]}>
               {isValueHidden
@@ -260,7 +265,9 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
                 className={`${styles["inline-icon"]} ${styles["multiline-icon"]}`}
               />
             )}
-            <OverridableIcon name="edit" className={styles["inline-icon"]} />
+            {enableEdit && (
+              <OverridableIcon name="edit" className={styles["inline-icon"]} />
+            )}
           </div>
         );
       },
@@ -271,7 +278,8 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
       width: 40,
       align: "right" as const,
       render: (_: unknown, record: Variable) =>
-        record.key !== NEW_VARIABLE_KEY && (
+        record.key !== NEW_VARIABLE_KEY &&
+        enableDelete && (
           <Popconfirm
             title="Delete variable?"
             placement="topLeft"
@@ -292,7 +300,6 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
     ...(isAddingNew ? [{ key: NEW_VARIABLE_KEY, value: "" }] : []),
     ...variables,
   ];
-  /* eslint-enable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
 
   return (
     <Table<Variable>
