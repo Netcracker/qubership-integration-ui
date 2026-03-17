@@ -315,7 +315,7 @@ describe("RabbitMQMaasPage", () => {
     });
   });
 
-  test("exchange and queue cannot both be empty", async () => {
+  test("Create disabled when both exchange and queue are empty", async () => {
     render(<RabbitMQMaasPage />);
     fireEvent.change(screen.getByLabelText(/namespace/i), {
       target: { value: TEST_NAMESPACE },
@@ -324,11 +324,8 @@ describe("RabbitMQMaasPage", () => {
       target: { value: "public" },
     });
     await waitFor(() => {
-      expect(
-        screen.getByText(
-          /Fields "Exchange Name" and "Queue Name" can't be empty at the same time/i,
-        ),
-      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /create/i })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /export/i })).toBeDisabled();
     });
   });
 
