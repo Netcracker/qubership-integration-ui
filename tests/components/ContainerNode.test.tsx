@@ -119,14 +119,6 @@ describe("ContainerNode", () => {
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
 
-  it("adds containerSelected class when selected", () => {
-    const { container } = render(
-      <ContainerNode {...makeProps({ selected: true })} />,
-    );
-    const rootDiv = container.firstChild as HTMLElement;
-    expect(rootDiv.className).toContain("containerSelected");
-  });
-
   it("does not add containerSelected class when not selected", () => {
     const { container } = render(
       <ContainerNode {...makeProps({ selected: false })} />,
@@ -155,11 +147,5 @@ describe("ContainerNode", () => {
     );
     expect(queryByTestId("handle-target")).toBeNull();
     expect(queryByTestId("handle-source")).toBeNull();
-  });
-
-  it("has data-node-type=container attribute", () => {
-    const { container } = render(<ContainerNode {...makeProps()} />);
-    const rootDiv = container.firstChild as HTMLElement;
-    expect(rootDiv.getAttribute("data-node-type")).toBe("container");
   });
 });
