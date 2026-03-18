@@ -77,7 +77,10 @@ export function getNodeFromElement(
       ...getDataFromElement(element, libraryElement),
       direction,
     },
-    position: (element.parentElementId || element.swimlaneId) ? defaultPosition : possiblePosition,
+    position:
+      element.parentElementId || element.swimlaneId
+        ? defaultPosition
+        : possiblePosition,
     draggable:
       !(
         libraryElement?.parentRestriction !== undefined &&
@@ -399,7 +402,7 @@ export async function nonEmptyContainerExists(
 
 export function isSwimlanesOnly(nodesToDelete: ChainGraphNode[]): boolean {
   const tree = buildTree(nodesToDelete);
-  return tree.every(node => node.type === "swimlane");
+  return tree.every((node) => node.type === "swimlane");
 }
 
 export function getContainerIdsForEdges(
