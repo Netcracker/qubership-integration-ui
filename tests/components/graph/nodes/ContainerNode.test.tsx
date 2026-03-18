@@ -3,10 +3,10 @@
  */
 import { describe, it, expect, jest } from "@jest/globals";
 import { render, fireEvent } from "@testing-library/react";
-import { ContainerNode } from "../../src/components/graph/nodes/ContainerNode";
+import { ContainerNode } from "../../../../src/components/graph/nodes/ContainerNode.tsx";
 import { Position } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
-import type { ChainGraphNode } from "../../src/components/graph/nodes/ChainGraphNodeTypes";
+import type { ChainGraphNode } from "../../../../src/components/graph/nodes/ChainGraphNodeTypes.ts";
 
 jest.mock("@xyflow/react", () => ({
   Handle: ({ type }: { type: string }) => (
@@ -15,25 +15,28 @@ jest.mock("@xyflow/react", () => ({
   Position: { Left: "left", Right: "right", Top: "top", Bottom: "bottom" },
 }));
 
-jest.mock("../../src/icons/IconProvider", () => ({
+jest.mock("../../../../src/icons/IconProvider.tsx", () => ({
   OverridableIcon: ({ name }: { name: string }) => (
     <span data-testid="icon" data-icon={name} />
   ),
 }));
 
-jest.mock("../../src/components/graph/nodes/ContainerNode.module.css", () => ({
-  __esModule: true,
-  default: {
-    container: "container",
-    containerSelected: "containerSelected",
-    header: "header",
-    actions: "actions",
-    labelWrapper: "labelWrapper",
-    badge: "badge",
-  },
-}));
+jest.mock(
+  "../../../../src/components/graph/nodes/ContainerNode.module.css",
+  () => ({
+    __esModule: true,
+    default: {
+      container: "container",
+      containerSelected: "containerSelected",
+      header: "header",
+      actions: "actions",
+      labelWrapper: "labelWrapper",
+      badge: "badge",
+    },
+  }),
+);
 
-jest.mock("../../src/components/graph/nodes/EllipsisLabel", () => ({
+jest.mock("../../../../src/components/graph/nodes/EllipsisLabel.tsx", () => ({
   EllipsisLabel: ({ text }: { text: string }) => <span>{text}</span>,
 }));
 
