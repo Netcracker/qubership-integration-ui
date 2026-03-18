@@ -4,9 +4,7 @@
 import { describe, it, expect, jest } from "@jest/globals";
 import { render, fireEvent } from "@testing-library/react";
 import { ContainerNode } from "../../../../src/components/graph/nodes/ContainerNode.tsx";
-import { Position } from "@xyflow/react";
-import type { NodeProps } from "@xyflow/react";
-import type { ChainGraphNode } from "../../../../src/components/graph/nodes/ChainGraphNodeTypes.ts";
+import { makeProps } from "./node-test.util.ts";
 
 jest.mock("@xyflow/react", () => ({
   Handle: ({ type }: { type: string }) => (
@@ -39,41 +37,6 @@ jest.mock(
 jest.mock("../../../../src/components/graph/nodes/EllipsisLabel.tsx", () => ({
   EllipsisLabel: ({ text }: { text: string }) => <span>{text}</span>,
 }));
-
-function makeProps(
-  overrides: Partial<NodeProps<ChainGraphNode>> & {
-    data?: Partial<ChainGraphNode["data"]>;
-  } = {},
-): NodeProps<ChainGraphNode> {
-  const { data: dataOverrides, ...rest } = overrides;
-  return {
-    id: "test-container",
-    type: "container",
-    data: {
-      elementType: "try-catch",
-      label: "Container Label",
-      description: "",
-      properties: {},
-      inputEnabled: true,
-      outputEnabled: true,
-      collapsed: false,
-      unitCount: 0,
-      onToggleCollapse: jest.fn(),
-      ...dataOverrides,
-    },
-    selected: false,
-    isConnectable: true,
-    zIndex: 0,
-    positionAbsoluteX: 0,
-    positionAbsoluteY: 0,
-    targetPosition: Position.Left,
-    sourcePosition: Position.Right,
-    dragging: false,
-    dragHandle: undefined,
-    parentId: undefined,
-    ...rest,
-  } as NodeProps<ChainGraphNode>;
-}
 
 describe("ContainerNode", () => {
   it("renders label text", () => {
