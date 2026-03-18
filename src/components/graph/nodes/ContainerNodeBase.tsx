@@ -46,7 +46,7 @@ export const ContainerNodeBase: React.FC<ContainerNodeBaseProps> = ({
               theme?.theme === "light"
                 ? 0.2
                 : theme?.theme === "high-contrast"
-                  ? 1.0
+                  ? 1
                   : 0.8,
             borderRadius: 3,
             backgroundColor: "black",

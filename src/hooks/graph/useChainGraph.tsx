@@ -691,12 +691,12 @@ export const useChainGraph = (
         );
 
         const updatedNodes = buildGraphNodes(elementsDeleteResponse.updatedElements ?? [], libraryElements);
-        const updatedNodeIds = updatedNodes.map((node) => node.id);
+        const updatedNodeIds = new Set(updatedNodes.map((node) => node.id));
 
         const allNodes = (nodes as ChainGraphNode[]).filter(
           (node) =>
             !deletedNodeIds.includes(node.id) &&
-            !updatedNodeIds.includes(node.id),
+            !updatedNodeIds.has(node.id),
         );
         const allEdges = edges.filter(
           (edge) => !deletedEdgeIds.includes(edge.id),
