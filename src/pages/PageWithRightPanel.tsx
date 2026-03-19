@@ -44,6 +44,8 @@ export type PageWithRightPanelProps = {
 export const PageWithRightPanel = ({
   width = DEFAULT_WIDTH,
 }: PageWithRightPanelProps = {}) => {
+  const chainContext = useContext(ChainContext);
+
   const { showModal } = useModalsContext();
   const [activeTab, setActiveTab] = useState<string>("listElements");
   const [textViewContent, setTextViewContent] = useState<string>("");

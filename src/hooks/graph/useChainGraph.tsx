@@ -540,6 +540,8 @@ export const useChainGraph = (
 
         if (parentNode || newNode.parentId) {
           structureChanged([parentNode?.id ?? newNode.parentId]);
+        }  
+
         if (onChainUpdate) {
           void onChainUpdate();
         }
@@ -563,6 +565,7 @@ export const useChainGraph = (
       notificationService,
       structureChanged,
       clearDragVisuals,
+      onChainUpdate,
     ],
   );
 
