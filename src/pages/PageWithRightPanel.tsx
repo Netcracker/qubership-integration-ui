@@ -1,6 +1,5 @@
 import Sider from "antd/lib/layout/Sider";
 import styles from "../components/elements_library/ElementsLibrarySidebar.module.css";
-import { SidebarSearch } from "../components/elements_library/SidebarSearch.tsx";
 import { useCallback, useRef, useState, useMemo, useEffect } from "react";
 import { MenuItem } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { Flex, Menu, Tabs } from "antd";
@@ -8,8 +7,6 @@ import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-text";
 import "ace-builds/src-noconflict/theme-github";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
-import { FilterButton } from "../components/table/filter/FilterButton.tsx";
-import { useChainFilters } from "../hooks/useChainFilter.ts";
 import { Filter } from "../components/table/filter/Filter.tsx";
 import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { Element } from "../api/apiTypes.ts";
@@ -44,15 +41,13 @@ export type PageWithRightPanelProps = {
 export const PageWithRightPanel = ({
   width = DEFAULT_WIDTH,
 }: PageWithRightPanelProps = {}) => {
-  const allItems = useRef<MenuItem[]>([]);
+  const chainContext = useContext(ChainContext);
+
   const [isSearch, setIsSearch] = useState(false);
-  const { filterColumns, filterItemStates, setFilterItemStates } =
-    useChainFilters();
   const [openKeysState, setOpenKeysState] = useState<string[]>();
   const openKeysBeforeSearch = useRef<string[]>();
   const [items, setItems] = useState<MenuItem[]>([]);
   const { showModal } = useModalsContext();
-  const [filters, setFilters] = useState<EntityFilterModel[]>([]);
   const [activeTab, setActiveTab] = useState<string>("listElements");
   const [textViewContent, setTextViewContent] = useState<string>("");
 
@@ -61,8 +56,10 @@ export const PageWithRightPanel = ({
   const { libraryElements } = useLibraryContext();
   const notificationService = useNotificationService();
   const navigate = useNavigate();
-  const chainContext = useContext(ChainContext);
   const [elements, setElements] = useState<Element[]>([]);
+  const [chainElements, setChainElements] = useState<Element[]>(
+      chainContext?.chain?.elements ?? [],
+  );
 
   let direction: "RIGHT" | "DOWN" = "RIGHT";
   try {
@@ -71,36 +68,33 @@ export const PageWithRightPanel = ({
   } catch {}
 
   useEffect(() => {
-    if (!chainId) {
-      setElements([]);
-      return;
-    }
+    setElements(chainContext?.chain?.elements ?? []);
+  }, [chainContext?.chain?.elements]);
 
-    const fetchElements = async () => {
+  useEffect(() => {
+    const chainId = chainContext?.chain?.id;
+    if (!chainId) return;
+
+    let cancelled = false;
+    const load = async () => {
       try {
-        const fetchedElements = await api.getElements(chainId);
-        setElements(fetchedElements);
+        const elementsResponse = await api.getElements(chainId);
+        if (cancelled) return;
+        setElements(elementsResponse);
       } catch (error) {
+        console.error(
+          "Failed to refresh chain structure before loading schema",
+          error,
+        );
         notificationService.requestFailed("Failed to load elements", error);
       }
     };
 
-    void fetchElements();
-
-    const handleFocus = () => {
-      void fetchElements();
-    };
-    window.addEventListener("focus", handleFocus);
-
-    const intervalId = setInterval(() => {
-      void fetchElements();
-    }, 3000);
-
+    void load();
     return () => {
-      clearInterval(intervalId);
-      window.removeEventListener("focus", handleFocus);
+      cancelled = true;
     };
-  }, [chainId, notificationService]);
+  }, [chainContext?.chain?.id]);
 
   useEffect(() => {
     if (elementAsCode?.code != null) {
