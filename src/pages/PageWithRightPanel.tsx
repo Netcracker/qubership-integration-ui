@@ -1,14 +1,20 @@
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Sider from "antd/lib/layout/Sider";
 import styles from "../components/elements_library/ElementsLibrarySidebar.module.css";
-import { useCallback, useRef, useState, useMemo, useEffect } from "react";
-import { MenuItem } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { Flex, Menu, Tabs } from "antd";
-import AceEditor from "react-ace";
-import "ace-builds/src-noconflict/mode-text";
-import "ace-builds/src-noconflict/theme-github";
+import { Editor, Monaco } from "@monaco-editor/react";
+import {
+  useMonacoTheme,
+  applyVSCodeThemeToMonaco,
+} from "../hooks/useMonacoTheme.ts";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
-import { Filter } from "../components/table/filter/Filter.tsx";
-import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { Element } from "../api/apiTypes.ts";
 import { useModalsContext } from "../Modals.tsx";
 import { useParams, useNavigate } from "react-router-dom";
@@ -21,16 +27,13 @@ import type { MenuProps } from "antd";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { ChainContext } from "./ChainPage.tsx";
-import { useContext } from "react";
 import { ChainElementModification } from "../components/modal/chain_element/ChainElementModification.tsx";
 import { ChainGraphNode } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
 import { useElkDirectionContext } from "./ElkDirectionContext.tsx";
 import { useFocusToElementId } from "../components/graph/ElementFocus.tsx";
 import { UsedPropertiesList } from "../components/UsedPropertiesList.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { EntityFilterModel } from "../components/table/filter/filter.ts";
 import { useElementsAsCode } from "../hooks/useElementsAsCode.tsx";
-import "ace-builds/src-noconflict/mode-yaml";
 
 const DEFAULT_WIDTH = 240;
 
@@ -41,19 +44,16 @@ export type PageWithRightPanelProps = {
 export const PageWithRightPanel = ({
   width = DEFAULT_WIDTH,
 }: PageWithRightPanelProps = {}) => {
-  const chainContext = useContext(ChainContext);
-
-  const [isSearch, setIsSearch] = useState(false);
-  const [openKeysState, setOpenKeysState] = useState<string[]>();
-  const openKeysBeforeSearch = useRef<string[]>();
-  const [items, setItems] = useState<MenuItem[]>([]);
   const { showModal } = useModalsContext();
   const [activeTab, setActiveTab] = useState<string>("listElements");
   const [textViewContent, setTextViewContent] = useState<string>("");
 
-  const { chainId } = useParams<string>();
+  const params = useParams<{ chainId?: string }>();
+  const chainId = params.chainId;
   const { elementAsCode } = useElementsAsCode(chainId ?? "");
   const { libraryElements } = useLibraryContext();
+  const monacoTheme = useMonacoTheme();
+  const monacoRef = useRef<Monaco | null>(null); // eslint-disable-line @typescript-eslint/no-redundant-type-constituents -- Monaco from @monaco-editor/react may include any in union
   const notificationService = useNotificationService();
   const navigate = useNavigate();
   const [elements, setElements] = useState<Element[]>(
@@ -64,7 +64,9 @@ export const PageWithRightPanel = ({
   try {
     const elkContext = useElkDirectionContext();
     direction = elkContext.direction;
-  } catch {}
+  } catch {
+    // useElkDirectionContext throws when used outside ElkDirectionProvider
+  }
 
   useEffect(() => {
     setElements(chainContext?.chain?.elements ?? []);
@@ -96,10 +98,16 @@ export const PageWithRightPanel = ({
   }, [chainContext?.chain?.id]);
 
   useEffect(() => {
-    if (elementAsCode?.code != null) {
+    if (elementAsCode?.code != null && typeof elementAsCode.code === "string") {
       setTextViewContent(elementAsCode.code);
     }
-  }, [elementAsCode?.code]);
+  }, [elementAsCode]);
+
+  useEffect(() => {
+    if (monacoRef.current) {
+      applyVSCodeThemeToMonaco(monacoRef.current);
+    }
+  }, [monacoTheme]);
 
   const handleElementDoubleClick = useCallback(
     (element: Element) => {
@@ -122,11 +130,14 @@ export const PageWithRightPanel = ({
               chainId={chainId}
               elementId={element.id}
               onSubmit={() => {
-                void api.getElements(chainId).then(setElements);
+                void api
+                  .getElements(chainId)
+                  .then(setElements)
+                  .catch(() => {});
               }}
               onClose={() => {
                 if (chainId) {
-                  navigate(`/chains/${chainId}/graph`);
+                  void navigate(`/chains/${chainId}/graph`);
                 }
               }}
             />
@@ -167,7 +178,8 @@ export const PageWithRightPanel = ({
       return {
         key: element.id,
         label: (
-          <div
+          <button
+            type="button"
             className={styles.elementListItemLabel}
             onDoubleClick={(e) => {
               e.stopPropagation();
@@ -183,52 +195,18 @@ export const PageWithRightPanel = ({
                 {elementTypeLabel}
               </span>
             </div>
-          </div>
+          </button>
         ),
         title: `${elementName} (${elementTypeLabel})`,
       };
     });
   }, [elements, libraryElements, handleElementDoubleClick]);
 
-  const handleSearch = useCallback(
-    (filtered: MenuItem[], openKeys: string[]) => {
-      if (!isSearch) {
-        setIsSearch(true);
-        openKeysBeforeSearch.current = openKeysState;
-      }
-      setOpenKeysState(openKeys);
-      setItems(filtered);
-    },
-    [isSearch, openKeysState],
-  );
-
-  const applyFilters = (filterItems: FilterItemState[]) => {
-    setFilterItemStates?.(filterItems);
-
-    const f = (filterItems ?? []).map(
-      (filterItem): EntityFilterModel => ({
-        column: filterItem.columnValue!,
-        condition: filterItem.conditionValue!,
-        value: filterItem.value,
-      }),
-    );
-    setFilters(f);
-  };
-
-  const addFilter = () => {
-    showModal({
-      component: (
-        <Filter
-          filterColumns={filterColumns ?? []}
-          filterItemStates={filterItemStates ?? []}
-          onApplyFilters={applyFilters}
-        />
-      ),
-    });
-  };
-
   return (
-    <Sider width={width} className={`${styles.sideMenu} ${styles.rightPanelBorder}`}>
+    <Sider
+      width={width}
+      className={`${styles.sideMenu} ${styles.rightPanelBorder}`}
+    >
       <Flex vertical={false} justify="left" style={{ width: "100%" }}>
         <Tabs
           className={`${styles.spacedTabs} ${activeTab === "textView" ? styles.rightPanelTabs : ""}`}
@@ -239,18 +217,18 @@ export const PageWithRightPanel = ({
               key: "listElements",
               label: <OverridableIcon name="unorderedList" />,
             },
-            ...(!isVsCode
-              ? [
+            ...(isVsCode
+              ? []
+              : [
                   {
                     key: "elementProperties",
                     label: <OverridableIcon name="menuUnfold" />,
                   },
                   {
                     key: "textView",
-                    label: <OverridableIcon name="file" />
+                    label: <OverridableIcon name="file" />,
                   },
-                ]
-              : []),
+                ]),
           ]}
         ></Tabs>
       </Flex>
@@ -258,8 +236,10 @@ export const PageWithRightPanel = ({
         vertical
         gap={activeTab === "textView" ? 0 : 8}
         style={{
-          paddingLeft:
-            activeTab === "textView" ? 0 : "12px",
+          flex: 1,
+          minHeight: 0,
+          overflow: activeTab === "textView" ? "hidden" : "auto",
+          paddingLeft: activeTab === "textView" ? 0 : "12px",
         }}
       >
         {activeTab === "listElements" && (
@@ -286,25 +266,24 @@ export const PageWithRightPanel = ({
           </div>
         )}
         {activeTab === "textView" && (
-          <div style={{ width: "100%", height: 2110 }}>
-            <AceEditor
-              mode="yaml"
-              theme="eclipse"
+          <div className={`${styles.rightPanelCodeBlock} qip-editor`}>
+            <Editor
+              height="100%"
+              language="yaml"
               value={textViewContent}
-              onChange={setTextViewContent}
-              name="rightPanelAceEditor"
-              autoUpdateContent="true"
-              options="editorOptions"
-              editorProps={{ $blockScrolling: true }}
-              width="100%"
-              height="2110px"
-              fontSize={14}
-              readOnly={true}
-              showPrintMargin={false}
-              setOptions={{
-                  readOnly: true,
-                  displayIndentGuides: false,
-                  useWorker: false
+              theme={monacoTheme}
+              options={{
+                readOnly: true,
+                folding: true,
+                fixedOverflowWidgets: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+              }}
+              onMount={(_, monaco) => {
+                monacoRef.current = monaco ?? null;
+                if (monaco) {
+                  applyVSCodeThemeToMonaco(monaco);
+                }
               }}
             />
           </div>
