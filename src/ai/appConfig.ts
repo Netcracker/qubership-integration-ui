@@ -32,7 +32,7 @@ export function getAiServiceUrl(): string | null {
 }
 
 export function getIsAiServiceAvailable(): boolean {
-  const [ isAiServiceAvailable, setIsAiServiceAvailable] = useState(true);
+  const [ isAiServiceAvailable, setIsAiServiceAvailable] = useState(false);
 
   const url = getAiServiceUrl();
 
@@ -43,7 +43,7 @@ export function getIsAiServiceAvailable(): boolean {
         return;
       }
       const base = url.replace(/\/$/, "");
-      fetch(`${base}/api/chat/with-progress`, { method: "POST" })
+      fetch(`${base}/health`, { method: "GET" })
         .then(response => {
             console.log("status:" , response.status);
             setIsAiServiceAvailable(response.ok)})
