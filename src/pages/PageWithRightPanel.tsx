@@ -56,8 +56,7 @@ export const PageWithRightPanel = ({
   const { libraryElements } = useLibraryContext();
   const notificationService = useNotificationService();
   const navigate = useNavigate();
-  const [elements, setElements] = useState<Element[]>([]);
-  const [chainElements, setChainElements] = useState<Element[]>(
+  const [elements, setElements] = useState<Element[]>(
       chainContext?.chain?.elements ?? [],
   );
 

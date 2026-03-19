@@ -518,6 +518,10 @@ export const useChainGraph = (
         const ordered = sortParentsBeforeChildren(withDropPosition);
         setNodes(ordered);
 
+        if (onChainUpdate) {
+          void onChainUpdate();
+        }
+
         if (parentNode) {
           structureChanged([parentNode.id]);
         }
