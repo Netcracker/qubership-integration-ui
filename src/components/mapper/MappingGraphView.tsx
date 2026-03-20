@@ -81,6 +81,11 @@ import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
 import { ElementReferencesList } from "./ElementReferencesList.tsx";
 import { traverseElementsDepthFirst } from "../../misc/tree-utils.ts";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import {
+  compareDataTypes,
+  hasBreakingChanges,
+} from "../../mapper/util/compare.ts";
+import { LoadConfirmationDialog } from "./LoadConfirmationDialog.tsx";
 
 const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
 const DRAG_POINT_ID = "drag-point";
@@ -613,6 +618,51 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
     targetItems,
   ]);
 
+  const loadDataType = useCallback(
+    (item: MappingTableItem, schemaKind: SchemaKind, type: DataType) => {
+      if (isBodyGroup(item)) {
+        updateBodyType(schemaKind, type);
+      } else if (isAttributeItem(item)) {
+        tryUpdateAttribute(schemaKind, item.kind, item.path, {
+          type,
+        });
+      }
+    },
+    [tryUpdateAttribute, updateBodyType],
+  );
+
+  const loadDataTypeWithConfirmation = useCallback(
+    (item: MappingTableItem, schemaKind: SchemaKind, type: DataType) => {
+      const presentContext = isBodyGroup(item)
+        ? {
+            type: mappingDescription[schemaKind].body ?? DataTypes.nullType(),
+            definitions: [],
+          }
+        : isAttributeItem(item)
+          ? { type: item.resolvedType, definitions: item.typeDefinitions }
+          : { type: DataTypes.nullType(), definitions: [] };
+      const path = isAttributeItem(item) ? item.path.map((a) => a.name) : [];
+      const differences = compareDataTypes(
+        presentContext,
+        { type, definitions: [] },
+        path,
+      );
+      if (hasBreakingChanges(differences)) {
+        showModal({
+          component: (
+            <LoadConfirmationDialog
+              differences={differences}
+              onSubmit={() => loadDataType(item, schemaKind, type)}
+            />
+          ),
+        });
+      } else {
+        loadDataType(item, schemaKind, type);
+      }
+    },
+    [loadDataType, mappingDescription, showModal],
+  );
+
   const buildSourceColumns = useCallback(() => {
     return [
       {
@@ -689,15 +739,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   });
                 }
               }}
-              onLoad={(type) => {
-                if (isBodyGroup(item)) {
-                  updateBodyType(SchemaKind.SOURCE, type);
-                } else if (isAttributeItem(item)) {
-                  tryUpdateAttribute(SchemaKind.SOURCE, item.kind, item.path, {
-                    type,
-                  });
-                }
-              }}
+              onLoad={(type) =>
+                loadDataTypeWithConfirmation(item, SchemaKind.SOURCE, type)
+              }
               onExport={() => exportElement(item)}
               onUpdateXmlNamespaces={(namespaces) =>
                 updateXmlNamespaces(
@@ -1226,15 +1270,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                   });
                 }
               }}
-              onLoad={(type) => {
-                if (isBodyGroup(item)) {
-                  updateBodyType(SchemaKind.TARGET, type);
-                } else if (isAttributeItem(item)) {
-                  tryUpdateAttribute(SchemaKind.TARGET, item.kind, item.path, {
-                    type,
-                  });
-                }
-              }}
+              onLoad={(type) =>
+                loadDataTypeWithConfirmation(item, SchemaKind.TARGET, type)
+              }
               onExport={() => exportElement(item)}
               onUpdateXmlNamespaces={(namespaces) =>
                 updateXmlNamespaces(
