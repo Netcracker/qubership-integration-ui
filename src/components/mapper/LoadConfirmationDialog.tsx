@@ -20,7 +20,10 @@ export const LoadConfirmationDialog: React.FC<LoadConfirmationDialogProps> = ({
       title="Warning"
       open={true}
       okText={"Apply"}
-      onOk={() => onSubmit?.()}
+      onOk={() => {
+        onSubmit?.();
+        closeContainingModal();
+      }}
       onCancel={closeContainingModal}
     >
       <Flex vertical gap={16}>
