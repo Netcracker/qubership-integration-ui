@@ -41,6 +41,7 @@ import {
   isConstantItem,
   isHeaderGroup,
   isPropertyGroup,
+  loadTypeWithConfirmation,
   MappingTableItem,
   TableControlsState,
 } from "./MappingTableView.tsx";
@@ -81,11 +82,6 @@ import { TRANSFORMATIONS } from "../../mapper/model/transformations.ts";
 import { ElementReferencesList } from "./ElementReferencesList.tsx";
 import { traverseElementsDepthFirst } from "../../misc/tree-utils.ts";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
-import {
-  compareDataTypes,
-  hasBreakingChanges,
-} from "../../mapper/util/compare.ts";
-import { LoadConfirmationDialog } from "./LoadConfirmationDialog.tsx";
 
 const MAPPER_DND_REFERENCE_MEDIA_TYPE = "mapper/reference-json";
 const DRAG_POINT_ID = "drag-point";
@@ -633,32 +629,14 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
 
   const loadDataTypeWithConfirmation = useCallback(
     (item: MappingTableItem, schemaKind: SchemaKind, type: DataType) => {
-      const presentContext = isBodyGroup(item)
-        ? {
-            type: mappingDescription[schemaKind].body ?? DataTypes.nullType(),
-            definitions: [],
-          }
-        : isAttributeItem(item)
-          ? { type: item.resolvedType, definitions: item.typeDefinitions }
-          : { type: DataTypes.nullType(), definitions: [] };
-      const path = isAttributeItem(item) ? item.path.map((a) => a.name) : [];
-      const differences = compareDataTypes(
-        presentContext,
-        { type, definitions: [] },
-        path,
+      loadTypeWithConfirmation(
+        item,
+        schemaKind,
+        type,
+        mappingDescription,
+        showModal,
+        loadDataType,
       );
-      if (hasBreakingChanges(differences)) {
-        showModal({
-          component: (
-            <LoadConfirmationDialog
-              differences={differences}
-              onSubmit={() => loadDataType(item, schemaKind, type)}
-            />
-          ),
-        });
-      } else {
-        loadDataType(item, schemaKind, type);
-      }
     },
     [loadDataType, mappingDescription, showModal],
   );

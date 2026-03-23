@@ -235,6 +235,46 @@ function exportMappingAsMarkdown(mapping: MappingDescription): void {
   downloadFile(file);
 }
 
+export function loadTypeWithConfirmation(
+  item: MappingTableItem,
+  schemaKind: SchemaKind,
+  type: DataType,
+  mappingDescription: MappingDescription,
+  showModal: ReturnType<typeof useModalsContext>["showModal"],
+  loadDataType: (
+    item: MappingTableItem,
+    schemaKind: SchemaKind,
+    type: DataType,
+  ) => void,
+): void {
+  const presentContext = isBodyGroup(item)
+    ? {
+        type: mappingDescription[schemaKind].body ?? DataTypes.nullType(),
+        definitions: [],
+      }
+    : isAttributeItem(item)
+      ? { type: item.resolvedType, definitions: item.typeDefinitions }
+      : { type: DataTypes.nullType(), definitions: [] };
+  const path = isAttributeItem(item) ? item.path.map((a) => a.name) : [];
+  const differences = compareDataTypes(
+    presentContext,
+    { type, definitions: [] },
+    path,
+  );
+  if (hasBreakingChanges(differences)) {
+    showModal({
+      component: (
+        <LoadConfirmationDialog
+          differences={differences}
+          onSubmit={() => loadDataType(item, schemaKind, type)}
+        />
+      ),
+    });
+  } else {
+    loadDataType(item, schemaKind, type);
+  }
+}
+
 export function buildAttributeItemId(
   schemaKind: SchemaKind,
   kind: AttributeKind,
@@ -798,32 +838,14 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
 
   const loadDataTypeWithConfirmation = useCallback(
     (item: MappingTableItem, schemaKind: SchemaKind, type: DataType) => {
-      const presentContext = isBodyGroup(item)
-        ? {
-            type: mappingDescription[schemaKind].body ?? DataTypes.nullType(),
-            definitions: [],
-          }
-        : isAttributeItem(item)
-          ? { type: item.resolvedType, definitions: item.typeDefinitions }
-          : { type: DataTypes.nullType(), definitions: [] };
-      const path = isAttributeItem(item) ? item.path.map((a) => a.name) : [];
-      const differences = compareDataTypes(
-        presentContext,
-        { type, definitions: [] },
-        path,
+      loadTypeWithConfirmation(
+        item,
+        schemaKind,
+        type,
+        mappingDescription,
+        showModal,
+        loadDataType,
       );
-      if (hasBreakingChanges(differences)) {
-        showModal({
-          component: (
-            <LoadConfirmationDialog
-              differences={differences}
-              onSubmit={() => loadDataType(item, schemaKind, type)}
-            />
-          ),
-        });
-      } else {
-        loadDataType(item, schemaKind, type);
-      }
     },
     [loadDataType, mappingDescription, showModal],
   );
