@@ -187,5 +187,7 @@ export function hasBreakingChanges(changes: Difference[]): boolean {
   // The only non-breaking change is addition of a new field.
   // Actually, changing a field that is not mapped directly or indirectly also doesn't break the mapping.
   // But it is more difficult to check.
-  return changes.some(change => !!change.first && change.first.type.name !== "null");
+  return changes.some(
+    (change) => !!change.first && change.first.type.name !== "null",
+  );
 }

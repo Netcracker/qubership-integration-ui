@@ -137,7 +137,7 @@ export class Attributes {
         const pth = p.slice(1);
         const matches =
           pth.length === path.length && pth.every((a, i) => a.name === path[i]);
-        return matches ? pth.map(a => a.id) : null;
+        return matches ? pth.map((a) => a.id) : null;
       }) ?? null
     );
   }

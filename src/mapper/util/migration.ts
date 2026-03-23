@@ -80,6 +80,8 @@ export function migrateActions(
   if (!from || !to) {
     return actions;
   }
-  return actions
-    .map((action) => migrateAction(action, schemaKind, pathPrefix, from, to) ?? action);
+  return actions.map(
+    (action) =>
+      migrateAction(action, schemaKind, pathPrefix, from, to) ?? action,
+  );
 }
