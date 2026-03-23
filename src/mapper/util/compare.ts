@@ -1,4 +1,5 @@
 import {
+  ArrayType,
   DataType,
   ObjectSchema,
   ObjectType,
@@ -138,8 +139,14 @@ export function compareDataTypes(
     }
     if (resolvedFirst.type.name === "array") {
       return compareDataTypes(
-        { type: resolvedFirst.type, definitions: resolvedFirst.definitions },
-        { type: resolvedSecond.type!, definitions: resolvedSecond.definitions },
+        {
+          type: resolvedFirst.type.itemType,
+          definitions: resolvedFirst.definitions,
+        },
+        {
+          type: (resolvedSecond.type as ArrayType).itemType,
+          definitions: resolvedSecond.definitions,
+        },
         path,
       );
     }
@@ -166,11 +173,13 @@ export function compareDataTypes(
   }
 }
 
-export function hasBreakingChanges(changes: Difference[]): boolean {
+export function isBreakingChange(change: Difference): boolean {
   // The only non-breaking change is addition of a new field.
   // Actually, changing a field that is not mapped directly or indirectly also doesn't break the mapping.
   // But it is more difficult to check.
-  return changes.some(
-    (change) => !!change.first && change.first.type.name !== "null",
-  );
+  return !!change.first && change.first.type.name !== "null";
+}
+
+export function hasBreakingChanges(changes: Difference[]): boolean {
+  return changes.some((change) => isBreakingChange(change));
 }
