@@ -4,7 +4,7 @@ import {
   ObjectType,
   TypeDefinition,
 } from "../model/model.ts";
-import { DataTypes } from "./types.ts";
+import { DataTypes, TypeResolutionResult } from "./types.ts";
 
 export type CompareContext = {
   type: DataType;
@@ -24,7 +24,7 @@ export type Difference = {
   details?: DifferenceDetails;
 };
 
-function compareAttributes(
+export function compareAttributes(
   schema1: ObjectSchema,
   definitions1: TypeDefinition[],
   schema2: ObjectSchema,
@@ -85,6 +85,39 @@ function compareAttributes(
   return differences;
 }
 
+export function buildTypeChangeDetails(
+  first: TypeResolutionResult,
+  second: TypeResolutionResult,
+): DifferenceDetails {
+  return {
+    feature: "type",
+    first: DataTypes.buildTypeName(first.type, first.definitions),
+    second: DataTypes.buildTypeName(second.type, second.definitions),
+  };
+}
+
+export function buildTypeChange(
+  path: string[],
+  first: TypeResolutionResult,
+  second: TypeResolutionResult,
+): Difference {
+  return {
+    path,
+    first: first.type
+      ? { type: first.type, definitions: first.definitions }
+      : null,
+    second: second.type
+      ? {
+          type: second.type,
+          definitions: second.definitions,
+        }
+      : null,
+    details:
+      first.type && second.type
+        ? buildTypeChangeDetails(first, second)
+        : undefined,
+  };
+}
 export function compareDataTypes(
   first: CompareContext,
   second: CompareContext,
@@ -125,61 +158,11 @@ export function compareDataTypes(
         ...(resolvedSecond.definitions ?? []),
       ])
     ) {
-      return [
-        {
-          path,
-          first: {
-            type: resolvedFirst.type,
-            definitions: resolvedFirst.definitions,
-          },
-          second: {
-            type: resolvedSecond.type!,
-            definitions: resolvedSecond.definitions,
-          },
-          details: {
-            feature: "type",
-            first: DataTypes.buildTypeName(
-              resolvedFirst.type,
-              resolvedFirst.definitions,
-            ),
-            second: DataTypes.buildTypeName(
-              resolvedSecond.type!,
-              resolvedSecond.definitions,
-            ),
-          },
-        },
-      ];
+      return [buildTypeChange(path, resolvedFirst, resolvedSecond)];
     }
     return [];
   } else {
-    return [
-      {
-        path,
-        first: resolvedFirst.type
-          ? { type: resolvedFirst.type, definitions: resolvedFirst.definitions }
-          : null,
-        second: resolvedSecond.type
-          ? {
-              type: resolvedSecond.type,
-              definitions: resolvedSecond.definitions,
-            }
-          : null,
-        details:
-          resolvedFirst.type && resolvedSecond.type
-            ? {
-                feature: "type",
-                first: DataTypes.buildTypeName(
-                  resolvedFirst.type,
-                  resolvedFirst.definitions,
-                ),
-                second: DataTypes.buildTypeName(
-                  resolvedSecond.type,
-                  resolvedSecond.definitions,
-                ),
-              }
-            : undefined,
-      },
-    ];
+    return [buildTypeChange(path, resolvedFirst, resolvedSecond)];
   }
 }
 

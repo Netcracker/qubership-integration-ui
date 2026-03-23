@@ -11,15 +11,15 @@ export type DataTypeDifferencesViewProps = {
 type TableItem = Difference & { id: number };
 
 function getChangeActionText(difference: Difference): string {
-  return !difference.first
-    ? "Added"
-    : !difference.second
-      ? "Removed"
-      : "Changed";
+  return difference.first
+    ? difference.second
+      ? "Changed"
+      : "Removed"
+    : "Added";
 }
 
 function getChangeActionColor(difference: Difference): TagProps["color"] {
-  return !difference.first ? "green" : !difference.second ? "red" : "orange";
+  return difference.first ? (difference.second ? "orange" : "red") : "green";
 }
 
 const ChangeAction: React.FC<Difference> = (difference) => {
