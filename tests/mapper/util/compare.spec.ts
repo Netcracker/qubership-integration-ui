@@ -320,4 +320,51 @@ describe("compareDataTypes", () => {
       },
     ]);
   });
+
+  it("should return type difference when comparing different compound types", () => {
+    const type1 = DataTypes.allOfType([DataTypes.stringType()]);
+    const type2 = DataTypes.anyOfType([DataTypes.stringType()]);
+    expect(
+      compareDataTypes(
+        {
+          type: type1,
+          definitions: [],
+        },
+        { type: type2, definitions: [] },
+        [],
+      ),
+    ).toEqual([
+      {
+        path: [],
+        first: {
+          type: type1,
+          definitions: [],
+        },
+        second: {
+          type: type2,
+          definitions: [],
+        },
+        details: {
+          feature: "type",
+          first: "all of 1 type",
+          second: "any of 1 type",
+        },
+      },
+    ]);
+  });
+
+  it("should return empty list when comparing equal compound types", () => {
+    const type1 = DataTypes.allOfType([DataTypes.stringType()]);
+    const type2 = DataTypes.allOfType([DataTypes.stringType()]);
+    expect(
+      compareDataTypes(
+        {
+          type: type1,
+          definitions: [],
+        },
+        { type: type2, definitions: [] },
+        [],
+      ),
+    ).toEqual([]);
+  });
 });
