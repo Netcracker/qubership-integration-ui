@@ -477,6 +477,14 @@ const Chains = () => {
     const dropClass = (dropId: string) =>
       dropBreadcrumbId === dropId ? styles.breadcrumbDropTarget : undefined;
 
+    const handleKeyDown =
+      (handler: () => void) => (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handler();
+        }
+      };
+
     const homeItem = {
       title: (
         <span
@@ -488,7 +496,14 @@ const Chains = () => {
           ]
             .filter(Boolean)
             .join(" ")}
-          onClick={isDragging ? undefined : () => void navigate("/chains")}
+          {...(!isDragging
+            ? {
+                role: "link" as const,
+                tabIndex: 0,
+                onClick: () => void navigate("/chains"),
+                onKeyDown: handleKeyDown(() => void navigate("/chains")),
+              }
+            : {})}
         >
           <OverridableIcon name="home" />
         </span>
@@ -496,6 +511,8 @@ const Chains = () => {
     };
     const pathItems = folderPath.map((folder, index) => {
       const isClickable = !isDragging && index < folderPath.length - 1;
+      const handleClick = () =>
+        void navigate(`/chains?folder=${folder.id}`);
       return {
         title: (
           <span
@@ -507,11 +524,14 @@ const Chains = () => {
             ]
               .filter(Boolean)
               .join(" ")}
-            onClick={
-              isClickable
-                ? () => void navigate(`/chains?folder=${folder.id}`)
-                : undefined
-            }
+            {...(isClickable
+              ? {
+                  role: "link" as const,
+                  tabIndex: 0,
+                  onClick: handleClick,
+                  onKeyDown: handleKeyDown(handleClick),
+                }
+              : {})}
           >
             {folder.name}
           </span>
