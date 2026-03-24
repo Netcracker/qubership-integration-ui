@@ -83,6 +83,7 @@ import {
 import { useMappingDescription } from "./useMappingDescription.tsx";
 import { MappingTableItemActionButton } from "./MappingTableItemActionButton.tsx";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { treeExpandIcon } from "../table/TreeExpandIcon.tsx";
 import { useColumnSettingsBasedOnColumnsType } from "../table/useColumnSettingsButton.tsx";
 import {
   compareDataTypes,
@@ -1845,6 +1846,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
           pagination={false}
           scroll={{ y: "" }}
           expandable={{
+            expandIcon: treeExpandIcon(),
             defaultExpandedRowKeys: [
               "constant-group",
               "header-group",
