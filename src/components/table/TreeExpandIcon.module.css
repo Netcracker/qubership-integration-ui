@@ -2,7 +2,7 @@
 .expandIcon {
   float: left;
   cursor: pointer;
-  color: var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45));
+  color: var(--vscode-descriptionForeground, rgb(0 0 0 / 45%));
   display: inline-flex;
   align-items: center;
   margin-right: 6px;
