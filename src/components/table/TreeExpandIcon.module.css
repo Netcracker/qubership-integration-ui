@@ -1,5 +1,6 @@
 /* Must use float: left to match Ant Design's .ant-table-row-indent layout */
 .expandIcon {
+  all: unset;
   float: left;
   cursor: pointer;
   color: var(--vscode-descriptionForeground, rgb(0 0 0 / 45%));

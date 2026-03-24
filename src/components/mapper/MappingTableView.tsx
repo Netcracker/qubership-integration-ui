@@ -248,14 +248,20 @@ export function loadTypeWithConfirmation(
     type: DataType,
   ) => void,
 ): void {
-  const presentContext = isBodyGroup(item)
-    ? {
-        type: mappingDescription[schemaKind].body ?? DataTypes.nullType(),
-        definitions: [],
-      }
-    : isAttributeItem(item)
-      ? { type: item.resolvedType, definitions: item.typeDefinitions }
-      : { type: DataTypes.nullType(), definitions: [] };
+  let presentContext;
+  if (isBodyGroup(item)) {
+    presentContext = {
+      type: mappingDescription[schemaKind].body ?? DataTypes.nullType(),
+      definitions: [],
+    };
+  } else if (isAttributeItem(item)) {
+    presentContext = {
+      type: item.resolvedType,
+      definitions: item.typeDefinitions,
+    };
+  } else {
+    presentContext = { type: DataTypes.nullType(), definitions: [] };
+  }
   const path = isAttributeItem(item) ? item.path.map((a) => a.name) : [];
   const differences = compareDataTypes(
     presentContext,

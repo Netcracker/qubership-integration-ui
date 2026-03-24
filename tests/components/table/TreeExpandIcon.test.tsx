@@ -4,13 +4,12 @@
 
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
-import { treeExpandIcon } from "../../../components/table/TreeExpandIcon";
+import { treeExpandIcon } from "../../../src/components/table/TreeExpandIcon";
 
-jest.mock("../../../icons/IconProvider.tsx", () => ({
+jest.mock("../../../src/icons/IconProvider.tsx", () => ({
   OverridableIcon: ({ name, ...props }: { name: string }) => (
     <span data-testid={`icon-${name}`} {...props} />
-  )
+  ),
 }));
 
 type TestRecord = { id: string; name: string };
@@ -31,7 +30,7 @@ describe("treeExpandIcon", () => {
       expanded: props.expanded,
       expandable: props.expandable,
       record: props.record ?? mockRecord,
-      onExpand: mockOnExpand
+      onExpand: mockOnExpand,
     });
     return render(<>{element}</>);
   };
@@ -63,10 +62,7 @@ describe("treeExpandIcon", () => {
   it("calls onExpand with record on click", () => {
     renderIcon({ expanded: false, expandable: true });
     fireEvent.click(screen.getByRole("button"));
-    expect(mockOnExpand).toHaveBeenCalledWith(
-      mockRecord,
-      expect.any(Object)
-    );
+    expect(mockOnExpand).toHaveBeenCalledWith(mockRecord, expect.any(Object));
   });
 
   it("stops event propagation on click", () => {

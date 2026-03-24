@@ -23,11 +23,11 @@ export function treeExpandIcon<T = unknown>() {
     expandable,
   }: ExpandIconProps<T>) {
     return expandable ? (
-      <span
+      <button
+        type="button"
         className={styles.expandIcon}
-        role="button"
         onClick={(e) => {
-          onExpand(record, e);
+          onExpand(record, e as unknown as React.MouseEvent<HTMLElement>);
           e.stopPropagation();
         }}
       >
@@ -35,7 +35,7 @@ export function treeExpandIcon<T = unknown>() {
           name={expanded ? "down" : "right"}
           style={{ fontSize: 11 }}
         />
-      </span>
+      </button>
     ) : (
       <span className={styles.expandSpacer} />
     );

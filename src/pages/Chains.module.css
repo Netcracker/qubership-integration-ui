@@ -29,6 +29,10 @@
   align-items: center;
 }
 
+.breadcrumb li:last-child {
+  cursor: default;
+}
+
 .breadcrumb :global(.ant-breadcrumb-separator) {
   margin-inline: 2px;
 }
@@ -44,5 +48,4 @@
 .breadcrumbDropTarget {
   outline: 2px solid var(--vscode-focusBorder, #1677ff);
   outline-offset: -2px;
-  background-color: var(--vscode-button-hoverBackground, rgb(22 119 255 / 4%));
 }
