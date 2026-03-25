@@ -61,6 +61,14 @@ jest.mock("../../../../src/permissions/ProtectedButton", () => ({
   ),
 }));
 
+jest.mock("antd", () => {
+  const actual: Record<string, unknown> = jest.requireActual("antd");
+  const mock: Record<string, unknown> = jest.requireActual(
+    "../../../__mocks__/LightweightTable",
+  );
+  return { ...actual, Table: mock.LightweightTable };
+});
+
 // Mock CSS modules
 jest.mock(
   "../../../../src/components/admin_tools/CommonStyle.module.css",
@@ -531,7 +539,10 @@ describe("AccessControl - Unsaved Changes Functionality (PR #573)", () => {
 });
 
 function getDataTable() {
-  return screen.getAllByRole("table")[1];
+  const tables = screen.getAllByRole("table");
+  // Real antd Table with scroll renders two tables (header + body);
+  // LightweightTable mock renders one. Pick the last one (body data).
+  return tables[tables.length - 1];
 }
 
 function getUnsavedChangesButton() {
