@@ -30,7 +30,7 @@ export const RABBITMQ_FIELD_NAMES = {
   VHOST: "vhost",
   EXCHANGE: "exchange",
   QUEUE: "queue",
-  ROUTING_KEY: "routingKey"
+  ROUTING_KEY: "routingKey",
 } as const;
 
 /**
@@ -38,7 +38,7 @@ export const RABBITMQ_FIELD_NAMES = {
  */
 export const KAFKA_FIELD_NAMES = {
   NAMESPACE: "namespace",
-  TOPIC_CLASSIFIER_NAME: "topicClassifierName"
+  TOPIC_CLASSIFIER_NAME: "topicClassifierName",
 } as const;
 
 export interface KafkaMaasFormData {
@@ -86,7 +86,7 @@ export interface MaasPageHeaderProps {
  * Returns true when all required fields are filled and cross-field constraints are met.
  */
 export function isRabbitMQFormValid(
-  formValues: Partial<RabbitMQMaasFormData> | undefined
+  formValues: Partial<RabbitMQMaasFormData> | undefined,
 ): boolean {
   const namespace = formValues?.namespace;
   const vhost = formValues?.vhost;
@@ -103,7 +103,6 @@ export function isRabbitMQFormValid(
   }
   if (!exchange && !queue) return false;
   return !(routingKey && (!exchange || !queue));
-
 }
 
 /**
@@ -111,7 +110,7 @@ export function isRabbitMQFormValid(
  * Returns true when namespace and topic classifier name are non-empty.
  */
 export function isKafkaFormValid(
-  formValues: Partial<KafkaMaasFormData> | undefined
+  formValues: Partial<KafkaMaasFormData> | undefined,
 ): boolean {
   const namespace = formValues?.namespace;
   const topicClassifierName = formValues?.topicClassifierName;
