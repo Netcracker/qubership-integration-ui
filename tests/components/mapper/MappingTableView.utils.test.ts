@@ -28,12 +28,15 @@ jest.mock("../../../src/components/mapper/ConstantValueEditDialog.tsx", () => ({
   ConstantValueEditDialog: () => null,
 }));
 
-jest.mock("../../../src/components/mapper/TransformationEditDialog.tsx", () => ({
-  TransformationContext: {
-    Provider: () => null,
-  },
-  TransformationEditDialog: () => null,
-}));
+jest.mock(
+  "../../../src/components/mapper/TransformationEditDialog.tsx",
+  () => ({
+    TransformationContext: {
+      Provider: () => null,
+    },
+    TransformationEditDialog: () => null,
+  }),
+);
 
 jest.mock("../../../src/components/mapper/InlineTypeEdit.tsx", () => ({
   InlineTypeEdit: () => null,
@@ -55,9 +58,12 @@ jest.mock("../../../src/components/mapper/DefaultValueEdit.tsx", () => ({
   DefaultValueEdit: () => null,
 }));
 
-jest.mock("../../../src/components/mapper/InlineElementReferencesEdit.tsx", () => ({
-  InlineElementReferencesEdit: () => null,
-}));
+jest.mock(
+  "../../../src/components/mapper/InlineElementReferencesEdit.tsx",
+  () => ({
+    InlineElementReferencesEdit: () => null,
+  }),
+);
 
 jest.mock(
   "../../../src/components/mapper/MappingTableItemActionButton.tsx",
