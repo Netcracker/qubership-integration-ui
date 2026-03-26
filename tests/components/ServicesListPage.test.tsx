@@ -16,6 +16,12 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
+globalThis.ResizeObserver = class ResizeObserver {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+};
+
 import React from "react";
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { render, fireEvent, waitFor, screen } from "@testing-library/react";
@@ -88,7 +94,7 @@ jest.mock("../../src/components/services/Services.module.css", () => ({}), {
 // Mock components that import CSS
 jest.mock("../../src/components/services/ServicesTreeTable", () => ({
   useServicesTreeTable: () => ({
-    Table: () => <table data-testid="services-table" />,
+    tableElement: <table data-testid="services-table" />,
     FilterButton: () => (
       <button data-testid="columns-filter-button">Columns</button>
     ),

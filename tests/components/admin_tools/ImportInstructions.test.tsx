@@ -14,6 +14,22 @@ import { ImportInstructionAction } from "../../../src/api/apiTypes";
 import { UserPermissionsContext } from "../../../src/permissions/UserPermissionsContext.tsx";
 import { getAllPermissions } from "../../../src/permissions/funcs.ts";
 
+Object.defineProperty(globalThis, "matchMedia", {
+  writable: true,
+  value: jest.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
+
+jest.mock("react-resizable/css/styles.css", () => ({}));
+
 Object.defineProperty(URL, "createObjectURL", {
   writable: true,
   value: jest.fn().mockReturnValue("blob:test"),

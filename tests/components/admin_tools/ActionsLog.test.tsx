@@ -115,11 +115,19 @@ jest.mock("../../../src/components/EnumColumnFilterDropdown.tsx", () => ({
   }),
 }));
 
-// Mock ResizableTitle
-jest.mock("../../../src/components/ResizableTitle.tsx", () => ({
-  ResizableTitle: (props: { children?: React.ReactNode }) => (
-    <th>{props.children}</th>
-  ),
+jest.mock("../../../src/components/table/ResizableTitle.tsx", () => ({
+  ResizableTitle: ({
+    children,
+    onResize: _onResize,
+    onResizeStop: _onResizeStop,
+    width: _width,
+    minResizeWidth: _minResizeWidth,
+    maxResizeWidth: _maxResizeWidth,
+    resizeHandleZIndex: _resizeHandleZIndex,
+    ...rest
+  }: {
+    children?: React.ReactNode;
+  }) => <th {...rest}>{children}</th>,
 }));
 
 // Mock CSS module

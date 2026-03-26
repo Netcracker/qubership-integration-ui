@@ -42,10 +42,29 @@ jest.mock(
   }),
 );
 
-jest.mock("../../../../src/components/ResizableTitle.tsx", () => ({
-  ResizableTitle: (props: React.HTMLAttributes<HTMLElement>) => (
-    <th {...props} />
-  ),
+jest.mock("../../../../src/components/table/ResizableTitle.tsx", () => ({
+  ResizableTitle: React.forwardRef<
+    HTMLTableCellElement,
+    React.ThHTMLAttributes<HTMLTableCellElement> & {
+      onResize?: unknown;
+      onResizeStop?: unknown;
+      width?: unknown;
+      minResizeWidth?: unknown;
+      maxResizeWidth?: unknown;
+      resizeHandleZIndex?: unknown;
+    }
+  >((props, ref) => {
+    const {
+      onResize: _onResize,
+      onResizeStop: _onResizeStop,
+      width: _width,
+      minResizeWidth: _minResizeWidth,
+      maxResizeWidth: _maxResizeWidth,
+      resizeHandleZIndex: _resizeHandleZIndex,
+      ...rest
+    } = props;
+    return <th ref={ref} {...rest} />;
+  }),
 }));
 
 jest.mock("antd", () => {

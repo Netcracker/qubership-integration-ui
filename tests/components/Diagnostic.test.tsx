@@ -3,6 +3,22 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: jest.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
+
+jest.mock("react-resizable/css/styles.css", () => ({}));
 import { render, fireEvent, waitFor, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import {
@@ -243,7 +259,7 @@ describe("Diagnostic", () => {
 
     const initialCallCount = mockGetValidations.mock.calls.length;
 
-    const searchInput = screen.getByPlaceholderText("Full text search");
+    const searchInput = screen.getByPlaceholderText("Search validations...");
     fireEvent.change(searchInput, { target: { value: "test query" } });
     fireEvent.keyDown(searchInput, { key: "Enter", code: "Enter" });
 

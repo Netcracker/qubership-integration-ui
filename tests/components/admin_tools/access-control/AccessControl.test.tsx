@@ -31,8 +31,17 @@ jest.mock("../../../../src/icons/IconProvider", () => ({
   ),
 }));
 
-jest.mock("../../../../src/components/ResizableTitle", () => ({
-  ResizableTitle: ({ children }: any) => <th>{children}</th>,
+jest.mock("../../../../src/components/table/ResizableTitle.tsx", () => ({
+  ResizableTitle: ({
+    children,
+    onResize: _onResize,
+    onResizeStop: _onResizeStop,
+    width: _width,
+    minResizeWidth: _minResizeWidth,
+    maxResizeWidth: _maxResizeWidth,
+    resizeHandleZIndex: _resizeHandleZIndex,
+    ...rest
+  }: any) => <th {...rest}>{children}</th>,
 }));
 
 jest.mock("../../../../src/hooks/useDeployments", () => ({
@@ -138,6 +147,13 @@ describe("AccessControl - Unsaved Changes Functionality (PR #573)", () => {
       showModal: jest.fn(),
       closeModal: jest.fn(),
     });
+  });
+
+  it("renders Access Control page heading", () => {
+    render(<AccessControl />);
+    expect(
+      screen.getByRole("heading", { name: "Access Control" }),
+    ).toBeInTheDocument();
   });
 
   describe("Button Disabled States", () => {
@@ -442,17 +458,18 @@ describe("AccessControl - Unsaved Changes Functionality (PR #573)", () => {
 
       render(<AccessControl />);
 
-      await waitFor(async () => {
-        // Select both rows
-        const table = getDataTable();
-        const selectAll = table.querySelector('input[type="checkbox"]');
+      await waitFor(() => {
+        expect(
+          getDataTable().querySelector('input[type="checkbox"]'),
+        ).toBeTruthy();
+      });
 
-        if (selectAll) {
-          fireEvent.click(selectAll);
-        }
+      const table = getDataTable();
+      const selectAll = table.querySelector('input[type="checkbox"]')!;
+      fireEvent.click(selectAll);
 
-        // Redeploy button should be enabled
-        const redeployBtn = await screen.findByTestId("Redeploy");
+      await waitFor(() => {
+        const redeployBtn = screen.getByTestId("Redeploy");
         expect(redeployBtn).not.toBeDisabled();
       });
     });

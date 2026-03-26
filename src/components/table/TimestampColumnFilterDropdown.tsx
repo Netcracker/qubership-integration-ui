@@ -89,6 +89,9 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
     [getFilter, setSelectedKeys],
   );
 
+  const popupContainer = (node: HTMLElement) =>
+    node.parentElement ?? document.body;
+
   return (
     <div
       style={{
@@ -103,6 +106,7 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
         <Col>
           <Select<TimestampFilterCondition>
             style={{ width: 150 }}
+            getPopupContainer={popupContainer}
             onChange={(value) => updateFilter({ condition: value })}
             options={options}
             value={getFilter()?.condition ?? "is-before"}
@@ -112,6 +116,7 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
         <Col>
           {getFilter()?.condition === "is-within" ? (
             <DatePicker.RangePicker
+              getPopupContainer={popupContainer}
               showTime={{ format: "HH:mm" }}
               format="YYYY-MM-DD HH:mm"
               value={[
@@ -126,6 +131,7 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
             />
           ) : (
             <DatePicker
+              getPopupContainer={popupContainer}
               showTime={{ format: "HH:mm" }}
               format="YYYY-MM-DD HH:mm"
               value={toDayjs(getFilter()?.value?.[0])}

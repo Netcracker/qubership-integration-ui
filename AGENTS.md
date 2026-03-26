@@ -85,6 +85,10 @@ const { isDark, isVSCodeWebview, palette } = useVSCodeTheme();
 - Explicitly specify a record type parameter for `Table` and `TableColumn`.
 - For tables located in flex containers use `flex-table` class name.
 - Use `InlineEdit` component to implement editable table cells.
+- For table text-search, use shared helpers from `src/components/table/tableSearch.ts`
+  (`normalizeSearchTerm`, `matchesByFields`) instead of local duplicated logic.
+- In search haystack builders for mixed types, do not use `filter(Boolean)`; keep valid
+  `0`/`false` values and explicitly filter only `null`/`undefined`/`""`.
 
 ## Access control
 

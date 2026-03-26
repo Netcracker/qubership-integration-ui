@@ -140,6 +140,7 @@ export const TextColumnFilterDropdown: React.FC<
         <Col>
           <Select<TextFilterCondition>
             style={{ width: 150 }}
+            getPopupContainer={(node) => node.parentElement ?? document.body}
             onChange={(value) => updateTextFilter({ condition: value })}
             options={options}
             value={
