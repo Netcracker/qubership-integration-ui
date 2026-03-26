@@ -56,9 +56,10 @@ jest.mock(
 );
 
 jest.mock("../../../../src/permissions/ProtectedButton", () => ({
-  ProtectedButton: ({ buttonProps, tooltipProps }: ProtectedButtonProps) => (
-    <button data-testid={tooltipProps.title} {...buttonProps} />
-  ),
+  ProtectedButton: ({ buttonProps, tooltipProps }: ProtectedButtonProps) => {
+    const { iconName: _, ...domProps } = buttonProps as any;
+    return <button data-testid={tooltipProps.title} {...domProps} />;
+  },
 }));
 
 jest.mock("antd", () => {
@@ -176,7 +177,11 @@ describe("AccessControl - Unsaved Changes Functionality (PR #573)", () => {
               unsavedChanges: true,
               deploymentStatus: ["DEPLOYED"],
             }),
-            createMockAccessControlData({ unsavedChanges: false }),
+            createMockAccessControlData({
+              chainId: "chain-2",
+              elementId: "elem-2",
+              unsavedChanges: false,
+            }),
           ],
         },
       });

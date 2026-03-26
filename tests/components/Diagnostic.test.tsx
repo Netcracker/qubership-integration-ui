@@ -75,6 +75,14 @@ jest.mock(
   }),
 );
 
+jest.mock(
+  "../../src/components/table/TreeExpandIcon.module.css",
+  () => ({
+    expandIcon: "expandIcon",
+    expandSpacer: "expandSpacer",
+  }),
+);
+
 jest.mock("../../src/misc/format-utils", () => ({
   formatTimestamp: (ts: string) => ts,
 }));
@@ -523,7 +531,7 @@ describe("Diagnostic", () => {
       expect(container.textContent).toContain("No Children");
     });
 
-    const spacers = container.querySelectorAll("span[style*='width: 20px']");
+    const spacers = container.querySelectorAll("span.expandSpacer");
     expect(spacers.length).toBeGreaterThan(0);
   });
 
