@@ -3,6 +3,7 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
 } from "react";
 
@@ -26,8 +27,13 @@ export const ChainFullscreenContextProvider: React.FC<PropsWithChildren> = ({
     [],
   );
 
+  const value = useMemo(
+    () => ({ fullscreen, toggleFullscreen }),
+    [fullscreen, toggleFullscreen],
+  );
+
   return (
-    <ChainFullscreenContext.Provider value={{ fullscreen, toggleFullscreen }}>
+    <ChainFullscreenContext.Provider value={value}>
       {children}
     </ChainFullscreenContext.Provider>
   );
