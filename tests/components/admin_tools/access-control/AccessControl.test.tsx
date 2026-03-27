@@ -71,13 +71,9 @@ jest.mock("../../../../src/permissions/ProtectedButton", () => ({
   },
 }));
 
-jest.mock("antd", () => {
-  const actual: Record<string, unknown> = jest.requireActual("antd");
-  const mock: Record<string, unknown> = jest.requireActual(
-    "../../../__mocks__/LightweightTable",
-  );
-  return { ...actual, Table: mock.LightweightTable };
-});
+jest.mock("antd", () =>
+  require("tests/helpers/antdMockWithLightweightTable").antdMockWithLightweightTable(),
+);
 
 // Mock CSS modules
 jest.mock(
@@ -153,6 +149,13 @@ describe("AccessControl - Unsaved Changes Functionality (PR #573)", () => {
     render(<AccessControl />);
     expect(
       screen.getByRole("heading", { name: "Access Control" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders compact search with access control placeholder", () => {
+    render(<AccessControl />);
+    expect(
+      screen.getByPlaceholderText("Search access control..."),
     ).toBeInTheDocument();
   });
 

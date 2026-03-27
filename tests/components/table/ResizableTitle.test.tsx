@@ -175,6 +175,49 @@ describe("ResizableTitle", () => {
     expect(onResizeStop).toHaveBeenCalled();
   });
 
+  it("ignores pointerup when pointer id does not match active drag", () => {
+    const onResize = jest.fn();
+    const onResizeStop = jest.fn();
+    render(
+      <table>
+        <thead>
+          <tr>
+            <ResizableTitle
+              width={100}
+              onResize={onResize}
+              onResizeStop={onResizeStop}
+            >
+              Col
+            </ResizableTitle>
+          </tr>
+        </thead>
+      </table>,
+    );
+    const handle = screen.getByRole("button", { name: /resize column/i });
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      clientX: 100,
+      pointerId: 7,
+      bubbles: true,
+    });
+    fireEvent(
+      globalThis,
+      new PointerEvent("pointerup", {
+        bubbles: true,
+        pointerId: 999,
+      }),
+    );
+    expect(onResizeStop).not.toHaveBeenCalled();
+    fireEvent(
+      globalThis,
+      new PointerEvent("pointerup", {
+        bubbles: true,
+        pointerId: 7,
+      }),
+    );
+    expect(onResizeStop).toHaveBeenCalled();
+  });
+
   it("ignores non-primary pointer button", () => {
     const onResize = jest.fn();
     const onResizeStop = jest.fn();

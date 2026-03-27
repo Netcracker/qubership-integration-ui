@@ -4,6 +4,7 @@ import { Button, Col, DatePicker, Row, Select } from "antd";
 import type { AnyObject } from "antd/lib/_util/type";
 import { toDayjs, toEpochMillis } from "../../misc/date-utils";
 import { parseJson } from "../../misc/json-helper.ts";
+import { tableFilterPopupContainer } from "./tableFilterPopupContainer";
 
 export type TimestampFilterCondition = "is-before" | "is-after" | "is-within";
 
@@ -89,9 +90,6 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
     [getFilter, setSelectedKeys],
   );
 
-  const popupContainer = (node: HTMLElement) =>
-    node.parentElement ?? document.body;
-
   return (
     <div
       style={{
@@ -106,7 +104,7 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
         <Col>
           <Select<TimestampFilterCondition>
             style={{ width: 150 }}
-            getPopupContainer={popupContainer}
+            getPopupContainer={tableFilterPopupContainer}
             onChange={(value) => updateFilter({ condition: value })}
             options={options}
             value={getFilter()?.condition ?? "is-before"}
@@ -116,7 +114,7 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
         <Col>
           {getFilter()?.condition === "is-within" ? (
             <DatePicker.RangePicker
-              getPopupContainer={popupContainer}
+              getPopupContainer={tableFilterPopupContainer}
               showTime={{ format: "HH:mm" }}
               format="YYYY-MM-DD HH:mm"
               value={[
@@ -131,7 +129,7 @@ export const TimestampColumnFilterDropdown: React.FC<FilterDropdownProps> = ({
             />
           ) : (
             <DatePicker
-              getPopupContainer={popupContainer}
+              getPopupContainer={tableFilterPopupContainer}
               showTime={{ format: "HH:mm" }}
               format="YYYY-MM-DD HH:mm"
               value={toDayjs(getFilter()?.value?.[0])}

@@ -68,28 +68,29 @@ jest.mock("../../../../src/components/table/ResizableTitle.tsx", () => ({
 }));
 
 jest.mock("antd", () => {
-  const actual: Record<string, unknown> = jest.requireActual("antd");
-  const mock: Record<string, unknown> = jest.requireActual(
-    "../../../__mocks__/LightweightTable",
-  );
-  return {
-    ...actual,
-    Table: mock.LightweightTable,
+  const React = require("react");
+  const {
+    antdMockWithLightweightTable,
+  } = require("tests/helpers/antdMockWithLightweightTable");
+  return antdMockWithLightweightTable({
     Popconfirm: ({
       children,
       onConfirm,
     }: {
       children: React.ReactNode;
       onConfirm?: () => void;
-    }) => (
-      <div>
-        {children}
-        <button data-testid="popconfirm-ok" onClick={onConfirm}>
-          OK
-        </button>
-      </div>
-    ),
-  };
+    }) =>
+      React.createElement(
+        "div",
+        null,
+        children,
+        React.createElement(
+          "button",
+          { "data-testid": "popconfirm-ok", onClick: onConfirm },
+          "OK",
+        ),
+      ),
+  });
 });
 
 import VariablesTable from "../../../../src/components/admin_tools/variables/VariablesTable";

@@ -83,6 +83,25 @@ describe("TimestampColumnFilterDropdown helpers", () => {
 });
 
 describe("TimestampColumnFilterDropdown", () => {
+  it("renders single DatePicker when condition is is-before", () => {
+    render(
+      <TimestampColumnFilterDropdown
+        prefixCls="ant-table-filter"
+        visible
+        setSelectedKeys={jest.fn()}
+        selectedKeys={[
+          JSON.stringify({
+            condition: "is-before",
+            value: [Date.now()],
+          }),
+        ]}
+        confirm={jest.fn()}
+      />,
+    );
+    expect(document.querySelector(".ant-picker-range")).toBeNull();
+    expect(document.querySelector(".ant-picker")).toBeTruthy();
+  });
+
   it("renders RangePicker when condition is is-within", () => {
     const setSelectedKeys = jest.fn();
     render(

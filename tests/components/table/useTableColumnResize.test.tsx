@@ -87,6 +87,24 @@ describe("attachResizeToColumns", () => {
     expect((cell as { onResizeStop?: unknown }).onResizeStop).toBeUndefined();
   });
 
+  it("forwards options.minWidth to header cell as minResizeWidth", () => {
+    const { result } = renderHook(() =>
+      useTableColumnResize({ a: 100, b: 100 }),
+    );
+    const columns = [
+      { key: "a", title: "A" },
+      { key: "b", title: "B" },
+    ] as ColumnsType<Record<string, unknown>>;
+    const out = attachResizeToColumns(
+      columns,
+      { a: 100, b: 100 },
+      result.current.createResizeHandlers,
+      { minWidth: 95 },
+    );
+    const cell = out[0]!.onHeaderCell!(columns[0]!);
+    expect((cell as { minResizeWidth?: number }).minResizeWidth).toBe(95);
+  });
+
   it("attaches resize handlers when next managed column exists", () => {
     const { result } = renderHook(() =>
       useTableColumnResize({ a: 100, b: 100 }),

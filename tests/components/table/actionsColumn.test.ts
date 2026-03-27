@@ -15,6 +15,11 @@ describe("actionsColumn", () => {
     expect(DEFAULT_ACTIONS_COLUMN_WIDTH).toBe(40);
   });
 
+  it("createActionsSizing and createActionsColumnBase use default width when omitted", () => {
+    expect(createActionsSizing().width).toBe(DEFAULT_ACTIONS_COLUMN_WIDTH);
+    expect(createActionsColumnBase().width).toBe(DEFAULT_ACTIONS_COLUMN_WIDTH);
+  });
+
   it("createActionsSizing applies fixed width styles on header and cell", () => {
     const sizing = createActionsSizing(48);
     expect(sizing.width).toBe(48);

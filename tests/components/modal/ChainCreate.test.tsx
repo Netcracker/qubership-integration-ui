@@ -133,6 +133,32 @@ describe("ChainCreate", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("disables In new tab checkbox when Open chain is unchecked", () => {
+    render(<ChainCreate onSubmit={jest.fn()} />);
+    const openChain = screen.getByRole("checkbox", { name: /open chain/i });
+    const newTab = screen.getByRole("checkbox", { name: /in new tab/i });
+    expect(newTab).not.toBeDisabled();
+    fireEvent.click(openChain);
+    expect(openChain).not.toBeChecked();
+    expect(newTab).toBeDisabled();
+  });
+
+  it("create mode passes openChain false to onSubmit when Open chain is unchecked", async () => {
+    const onSubmit = jest.fn();
+    render(<ChainCreate onSubmit={onSubmit} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+      target: { value: "Named" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: /open chain/i }));
+    fireEvent.submit(document.getElementById("createChainForm")!);
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Named" }),
+      false,
+      false,
+    );
+  });
+
   it("edit mode loads chain and calls onUpdateMetadata on submit", async () => {
     mockGetChain.mockResolvedValue(minimalChain({ name: "Loaded Chain" }));
     const onUpdateMetadata = jest.fn();

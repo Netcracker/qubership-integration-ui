@@ -932,7 +932,7 @@ const UploadInstructionsModal: React.FC<UploadInstructionsModalProps> = ({
         dataIndex: "status",
         key: "status",
         render: (_status: unknown, row: ImportInstructionResult) => (
-          <ImportStatus status={row.status} message={row.errorMessage} />
+          <StatusTag status={row.status} message={row.errorMessage} />
         ),
       },
     ],

@@ -40,13 +40,9 @@ const mockShowModal = jest.fn();
 const mockInfo = jest.fn();
 const mockRequestFailed = jest.fn();
 
-jest.mock("antd", () => {
-  const actual: Record<string, unknown> = jest.requireActual("antd");
-  const mock: Record<string, unknown> = jest.requireActual(
-    "../__mocks__/LightweightTable",
-  );
-  return { ...actual, Table: mock.LightweightTable };
-});
+jest.mock("antd", () =>
+  require("tests/helpers/antdMockWithLightweightTable").antdMockWithLightweightTable(),
+);
 
 jest.mock("../../src/api/api", () => ({
   api: {

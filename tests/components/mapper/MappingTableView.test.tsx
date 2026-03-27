@@ -234,17 +234,18 @@ jest.mock(
 );
 
 jest.mock("antd", () => {
-  const actual: Record<string, unknown> = jest.requireActual("antd");
-  const mock: Record<string, unknown> = jest.requireActual(
-    "../../../src/../tests/__mocks__/LightweightTable",
-  );
-  return {
-    ...actual,
-    Table: mock.LightweightTable,
+  const React = require("react");
+  const {
+    antdMockWithLightweightTable,
+  } = require("tests/helpers/antdMockWithLightweightTable");
+  return antdMockWithLightweightTable({
     message: {
-      useMessage: () => [{ open: jest.fn() }, <div key="msg">msg</div>],
+      useMessage: () => [
+        { open: jest.fn() },
+        React.createElement("div", { key: "msg" }, "msg"),
+      ],
     },
-  };
+  });
 });
 
 jest.mock("../../../src/components/mapper/MappingTableView.module.css", () => ({
