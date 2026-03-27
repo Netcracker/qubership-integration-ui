@@ -126,9 +126,16 @@ jest.mock("../../../../src/components/LongActionButton", () => ({
 }));
 
 jest.mock("../../../../src/permissions/ProtectedButton", () => ({
-  ProtectedButton: ({ buttonProps, tooltipProps }: ProtectedButtonProps) => (
-    <button data-testid={tooltipProps.title} {...buttonProps} />
-  ),
+  ProtectedButton: ({ buttonProps, tooltipProps }: ProtectedButtonProps) => {
+    const { iconName: _icon, icon: _iconNode, ...rest } = buttonProps;
+    return (
+      <button
+        type="button"
+        data-testid={String(tooltipProps.title)}
+        {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      />
+    );
+  },
 }));
 
 jest.mock("../../../../src/permissions/Require", () => ({
@@ -259,7 +266,9 @@ describe("SecuredVariables Component", () => {
       fireEvent.click(createButton);
 
       await waitFor(() => {
-        expect(screen.getByRole("textbox")).toBeInTheDocument();
+        expect(
+          screen.getByPlaceholderText("e.g., my-secret"),
+        ).toBeInTheDocument();
       });
     });
 
@@ -271,13 +280,9 @@ describe("SecuredVariables Component", () => {
       const createButton = screen.getByTestId("Add secret");
       fireEvent.click(createButton);
 
-      await waitFor(() => {
-        const input = screen.getByRole("textbox");
-        fireEvent.change(input, { target: { value: "new-secret" } });
-
-        const submitButton = screen.getByRole("button", { name: /create/i });
-        fireEvent.click(submitButton);
-      });
+      const nameInput = await screen.findByPlaceholderText("e.g., my-secret");
+      fireEvent.change(nameInput, { target: { value: "new-secret" } });
+      fireEvent.click(screen.getByRole("button", { name: /create/i }));
 
       await waitFor(() => {
         expect(mockApi.createSecret).toHaveBeenCalledWith("new-secret");
@@ -286,44 +291,47 @@ describe("SecuredVariables Component", () => {
     });
 
     it("handles secret creation failure with notification", async () => {
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
       mockApi.createSecret.mockResolvedValue({
         success: false,
         error: { responseBody: { errorMessage: "Secret already exists" } },
       });
 
-      render(<SecuredVariables />);
+      try {
+        render(<SecuredVariables />);
 
-      await waitFor(() => screen.getByText("Secured Variables"));
+        await waitFor(() => screen.getByText("Secured Variables"));
 
-      const createButton = screen.getByTestId("Add secret");
-      fireEvent.click(createButton);
+        const createButton = screen.getByTestId("Add secret");
+        fireEvent.click(createButton);
 
-      await waitFor(() => {
-        const input = screen.getByRole("textbox");
-        fireEvent.change(input, { target: { value: "duplicate-secret" } });
+        const nameInput = await screen.findByPlaceholderText("e.g., my-secret");
+        fireEvent.change(nameInput, { target: { value: "duplicate-secret" } });
+        fireEvent.click(screen.getByRole("button", { name: /create/i }));
 
-        const submitButton = screen.getByRole("button", { name: /create/i });
-        fireEvent.click(submitButton);
-      });
-
-      await waitFor(() => {
-        expect(mockNotificationService.requestFailed).toHaveBeenCalledWith(
-          "Secret already exists",
-          null,
-        );
-      });
+        await waitFor(() => {
+          expect(mockNotificationService.requestFailed).toHaveBeenCalledWith(
+            "Secret already exists",
+            null,
+          );
+        });
+      } finally {
+        consoleErrorSpy.mockRestore();
+      }
     });
   });
 
   describe("Variable Management", () => {
     beforeEach(async () => {
       render(<SecuredVariables />);
-      await waitFor(() => screen.getByText("default-secret"));
+      await screen.findByText("default-secret");
 
-      // Expand the default secret row
       const expandButton = getExpandButtonOnDefaultSecret();
       fireEvent.click(expandButton);
-      await waitFor(() => screen.getByTestId("variables-table"));
+      await screen.findByTestId("variables-table");
     });
 
     it("adds a new variable to a secret", async () => {

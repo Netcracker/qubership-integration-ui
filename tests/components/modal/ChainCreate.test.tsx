@@ -147,17 +147,7 @@ describe("ChainCreate", () => {
 
     expect(screen.getByText("Edit chain")).toBeInTheDocument();
 
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue(
-        "Loaded Chain",
-      );
-    });
-
-    const nameInput = screen.getByRole("textbox", { name: "Name" });
+    const nameInput = await screen.findByDisplayValue("Loaded Chain");
     fireEvent.change(nameInput, { target: { value: "Renamed" } });
 
     const form = document.getElementById("editChainMetadataForm");

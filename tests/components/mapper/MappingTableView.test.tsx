@@ -2,25 +2,9 @@
  * @jest-environment jsdom
  */
 
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: jest.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
-
-jest.mock("react-resizable/css/styles.css", () => ({}));
-
 import React from "react";
 import "@testing-library/jest-dom";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MappingTableView } from "../../../src/components/mapper/MappingTableView";
 import { MappingDescription } from "../../../src/mapper/model/model";
 
@@ -440,21 +424,18 @@ describe("MappingTableView", () => {
 
     renderComponent();
 
-    const sourceRadio = screen.getByRole("radio", { name: /source/i });
-    sourceRadio.click();
+    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
 
-    await waitFor(() => {
-      const columnHeaders = screen.getAllByRole("columnheader");
-      const columnTitles = columnHeaders.map((header) =>
-        header.textContent?.trim().toLowerCase(),
+    const columnHeaders = await screen.findAllByRole("columnheader");
+    const columnTitles = columnHeaders.map((header) =>
+      header.textContent?.trim().toLowerCase(),
+    );
+
+    expectedSelectedColumns.forEach((column) => {
+      const columnTitle = column.toLowerCase();
+      expect(columnTitles).toContainEqual(
+        expect.stringContaining(columnTitle),
       );
-
-      expectedSelectedColumns.forEach((column) => {
-        const columnTitle = column.toLowerCase();
-        expect(columnTitles).toContainEqual(
-          expect.stringContaining(columnTitle),
-        );
-      });
     });
   });
 
@@ -506,21 +487,18 @@ describe("MappingTableView", () => {
 
     renderComponent();
 
-    const targetRadio = screen.getByRole("radio", { name: /target/i });
-    targetRadio.click();
+    fireEvent.click(screen.getByRole("radio", { name: /target/i }));
 
-    await waitFor(() => {
-      const columnHeaders = screen.getAllByRole("columnheader");
-      const columnTitles = columnHeaders.map((header) =>
-        header.textContent?.trim().toLowerCase(),
+    const columnHeaders = await screen.findAllByRole("columnheader");
+    const columnTitles = columnHeaders.map((header) =>
+      header.textContent?.trim().toLowerCase(),
+    );
+
+    expectedSelectedColumns.forEach((column) => {
+      const columnTitle = column.toLowerCase();
+      expect(columnTitles).toContainEqual(
+        expect.stringContaining(columnTitle),
       );
-
-      expectedSelectedColumns.forEach((column) => {
-        const columnTitle = column.toLowerCase();
-        expect(columnTitles).toContainEqual(
-          expect.stringContaining(columnTitle),
-        );
-      });
     });
   });
 });
