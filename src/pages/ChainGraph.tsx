@@ -562,8 +562,8 @@ const ChainGraphInner: React.FC = () => {
     async (changes: OnDeleteEvent) => {
       if (
         changes.nodes.length > 0 &&
-        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[]))
-        && (!isSwimlanesOnly(changes.nodes as ChainGraphNode[]))
+        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[])) &&
+        !isSwimlanesOnly(changes.nodes as ChainGraphNode[])
       ) {
         Modal.confirm({
           title: "Delete Container",

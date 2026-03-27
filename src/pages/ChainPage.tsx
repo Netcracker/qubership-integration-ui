@@ -65,9 +65,7 @@ const ChainPage = () => {
       .reverse()
       .map(([key, value], index, arr) => ({
         title:
-          index < arr.length - 1
-            ? link(`/chains?folder=${key}`, value)
-            : value,
+          index < arr.length - 1 ? link(`/chains?folder=${key}`, value) : value,
       }));
 
     setPathItems([
@@ -76,10 +74,7 @@ const ChainPage = () => {
       ...(sessionId
         ? [
             {
-              title: link(
-                `/chains/${chainId}/sessions`,
-                "Sessions",
-              ),
+              title: link(`/chains/${chainId}/sessions`, "Sessions"),
             },
             { title: sessionId },
           ]
@@ -181,7 +176,11 @@ const ChainPage = () => {
                 style={{ minHeight: 32 }}
               >
                 <Col>
-                  <Breadcrumb items={pathItems} className={styles.breadcrumb} style={{ marginLeft: 8 }} />
+                  <Breadcrumb
+                    items={pathItems}
+                    className={styles.breadcrumb}
+                    style={{ marginLeft: 8 }}
+                  />
                 </Col>
                 <Col>
                   <Flex
