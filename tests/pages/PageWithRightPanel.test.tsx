@@ -191,8 +191,6 @@ describe("PageWithRightPanel", () => {
     );
   };
 
-  // Render PageWithRightPanel inside a ChainContext that has a real chain id so
-  // that the useEffect which calls api.getElements actually fires.
   const renderWithChain = (elements: object[] = []) => {
     const { ChainContext } = require("../../src/pages/ChainPage");
     return render(
@@ -259,13 +257,9 @@ describe("PageWithRightPanel", () => {
   });
 
   it("calls api.getElements on mount when chainId is present", () => {
-    // The api.getElements effect depends on chainContext.chain.id;
-    // renderWithChain provides a chain so the effect fires synchronously.
     renderWithChain();
     expect(api.getElements).toHaveBeenCalledWith("test-chain-id");
   });
-
-  // Note: "No chain selected" when chainId is undefined causes test suite hang - excluded
 
   it("shows only listElements tab when isVsCode is true", () => {
     mockIsVsCode = true;
@@ -367,11 +361,6 @@ describe("PageWithRightPanel", () => {
     expect(editor).not.toHaveTextContent("123");
   });
 
-  // ---------------------------------------------------------------------------
-  // Element list — rendering
-  // All tests in this section use renderWithChain so that the useEffect that
-  // drives api.getElements actually fires (it depends on chainContext.chain.id).
-  // ---------------------------------------------------------------------------
   describe("element list rendering", () => {
     const testElement = {
       id: "el-1",
@@ -393,10 +382,7 @@ describe("PageWithRightPanel", () => {
     it("renders element type badge for each list item", async () => {
       (api.getElements as jest.Mock).mockResolvedValue([testElement]);
       renderWithChain();
-      // getLibraryElement mock returns { title: element.type } = { title: "script" }
       await waitFor(() => {
-        // Both the element name and the badge can read "script" here; just assert
-        // at least one element with that text exists.
         expect(screen.getAllByText("script").length).toBeGreaterThanOrEqual(1);
       });
     });
@@ -415,17 +401,12 @@ describe("PageWithRightPanel", () => {
       const noName = { ...testElement, name: "" };
       (api.getElements as jest.Mock).mockResolvedValue([noName]);
       renderWithChain();
-      // elementName = "" || libraryElement.title || element.type
-      // The mock returns { title: element.type } → title = "script"
-      // Both the name cell and the badge show "script"; expect ≥ 1 occurrence.
       await waitFor(() => {
         expect(screen.getAllByText("script").length).toBeGreaterThanOrEqual(1);
       });
     });
 
     it("renders elements provided via ChainContext.chain.elements as initial state", async () => {
-      // Provide elements in the chain context and ensure the API returns the
-      // same list so neither source clears the other.
       (api.getElements as jest.Mock).mockResolvedValue([testElement]);
       renderWithChain([testElement]);
       await waitFor(() => {
@@ -434,9 +415,6 @@ describe("PageWithRightPanel", () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Element list — interactions (click / double-click)
-  // ---------------------------------------------------------------------------
   describe("element list interactions", () => {
     const testElement = {
       id: "el-1",
@@ -453,7 +431,6 @@ describe("PageWithRightPanel", () => {
 
     it("single click on a list item calls focusToElementId with the element id", async () => {
       renderWithChain();
-      // findByRole waits for the menu item to appear after the async getElements call
       const menuItem = await screen.findByRole("menuitem");
       fireEvent.click(menuItem);
       expect(mockFocusToElementId).toHaveBeenCalledWith("el-1");
@@ -464,7 +441,6 @@ describe("PageWithRightPanel", () => {
       await waitFor(() => {
         expect(screen.getByText("My Script")).toBeInTheDocument();
       });
-      // The label is rendered as a <button> that captures the doubleClick event
       const button = screen.getByText("My Script").closest("button");
       fireEvent.doubleClick(button!);
       expect(mockShowModal).toHaveBeenCalledWith(
@@ -473,7 +449,6 @@ describe("PageWithRightPanel", () => {
     });
 
     it("double click with a non-existent id in UsedPropertiesList does not open modal", () => {
-      // Render with no elements so that handleElementDoubleClickById finds nothing
       (api.getElements as jest.Mock).mockResolvedValue([]);
       renderWithChain([]);
       const propsTab = screen
@@ -482,7 +457,6 @@ describe("PageWithRightPanel", () => {
       fireEvent.click(propsTab!);
       const trigger = screen.getByTestId("double-click-trigger");
       fireEvent.click(trigger);
-      // "non-existent-id" is not in the empty elements list → showModal must NOT be called
       expect(mockShowModal).not.toHaveBeenCalled();
     });
 
@@ -492,22 +466,17 @@ describe("PageWithRightPanel", () => {
         .getAllByRole("tab")
         .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
       fireEvent.click(propsTab!);
-      // The mock renders the trigger only when onElementDoubleClick is supplied
       expect(within(screen.getByTestId("used-properties-list")).getByTestId(
         "double-click-trigger",
       )).toBeInTheDocument();
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Error handling
-  // ---------------------------------------------------------------------------
   describe("error handling", () => {
     it("calls requestFailed when api.getElements rejects", async () => {
       (api.getElements as jest.Mock).mockRejectedValue(
         new Error("network error"),
       );
-      // renderWithChain provides chain.id so the effect that calls api.getElements fires
       renderWithChain();
       await waitFor(() => {
         expect(mockRequestFailed).toHaveBeenCalledWith(
