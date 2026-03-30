@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Spin, Empty } from "antd";
 import { useUsedProperties } from "../hooks/useUsedProperties.tsx";
 import { UsedProperty } from "../api/apiTypes.ts";
 import { useLibraryContext } from "./LibraryContext.tsx";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
 import styles from "./UsedPropertiesList.module.css";
+import { SidebarSearch } from "./elements_library/SidebarSearch.tsx";
+import { MenuItem } from "./elements_library/ElementsLibrarySidebar";
 
 const USED_PROPERTY_SOURCE_LABEL_MAPPING: { [key: string]: string } = {
   HEADER: "H",
@@ -63,9 +65,11 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
   const { properties, isLoading } = useUsedProperties(chainId);
   const { libraryElements } = useLibraryContext();
 
-  const [expandedProperties, setExpandedProperties] = useState<Set<string>>(
-    new Set(),
-  );
+  const allItems = useRef<MenuItem[]>([]);
+  const [isSearch, setIsSearch] = useState(false);
+  const openKeysBeforeSearch = useRef<string[]>([]);
+  const [openKeysState, setOpenKeysState] = useState<string[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
 
   const getElementTemplate = useCallback(
     (type: string): { title: string } | null => {
@@ -91,7 +95,7 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
   const parsedProperties = useMemo(() => {
     if (!properties || properties.length === 0) {
       return [];
-    }
+  }
 
     const sortedProperties = [...properties].sort((a, b) =>
       a.name.localeCompare(b.name),
@@ -135,17 +139,60 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
     });
   }, [properties, getElementTemplate]);
 
-  const toggleProperty = (propertyId: string) => {
-    setExpandedProperties((prev) => {
-      const next = new Set(prev);
-      if (next.has(propertyId)) {
-        next.delete(propertyId);
-      } else {
-        next.add(propertyId);
+  useEffect(() => {
+    const menuItems: MenuItem[] = parsedProperties.map((property) => ({
+       key: property.id,
+       label: property.name,
+       name: property.name,
+       children: property.children.map((element) => ({
+       key: element.elementId,
+       label: element.name,
+       name: element.name,
+      })),
+    }));  
+  
+    allItems.current = menuItems;
+    if (!isSearch) {
+      setItems(menuItems);
+    }
+  }, [parsedProperties, isSearch]);
+
+  const handleSearch = useCallback(
+    (filtered: MenuItem[], openKeys: string[]) => {
+      if (!isSearch) {
+        setIsSearch(true);
+        openKeysBeforeSearch.current = openKeysState;
       }
-      return next;
-    });
+      setOpenKeysState(openKeys);
+      setItems(filtered);
+    },
+    [isSearch, openKeysState],
+  );
+
+  const toggleProperty = (propertyId: string) => {
+    setOpenKeysState((prev) =>
+      prev.includes(propertyId)
+        ? prev.filter((k) => k !== propertyId)
+        : [...prev, propertyId],
+    );
   };
+
+  const displayProperties = useMemo(() => {
+    if (!isSearch) return parsedProperties;
+    const itemMap = new Map(items.map((item) => [item.key, item]));
+    
+    return parsedProperties
+      .filter((p) => itemMap.has(p.id))
+      .map((p) => {
+        const matchedItem = itemMap.get(p.id);
+        if (!matchedItem?.children) return p;
+        const childKeys = new Set(matchedItem.children.map((c) => c.key));
+        return {
+          ...p,
+          children: p.children.filter((el) => childKeys.has(el.elementId)),
+        };
+      });
+  }, [isSearch, items, parsedProperties]);
 
   if (isLoading) {
     return (
@@ -165,12 +212,20 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
 
   return (
     <div className={styles.usedPropertiesTree}>
-      {parsedProperties.map((property) => {
-        const isExpanded = expandedProperties.has(property.id);
+      <SidebarSearch
+        items={allItems.current}
+        onSearch={handleSearch}
+        onClear={() => {
+          setItems(allItems.current);
+          setIsSearch(false);
+          setOpenKeysState(openKeysBeforeSearch.current);
+        }}
+      />
+      {displayProperties.map((property) => {
+        const isExpanded = openKeysState.includes(property.id);
 
         return (
           <div key={property.id} className={styles.propertyItem}>
-            {/* Level 0: Property */}
             <div
               className={`${styles.propertyRow} ${styles.menuItemContainer}`}
               onClick={() => toggleProperty(property.id)}

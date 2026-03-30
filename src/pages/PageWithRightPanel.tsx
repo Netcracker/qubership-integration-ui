@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  ReactElement
 } from "react";
 import Sider from "antd/lib/layout/Sider";
 import styles from "../components/elements_library/ElementsLibrarySidebar.module.css";
@@ -23,7 +24,6 @@ import {
   getLibraryElement,
   getNodeFromElement,
 } from "../misc/chain-graph-utils.ts";
-import type { MenuProps } from "antd";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { ChainContext } from "./ChainPage.tsx";
@@ -34,11 +34,20 @@ import { useFocusToElementId } from "../components/graph/ElementFocus.tsx";
 import { UsedPropertiesList } from "../components/UsedPropertiesList.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { useElementsAsCode } from "../hooks/useElementsAsCode.tsx";
+import { SidebarSearch } from "../components/elements_library/SidebarSearch.tsx";
 
 const DEFAULT_WIDTH = 240;
 
 export type PageWithRightPanelProps = {
   width?: number;
+};
+
+export type MenuItem = {
+  key: string;
+  label: React.ReactNode;
+  name: string;
+  icon?: ReactElement;
+  children?: MenuItem[];
 };
 
 export const PageWithRightPanel = ({
@@ -61,6 +70,12 @@ export const PageWithRightPanel = ({
   const [elements, setElements] = useState<Element[]>(
       chainContext?.chain?.elements ?? [],
   );
+
+  const allItems = useRef<MenuItem[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [openKeysState, setOpenKeysState] = useState<string[]>();
+  const openKeysBeforeSearch = useRef<string[]>();
+  const [isSearch, setIsSearch] = useState(false);
 
   let direction: "RIGHT" | "DOWN" = "RIGHT";
   try {
@@ -85,10 +100,6 @@ export const PageWithRightPanel = ({
         if (cancelled) return;
         setElements(elementsResponse);
       } catch (error) {
-        console.error(
-          "Failed to refresh chain structure before loading schema",
-          error,
-        );
         notificationService.requestFailed("Failed to load elements", error);
       }
     };
@@ -110,6 +121,18 @@ export const PageWithRightPanel = ({
       applyVSCodeThemeToMonaco(monacoRef.current);
     }
   }, [monacoTheme]);
+
+  const handleSearch = useCallback(
+    (filtered: MenuItem[], openKeys: string[]) => {
+      if (!isSearch) {
+        setIsSearch(true);
+        openKeysBeforeSearch.current = openKeysState;
+      }
+      setOpenKeysState(openKeys);
+      setItems(filtered);
+    },
+    [isSearch, openKeysState],
+  );  
 
   const handleElementDoubleClick = useCallback(
     (element: Element) => {
@@ -168,7 +191,7 @@ export const PageWithRightPanel = ({
     [focusToElementId],
   );
 
-  const elementMenuItems: MenuProps["items"] = useMemo(() => {
+  const elementMenuItems: MenuItem[] = useMemo(() => {
     if (!elements?.length || !libraryElements) {
       return [];
     }
@@ -179,6 +202,7 @@ export const PageWithRightPanel = ({
       const elementTypeLabel = libraryElement.title || element.type;
       return {
         key: element.id,
+        name: elementName,
         label: (
           <button
             type="button"
@@ -203,6 +227,13 @@ export const PageWithRightPanel = ({
       };
     });
   }, [elements, libraryElements, handleElementDoubleClick]);
+
+  useEffect(() => {
+    allItems.current = elementMenuItems;
+    if (!isSearch) {
+      setItems(elementMenuItems);
+    }
+  }, [elementMenuItems, isSearch]);
 
   return (
     <Sider
@@ -245,15 +276,29 @@ export const PageWithRightPanel = ({
         }}
       >
         {activeTab === "listElements" && (
+          <Flex
+            vertical
+            style={{ flex: 1, minHeight: 0, overflow: "auto", width: "100%"}}
+          >
+          <SidebarSearch
+            items={elementMenuItems}
+            onSearch={handleSearch}
+            onClear={() => {
+              setItems(allItems.current);
+              setIsSearch(false);
+              setOpenKeysState(openKeysBeforeSearch.current);
+            }}
+          />
           <Menu
             className={styles.libraryElements}
             mode="vertical"
-            items={elementMenuItems}
+            items={items}
             selectable={false}
             selectedKeys={[]}
             onClick={({ key }) => handleElementSingleClick(String(key))}
             style={{ borderRight: "none", width: "100%" }}
           />
+          </Flex>
         )}
         {activeTab === "elementProperties" && chainId && (
           <UsedPropertiesList
