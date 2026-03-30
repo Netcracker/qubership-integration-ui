@@ -487,6 +487,12 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     "scheduler.triggerGroup": {
       "ui:widget": "hidden",
     },
+    inputSchema: {
+      "ui:field": "jsonAsStringField",
+    },
+    outputSchema: {
+      "ui:field": "jsonAsStringField",
+    },
   },
   id: { "ui:widget": "hidden" },
   elementType: { "ui:widget": "hidden" },
@@ -521,6 +527,18 @@ const pathToTabExceptions: Path2TabMapping[] = [
       checkpoint: "Parameters",
     },
   },
+  {
+    paths: ["properties.inputSchema"],
+    mapping: {
+      "mcp-trigger": "Input schema",
+    },
+  },
+  {
+    paths: ["properties.outputSchema"],
+    mapping: {
+      "mcp-trigger": "Output schema",
+    },
+  }
 ];
 
 export const pathToTabMap: Record<string, string> = {
@@ -602,6 +620,8 @@ export const pathToTabMap: Record<string, string> = {
   "properties.mappingDescription": "Mapping",
   "properties.headerModificationToAdd": "Header Modification",
   "properties.headerModificationToRemove": "Header Modification",
+  "properties.inputSchema": "Input schema",
+  "properties.outputSchema": "Output schema",
 };
 
 export const desiredTabOrder = [
@@ -620,6 +640,8 @@ export const desiredTabOrder = [
   "Mapping",
   "Header Modification",
   "Parameters",
+  "Input schema",
+  "Output schema",
   "Idempotency",
 ];
 
