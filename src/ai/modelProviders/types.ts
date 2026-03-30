@@ -59,7 +59,14 @@ export interface ProviderCapabilities {
   supportsTools: boolean;
 }
 
-export type StreamingChunkType = "delta" | "done" | "error" | "progress";
+export type StreamingChunkType = "delta" | "done" | "error" | "progress" | "hitl_checkpoint";
+
+export interface HitlCheckpointPayload {
+  checkpointId: string;
+  question: string;
+  /** If absent the frontend should offer "Yes" / "No". */
+  options?: string[];
+}
 
 export interface StreamingChunk {
   type: StreamingChunkType;
@@ -79,6 +86,10 @@ export interface StreamingChunk {
   progressMessage?: string;
   toolName?: string;
   toolArgs?: Record<string, unknown>;
+  /** Present when type === "done" — server-assigned conversation ID. */
+  conversationId?: string;
+  /** Present when type === "hitl_checkpoint". */
+  hitlCheckpoint?: HitlCheckpointPayload;
 }
 
 

@@ -431,4 +431,13 @@
   color: inherit;
 }
 
+/* ── HITL checkpoint ─────────────────────────────────────────────────────── */
 
+.ai-hitl-checkpoint {
+  margin: 0 0 8px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--vscode-inputValidation-infoBackground, #e8f4fd);
+  border: 1px solid var(--vscode-inputValidation-infoBorder, #3b82f6);
+  font-size: 13px;
+}

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback, useContext } 
 import "./AiAssistantPanel.css";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { getDefaultAiProvider } from "../../ai/config.ts";
-import { ChatMessage, ChatResponse, ChatUsage, StreamingChunk } from "../../ai/modelProviders/types.ts";
+import { ChatMessage, ChatResponse, ChatUsage, StreamingChunk, HitlCheckpointPayload } from "../../ai/modelProviders/types.ts";
 import type { ChatRequest } from "../../ai/modelProviders/types.ts";
 import { ChatSession } from "../../ai/sessions/types.ts";
 import { getChatSessionStore } from "../../ai/sessions/sessionStore.ts";
@@ -13,6 +13,7 @@ import { useChainContext } from "./useChainContext.ts";
 import { ChainContext as PageChainContext } from "../../pages/ChainPage.tsx";
 import { api } from "../../api/api.ts";
 import { getConfig } from "../../appConfig.ts";
+import { getAiServiceUrl } from "../../ai/appConfig.ts";
 import {
   ChainModificationConfirmation,
   ChainModificationProposal,
@@ -457,6 +458,11 @@ export const AiAssistant: React.FC = () => {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // HITL checkpoint waiting for user answer
+  const [hitlPending, setHitlPending] = useState<
+    (HitlCheckpointPayload & { conversationId: string }) | null
+  >(null);
+
   const assistantName = getConfig().aiAssistantName;
   const [workingDots, setWorkingDots] = useState(0);
   const WORKING_DOTS = [".", "..", "..."];
@@ -666,6 +672,7 @@ export const AiAssistant: React.FC = () => {
     sessionId: string,
     requestMessages: ChatMessage[],
     start: number,
+    conversationId: string,
   ): Promise<void> => {
     setIsStreaming(true);
 
@@ -675,6 +682,18 @@ export const AiAssistant: React.FC = () => {
     let periodicalChainRefreshAt = performance.now() + 2000;
 
     await aiProvider.streamChat!(requestPayload, (chunk: StreamingChunk) => {
+      if (chunk.type === "hitl_checkpoint" && chunk.hitlCheckpoint) {
+        // Show the HITL question in chat as a blockquote, then surface the answer UI.
+        // The SSE stream remains open — the server is suspended awaiting our POST.
+        accumulatedContent += `\n\n> ❓ **${chunk.hitlCheckpoint.question}**\n\n`;
+        currentMessages = upsertAssistantMessage(currentMessages, accumulatedContent);
+        sessionStore.updateSessionMessages(sessionId, currentMessages);
+        refreshSessions();
+        scrollToBottom();
+        setHitlPending({ ...chunk.hitlCheckpoint, conversationId });
+        return;
+      }
+
       if (chunk.type === "progress" && chunk.progressMessage) {
         accumulatedContent += `\n\n> 💡 ${chunk.progressMessage}\n\n`;
         currentMessages = upsertAssistantMessage(currentMessages, accumulatedContent);
@@ -712,8 +731,8 @@ export const AiAssistant: React.FC = () => {
         if (chunk.usage || chunk.finishReason) {
           finalMessages = [...finalMessages, buildMetaMessage(durationMs, chunk.finishReason, chunk.usage)];
         }
-        const conversationId = (chunk as unknown as { conversationId?: string }).conversationId;
-        handleResponseComplete(sessionId, { finalMessages, conversationId });
+        setHitlPending(null);
+        handleResponseComplete(sessionId, { finalMessages, conversationId: chunk.conversationId ?? conversationId });
         setIsStreaming(false);
         return;
       }
@@ -894,9 +913,14 @@ export const AiAssistant: React.FC = () => {
         const serverConversationId = currentSessionData?.conversationId;
         const messagesToApi = (serverConversationId && newMessages) ? newMessages : messages;
 
+        // Always assign a conversationId so HITL checkpoints can POST back to the correct endpoint.
+        // If the server already assigned one (continuing conversation) reuse it;
+        // otherwise generate a client-side UUID that the server will adopt.
+        const conversationId = serverConversationId ?? crypto.randomUUID();
+
         const requestPayload: ChatRequest = {
           messages: messagesToApi,
-          conversationId: serverConversationId,
+          conversationId,
           abortSignal: abortControllerRef.current.signal,
           attachmentUrls,
           temperature: 1,
@@ -910,7 +934,7 @@ export const AiAssistant: React.FC = () => {
         const start = performance.now();
 
         if (aiProvider.capabilities.supportsStreaming && aiProvider.streamChat) {
-          await runStreamingChat(aiProvider, requestPayload, sessionId, messages, start);
+          await runStreamingChat(aiProvider, requestPayload, sessionId, messages, start, conversationId);
         } else if (aiProvider.chatWithProgress) {
           await runChatWithProgress(aiProvider, requestPayload, sessionId, messages, start);
         } else {
@@ -986,6 +1010,20 @@ export const AiAssistant: React.FC = () => {
   const handleAbort = useCallback(() => {
     abortControllerRef.current?.abort();
   }, []);
+
+  const handleHitlAnswer = useCallback(async (answer: string) => {
+    if (!hitlPending) return;
+    const { checkpointId, conversationId } = hitlPending;
+    setHitlPending(null);
+    const serviceUrl = getAiServiceUrl();
+    if (!serviceUrl) return;
+    const url = `${serviceUrl.replace(/\/$/, "")}/api/v1/chat/${conversationId}/checkpoint/${checkpointId}`;
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answer }),
+    }).catch((err) => console.error("[AiAssistant] HITL answer POST failed", err));
+  }, [hitlPending]);
 
   const handleSend = useCallback(async () => {
     const rawValue = inputValue || inputRef.current?.resizableTextArea?.textArea?.value || "";
@@ -1417,6 +1455,26 @@ export const AiAssistant: React.FC = () => {
           </div>
 
           <Divider className="ai-divider" />
+
+          {hitlPending && (
+            <div className="ai-hitl-checkpoint">
+              <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+                {hitlPending.question}
+              </Typography.Text>
+              <Space size="small" wrap>
+                {(hitlPending.options?.length ? hitlPending.options : ["Yes", "No"]).map((opt) => (
+                  <Button
+                    key={opt}
+                    type="primary"
+                    size="small"
+                    onClick={() => void handleHitlAnswer(opt)}
+                  >
+                    {opt}
+                  </Button>
+                ))}
+              </Space>
+            </div>
+          )}
 
           <div className="ai-input">
             <input
