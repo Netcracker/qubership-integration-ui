@@ -104,13 +104,6 @@ jest.mock(
   }),
 );
 
-jest.mock(
-  "../../src/components/elements_library/SidebarSearch",
-  () => ({
-    SidebarSearch: () => null,
-  }),
-);
-
 jest.mock("@monaco-editor/react", () => ({
   Editor: ({
     value,

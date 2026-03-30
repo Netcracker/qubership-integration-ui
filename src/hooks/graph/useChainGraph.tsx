@@ -1,4 +1,4 @@
-import {
+﻿import {
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
@@ -540,7 +540,7 @@ export const useChainGraph = (
 
         if (parentNode || newNode.parentId) {
           structureChanged([parentNode?.id ?? newNode.parentId]);
-        }  
+        }
 
         if (onChainUpdate) {
           void onChainUpdate();

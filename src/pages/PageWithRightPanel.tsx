@@ -244,16 +244,6 @@ export const PageWithRightPanel = ({
           paddingLeft: activeTab === "textView" ? 0 : "12px",
         }}
       >
-        {activeTab !== "testView" } 
-        <SidebarSearch
-          items={allItems.current}
-          onSearch={handleSearch}
-          onClear={() => {
-          setItems(allItems.current);
-          setIsSearch(false);
-          setOpenKeysState(openKeysBeforeSearch.current);
-          }}
-        />      
         {activeTab === "listElements" && (
           <Menu
             className={styles.libraryElements}
