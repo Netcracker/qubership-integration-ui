@@ -34,6 +34,7 @@ import {
   conditionalTabs,
   desiredTabOrder,
   getTabForPath,
+  getStaleProtocolProperties,
 } from "./ChainElementModificationConstants.ts";
 import { ChainGraphNode } from "../../graph/nodes/ChainGraphNodeTypes.ts";
 import MappingField from "./field/MappingField.tsx";
@@ -69,6 +70,13 @@ import BasePathField from "./field/BasePathField.tsx";
 import ExternalRouteCheckbox from "./field/ExternalRouteCheckbox.tsx";
 import ContextPathWithPrefixField from "./field/ContextPathWithPrefixField.tsx";
 import DescriptionTooltipFieldTemplate from "./DescriptionTooltipFieldTemplate.tsx";
+import { getSchemaModules } from "./chainElementSchemaModules.ts";
+import {
+  ElementNameInlineEdit,
+  type ElementNameInlineEditRef,
+} from "./ElementNameInlineEdit.tsx";
+import { usePermissions } from "../../../permissions/usePermissions.tsx";
+import { hasPermissions } from "../../../permissions/funcs.ts";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -84,17 +92,72 @@ type TabField = {
   schema: JSONSchema7;
 };
 
-function constructTitle(name: string, type?: string): React.ReactNode {
-  return (
-    <>
-      <span className={styles["modal-title-name"]} title={name}>
-        {name}
-      </span>
-      {type && (
-        <span className={styles["modal-title-type"]}>&nbsp;({type})</span>
-      )}
-    </>
-  );
+type CollectTabFieldsFn = (
+  schema: JSONSchema7,
+  path: string[],
+  acc: TabField[],
+  elementType?: string,
+) => void;
+
+function collectFromProperties(
+  schema: JSONSchema7,
+  path: string[],
+  acc: TabField[],
+  elementType: string | undefined,
+  collect: CollectTabFieldsFn,
+): void {
+  if (!schema.properties || typeof schema.properties !== "object") return;
+  for (const [key, subSchema] of Object.entries(schema.properties)) {
+    collect(subSchema as JSONSchema7, [...path, key], acc, elementType);
+  }
+}
+
+function collectFromCombinators(
+  schema: JSONSchema7,
+  path: string[],
+  acc: TabField[],
+  elementType: string | undefined,
+  collect: CollectTabFieldsFn,
+): void {
+  const combinators = ["allOf", "anyOf", "oneOf"] as const;
+  for (const keyword of combinators) {
+    const arr = schema[keyword];
+    if (!Array.isArray(arr)) continue;
+    for (const subSchema of arr) {
+      if (typeof subSchema === "object" && subSchema !== null) {
+        collect(subSchema, path, acc, elementType);
+      }
+    }
+  }
+}
+
+function collectFromArrayItems(
+  schema: JSONSchema7,
+  path: string[],
+  acc: TabField[],
+  elementType: string | undefined,
+  collect: CollectTabFieldsFn,
+): void {
+  if (schema.type !== "array" || !schema.items) return;
+  if (Array.isArray(schema.items)) {
+    schema.items.forEach((item, i) =>
+      collect(item as JSONSchema7, [...path, `${i}`], acc, elementType),
+    );
+  } else {
+    collect(schema.items as JSONSchema7, [...path, "items"], acc, elementType);
+  }
+}
+
+function collectFromConditional(
+  schema: JSONSchema7,
+  path: string[],
+  acc: TabField[],
+  elementType: string | undefined,
+  collect: CollectTabFieldsFn,
+): void {
+  if (!schema.if) return;
+  if (schema.then) collect(schema.then as JSONSchema7, path, acc, elementType);
+  if (schema.else) collect(schema.else as JSONSchema7, path, acc, elementType);
 }
 
 // WA to hide array properties
@@ -116,9 +179,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const { updateElement } = useElement();
   const notificationService = useNotificationService();
   const { openElementDoc } = useDocumentation();
-  const [title, setTitle] = useState<React.ReactNode>(
-    constructTitle(`${node.data.label}`),
-  );
   const [schema, setSchema] = useState<JSONSchema7>({});
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [formContext, setFormContext] = useState<FormContext>({});
@@ -133,6 +193,10 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   >({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formRef = useRef<any>(null);
+  const elementNameRef = useRef<ElementNameInlineEditRef>(null);
+
+  const permissions = usePermissions();
+  const canEditChain = hasPermissions(permissions, { chain: ["update"] });
 
   const reportMissingRequiredParams = useCallback(
     (key: string, params: string[]) => {
@@ -154,18 +218,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     setIsFullscreen((prevValue) => !prevValue);
   }, []);
 
-  useEffect(() => {
-    setTitle(constructTitle(`${node.data.label}`, libraryElement?.title));
-  }, [libraryElement, node]);
-
-  const schemaModules = useMemo(
-    () =>
-      import.meta.glob(
-        "/node_modules/@netcracker/qip-schemas/assets/*.schema.yaml",
-        { as: "raw", eager: true },
-      ),
-    [],
-  );
+  const schemaModules = useMemo(() => getSchemaModules(), []);
 
   useEffect(() => {
     const path = `/node_modules/@netcracker/qip-schemas/assets/${node.data.elementType}.schema.yaml`;
@@ -215,10 +268,47 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               normalizeProtocol(
                 updatedProperties.integrationOperationProtocolType as string,
               );
+
+            // Clean up properties that belong to other protocols
+            const newProtocol =
+              updatedProperties.integrationOperationProtocolType as string;
+            for (const prop of getStaleProtocolProperties(
+              newProtocol,
+              updatedProperties,
+            )) {
+              updatedProperties[prop] = undefined;
+            }
+          }
+          // For http-trigger, method is stored as httpMethodRestrict, not integrationOperationMethod
+          if (
+            node.data.elementType === "http-trigger" &&
+            "integrationOperationMethod" in updatedProperties
+          ) {
+            updatedProperties.httpMethodRestrict =
+              updatedProperties.integrationOperationMethod;
+            delete updatedProperties.integrationOperationMethod;
           }
           setFormContext((prevContext) =>
             enrichPropertiesUtil(prevContext, updatedProperties),
           );
+
+          // Directly clean formData.properties for keys not tracked in FormContext
+          setFormData((prevFormData) => {
+            const props = {
+              ...(prevFormData.properties as Record<string, unknown>),
+            };
+            let changed = false;
+            for (const [key, value] of Object.entries(updatedProperties)) {
+              if (value === undefined && key in props) {
+                delete props[key];
+                changed = true;
+              }
+            }
+            return changed
+              ? { ...prevFormData, properties: props }
+              : prevFormData;
+          });
+
           setHasChanges(true);
         },
       );
@@ -321,11 +411,47 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     !!kafkaError ||
     hasMissingRequiredParams;
 
+  const handleNameSave = useCallback(
+    async (newName: string) => {
+      const request: PatchElementRequest = {
+        name: newName,
+        description: formData.description as string,
+        type: node.data.elementType,
+        parentElementId: node.parentId,
+        properties: formData.properties as Record<string, unknown>,
+      };
+      const changedElement = await updateElement(chainId, elementId, request);
+      if (changedElement) {
+        setFormData((prev) => ({ ...prev, name: newName }));
+        const elementWithProperties = {
+          ...changedElement,
+          properties: formData.properties,
+        } as Element;
+        onSubmit?.(elementWithProperties, node);
+      }
+    },
+    [
+      formData.description,
+      formData.properties,
+      node,
+      chainId,
+      elementId,
+      updateElement,
+      onSubmit,
+    ],
+  );
+
   const handleOk = useCallback(async () => {
+    const pendingName = elementNameRef.current?.syncIfEditing?.();
+    const nameToUse =
+      (pendingName?.trim()?.length ?? 0) > 0
+        ? (pendingName as string).trim()
+        : (formData.name as string);
+
     setIsLoading(true);
     try {
       const request: PatchElementRequest = {
-        name: formData.name as string,
+        name: nameToUse,
         description: formData.description as string,
         type: node.data.elementType,
         parentElementId: node.parentId,
@@ -365,75 +491,23 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     handleClose,
   ]);
 
-  const collectTabFields = useCallback(
-    (
-      schema: JSONSchema7,
-      path: string[] = [],
-      acc: TabField[] = [],
-      elementType?: string,
-    ): TabField[] => {
-      const currentPath = path.join(".");
-
-      if (schema.properties && typeof schema.properties === "object") {
-        for (const [key, subSchema] of Object.entries(schema.properties)) {
-          collectTabFields(
-            subSchema as JSONSchema7,
-            [...path, key],
-            acc,
-            elementType,
-          );
-        }
-      }
-
-      const combinators = ["allOf", "anyOf", "oneOf"] as const;
-      for (const keyword of combinators) {
-        if (Array.isArray(schema[keyword])) {
-          for (const subSchema of schema[keyword]) {
-            if (typeof subSchema === "object" && subSchema !== null) {
-              collectTabFields(subSchema, path, acc, elementType);
-            }
-          }
-        }
-      }
-
-      if (schema.type === "array" && schema.items) {
-        if (Array.isArray(schema.items)) {
-          for (let i = 0; i < schema.items.length; i++) {
-            collectTabFields(
-              schema.items[i] as JSONSchema7,
-              [...path, `${i}`],
-              acc,
-              elementType,
-            );
-          }
-        } else {
-          collectTabFields(
-            schema.items as JSONSchema7,
-            [...path, "items"],
-            acc,
-            elementType,
-          );
-        }
-      }
-
-      if (schema.if) {
-        if (schema.then) {
-          collectTabFields(schema.then as JSONSchema7, path, acc, elementType);
-        }
-        if (schema.else) {
-          collectTabFields(schema.else as JSONSchema7, path, acc, elementType);
-        }
-      }
-
-      if (path.length > 0) {
-        const tab = getTabForPath(currentPath, elementType) || "Parameters";
-        acc.push({ tab, path, schema });
-      }
-
-      return acc;
-    },
-    [],
-  );
+  const collectTabFields = useCallback(function collect(
+    schema: JSONSchema7,
+    path: string[] = [],
+    acc: TabField[] = [],
+    elementType?: string,
+  ): TabField[] {
+    const currentPath = path.join(".");
+    collectFromProperties(schema, path, acc, elementType, collect);
+    collectFromCombinators(schema, path, acc, elementType, collect);
+    collectFromArrayItems(schema, path, acc, elementType, collect);
+    collectFromConditional(schema, path, acc, elementType, collect);
+    if (path.length > 0) {
+      const tab = getTabForPath(currentPath, elementType) || "Parameters";
+      acc.push({ tab, path, schema });
+    }
+    return acc;
+  }, []);
 
   const tabFields = useMemo(() => {
     if (!schema) return [];
@@ -488,7 +562,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           curr[path[i]] = (curr[path[i]] as UiSchema) || {};
           curr = (curr[path[i]] as UiSchema) || {};
         }
-        curr[path[path.length - 1]] = value;
+        curr[path.at(-1) ?? ""] = value;
       }
 
       const visiblePathsSet = new Set(
@@ -581,16 +655,45 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     <Modal
       open
       title={
-        <Flex align="center" gap={4} wrap={false} justify="space-between">
-          <span className={styles["modal-title"]}>{title}</span>
-          <Flex align="center" gap={4} wrap={false} style={{ flexShrink: 0 }}>
-            <Button
-              icon={<OverridableIcon name="questionCircle" />}
-              onClick={() => openElementDoc(node.data.elementType)}
-              type="text"
-              title="Help"
-              size="small"
+        <Flex
+          align="center"
+          gap={4}
+          wrap={false}
+          justify="space-between"
+          style={{ width: "100%" }}
+        >
+          <div
+            className={styles["modal-title"]}
+            style={{ minWidth: 0, flex: 1 }}
+          >
+            <ElementNameInlineEdit
+              ref={elementNameRef}
+              value={(formData.name as string) ?? node.data.label ?? ""}
+              typeLabel={
+                libraryElement?.title ??
+                node.data.typeTitle ??
+                node.data.elementType
+              }
+              afterTypeLabel={
+                <Button
+                  icon={<OverridableIcon name="questionCircle" />}
+                  onClick={() => openElementDoc(node.data.elementType)}
+                  type="text"
+                  title="Help"
+                  size="small"
+                  className={styles["modal-header-help-btn"]}
+                />
+              }
+              onSave={handleNameSave}
+              disabled={!canEditChain || libraryElementIsLoading}
             />
+          </div>
+          <Flex
+            align="center"
+            gap={4}
+            wrap={false}
+            style={{ flexShrink: 0, marginLeft: "auto" }}
+          >
             <FullscreenButton
               isFullscreen={isFullscreen}
               onClick={handleFullscreen}
@@ -620,7 +723,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               form="elementModificationForm"
               htmlType={"submit"}
               loading={isLoading}
-              disabled={isSaveDisabled}
+              disabled={isSaveDisabled || !canEditChain}
               onClick={() => void handleOk()}
             >
               Save

@@ -5,33 +5,25 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import {
-  Table,
-  Spin,
-  Flex,
-  Button,
-  Tooltip,
-  message,
-  Tag,
-  Modal,
-  FloatButton,
-} from "antd";
-import { Radio } from "antd";
+import { Flex, message, Modal, Radio, Spin, Table, Tag } from "antd";
 import {
   Environment,
+  EnvironmentRequest,
   EnvironmentSourceType,
   IntegrationSystemType,
 } from "../../../api/apiTypes";
-import { useServiceContext, useChainsContext } from "./ServiceParametersPage";
+import {
+  useServiceContext,
+  useChainsContext,
+  useServiceParametersToolbar,
+} from "./ServiceParametersPage";
 import { api } from "../../../api/api";
 import { EnvironmentParamsModal } from "../modals/EnvironmentParamsModal.tsx";
-import { EnvironmentRequest } from "../../../api/apiTypes";
 import type { ColumnsType } from "antd/es/table";
 import { ChainColumn } from "../ui/ChainColumn";
 import { useNotificationService } from "../../../hooks/useNotificationService";
 import { getErrorMessage } from "../../../misc/error-utils";
 import { useLocation } from "react-router-dom";
-import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 import { environmentLabels, prepareFile } from "../utils.tsx";
 import { isVsCode } from "../../../api/rest/vscodeExtensionApi.ts";
 import {
@@ -39,13 +31,50 @@ import {
   isKafkaProtocol,
   normalizeProtocol,
 } from "../../../misc/protocol-utils";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { downloadFile } from "../../../misc/download-utils.ts";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { usePermissions } from "../../../permissions/usePermissions.tsx";
+import { hasPermissions } from "../../../permissions/funcs.ts";
+import { useColumnSettingsBasedOnColumnsType } from "../../table/useColumnSettingsButton.tsx";
+import {
+  attachResizeToColumns,
+  sumScrollXForColumns,
+  useTableColumnResize,
+} from "../../table/useTableColumnResize.tsx";
+import { createActionsSizing } from "../../table/actionsColumn.ts";
+import { CompactSearch } from "../../table/CompactSearch.tsx";
+import { TableToolbar } from "../../table/TableToolbar.tsx";
+import { matchesByFields } from "../../table/tableSearch.ts";
+import { TablePageLayout } from "../../TablePageLayout.tsx";
+import commonStyles from "../../admin_tools/CommonStyle.module.css";
+import tableStyles from "../../admin_tools/domains/Tables.module.css";
+import { useResizeHeight } from "../../../hooks/useResizeHeigth.tsx";
 
 interface ServiceEnvironmentsTabProps {
   formatTimestamp: (val: number) => string;
   setSystem?: (system: unknown) => void;
 }
+
+function environmentMatchesSearch(env: Environment, term: string): boolean {
+  const labelParts =
+    Array.isArray(env.labels) && env.labels.length > 0
+      ? env.labels.map((label) => {
+          if (typeof label === "string") return label;
+          if (label && typeof label === "object" && "name" in label) {
+            return String((label as { name?: unknown }).name);
+          }
+          return String(label);
+        })
+      : [];
+  return matchesByFields(term, [
+    env.name,
+    env.address ?? "",
+    env.sourceType ?? "",
+    ...labelParts,
+  ]);
+}
+
+const SERVICE_ENVIRONMENTS_TABLE_HEAD_RESERVE_PX = 59;
 
 export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   formatTimestamp,
@@ -67,8 +96,11 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   const [saving, setSaving] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [switchingEnvId, setSwitchingEnvId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const notificationService = useNotificationService();
   const location = useLocation();
+  const { setToolbar } = useServiceParametersToolbar() ?? {};
+  const permissions = usePermissions();
 
   const getDefaultProperties = useCallback(
     (protocol: string, sourceType: EnvironmentSourceType) => {
@@ -235,6 +267,11 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
 
   const memoChains = useMemo(() => chains, [chains]);
 
+  const filteredEnvironments = useMemo(
+    () => environments.filter((e) => environmentMatchesSearch(e, searchTerm)),
+    [environments, searchTerm],
+  );
+
   const columns: ColumnsType<Environment> = useMemo(
     () => [
       {
@@ -245,7 +282,10 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         render: (_: unknown, record: Environment) => (
           <Radio
             checked={record.id === activeEnvironmentId}
-            onChange={() => handleSwitchEnvironment(record)}
+            onChange={() =>
+              hasPermissions(permissions, { service: ["update"] }) &&
+              handleSwitchEnvironment(record)
+            }
             disabled={
               record.id === activeEnvironmentId || switchingEnvId === record.id
             }
@@ -253,7 +293,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         ),
       },
       {
-        title: <b>Name</b>,
+        title: <span className={tableStyles.columnHeader}>Name</span>,
         dataIndex: "name",
         key: "name",
         render: (text: string, record: Environment) => (
@@ -265,7 +305,10 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
               color: "var(--vscode-textLink-foreground, #1677ff)",
               cursor: "pointer",
             }}
-            onClick={() => handleEditClick(record)}
+            onClick={() =>
+              hasPermissions(permissions, { environment: ["update"] }) &&
+              handleEditClick(record)
+            }
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
@@ -278,7 +321,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         ),
       },
       {
-        title: "Address",
+        title: <span className={tableStyles.columnHeader}>Address</span>,
         dataIndex: "address",
         key: "address",
         render: (text?: string) =>
@@ -294,7 +337,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
           ),
       },
       {
-        title: "Source",
+        title: <span className={tableStyles.columnHeader}>Source</span>,
         dataIndex: "sourceType",
         key: "sourceType",
         render: (val?: string) => {
@@ -304,14 +347,14 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         },
       },
       {
-        title: "Modified",
+        title: <span className={tableStyles.columnHeader}>Modified At</span>,
         dataIndex: "modifiedWhen",
         key: "modifiedWhen",
         hidden: isVsCode,
         render: (val?: number) => (val ? formatTimestamp(val) : ""),
       },
       {
-        title: "Labels",
+        title: <span className={tableStyles.columnHeader}>Labels</span>,
         dataIndex: "labels",
         key: "labels",
         render: (labels?: unknown[]) => {
@@ -351,7 +394,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         },
       },
       {
-        title: "Used by",
+        title: <span className={tableStyles.columnHeader}>Used by</span>,
         key: "usedBy",
         align: "center",
         render: (_: unknown, record: Environment) => {
@@ -362,31 +405,155 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
       {
         title: "",
         key: "actions",
-        width: 48,
         align: "center",
+        ...createActionsSizing<Environment>(48),
         render: (_: unknown, record: Environment) => (
-          <Tooltip title="Delete">
-            <Button
-              type="text"
-              icon={<OverridableIcon name="delete" />}
-              danger
-              onClick={() => handleDelete(record.id)}
-            />
-          </Tooltip>
+          <ProtectedButton
+            require={{ environment: ["delete"] }}
+            tooltipProps={{ title: "Delete" }}
+            buttonProps={{
+              type: "text",
+              iconName: "delete",
+              danger: true,
+              onClick: () => handleDelete(record.id),
+            }}
+          />
         ),
       },
     ],
     [
       activeEnvironmentId,
-      memoChains,
-      formatTimestamp,
-      handleDelete,
-      handleEditClick,
-      handleSwitchEnvironment,
       switchingEnvId,
+      permissions,
+      handleSwitchEnvironment,
+      handleEditClick,
+      formatTimestamp,
       system,
+      memoChains,
+      handleDelete,
     ],
   );
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<Environment>(
+      "serviceEnvironmentsTable",
+      columns,
+    );
+
+  const environmentsColumnResize = useTableColumnResize({
+    name: 160,
+    address: 200,
+    sourceType: 100,
+    modifiedWhen: 160,
+    labels: 200,
+    usedBy: 120,
+  });
+
+  const columnsWithResize = useMemo(
+    () =>
+      attachResizeToColumns(
+        orderedColumns,
+        environmentsColumnResize.columnWidths,
+        environmentsColumnResize.createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [
+      orderedColumns,
+      environmentsColumnResize.columnWidths,
+      environmentsColumnResize.createResizeHandlers,
+    ],
+  );
+
+  const [tableAreaRef, tableAreaHeight] = useResizeHeight<HTMLDivElement>();
+
+  const tableBodyScrollY = useMemo(() => {
+    if (tableAreaHeight <= 0) {
+      return 400;
+    }
+    return Math.max(
+      120,
+      tableAreaHeight - SERVICE_ENVIRONMENTS_TABLE_HEAD_RESERVE_PX,
+    );
+  }, [tableAreaHeight]);
+
+  const scrollX = useMemo(
+    () =>
+      sumScrollXForColumns(
+        columnsWithResize,
+        environmentsColumnResize.columnWidths,
+      ),
+    [columnsWithResize, environmentsColumnResize.columnWidths],
+  );
+
+  const tableScroll = useMemo(
+    () =>
+      filteredEnvironments.length > 0
+        ? { x: scrollX, y: tableBodyScrollY }
+        : { x: scrollX },
+    [scrollX, tableBodyScrollY, filteredEnvironments.length],
+  );
+
+  const isEnvironmentsActive = location.pathname.includes("/environments");
+
+  const environmentsTableToolbarLeading = useMemo(
+    () => (
+      <CompactSearch
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search environments..."
+        allowClear
+        className={commonStyles["searchField"] as string}
+      />
+    ),
+    [searchTerm],
+  );
+
+  const environmentsTableToolbarTrailing = useMemo(
+    () => (
+      <Flex gap={8} align="center" wrap="wrap">
+        {columnSettingsButton}
+        {!isVsCode && (
+          <ProtectedButton
+            require={{ service: ["export"] }}
+            tooltipProps={{ title: "Export service", placement: "bottom" }}
+            buttonProps={{
+              iconName: "cloudDownload",
+              onClick: () => {
+                void (async () => {
+                  if (!systemId) return;
+                  try {
+                    const file = await api.exportServices([systemId], []);
+                    downloadFile(prepareFile(file));
+                  } catch (e) {
+                    notificationService.requestFailed("Export error", e);
+                  }
+                })();
+              },
+            }}
+          />
+        )}
+        {system?.type === IntegrationSystemType.EXTERNAL && (
+          <ProtectedButton
+            require={{ environment: ["create"] }}
+            tooltipProps={{}}
+            buttonProps={{
+              type: "primary",
+              onClick: () => setAddModalOpen(true),
+              children: "Add Environment",
+            }}
+          />
+        )}
+      </Flex>
+    ),
+    [columnSettingsButton, notificationService, system?.type, systemId],
+  );
+
+  /** Toolbar lives in-tab (`TableToolbar`); clear tab bar slot used by other tabs. */
+  useEffect(() => {
+    if (!setToolbar || !isEnvironmentsActive) return;
+    setToolbar(null);
+    return () => setToolbar(null);
+  }, [setToolbar, isEnvironmentsActive]);
 
   if (loading) return <Spin style={{ margin: 32 }} />;
   if (error)
@@ -400,55 +567,45 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
   if (!systemId) return null;
 
   return (
-    <Flex vertical>
-      {system?.type === IntegrationSystemType.EXTERNAL && (
-        <Button
-          type="primary"
-          style={{ marginBottom: 16, alignSelf: "flex-start" }}
-          onClick={() => setAddModalOpen(true)}
+    <Flex
+      vertical
+      style={{
+        flex: 1,
+        minHeight: 0,
+        height: "100%",
+      }}
+    >
+      <TablePageLayout>
+        <TableToolbar
+          leading={environmentsTableToolbarLeading}
+          trailing={environmentsTableToolbarTrailing}
+        />
+        <div
+          ref={tableAreaRef}
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
         >
-          Add Environment
-        </Button>
-      )}
-      <>
-        {!isVsCode && (
-          <FloatButtonGroup
-            trigger="hover"
-            icon={<OverridableIcon name="more" />}
-          >
-            <FloatButton
-              tooltip={{ title: "Export service", placement: "left" }}
-              icon={<OverridableIcon name="cloudDownload" />}
-              onClick={() => {
-                void (async () => {
-                  if (!systemId) {
-                    return;
-                  }
-                  try {
-                    const file = await api.exportServices([systemId], []);
-                    downloadFile(prepareFile(file));
-                  } catch (e) {
-                    notificationService.requestFailed("Export error", e);
-                  }
-                })();
-              }}
-            />
-          </FloatButtonGroup>
-        )}
-      </>
-      <Table
-        dataSource={environments}
-        rowKey="id"
-        pagination={false}
-        bordered
-        size="small"
-        style={{
-          background: "var(--vscode-editor-background)",
-          borderRadius: 12,
-          width: "100%",
-        }}
-        columns={columns}
-      />
+          <Table<Environment>
+            className={`flex-table ${tableStyles.mainTable}`}
+            dataSource={filteredEnvironments}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            style={{
+              width: "100%",
+              flex: 1,
+              minHeight: 0,
+            }}
+            columns={columnsWithResize}
+            scroll={tableScroll}
+            components={environmentsColumnResize.resizableHeaderComponents}
+          />
+        </div>
+      </TablePageLayout>
       <EnvironmentParamsModal
         open={editModalOpen}
         environment={editingEnv}

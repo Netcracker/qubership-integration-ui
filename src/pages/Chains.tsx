@@ -1,14 +1,4 @@
-import {
-  Breadcrumb,
-  Button,
-  Dropdown,
-  Flex,
-  FloatButton,
-  MenuProps,
-  message,
-  Modal,
-  Table,
-} from "antd";
+import { Breadcrumb, Button, Flex, message, Modal, Table } from "antd";
 import { useNavigate, useSearchParams } from "react-router";
 import { useModalsContext } from "../Modals.tsx";
 import {
@@ -20,18 +10,21 @@ import {
   ListFolderRequest,
   UpdateFolderRequest,
 } from "../api/apiTypes.ts";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../api/api.ts";
 import { TableProps } from "antd/lib/table";
 import { formatTimestamp } from "../misc/format-utils.ts";
 import { EntityLabels } from "../components/labels/EntityLabels.tsx";
 import { TableRowSelection } from "antd/lib/table/interface";
-import Search from "antd/lib/input/Search";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
-import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
+import { CompactSearch } from "../components/table/CompactSearch.tsx";
+import type { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { DeploymentsCumulativeState } from "../components/deployment_runtime_states/DeploymentsCumulativeState.tsx";
 import { FolderEdit, FolderEditMode } from "../components/modal/FolderEdit.tsx";
-import { ChainCreate } from "../components/modal/ChainCreate.tsx";
+import {
+  ChainCreate,
+  type ChainMetadataUpdate,
+} from "../components/modal/ChainCreate.tsx";
+import { mergeUpdatedChainInFolderItems } from "./chains/mergeUpdatedChainInFolderItems.ts";
 import { copyToClipboard } from "../misc/clipboard-util.ts";
 import { traverseElementsDepthFirst } from "../misc/tree-utils.ts";
 import {
@@ -51,6 +44,30 @@ import {
   DeployChains,
   DeployOptions,
 } from "../components/modal/DeployChains.tsx";
+import { toStringIds } from "../misc/selection-utils.ts";
+import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+import {
+  ProtectedDropdown,
+  ProtectedMenuItem,
+} from "../permissions/ProtectedDropdown.tsx";
+import { MenuInfo } from "rc-menu/lib/interface";
+import { useColumnSettingsBasedOnColumnsType } from "../components/table/useColumnSettingsButton.tsx";
+import { useTableDragDrop } from "../hooks/useTableDragDrop.ts";
+import { treeExpandIcon } from "../components/table/TreeExpandIcon.tsx";
+import {
+  attachResizeToColumns,
+  sumScrollXForColumns,
+  useTableColumnResize,
+} from "../components/table/useTableColumnResize.tsx";
+import { TableToolbar } from "../components/table/TableToolbar.tsx";
+import commonStyles from "../components/admin_tools/CommonStyle.module.css";
+import {
+  createActionsColumnBase,
+  disableResizeBeforeActions,
+} from "../components/table/actionsColumn.ts";
+
+const CHAINS_EXPAND_COLUMN_WIDTH = 48;
+const CHAINS_SELECTION_COLUMN_WIDTH = 48;
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -60,15 +77,7 @@ function buildTableItems(
   folderItems: (FolderItem | ChainItem)[],
 ): ChainTableItem[] {
   const itemMap = new Map<string, ChainTableItem>(
-    folderItems.map((item) => [
-      item.id,
-      item.itemType === CatalogItemType.FOLDER
-        ? {
-            ...item,
-            children: [],
-          }
-        : { ...item },
-    ]),
+    folderItems.map((item) => [item.id, { ...item, children: [] }]),
   );
   const items: ChainTableItem[] = [];
   Array.from(itemMap.values()).forEach((item) => {
@@ -102,26 +111,14 @@ function compareChainTableItemsByTypeAndName(
   }
 }
 
-function buildPathItems(path: FolderItem[]): BreadcrumbProps["items"] {
-  const items = path.map((folder, index) => ({
-    title: folder.name,
-    href: index < path.length - 1 ? `/chains?folder=${folder.id}` : undefined,
-  }));
-  return [
-    {
-      href: "/chains",
-      title: <OverridableIcon name="home" />,
-    },
-    ...items,
-  ];
-}
-
 type OperationType = "move" | "copy";
 
 type Operation = {
   item: ChainTableItem;
   operation: OperationType;
 };
+
+const chainExpandIcon = treeExpandIcon<ChainTableItem>();
 
 const Chains = () => {
   const navigate = useNavigate();
@@ -133,15 +130,7 @@ const Chains = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [loadedFolders, setLoadedFolders] = useState<Set<string>>(new Set());
   const [searchParams] = useSearchParams();
-  const [pathItems, setPathItems] = useState<BreadcrumbProps["items"]>([]);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([
-    "status",
-    "labels",
-    "createdBy",
-    "createdWhen",
-    "modifiedBy",
-    "modifiedWhen",
-  ]);
+  const [folderPath, setFolderPath] = useState<FolderItem[]>([]);
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [operation, setOperation] = useState<Operation | undefined>(undefined);
   const [searchString, setSearchString] = useState<string>("");
@@ -206,9 +195,7 @@ const Chains = () => {
       setIsLoading(false);
     });
 
-    await getPathToFolder(folderId).then((path) =>
-      setPathItems(buildPathItems(path)),
-    );
+    await getPathToFolder(folderId).then((path) => setFolderPath(path));
   }, [getFolderId, getPathToFolder, listFolder]);
 
   const openFolder = async (folderId: string) => {
@@ -225,6 +212,10 @@ const Chains = () => {
       const s = new Set(loadedFolders);
       s.add(folderId);
       setLoadedFolders(s);
+      const hasChildren = response.some((item) => item.parentId === folderId);
+      if (hasChildren) {
+        setExpandedRowKeys((keys) => [...keys, folderId]);
+      }
     });
   };
 
@@ -337,6 +328,33 @@ const Chains = () => {
     }
   };
 
+  const updateChainMetadata = async (
+    chainId: string,
+    update: ChainMetadataUpdate,
+    openChain: boolean,
+    newTab: boolean,
+  ) => {
+    setIsLoading(true);
+    try {
+      const chain = await api.updateChain(chainId, update);
+      setFolderItems(
+        mergeUpdatedChainInFolderItems(folderItems, chainId, chain),
+      );
+      if (openChain) {
+        const path = `/chains/${chainId}`;
+        if (newTab) {
+          window.open(path, "_blank", "noreferrer");
+        } else {
+          await navigate(path);
+        }
+      }
+    } catch (error) {
+      notificationService.requestFailed("Failed to update chain", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const deleteChain = async (chainId: string) => {
     setIsLoading(true);
     try {
@@ -370,13 +388,14 @@ const Chains = () => {
     snapshotAction: BulkDeploymentSnapshotAction,
   ) => {
     if (chainIds.length === 0) {
-      return;
+      return [];
     }
     setIsLoading(true);
     try {
-      await api.bulkDeploy({ chainIds, domains, snapshotAction });
+      return await api.bulkDeploy({ chainIds, domains, snapshotAction });
     } catch (error) {
       notificationService.requestFailed("Failed to deploy chains", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -412,15 +431,37 @@ const Chains = () => {
     }
   };
 
+  const isDestinationInView = useCallback(
+    (destinationFolderId?: string): boolean => {
+      const currentFolderId = getFolderId();
+      // Moving to the current folder level (e.g. from expanded subfolder via breadcrumb)
+      if (destinationFolderId === currentFolderId) {
+        return true;
+      }
+      // Moving to a visible subfolder in the table
+      return (
+        destinationFolderId !== undefined &&
+        folderItems.some((i) => i.id === destinationFolderId)
+      );
+    },
+    [getFolderId, folderItems],
+  );
+
   const moveChain = async (chainId: string, destinationFolderId?: string) => {
     setIsLoading(true);
     try {
       const chain = await api.moveChain(chainId, destinationFolderId);
-      setFolderItems(
-        folderItems.map((i) =>
-          i.id === chainId ? { itemType: CatalogItemType.CHAIN, ...chain } : i,
-        ),
-      );
+      if (isDestinationInView(destinationFolderId)) {
+        setFolderItems((prev) =>
+          prev.map((i) =>
+            i.id === chainId
+              ? { itemType: CatalogItemType.CHAIN, ...chain }
+              : i,
+          ),
+        );
+      } else {
+        setFolderItems((prev) => prev.filter((i) => i.id !== chainId));
+      }
     } catch (error) {
       notificationService.requestFailed("Failed to move chain", error);
     } finally {
@@ -432,17 +473,111 @@ const Chains = () => {
     setIsLoading(true);
     try {
       const response = await api.moveFolder(folderId, destinationFolderId);
-      setFolderItems(
-        folderItems.map((item) =>
-          item.id === folderId ? { ...item, ...response } : item,
-        ),
-      );
+      if (isDestinationInView(destinationFolderId)) {
+        setFolderItems((prev) =>
+          prev.map((item) =>
+            item.id === folderId
+              ? { ...item, ...response, parentId: destinationFolderId }
+              : item,
+          ),
+        );
+      } else {
+        const ids = new Set<string>([folderId]);
+        traverseElementsDepthFirst(tableItems, (element, path) => {
+          if (path.some((i) => i.id === folderId)) {
+            ids.add(element.id);
+          }
+        });
+        setFolderItems((prev) => prev.filter((i) => !ids.has(i.id)));
+      }
     } catch (error) {
       notificationService.requestFailed("Failed to move folder", error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const {
+    dropTargetId,
+    isDragging,
+    dropBreadcrumbId,
+    getBreadcrumbDropProps,
+    onRow,
+  } = useTableDragDrop({
+    tableItems,
+    onMoveChain: moveChain,
+    onMoveFolder: moveFolder,
+    disabled: isLoading,
+  });
+
+  const breadcrumbItems: BreadcrumbProps["items"] = useMemo(() => {
+    const dropClass = (dropId: string) =>
+      dropBreadcrumbId === dropId ? styles.breadcrumbDropTarget : undefined;
+
+    const homeItem = {
+      title: (
+        <span
+          {...(isDragging ? getBreadcrumbDropProps(undefined) : {})}
+          className={[
+            styles.breadcrumbItem,
+            isDragging ? dropClass("root") : undefined,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <a
+            href="/chains"
+            onClick={(e) => {
+              e.preventDefault();
+              if (!isDragging) {
+                void navigate("/chains");
+              }
+            }}
+          >
+            <OverridableIcon name="home" />
+          </a>
+        </span>
+      ),
+    };
+    const pathItems = folderPath.map((folder, index) => {
+      const isClickable = !isDragging && index < folderPath.length - 1;
+      const folderUrl = `/chains?folder=${folder.id}`;
+      return {
+        title: (
+          <span
+            {...(isDragging ? getBreadcrumbDropProps(folder.id) : {})}
+            className={[
+              styles.breadcrumbItem,
+              isDragging ? dropClass(folder.id) : undefined,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {isClickable ? (
+              <a
+                href={folderUrl}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void navigate(folderUrl);
+                }}
+              >
+                {folder.name}
+              </a>
+            ) : (
+              folder.name
+            )}
+          </span>
+        ),
+      };
+    });
+    return [homeItem, ...pathItems];
+  }, [
+    folderPath,
+    isDragging,
+    dropBreadcrumbId,
+    getBreadcrumbDropProps,
+    navigate,
+  ]);
 
   const pasteItem = async (destinationFolderId?: string) => {
     if (!operation) {
@@ -581,7 +716,7 @@ const Chains = () => {
   };
 
   const onExportBtnClick = () => {
-    return exportChainsWithOptions(selectedRowKeys.map((k) => k.toString()));
+    return exportChainsWithOptions(toStringIds(selectedRowKeys));
   };
 
   const onDeleteBtnClick = () => {
@@ -596,7 +731,13 @@ const Chains = () => {
 
   const onImportBtnClick = () => {
     showModal({
-      component: <ImportChains onSuccess={() => void updateFolderItems()} />,
+      component: (
+        <ImportChains
+          onSuccess={() => {
+            updateFolderItems().catch(() => undefined);
+          }}
+        />
+      ),
     });
   };
 
@@ -605,9 +746,8 @@ const Chains = () => {
       showModal({
         component: (
           <DeployChains
-            onSubmit={(options: DeployOptions) =>
-              void deploySelectedChains(options)
-            }
+            chainCount={selectedRowKeys.length}
+            onSubmit={(options: DeployOptions) => deploySelectedChains(options)}
           />
         ),
       });
@@ -624,14 +764,14 @@ const Chains = () => {
         <ExportChains
           multiple={multiple}
           onSubmit={(options) => {
-            const items = folderItems.filter((i) => ids.includes(i.id));
+            const items = folderItems.filter((item) => ids.includes(item.id));
             const folderIds = items
-              .filter((i) => i.itemType === CatalogItemType.FOLDER)
-              .map((i) => i.id);
+              .filter((item) => item.itemType === CatalogItemType.FOLDER)
+              .map((item) => item.id);
             const chainIds = items
-              .filter((i) => i.itemType === CatalogItemType.CHAIN)
-              .map((i) => i.id);
-            void exportChains(folderIds, chainIds, options);
+              .filter((item) => item.itemType === CatalogItemType.CHAIN)
+              .map((item) => item.id);
+            exportChains(folderIds, chainIds, options).catch(() => undefined);
           }}
         />
       ),
@@ -665,7 +805,7 @@ const Chains = () => {
           i.itemType === CatalogItemType.CHAIN,
       )
       .map((i) => i.id);
-    await deployChains(chainIds, options.domains, options.snapshotAction);
+    return deployChains(chainIds, options.domains, options.snapshotAction);
   };
 
   const onContextMenuItemClick = async (item: FolderItem, key: React.Key) => {
@@ -682,19 +822,29 @@ const Chains = () => {
           item.id,
         );
       case "editChain":
-        return navigate(`/chains/${item.id}`);
+        return showModal({
+          component: (
+            <ChainCreate
+              variant="editChainMetaData"
+              chainId={item.id}
+              onUpdateMetadata={(id, update, open, tab) =>
+                updateChainMetadata(id, update, open, tab)
+              }
+            />
+          ),
+        });
       case "copyFolderLink":
         return copyToClipboard(
           `${window.location.origin}/chains?folder=${item.id}`,
-        ).then(() => {
-          messageApi.info("Link to a folder was copied to the clipboard");
-        });
+        ).then(() =>
+          messageApi.info("Link to a folder was copied to the clipboard"),
+        );
       case "copyChainLink":
         return copyToClipboard(
           `${window.location.origin}/chains/${item.id}`,
-        ).then(() => {
-          messageApi.info("Link to a chain was copied to the clipboard");
-        });
+        ).then(() =>
+          messageApi.info("Link to a chain was copied to the clipboard"),
+        );
       case "deleteFolder":
         return Modal.confirm({
           title: "Delete Folder",
@@ -728,43 +878,53 @@ const Chains = () => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  const folderMenuItems: MenuProps["items"] = [
-    { label: "Create New Folder", key: "createNewFolder" },
-    { label: "Create New Chain", key: "createNewChain" },
+  const folderMenuItems: ProtectedMenuItem[] = [
+    {
+      label: "Create New Folder",
+      key: "createNewFolder",
+      require: { folder: ["create"] },
+    },
+    {
+      label: "Create New Chain",
+      key: "createNewChain",
+      require: { chain: ["create"] },
+    },
     { type: "divider" },
     { label: "Expand All", key: "expandAll" },
     { label: "Collapse All", key: "collapseAll" },
     { type: "divider" },
     { label: "Copy Link", key: "copyFolderLink" },
-    { label: "Edit", key: "editFolder" },
-    { label: "Export", key: "export" },
+    { label: "Edit", key: "editFolder", require: { folder: ["update"] } },
+    { label: "Export", key: "export", require: { chain: ["export"] } },
     { type: "divider" },
-    { label: "Cut", key: "cut" },
-    { label: "Paste", key: "paste", disabled: operation === undefined },
-    { label: "Delete", key: "deleteFolder" },
+    { label: "Cut", key: "cut", require: { folder: ["delete"] } },
+    {
+      label: "Paste",
+      key: "paste",
+      disabled: operation === undefined,
+      require: { anyOf: [{ folder: ["update"] }, { chain: ["create"] }] },
+    },
+    { label: "Delete", key: "deleteFolder", require: { folder: ["delete"] } },
   ];
 
-  const chainMenuItems: MenuProps["items"] = [
+  const chainMenuItems: ProtectedMenuItem[] = [
     { label: "Copy Link", key: "copyChainLink" },
-    { label: "Edit", key: "editChain" },
-    { label: "Export", key: "export" },
-    { label: "Generate DDS", key: "generateDDS" },
+    { label: "Edit", key: "editChain", require: { chain: ["update"] } },
+    { label: "Export", key: "export", require: { chain: ["export"] } },
+    {
+      label: "Generate DDS",
+      key: "generateDDS",
+      require: { chain: ["read"] },
+    },
     { type: "divider" },
-    { label: "Cut", key: "cut" },
-    { label: "Copy", key: "copy" },
-    { label: "Duplicate", key: "duplicateChain" },
-    { label: "Delete", key: "deleteChain" },
-  ];
-
-  const columnVisibilityMenuItems: MenuProps["items"] = [
-    { label: "ID", key: "id" },
-    { label: "Description", key: "description" },
-    { label: "Status", key: "status" },
-    { label: "Labels", key: "labels" },
-    { label: "Created At", key: "createdWhen" },
-    { label: "Created By", key: "createdBy" },
-    { label: "Modified At", key: "modifiedWhen" },
-    { label: "Modified By", key: "modifiedBy" },
+    { label: "Cut", key: "cut", require: { chain: ["delete"] } },
+    { label: "Copy", key: "copy", require: { chain: ["create"] } },
+    {
+      label: "Duplicate",
+      key: "duplicateChain",
+      require: { chain: ["create"] },
+    },
+    { label: "Delete", key: "deleteChain", require: { chain: ["delete"] } },
   ];
 
   const columns: TableProps<ChainTableItem>["columns"] = [
@@ -781,7 +941,13 @@ const Chains = () => {
             <OverridableIcon name="file" />
           )}
           <a
+            href={
+              item.itemType === CatalogItemType.FOLDER
+                ? `/chains?folder=${item.id}`
+                : `/chains/${item.id}`
+            }
             onClick={(event) => {
+              event.preventDefault();
               event.stopPropagation();
               void navigate(
                 item.itemType === CatalogItemType.FOLDER
@@ -799,19 +965,17 @@ const Chains = () => {
       title: "ID",
       key: "id",
       dataIndex: "id",
-      hidden: !selectedKeys.includes("id"),
+      hidden: true,
     },
     {
       title: "Description",
       key: "description",
       dataIndex: "description",
-      hidden: !selectedKeys.includes("description"),
       sorter: (a, b) => a.description.localeCompare(b.description),
     },
     {
       title: "Status",
       key: "status",
-      hidden: !selectedKeys.includes("status"),
       render: (_, item) => (
         <>
           {item.itemType === CatalogItemType.FOLDER ? null : (
@@ -824,7 +988,6 @@ const Chains = () => {
       title: "Labels",
       key: "labels",
       dataIndex: "labels",
-      hidden: !selectedKeys.includes("labels"),
       render: (_, item) =>
         item.itemType === CatalogItemType.CHAIN ? (
           <EntityLabels labels={(item as ChainItem).labels} />
@@ -834,7 +997,7 @@ const Chains = () => {
       title: "Created By",
       dataIndex: "createdBy",
       key: "createdBy",
-      hidden: !selectedKeys.includes("createdBy"),
+      hidden: true,
       render: (_, item) => <>{item.createdBy?.username}</>,
       sorter: (a, b) =>
         (a.createdBy?.username ?? "").localeCompare(
@@ -845,7 +1008,7 @@ const Chains = () => {
       title: "Created At",
       dataIndex: "createdWhen",
       key: "createdWhen",
-      hidden: !selectedKeys.includes("createdWhen"),
+      hidden: true,
       render: (_, item) => (
         <>{item.createdWhen ? formatTimestamp(item.createdWhen) : "-"}</>
       ),
@@ -855,7 +1018,7 @@ const Chains = () => {
       title: "Modified By",
       dataIndex: "modifiedBy",
       key: "modifiedBy",
-      hidden: !selectedKeys.includes("modifiedBy"),
+      hidden: true,
       render: (_, item) => <>{item.modifiedBy?.username ?? "-"}</>,
       sorter: (a, b) =>
         (a.modifiedBy?.username ?? "").localeCompare(
@@ -866,26 +1029,25 @@ const Chains = () => {
       title: "Modified At",
       dataIndex: "modifiedWhen",
       key: "modifiedWhen",
-      hidden: !selectedKeys.includes("modifiedWhen"),
+      hidden: true,
       render: (_, item) => (
         <>{item.modifiedWhen ? formatTimestamp(item.modifiedWhen) : "-"}</>
       ),
       sorter: (a, b) => (a.modifiedWhen ?? 0) - (b.modifiedWhen ?? 0),
     },
     {
-      title: "",
-      key: "actions",
-      width: 40,
-      className: "actions-column",
+      ...createActionsColumnBase<ChainTableItem>(),
       render: (_, item) => (
         <>
-          <Dropdown
+          <ProtectedDropdown
             menu={{
               items:
                 item.itemType === CatalogItemType.FOLDER
                   ? folderMenuItems
                   : chainMenuItems,
-              onClick: ({ key }) => void onContextMenuItemClick(item, key),
+              // @ts-expect-error Some mistake with types: onClick presents in menu props.
+              onClick: ({ key }: MenuInfo) =>
+                void onContextMenuItemClick(item, key),
             }}
             trigger={["click"]}
             placement="bottomRight"
@@ -895,11 +1057,49 @@ const Chains = () => {
               type="text"
               icon={<OverridableIcon name="more" />}
             />
-          </Dropdown>
+          </ProtectedDropdown>
         </>
       ),
     },
   ];
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<ChainTableItem>("chainsTable", columns);
+
+  const chainsColumnResize = useTableColumnResize({
+    name: 220,
+    id: 200,
+    description: 240,
+    status: 200,
+    labels: 200,
+    createdBy: 120,
+    createdWhen: 168,
+    modifiedBy: 120,
+    modifiedWhen: 168,
+  });
+
+  const columnsWithResize = useMemo(() => {
+    const columns = attachResizeToColumns(
+      orderedColumns,
+      chainsColumnResize.columnWidths,
+      chainsColumnResize.createResizeHandlers,
+      { minWidth: 80 },
+    );
+    return disableResizeBeforeActions(columns);
+  }, [
+    orderedColumns,
+    chainsColumnResize.columnWidths,
+    chainsColumnResize.createResizeHandlers,
+  ]);
+
+  const scrollX = useMemo(
+    () =>
+      sumScrollXForColumns(columnsWithResize, chainsColumnResize.columnWidths, {
+        expandColumnWidth: CHAINS_EXPAND_COLUMN_WIDTH,
+        selectionColumnWidth: CHAINS_SELECTION_COLUMN_WIDTH,
+      }),
+    [columnsWithResize, chainsColumnResize.columnWidths],
+  );
 
   const rowSelection: TableRowSelection<ChainTableItem> = {
     type: "checkbox",
@@ -920,102 +1120,166 @@ const Chains = () => {
     <>
       {contextHolder}
       <Flex vertical gap={16} className={styles.container}>
-        <Flex vertical={false} gap={12} align="center">
-          {pathItems && pathItems.length > 0 ? (
-            <Breadcrumb items={pathItems} style={{ marginLeft: 9 }} />
-          ) : null}
-          <div style={{ flex: 1 }} />
-          <Search
-            placeholder="Full text search"
-            allowClear
-            onSearch={(value) => setSearchString(value)}
-            style={{ width: 500, flex: "none" }}
-          />
-          {filterButton}
-          <Dropdown
-            menu={{
-              items: columnVisibilityMenuItems,
-              selectable: true,
-              multiple: true,
-              selectedKeys,
-              onSelect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-              onDeselect: ({ selectedKeys }) => setSelectedKeys(selectedKeys),
-            }}
-          >
-            <Button icon={<OverridableIcon name="settings" />} />
-          </Dropdown>
-        </Flex>
+        <TableToolbar
+          leading={
+            <Flex
+              align="center"
+              gap={8}
+              style={{ minWidth: 0, flex: 1 }}
+              wrap="wrap"
+            >
+              {breadcrumbItems && breadcrumbItems.length > 0 ? (
+                <Breadcrumb
+                  items={breadcrumbItems}
+                  className={styles.breadcrumb}
+                />
+              ) : null}
+              <CompactSearch
+                value={searchString}
+                onChange={setSearchString}
+                placeholder="Full text search"
+                allowClear
+                className={commonStyles["searchField"] as string}
+                style={{ flex: 1, minWidth: 200 }}
+              />
+            </Flex>
+          }
+          trailing={
+            <>
+              {filterButton}
+              <span style={{ flexShrink: 0 }}>{columnSettingsButton}</span>
+              <ProtectedButton
+                require={{ chain: ["read"] }}
+                tooltipProps={{
+                  title: "Compare selected chains",
+                  placement: "bottom",
+                }}
+                buttonProps={{ icon: <>⇄</>, disabled: true }}
+              />
+              <ProtectedButton
+                require={{ chain: ["create"] }}
+                tooltipProps={{ title: "Paste", placement: "bottom" }}
+                buttonProps={{
+                  iconName: "carryOut",
+                  onClick: () => {
+                    Promise.resolve(pasteItem(getFolderId())).catch(
+                      () => undefined,
+                    );
+                  },
+                }}
+              />
+              <ProtectedButton
+                require={{ deployment: ["create"] }}
+                tooltipProps={{
+                  title: "Deploy selected chains",
+                  placement: "bottom",
+                }}
+                buttonProps={{
+                  iconName: "send",
+                  onClick: onDeployBtnClick,
+                }}
+              />
+              <ProtectedButton
+                require={{ chain: ["import"] }}
+                tooltipProps={{
+                  title: "Export selected chains",
+                  placement: "bottom",
+                }}
+                buttonProps={{
+                  iconName: "cloudDownload",
+                  onClick: onExportBtnClick,
+                }}
+              />
+              <ProtectedButton
+                require={{ chain: ["export"] }}
+                tooltipProps={{ title: "Import chains", placement: "bottom" }}
+                buttonProps={{
+                  iconName: "cloudUpload",
+                  onClick: onImportBtnClick,
+                }}
+              />
+              <ProtectedButton
+                require={{ chain: ["delete"] }}
+                tooltipProps={{
+                  title: "Delete selected chains and folders",
+                  placement: "bottom",
+                }}
+                buttonProps={{
+                  iconName: "delete",
+                  onClick: onDeleteBtnClick,
+                }}
+              />
+              <ProtectedDropdown
+                menu={{
+                  items: [
+                    {
+                      key: "folder",
+                      label: "New Folder",
+                      onClick: () => onCreateFolderBtnClick(getFolderId()),
+                      require: { folder: ["create"] },
+                    },
+                    {
+                      key: "chain",
+                      label: "New Chain",
+                      onClick: () => onCreateChainBtnClick(getFolderId()),
+                      require: { chain: ["create"] },
+                    },
+                  ],
+                }}
+                trigger={["click"]}
+              >
+                <Button type="primary">
+                  Create <OverridableIcon name="down" />
+                </Button>
+              </ProtectedDropdown>
+            </>
+          }
+        />
         <Table<ChainTableItem>
           className="flex-table"
           size="small"
           dataSource={tableItems}
-          columns={columns}
+          columns={columnsWithResize}
           rowSelection={rowSelection}
           pagination={false}
-          scroll={{ y: "" }}
+          scroll={{ x: scrollX, y: "" }}
+          components={chainsColumnResize.resizableHeaderComponents}
           rowKey="id"
-          rowClassName="clickable-row"
+          rowClassName={(record) =>
+            [
+              "clickable-row",
+              dropTargetId === record.id ? styles.dropTarget : "",
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+          onRow={onRow}
           loading={isLoading}
           expandable={{
-            expandedRowKeys,
-            onExpandedRowsChange: (rowKeys) => {
-              setExpandedRowKeys([...rowKeys]);
+            expandIcon: ({ record, ...rest }) => {
+              const hideArrow =
+                record.itemType !== CatalogItemType.FOLDER ||
+                (loadedFolders.has(record.id) &&
+                  (record.children?.length ?? 0) === 0);
+              const props = { ...rest, record };
+              return chainExpandIcon(
+                hideArrow ? { ...props, expandable: false } : props,
+              );
             },
+            expandedRowKeys,
             onExpand: (expanded, item) => {
-              if (expanded && !loadedFolders.has(item.id)) {
+              if (!expanded) {
+                setExpandedRowKeys((keys) => keys.filter((k) => k !== item.id));
+                return;
+              }
+              if (loadedFolders.has(item.id)) {
+                setExpandedRowKeys((keys) => [...keys, item.id]);
+              } else {
                 void openFolder(item.id);
               }
             },
           }}
         />
-        <FloatButtonGroup
-          trigger="hover"
-          icon={<OverridableIcon name="more" />}
-        >
-          <FloatButton
-            tooltip={{ title: "Deploy selected chains", placement: "left" }}
-            icon={<OverridableIcon name="send" />}
-            onClick={onDeployBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Paste", placement: "left" }}
-            icon={<OverridableIcon name="carryOut" />}
-            onClick={() => void pasteItem(getFolderId())}
-          />
-          <FloatButton
-            tooltip={{ title: "Compare selected chains", placement: "left" }}
-            icon={<>⇄</>}
-            // onClick={onCompareBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Import chains", placement: "left" }}
-            icon={<OverridableIcon name="cloudUpload" />}
-            onClick={onImportBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Export selected chains", placement: "left" }}
-            icon={<OverridableIcon name="cloudDownload" />}
-            onClick={onExportBtnClick}
-          />
-          <FloatButton
-            tooltip={{
-              title: "Delete selected chains and folders",
-              placement: "left",
-            }}
-            icon={<OverridableIcon name="delete" />}
-            onClick={onDeleteBtnClick}
-          />
-          <FloatButton
-            tooltip={{ title: "Create folder", placement: "left" }}
-            icon={<OverridableIcon name="folderAdd" />}
-            onClick={() => onCreateFolderBtnClick(getFolderId())}
-          />
-          <FloatButton
-            tooltip={{ title: "Create chain", placement: "left" }}
-            icon={<OverridableIcon name="fileAdd" />}
-            onClick={() => onCreateChainBtnClick(getFolderId())}
-          />
-        </FloatButtonGroup>
       </Flex>
     </>
   );

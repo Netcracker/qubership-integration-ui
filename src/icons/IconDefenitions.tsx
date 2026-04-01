@@ -1,3 +1,5 @@
+import React from "react";
+import type { AntdIconProps } from "@ant-design/icons/lib/components/AntdIcon";
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -105,12 +107,49 @@ import {
   BulbOutlined,
   BarChartOutlined,
   ToolOutlined,
-  RightSquareOutlined,
   MenuUnfoldOutlined,
   InfoCircleOutlined,
   HddOutlined,
-  CloudSyncOutlined
+  CloudSyncOutlined,
+  ImportOutlined,
+  ShrinkOutlined,
+  ArrowsAltOutlined,
+  CheckSquareOutlined,
+  WarningOutlined, InsertRowRightOutlined, InsertRowLeftOutlined
 } from "@ant-design/icons";
+
+/**
+ * Дефолтный логотип шапки (текст QIP). Override: configure({ icons: { logo: … } }).
+ * Устаревшее имя ключа в конфиге: `qip` — см. merge в IconProvider.
+ */
+const QIP_WORDMARK_FONT_FAMILY =
+  '"Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", sans-serif';
+
+const DefaultNavLogoIcon: React.FC<AntdIconProps> = ({ style, className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 40 18"
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    style={style}
+    className={className}
+  >
+    <title>QIP</title>
+    <text
+      x="20"
+      y="9"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fill="currentColor"
+      fontFamily={QIP_WORDMARK_FONT_FAMILY}
+      fontSize="20"
+      fontWeight="700"
+      letterSpacing="-0.06em"
+    >
+      QIP
+    </text>
+  </svg>
+);
 
 export const commonIcons = {
   plus: PlusOutlined,
@@ -157,6 +196,8 @@ export const commonIcons = {
   closeCircle: CloseCircleOutlined,
   minus: MinusOutlined,
   expand: ExpandOutlined,
+  expandAll: ArrowsAltOutlined,
+  collapseAll: ShrinkOutlined,
   rotateRight: RotateRightOutlined,
   clear: ClearOutlined,
   ellipsis: EllipsisOutlined,
@@ -165,6 +206,7 @@ export const commonIcons = {
   cluster: ClusterOutlined,
   global: GlobalOutlined,
   home: HomeOutlined,
+  logo: DefaultNavLogoIcon,
   filter: FilterOutlined,
   carryOut: CarryOutOutlined,
   fileAdd: FileAddOutlined,
@@ -190,7 +232,8 @@ export const commonIcons = {
   bulb: BulbOutlined,
   barChart: BarChartOutlined,
   tool: ToolOutlined,
-  rightPanel: RightSquareOutlined,
+  rightPanel: InsertRowRightOutlined,
+  leftPanel: InsertRowLeftOutlined,
   block: BlockOutlined,
   menuUnfold: MenuUnfoldOutlined,
   info: InfoCircleOutlined,
@@ -199,6 +242,9 @@ export const commonIcons = {
   accessControl: LockOutlined,
   refresh: RedoOutlined,
   cloudSync: CloudSyncOutlined,
+  importInstructions: ImportOutlined,
+  warning: WarningOutlined,
+  checkSquare: CheckSquareOutlined,
 };
 
 export const elementIcons = {

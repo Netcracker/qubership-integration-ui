@@ -72,6 +72,10 @@ import {
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
   ImportVariablesResult,
   VariableImportPreview,
   UsedProperty,
@@ -79,6 +83,13 @@ import {
   AccessControlResponse,
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
+  GeneralImportInstructions,
+  ImportInstruction,
+  ImportInstructionRequest,
+  ImportInstructionResult,
+  DeleteImportInstructionsRequest,
+  ImportEntityType,
+  ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1930,6 +1941,64 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  createMaasKafkaEntity = async (
+    request: CreateMaasKafkaRequest,
+  ): Promise<void> => {
+    await this.instance.post(`/api/cip/v1/maas-actions/kafka`, undefined, {
+      params: {
+        namespace: request.namespace,
+        topicClassifierName: request.topicClassifierName,
+      },
+    });
+  };
+
+  createMaasRabbitMQEntity = async (
+    request: CreateMaasRabbitMQRequest,
+  ): Promise<void> => {
+    await this.instance.post(`/api/cip/v1/maas-actions/rabbitmq`, undefined, {
+      params: {
+        namespace: request.namespace,
+        vhost: request.vhost,
+        exchange: request.exchange,
+        queue: request.queue,
+        routingKey: request.routingKey,
+      },
+    });
+  };
+
+  getMaasKafkaDeclarativeFile = async (
+    request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File> => {
+    const response = await this.instance.post<Blob>(
+      `/api/cip/v1/maas-actions/kafka/declarative`,
+      undefined,
+      {
+        params: { topicClassifierName: request.topicClassifierName },
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
+  };
+
+  getMaasRabbitMQDeclarativeFile = async (
+    request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File> => {
+    const response = await this.instance.post<Blob>(
+      `/api/cip/v1/maas-actions/rabbitmq/declarative`,
+      undefined,
+      {
+        params: {
+          vhost: request.vhost,
+          exchange: request.exchange,
+          queue: request.queue,
+          routingKey: request.routingKey,
+        },
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
+  };
+
   getUsedProperties = async (chainId: string): Promise<UsedProperty[]> => {
     const response = await this.instance.get<UsedProperty[]>(
       `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`,
@@ -1988,5 +2057,149 @@ export class RestApi implements Api {
       `${this.v1()}/systems-catalog/systems/discovery/result`,
     );
     return response.data;
+  };
+
+  getElementsAsCode = async (
+    chainId: string,
+  ): Promise<ChainElementCodeResponse> => {
+    const response = await this.instance.get<ChainElementCodeResponse>(
+      `${this.v1()}/catalog/chains/${chainId}/elements/code`,
+    );
+
+    return response.data;
+  };
+
+  // Admin Tools: Import Instructions
+  getImportInstructions = async (): Promise<GeneralImportInstructions> => {
+    const [catalog, variables] = await Promise.all([
+      this.instance.get<GeneralImportInstructions>(
+        `${this.v1()}/systems-catalog/import-instructions`,
+      ),
+      this.instance.get<{
+        ignore?: ImportInstruction[];
+        delete?: ImportInstruction[];
+      }>(
+        `${this.v1()}/variables-management/common-variables/import-instructions`,
+      ),
+    ]);
+    const cv = variables.data as {
+      commonVariables?: {
+        delete?: ImportInstruction[];
+        ignore?: ImportInstruction[];
+      };
+      delete?: ImportInstruction[];
+      ignore?: ImportInstruction[];
+    };
+    const cvData = cv?.commonVariables ?? cv;
+    return {
+      chains: catalog.data.chains ?? { delete: [], ignore: [], override: [] },
+      services: catalog.data.services ?? { delete: [], ignore: [] },
+      specificationGroups: catalog.data.specificationGroups ?? {
+        delete: [],
+        ignore: [],
+      },
+      specifications: catalog.data.specifications ?? { delete: [], ignore: [] },
+      commonVariables: {
+        delete: cvData?.delete ?? [],
+        ignore: cvData?.ignore ?? [],
+      },
+    };
+  };
+
+  addImportInstruction = async (
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction> => {
+    if (request.entityType === ImportEntityType.COMMON_VARIABLE) {
+      const response = await this.instance.post<ImportInstruction>(
+        `${this.v1()}/variables-management/common-variables/import-instructions`,
+        request,
+        { headers: { "content-type": "application/json" } },
+      );
+      return response.data;
+    }
+    const response = await this.instance.post<ImportInstruction>(
+      `${this.v1()}/systems-catalog/import-instructions`,
+      request,
+      { headers: { "content-type": "application/json" } },
+    );
+    return response.data;
+  };
+
+  updateImportInstruction = async (
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction> => {
+    if (request.entityType === ImportEntityType.COMMON_VARIABLE) {
+      const response = await this.instance.patch<ImportInstruction>(
+        `${this.v1()}/variables-management/common-variables/import-instructions`,
+        request,
+        { headers: { "content-type": "application/json" } },
+      );
+      return response.data;
+    }
+    const response = await this.instance.patch<ImportInstruction>(
+      `${this.v1()}/systems-catalog/import-instructions`,
+      request,
+      { headers: { "content-type": "application/json" } },
+    );
+    return response.data;
+  };
+
+  deleteImportInstructions = async (
+    payload: DeleteImportInstructionsRequest,
+  ): Promise<void> => {
+    const hasCatalog =
+      (payload.chains?.length ?? 0) > 0 || (payload.services?.length ?? 0) > 0;
+    const hasVariables = (payload.commonVariables?.length ?? 0) > 0;
+
+    const promises: Promise<unknown>[] = [];
+    if (hasCatalog) {
+      promises.push(
+        this.instance.delete(
+          `${this.v1()}/systems-catalog/import-instructions`,
+          {
+            headers: { "content-type": "application/json" },
+            data: {
+              chains: payload.chains ?? [],
+              services: payload.services ?? [],
+            },
+          },
+        ),
+      );
+    }
+    if (hasVariables) {
+      promises.push(
+        this.instance.delete(
+          `${this.v1()}/variables-management/common-variables/import-instructions`,
+          {
+            headers: { "content-type": "application/json" },
+            data: { chains: [], services: payload.commonVariables ?? [] },
+          },
+        ),
+      );
+    }
+    await Promise.all(promises);
+  };
+
+  uploadImportInstructions = async (
+    file: File,
+  ): Promise<ImportInstructionResult[]> => {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    const response = await this.instance.post<ImportInstructionResult[]>(
+      `${this.v1()}/catalog/import-instructions/upload`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data;
+  };
+
+  exportImportInstructions = async (): Promise<File> => {
+    const response = await this.instance.get<Blob>(
+      `${this.v1()}/catalog/import-instructions/export`,
+      { responseType: "blob" },
+    );
+    return getFileFromResponse(response);
   };
 }

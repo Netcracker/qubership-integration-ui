@@ -1,17 +1,19 @@
-import { useCallback, useState } from "react";
-import { Flex, FloatButton, message, Modal, Typography } from "antd";
+import { useMemo, useState } from "react";
+import { Flex, message, Modal, Typography } from "antd";
 import styles from "../CommonStyle.module.css";
+import { CompactSearch } from "../../table/CompactSearch.tsx";
 import ImportVariablesModal from "./ImportVariablesModal.tsx";
 import { useModalsContext } from "../../../Modals.tsx";
 import VariablesTable from "./VariablesTable.tsx";
 import { useVariablesState } from "./useVariablesState";
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
-import { ResizeCallbackData } from "react-resizable";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { ApiResponse, Variable } from "../../../api/apiTypes.ts";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 import { api } from "../../../api/api.ts";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { hasPermissions } from "../../../permissions/funcs.ts";
+import { usePermissions } from "../../../permissions/usePermissions.tsx";
 
 const { Title } = Typography;
 
@@ -19,26 +21,18 @@ async function getVariables(): Promise<ApiResponse<Variable[]>> {
   return api.getCommonVariables();
 }
 
+function variableMatchesSearch(v: Variable, term: string): boolean {
+  const t = term.trim().toLowerCase();
+  if (!t) return true;
+  return v.key.toLowerCase().includes(t) || v.value.toLowerCase().includes(t);
+}
+
 export const CommonVariables = () => {
   const { showModal } = useModalsContext();
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
-  const [columnsWidth, setColumnsWidth] = useState<{ [key: string]: number }>({
-    key: 300,
-  });
   const notificationService = useNotificationService();
-
-  const handleResize = useCallback(
-    (dataIndex: string) =>
-      (_: unknown, { size }: ResizeCallbackData) => {
-        requestAnimationFrame(() => {
-          setColumnsWidth((prev) => ({
-            ...prev,
-            [dataIndex]: size.width,
-          }));
-        });
-      },
-    [],
-  );
+  const permissions = usePermissions();
 
   const {
     variables,
@@ -70,6 +64,11 @@ export const CommonVariables = () => {
     },
   });
 
+  const filteredVariables = useMemo(
+    () => variables.filter((v) => variableMatchesSearch(v, searchTerm)),
+    [variables, searchTerm],
+  );
+
   const onDeleteSelected = async () => {
     try {
       const success = await api.deleteCommonVariables(selectedRowKeys);
@@ -88,15 +87,91 @@ export const CommonVariables = () => {
 
   return (
     <Flex vertical className={styles["container"]}>
-      <Flex vertical={false}>
+      <Flex
+        vertical={false}
+        justify="space-between"
+        align="center"
+        gap={8}
+        wrap="wrap"
+        style={{ marginBottom: 16 }}
+      >
         <Title level={4} className={styles["title"]}>
           <OverridableIcon name="table" className={styles["icon"]} />
           Common Variables
         </Title>
+        <Flex vertical={false} align="center" gap={8} wrap="wrap">
+          <CompactSearch
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search variables..."
+            allowClear
+            className={styles["searchField"] as string}
+          />
+          <Flex vertical={false} gap={4}>
+            <ProtectedButton
+              require={{ commonVariable: ["delete"] }}
+              tooltipProps={{
+                title: "Delete selected variables",
+                placement: "bottom",
+              }}
+              buttonProps={{
+                iconName: "delete",
+                onClick: () => {
+                  if (!selectedRowKeys.length) return;
+                  Modal.confirm({
+                    title: `Delete ${selectedRowKeys.length} selected variable(s)?`,
+                    content: `Are you sure you want to delete ${selectedRowKeys.length} variables(s)?`,
+                    onOk: onDeleteSelected,
+                  });
+                },
+                disabled: !selectedRowKeys.length,
+              }}
+            />
+            <ProtectedButton
+              require={{ commonVariable: ["export"] }}
+              tooltipProps={{
+                title: "Export selected variables",
+                placement: "bottom",
+              }}
+              buttonProps={{
+                iconName: "cloudDownload",
+                onClick: () => {
+                  if (!selectedRowKeys.length) return;
+                  void onExport(selectedRowKeys);
+                },
+                disabled: !selectedRowKeys.length,
+              }}
+            />
+            <ProtectedButton
+              require={{ commonVariable: ["import"] }}
+              tooltipProps={{ title: "Import variables", placement: "bottom" }}
+              buttonProps={{
+                iconName: "cloudUpload",
+                onClick: () =>
+                  showModal({
+                    component: (
+                      <ImportVariablesModal
+                        onSuccess={() => void fetchVariables()}
+                      />
+                    ),
+                  }),
+              }}
+            />
+            <ProtectedButton
+              require={{ commonVariable: ["create"] }}
+              tooltipProps={{ title: "Add variable", placement: "bottom" }}
+              buttonProps={{
+                type: "primary",
+                iconName: "plus",
+                onClick: () => setIsAddingNew(true),
+              }}
+            />
+          </Flex>
+        </Flex>
       </Flex>
       <VariablesTable
         flex
-        variables={variables}
+        variables={filteredVariables}
         isAddingNew={isAddingNew}
         selectedKeys={selectedRowKeys}
         onSelectedChange={setSelectedRowKeys}
@@ -113,50 +188,11 @@ export const CommonVariables = () => {
         enableKeyFilter
         enableValueFilter
         isValueHidden={false}
-        columnsWidth={columnsWidth}
-        onResize={handleResize}
+        enableEdit={hasPermissions(permissions, { commonVariable: ["update"] })}
+        enableDelete={hasPermissions(permissions, {
+          commonVariable: ["delete"],
+        })}
       />
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          tooltip={{ title: "Import variables", placement: "left" }}
-          icon={<OverridableIcon name="cloudUpload" />}
-          onClick={() =>
-            showModal({
-              component: (
-                <ImportVariablesModal onSuccess={() => void fetchVariables()} />
-              ),
-            })
-          }
-        />
-        <FloatButton
-          tooltip={{ title: "Export selected variables", placement: "left" }}
-          icon={<OverridableIcon name="cloudDownload" />}
-          onClick={() => {
-            if (!selectedRowKeys.length) return;
-            void onExport(selectedRowKeys);
-          }}
-        />
-        <FloatButton
-          tooltip={{
-            title: "Delete selected variables",
-            placement: "left",
-          }}
-          icon={<OverridableIcon name="delete" />}
-          onClick={() => {
-            if (!selectedRowKeys.length) return;
-            Modal.confirm({
-              title: `Delete ${selectedRowKeys.length} selected variable(s)?`,
-              content: `Are you sure you want to delete ${selectedRowKeys.length} variables(s)?`,
-              onOk: onDeleteSelected,
-            });
-          }}
-        />
-        <FloatButton
-          tooltip={{ title: "Add variable", placement: "left" }}
-          icon={<OverridableIcon name="plus" />}
-          onClick={() => setIsAddingNew(true)}
-        />
-      </FloatButtonGroup>
     </Flex>
   );
 };

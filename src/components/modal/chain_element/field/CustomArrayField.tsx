@@ -52,13 +52,26 @@ const actionOptions = [
   { value: "mapper-2", label: "Mapper" },
 ];
 
-const changeActionType = (handler: ResponseHandler, type: string): ResponseHandler => {
-  const base = { code: handler.code, id: handler.id, label: handler.label, wildcard: handler.wildcard, type };
+const changeActionType = (
+  handler: ResponseHandler,
+  type: string,
+): ResponseHandler => {
+  const base = {
+    code: handler.code,
+    id: handler.id,
+    label: handler.label,
+    wildcard: handler.wildcard,
+    type,
+  };
   switch (type) {
     case "script":
       return { ...base, script: handler.script };
     case "mapper-2":
-      return { ...base, mappingDescription: handler.mappingDescription, throwException: handler.throwException };
+      return {
+        ...base,
+        mappingDescription: handler.mappingDescription,
+        throwException: handler.throwException,
+      };
     default:
       return base;
   }
@@ -141,22 +154,27 @@ const CustomArrayField: FC<
         if (readOnlyMode) {
           const schemas: Record<string, ValidationItem> = {};
 
-          for (const [code, mediaTypes] of Object.entries(responseSchemas)) {
-            for (const [contentType, schema] of Object.entries(
-              mediaTypes as Record<string, object>,
-            )) {
-              const id = `${code}-${contentType}`;
-              schemas[id] =
-                elementType === "async-api-trigger"
-                  ? { code, label: id, schema: JSON.stringify(schema, null, 2) }
-                  : {
-                      id,
-                      code,
-                      type: "responseValidation",
-                      label: id,
-                      schema: JSON.stringify(schema, null, 2),
-                      contentType,
-                    };
+          for (const [code, schema] of Object.entries(responseSchemas)) {
+            if (elementType === "async-api-trigger") {
+              schemas[code] = {
+                code,
+                label: code,
+                schema: JSON.stringify(schema, null, 2),
+              };
+            } else {
+              for (const [contentType, validationSchema] of Object.entries(
+                schema as Record<string, object>,
+              )) {
+                const id = `${code}-${contentType}`;
+                schemas[id] = {
+                  id,
+                  code,
+                  type: "responseValidation",
+                  label: id,
+                  schema: JSON.stringify(validationSchema, null, 2),
+                  contentType,
+                };
+              }
             }
           }
 
@@ -301,9 +319,7 @@ const CustomArrayField: FC<
                   marginBottom: 6,
                   display: "flex",
                   justifyContent: "space-between",
-                  background: active
-                    ? themeColors.activeBackground
-                    : undefined,
+                  background: active ? themeColors.activeBackground : undefined,
                 }}
               >
                 <span>{item.label}</span>

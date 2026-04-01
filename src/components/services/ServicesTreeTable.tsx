@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Table, Dropdown, Button, Modal } from "antd";
+import { Table, Button, Modal } from "antd";
 import type {
   FilterDropdownProps,
   TableRowSelection,
 } from "antd/es/table/interface";
+import { treeExpandIcon } from "../table/TreeExpandIcon";
 import { formatTimestamp } from "../../misc/format-utils";
 import { UsageStatusTag } from "./utils";
 import { SourceFlagTag } from "./ui/SourceFlagTag";
@@ -16,7 +17,10 @@ import {
   IntegrationSystemType,
 } from "../../api/apiTypes.ts";
 import { useNavigate, useParams } from "react-router-dom";
-import { ColumnsFilter } from "../table/ColumnsFilter";
+import {
+  getColumnsOrderKey,
+  getColumnsVisibleKey,
+} from "../table/ColumnsFilter";
 import { OperationInfoModal } from "./modals/OperationInfoModal";
 import { api } from "../../api/api";
 import {
@@ -34,6 +38,21 @@ import { LabelsEdit } from "../table/LabelsEdit";
 import { ChainColumn } from "./ui/ChainColumn";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { HttpMethod } from "./ui/HttpMethod.tsx";
+import { ProtectedDropdown } from "../../permissions/ProtectedDropdown.tsx";
+import { RequiredPermissions } from "../../permissions/types.ts";
+import { ColumnSettingsButton } from "../table/ColumnSettingsButton.tsx";
+import type { ColumnsType } from "antd/lib/table";
+import type { SumScrollXExtras } from "../table/useTableColumnResize.tsx";
+import {
+  attachResizeToColumns,
+  sumScrollXForColumns,
+  useTableColumnResize,
+} from "../table/useTableColumnResize.tsx";
+import { DEFAULT_ACTIONS_COLUMN_WIDTH } from "../table/actionsColumn.ts";
+
+/** rc-table expand icon column; not in `columns` but affects horizontal layout. */
+const SERVICES_TREE_EXPAND_COLUMN_WIDTH = 48;
+const SERVICES_TREE_SELECTION_COLUMN_WIDTH = 48;
 
 export type ServiceEntity =
   | IntegrationSystem
@@ -82,6 +101,7 @@ export interface ServicesTableColumn<T extends ServiceEntity = ServiceEntity> {
   dataIndex?: string;
   render?: (value: unknown, record: T, index: number) => React.ReactNode;
   width?: number;
+  minWidth?: number;
   align?: "left" | "center" | "right";
   filterDropdown?: (props: FilterDropdownProps) => React.ReactNode;
   onFilter?: (value: React.Key | boolean, record: T) => boolean;
@@ -103,6 +123,8 @@ export interface ServicesTreeTableProps<
   size?: "small" | "middle" | "large";
   pagination?: false | object;
   style?: React.CSSProperties;
+  scroll?: { y?: string | number };
+  className?: string;
   actionsColumn?: ServicesTableColumn;
   enableSelection?: boolean;
   isRootEntity?: (record: T) => boolean;
@@ -115,6 +137,8 @@ export interface ServicesTreeTableProps<
   rowClassName?: (record: T) => string;
   onUpdateLabels?: (record: T, labels: string[]) => Promise<void>;
   onRowClick?: (record: T, event: React.MouseEvent<HTMLElement>) => void;
+  /** When set, replaces the title of the `url` column (e.g. URL vs Topic vs Channel). */
+  urlColumnTitle?: string;
 }
 
 const clickableStyle: React.CSSProperties = {
@@ -247,7 +271,10 @@ function renderLabelsCell(
 
   if (onUpdateLabels) {
     return (
-      <div className="inline-edit-labels" style={{ overflow: "hidden", maxWidth: "100%" }}>
+      <div
+        className="inline-edit-labels"
+        style={{ overflow: "hidden", maxWidth: "100%" }}
+      >
         <InlineEdit
           values={{ labels: filtered.map((l) => l.name) }}
           editor={<LabelsEdit name="labels" />}
@@ -285,6 +312,8 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       title: "Name",
       dataIndex: "name",
       key: "name",
+      width: 200,
+      minWidth: 120,
       filterDropdown: (props: FilterDropdownProps) => (
         <TextColumnFilterDropdown {...props} />
       ),
@@ -382,7 +411,7 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       },
     },
     {
-      title: "Created When",
+      title: "Created At",
       dataIndex: "createdWhen",
       key: "createdWhen",
       width: 160,
@@ -399,7 +428,7 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       },
     },
     {
-      title: "Modified When",
+      title: "Modified At",
       dataIndex: "modifiedWhen",
       key: "modifiedWhen",
       width: 160,
@@ -428,10 +457,31 @@ export const allServicesTreeTableColumns: ServicesTableColumn<ServiceEntity>[] =
       key: "url",
       width: 200,
       render: (_value: unknown, record: ServiceEntity) => {
-        return "path" in record ? record.path : "";
+        if (!isSystemOperation(record)) return "";
+        if (record.topic) return record.topic;
+        if (record.channel) return record.channel;
+        return record.path ?? "";
       },
     },
   ];
+
+const serviceTreeResizeWidths: Record<string, number> = {
+  name: 200,
+  protocol: 120,
+  extendedProtocol: 150,
+  specification: 150,
+  internalServiceName: 180,
+  status: 100,
+  source: 100,
+  labels: 200,
+  usedBy: 120,
+  createdWhen: 160,
+  createdBy: 130,
+  modifiedWhen: 160,
+  modifiedBy: 130,
+  method: 100,
+  url: 200,
+};
 
 export interface ActionConfig<T = never> {
   key: string;
@@ -444,6 +494,7 @@ export interface ActionConfig<T = never> {
     cancelText?: string;
   };
   visible?: (record: T) => boolean;
+  require?: RequiredPermissions;
 }
 
 function ActionMenu<T>({
@@ -459,6 +510,7 @@ function ActionMenu<T>({
       key: action.key,
       icon: action.icon,
       label: action.label,
+      require: action.require,
       onClick: () => {
         if (action.confirm) {
           Modal.confirm({
@@ -474,7 +526,7 @@ function ActionMenu<T>({
     }));
 
   return (
-    <Dropdown
+    <ProtectedDropdown
       menu={{
         items,
       }}
@@ -482,7 +534,7 @@ function ActionMenu<T>({
       placement="bottomRight"
     >
       <Button type="text" icon={<OverridableIcon name="more" />} />
-    </Dropdown>
+    </ProtectedDropdown>
   );
 }
 
@@ -492,7 +544,7 @@ export function getActionsColumn<T extends ServiceEntity = ServiceEntity>(
   return {
     key: "actions",
     title: "",
-    width: 40,
+    width: DEFAULT_ACTIONS_COLUMN_WIDTH,
     align: "center",
     render: (_value: unknown, record: T) => {
       const actions = getActionsForRecord(record);
@@ -527,6 +579,7 @@ export function getServiceActions({
         label: "Edit",
         icon: <OverridableIcon name="edit" />,
         onClick: onEdit,
+        require: { service: ["update"] },
       },
       {
         key: "delete",
@@ -538,6 +591,7 @@ export function getServiceActions({
           okText: "Delete",
           cancelText: "Cancel",
         },
+        require: { service: ["delete"] },
       },
     ];
     if (isExpandAvailable(record)) {
@@ -563,6 +617,7 @@ export function getServiceActions({
         label: "Export",
         icon: <OverridableIcon name="cloudDownload" />,
         onClick: (rec) => onExportSelected([rec]),
+        require: { service: ["export"] },
       });
     }
     return actions;
@@ -586,6 +641,10 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   rowClassName,
   onUpdateLabels,
   onRowClick,
+  scroll,
+  className,
+  style,
+  urlColumnTitle,
 }: ServicesTreeTableProps<T>) {
   const allColumnKeys = useMemo(() => {
     return allColumns && allColumns.length > 0
@@ -600,11 +659,13 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   }, [defaultVisibleKeys, allColumnKeys]);
 
   const [columnsOrder, setColumnsOrder] = useState<string[]>(() => {
-    const storedOrder = localStorage.getItem(`${storageKey}_columnsOrder`);
+    const storedOrder = localStorage.getItem(getColumnsOrderKey(storageKey));
     return storedOrder ? (JSON.parse(storedOrder) as string[]) : allColumnKeys;
   });
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-    const storedVisible = localStorage.getItem(`${storageKey}_columnsVisible`);
+    const storedVisible = localStorage.getItem(
+      getColumnsVisibleKey(storageKey),
+    );
     return storedVisible
       ? (JSON.parse(storedVisible) as string[])
       : initialKeys;
@@ -622,22 +683,15 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   };
 
   const FilterButton = () => (
-    <Dropdown
-      popupRender={() => (
-        <ColumnsFilter
-          allColumns={allColumnKeys}
-          defaultColumns={initialKeys}
-          storageKey={storageKey}
-          labelsByKey={Object.fromEntries(
-            allServicesTreeTableColumns.map((c) => [c.key, c.title]),
-          )}
-          onChange={handleColumnsChange}
-        />
+    <ColumnSettingsButton
+      allColumns={allColumnKeys}
+      defaultColumns={initialKeys}
+      storageKey={storageKey}
+      labelsByKey={Object.fromEntries(
+        allServicesTreeTableColumns.map((c) => [c.key, c.title]),
       )}
-      trigger={["click"]}
-    >
-      <Button icon={<OverridableIcon name="settings" />} />
-    </Dropdown>
+      onChange={handleColumnsChange}
+    />
   );
 
   const finalColumns = useMemo(() => {
@@ -658,46 +712,138 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
     return actionsColumn ? [...cols, actionsColumn] : cols;
   }, [columnsOrder, visibleColumns, actionsColumn, onUpdateLabels]);
 
-  const TableComponent = () => {
-    const rowSelection: TableRowSelection<T> | undefined = enableSelection
-      ? {
-          selectedRowKeys,
-          onChange: (keys: React.Key[]) => {
-            setSelectedRowKeys(keys);
-          },
-          getCheckboxProps: (record: T) => ({
-            disabled: !(isRootEntity ?? (() => true))(record),
-          }),
-        }
-      : undefined;
-    return (
-      <Table
+  const finalColumnsWithUrlTitle = useMemo(() => {
+    if (!urlColumnTitle) return finalColumns;
+    return finalColumns.map((col) =>
+      col.key === "url" ? { ...col, title: urlColumnTitle } : col,
+    );
+  }, [finalColumns, urlColumnTitle]);
+
+  const { columnWidths, createResizeHandlers, resizableHeaderComponents } =
+    useTableColumnResize(serviceTreeResizeWidths);
+
+  const columnsWithResize = useMemo(
+    () =>
+      attachResizeToColumns(
+        finalColumnsWithUrlTitle as ColumnsType<T>,
+        columnWidths,
+        createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [finalColumnsWithUrlTitle, columnWidths, createResizeHandlers],
+  );
+
+  const mergedScroll = useMemo(() => {
+    const extras: SumScrollXExtras = {};
+    if (expandable) {
+      extras.expandColumnWidth = SERVICES_TREE_EXPAND_COLUMN_WIDTH;
+    }
+    if (enableSelection) {
+      extras.selectionColumnWidth = SERVICES_TREE_SELECTION_COLUMN_WIDTH;
+    }
+    const scrollX = sumScrollXForColumns(
+      columnsWithResize,
+      columnWidths,
+      Object.keys(extras).length > 0 ? extras : undefined,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit y from rest (empty table: no scroll.y)
+    const { y, ...scrollWithoutY } = scroll ?? {};
+    if (dataSource.length === 0) {
+      return { ...scrollWithoutY, x: scrollX };
+    }
+    return {
+      ...scrollWithoutY,
+      x: scrollX,
+      y: scroll?.y ?? "",
+    };
+  }, [
+    scroll,
+    columnsWithResize,
+    columnWidths,
+    expandable,
+    enableSelection,
+    dataSource.length,
+  ]);
+
+  const mergedExpandable = useMemo(
+    () => ({
+      expandIcon: treeExpandIcon(),
+      ...expandable,
+      indentSize: 24,
+    }),
+    [expandable],
+  );
+
+  const rowSelection = useMemo((): TableRowSelection<T> | undefined => {
+    if (!enableSelection) {
+      return undefined;
+    }
+    return {
+      selectedRowKeys,
+      onChange: (keys: React.Key[]) => {
+        setSelectedRowKeys(keys);
+      },
+      getCheckboxProps: (record: T) => ({
+        disabled: !(isRootEntity ?? (() => true))(record),
+      }),
+    };
+  }, [enableSelection, selectedRowKeys, setSelectedRowKeys, isRootEntity]);
+
+  const tableStyle = useMemo(() => {
+    const base: React.CSSProperties = {
+      background: "var(--vscode-editor-background)",
+      borderRadius: 12,
+      width: "100%",
+    };
+    return style ? { ...base, ...style } : base;
+  }, [style]);
+
+  const onRowHandler = useMemo(() => {
+    if (!onRowClick) {
+      return undefined;
+    }
+    return (record: T) => ({
+      onClick: (event: React.MouseEvent<HTMLElement>) =>
+        onRowClick(record, event),
+    });
+  }, [onRowClick]);
+
+  const tableElement = useMemo(
+    () => (
+      <Table<T>
         dataSource={dataSource}
-        columns={finalColumns}
+        columns={columnsWithResize}
         rowKey={rowKey}
         loading={loading}
-        expandable={{ ...expandable, indentSize: 24 }}
-        size={"small"}
+        expandable={mergedExpandable}
+        size="small"
         pagination={pagination}
         tableLayout="fixed"
-        style={{
-          background: "var(--vscode-editor-background)",
-          borderRadius: 12,
-          width: "100%",
-        }}
+        scroll={mergedScroll}
+        components={resizableHeaderComponents}
+        className={className}
+        style={tableStyle}
         rowClassName={rowClassName}
-        onRow={
-          onRowClick
-            ? (record) => ({
-                onClick: (event: React.MouseEvent<HTMLElement>) =>
-                  onRowClick(record, event),
-              })
-            : undefined
-        }
+        onRow={onRowHandler}
         rowSelection={rowSelection}
       />
-    );
-  };
+    ),
+    [
+      dataSource,
+      columnsWithResize,
+      rowKey,
+      loading,
+      mergedExpandable,
+      pagination,
+      mergedScroll,
+      resizableHeaderComponents,
+      className,
+      tableStyle,
+      rowClassName,
+      onRowHandler,
+      rowSelection,
+    ],
+  );
 
-  return { Table: TableComponent, FilterButton };
+  return { tableElement, FilterButton };
 }

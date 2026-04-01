@@ -67,6 +67,10 @@ import type {
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
   ApiResponse,
   ImportVariablesResult,
   VariableImportPreview,
@@ -77,6 +81,12 @@ import type {
   AccessControlUpdateRequest,
   AccessControlBulkDeployRequest,
   DiscoveryResponse,
+  GeneralImportInstructions,
+  ImportInstruction,
+  ImportInstructionRequest,
+  ImportInstructionResult,
+  DeleteImportInstructionsRequest,
+  ChainElementCodeResponse,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -485,6 +495,18 @@ export interface Api {
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
 
+  createMaasKafkaEntity(request: CreateMaasKafkaRequest): Promise<void>;
+
+  createMaasRabbitMQEntity(request: CreateMaasRabbitMQRequest): Promise<void>;
+
+  getMaasKafkaDeclarativeFile(
+    request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File>;
+
+  getMaasRabbitMQDeclarativeFile(
+    request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File>;
+
   // Admin Tools: Variables Management
   getCommonVariables(): Promise<ApiResponse<Variable[]>>;
 
@@ -548,6 +570,27 @@ export interface Api {
   isAutodiscoveryInProgress(): Promise<number>;
 
   getAutodiscoveryResult(): Promise<DiscoveryResponse>;
+
+  // Admin Tools: Import Instructions
+  getImportInstructions(): Promise<GeneralImportInstructions>;
+
+  addImportInstruction(
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction>;
+
+  updateImportInstruction(
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction>;
+
+  deleteImportInstructions(
+    payload: DeleteImportInstructionsRequest,
+  ): Promise<void>;
+
+  uploadImportInstructions(file: File): Promise<ImportInstructionResult[]>;
+
+  exportImportInstructions(): Promise<File>;
+
+  getElementsAsCode(chainId: string): Promise<ChainElementCodeResponse>;
 }
 
 export const api: Api = isVsCode ? new VSCodeExtensionApi() : new RestApi();

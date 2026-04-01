@@ -1,8 +1,6 @@
-import { FloatButton, Table } from "antd";
-
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
+import { Flex, Table } from "antd";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { MaskedField } from "../api/apiTypes";
 import { useParams } from "react-router";
 import { api } from "../api/api.ts";
@@ -20,14 +18,53 @@ import {
   TimestampColumnFilterDropdown,
 } from "../components/table/TimestampColumnFilterDropdown.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { OverridableIcon } from "../icons/IconProvider.tsx";
+import { TablePageLayout } from "../components/TablePageLayout.tsx";
+import { filterOutByIds, toStringIds } from "../misc/selection-utils.ts";
+import { Require } from "../permissions/Require.tsx";
+import { useColumnSettingsBasedOnColumnsType } from "../components/table/useColumnSettingsButton.tsx";
+import {
+  attachResizeToColumns,
+  sumScrollXForColumns,
+  useTableColumnResize,
+} from "../components/table/useTableColumnResize.tsx";
+import { TableToolbar } from "../components/table/TableToolbar.tsx";
+import { disableResizeBeforeActions } from "../components/table/actionsColumn.ts";
+import commonStyles from "../components/admin_tools/CommonStyle.module.css";
+import { CompactSearch } from "../components/table/CompactSearch.tsx";
+import { matchesByFields } from "../components/table/tableSearch.ts";
+import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+
+const MASKING_SELECTION_COLUMN_WIDTH = 48;
+
+function maskedFieldMatchesSearch(field: MaskedField, term: string): boolean {
+  const createdStr = field.createdWhen
+    ? formatTimestamp(field.createdWhen)
+    : "";
+  const modifiedStr = field.modifiedWhen
+    ? formatTimestamp(field.modifiedWhen)
+    : "";
+  return matchesByFields(term, [
+    field.name,
+    field.createdBy?.username,
+    field.modifiedBy?.username,
+    createdStr,
+    modifiedStr,
+  ]);
+}
 
 export const Masking: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [maskedFields, setMaskedFields] = useState<MaskedField[]>([]);
   const [isMaskedFieldsLoading, setIsMaskedFieldsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const notificationService = useNotificationService();
+
+  const filteredMaskedFields = useMemo(
+    () =>
+      maskedFields.filter((row) => maskedFieldMatchesSearch(row, searchTerm)),
+    [maskedFields, searchTerm],
+  );
 
   const getMaskedFields = useCallback(async (): Promise<MaskedField[]> => {
     setIsMaskedFieldsLoading(true);
@@ -87,12 +124,9 @@ export const Masking: React.FC = () => {
     }
     setIsMaskedFieldsLoading(true);
     try {
-      const ids = selectedRowKeys.map((key) => key.toString());
+      const ids = toStringIds(selectedRowKeys);
       await api.deleteMaskedFields(chainId, ids);
-      setMaskedFields(
-        maskedFields?.filter((field) => !ids.some((id) => field.id === id)) ??
-          [],
-      );
+      setMaskedFields(filterOutByIds(maskedFields, ids));
     } catch (error) {
       notificationService.requestFailed(
         "Failed to delete masked fields",
@@ -112,14 +146,19 @@ export const Masking: React.FC = () => {
       filterDropdown: (props) => <TextColumnFilterDropdown {...props} />,
       onFilter: getTextColumnFilterFn((snapshot) => snapshot.name),
       render: (_, field) => (
-        <InlineEdit<{ name: string }>
-          values={{ name: field.name }}
-          editor={<TextValueEdit name={"name"} />}
-          viewer={field.name}
-          onSubmit={async ({ name }) => {
-            await updateMaskedField(field.id, { name });
-          }}
-        />
+        <Require
+          permissions={{ maskedField: ["update"] }}
+          fallback={field.name}
+        >
+          <InlineEdit<{ name: string }>
+            values={{ name: field.name }}
+            editor={<TextValueEdit name={"name"} />}
+            viewer={field.name}
+            onSubmit={async ({ name }) => {
+              await updateMaskedField(field.id, { name });
+            }}
+          />
+        </Require>
       ),
     },
     {
@@ -182,6 +221,41 @@ export const Masking: React.FC = () => {
     },
   ];
 
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<MaskedField>("maskingTable", columns);
+
+  const maskingColumnResize = useTableColumnResize({
+    name: 220,
+    createdBy: 120,
+    createdWhen: 168,
+    modifiedBy: 120,
+    modifiedWhen: 168,
+  });
+
+  const columnsWithResize = useMemo(() => {
+    const resized = attachResizeToColumns(
+      orderedColumns,
+      maskingColumnResize.columnWidths,
+      maskingColumnResize.createResizeHandlers,
+      { minWidth: 80 },
+    );
+    return disableResizeBeforeActions(resized);
+  }, [
+    orderedColumns,
+    maskingColumnResize.columnWidths,
+    maskingColumnResize.createResizeHandlers,
+  ]);
+
+  const scrollX = useMemo(
+    () =>
+      sumScrollXForColumns(
+        columnsWithResize,
+        maskingColumnResize.columnWidths,
+        { selectionColumnWidth: MASKING_SELECTION_COLUMN_WIDTH },
+      ),
+    [columnsWithResize, maskingColumnResize.columnWidths],
+  );
+
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
@@ -202,34 +276,58 @@ export const Masking: React.FC = () => {
   };
 
   return (
-    <>
+    <TablePageLayout>
+      <TableToolbar
+        leading={
+          <CompactSearch
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search masked fields..."
+            allowClear
+            className={commonStyles.searchField as string}
+          />
+        }
+        trailing={
+          <Flex align="center" gap={8} wrap="wrap">
+            {columnSettingsButton}
+            <ProtectedButton
+              require={{ maskedField: ["delete"] }}
+              tooltipProps={{ title: "Delete selected masked fields" }}
+              buttonProps={{
+                iconName: "delete",
+                onClick: () => void onDeleteBtnClick(),
+                disabled: selectedRowKeys.length === 0,
+              }}
+            />
+            <ProtectedButton
+              require={{ maskedField: ["create"] }}
+              tooltipProps={{ title: "Add new masked field" }}
+              buttonProps={{
+                type: "primary",
+                iconName: "plus",
+                onClick: () => void onCreateBtnClick(),
+              }}
+            />
+          </Flex>
+        }
+      />
       <Table
         size="small"
-        columns={columns}
+        columns={columnsWithResize}
         rowSelection={rowSelection}
-        dataSource={maskedFields}
+        dataSource={filteredMaskedFields}
         pagination={false}
         loading={isMaskedFieldsLoading}
         rowKey="id"
         className="flex-table"
-        style={{ height: "100%" }}
-        scroll={{ y: "" }}
+        style={{ flex: 1, minHeight: 0 }}
+        scroll={
+          filteredMaskedFields.length > 0
+            ? { x: scrollX, y: "" }
+            : { x: scrollX }
+        }
+        components={maskingColumnResize.resizableHeaderComponents}
       />
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          tooltip={{
-            title: "Delete selected masked fields",
-            placement: "left",
-          }}
-          icon={<OverridableIcon name="delete" />}
-          onClick={() => void onDeleteBtnClick()}
-        />
-        <FloatButton
-          tooltip={{ title: "Add new masked field", placement: "left" }}
-          icon={<OverridableIcon name="plus" />}
-          onClick={() => void onCreateBtnClick()}
-        />
-      </FloatButtonGroup>
-    </>
+    </TablePageLayout>
   );
 };

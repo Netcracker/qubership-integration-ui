@@ -6,8 +6,8 @@ import React, {
   useState,
 } from "react";
 import styles from "./Services.module.css";
-import { FloatButton, Input, Typography, message, Flex } from "antd";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
+import { Typography, message, Flex } from "antd";
+import { CompactSearch } from "../table/CompactSearch.tsx";
 import { CreateServiceModal } from "./modals/CreateServiceModal";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
@@ -37,11 +37,18 @@ import ImportServicesModal from "./modals/ImportServicesModal";
 import { useModalsContext } from "../../Modals";
 import { getErrorMessage } from "../../misc/error-utils";
 import { useAsyncRequest } from "./useAsyncRequest";
-import type { ExpandableConfig } from "antd/es/table/interface";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { treeExpandIcon } from "../table/TreeExpandIcon.tsx";
 import { ServiceDiscoveryButton } from "./ui/ServiceDiscoveryButton.tsx";
+import { Require } from "../../permissions/Require.tsx";
+import { ProtectedButton } from "../../permissions/ProtectedButton.tsx";
+import commonStyles from "../admin_tools/CommonStyle.module.css";
+import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
 
 const STORAGE_KEY = "servicesListTable";
+
+/** `scroll.y` is body max-height; reserve thead (tree + filter row on Name). */
+const SERVICES_LIST_TABLE_HEAD_RESERVE_PX = 100;
 
 const visibleColumns: string[] = [
   "name",
@@ -50,8 +57,6 @@ const visibleColumns: string[] = [
   "source",
   "labels",
   "usedBy",
-  "createdWhen",
-  "createdBy",
 ];
 
 export const ServicesListPage: React.FC = () => {
@@ -239,36 +244,7 @@ export const ServicesListPage: React.FC = () => {
       );
     },
     childrenColumnName: "children",
-    expandIcon: ({
-      expanded,
-      onExpand,
-      record,
-    }: Parameters<
-      NonNullable<ExpandableConfig<ServiceEntity>["expandIcon"]>
-    >[0]) =>
-      expandable.rowExpandable(record) ? (
-        <span
-          onClick={(e) => {
-            onExpand(record, e);
-            e.stopPropagation();
-          }}
-          style={{
-            cursor: "pointer",
-            fontSize: 11,
-            color: "var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45))",
-            display: "inline-flex",
-            alignItems: "center",
-            verticalAlign: "sub",
-            marginRight: 6,
-          }}
-        >
-          {expanded ? (
-            <OverridableIcon name="down" />
-          ) : (
-            <OverridableIcon name="right" />
-          )}
-        </span>
-      ) : null,
+    expandIcon: treeExpandIcon<ServiceEntity>(),
   };
 
   const isRootEntity = (record: ServiceEntity) => {
@@ -369,10 +345,31 @@ export const ServicesListPage: React.FC = () => {
   const rowClassName = (record: ServiceEntity) =>
     loadingRows.includes(record.id) ? styles.loadingRow : "";
 
+  const [servicesTableAreaRef, servicesTableAreaHeight] =
+    useResizeHeight<HTMLDivElement>();
+
+  const servicesTableBodyScrollY = useMemo(() => {
+    if (servicesTableAreaHeight <= 0) {
+      return 400;
+    }
+    return Math.max(
+      120,
+      servicesTableAreaHeight - SERVICES_LIST_TABLE_HEAD_RESERVE_PX,
+    );
+  }, [servicesTableAreaHeight]);
+
+  const servicesTableScroll = useMemo(
+    () => ({ y: servicesTableBodyScrollY }),
+    [servicesTableBodyScrollY],
+  );
+
   const servicesTable = useServicesTreeTable<ServiceEntity>({
     dataSource: buildDataSource,
     rowKey: "id",
     columns: allServicesTreeTableColumns.map((col) => col.key),
+    scroll: servicesTableScroll,
+    className: "flex-table",
+    style: { flex: 1, minHeight: 0 },
     allColumns: [
       ...allServicesTreeTableColumns.map((col) => col.key),
       actionsColumn.key,
@@ -580,82 +577,99 @@ export const ServicesListPage: React.FC = () => {
           })()}
         </Typography.Title>
 
-        <div className={styles["actions"]}>
-          <Input.Search
+        <Flex className={styles["actions"]} align="center" gap={8} wrap="wrap">
+          <CompactSearch
+            value={searchString}
+            onChange={handleSearchChange}
             placeholder="Search services..."
             allowClear
-            value={searchString}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onSearch={(value) => {
+            className={commonStyles["searchField"] as string}
+            onSearchConfirm={(v) => {
               clearTimeout(searchDebounceRef.current);
-              setDebouncedSearch(value);
+              setDebouncedSearch(v);
             }}
-            style={{ width: 500 }}
           />
           {tab === "internal" && (
-            <ServiceDiscoveryButton
-              onSystemsDiscovered={(systemIds: string[]) => {
-                if (systemIds.length > 0) {
-                  void loadServices();
-                }
-              }}
-            />
+            <Require permissions={{ service: ["execute"] }}>
+              <ServiceDiscoveryButton
+                onSystemsDiscovered={(systemIds: string[]) => {
+                  if (systemIds.length > 0) {
+                    void loadServices();
+                  }
+                }}
+              />
+            </Require>
           )}
           {filterButton}
           {servicesTable.FilterButton()}
-        </div>
+          <ProtectedButton
+            require={{ service: ["export"] }}
+            tooltipProps={{
+              title: "Download selected services",
+              placement: "bottom",
+            }}
+            buttonProps={{
+              iconName: "cloudDownload",
+              onClick: () => {
+                void (async () => {
+                  if (selectedRowKeys.length === 0) {
+                    message.info("No services selected");
+                    return;
+                  }
+                  const selected: ServiceEntity[] = buildDataSource.filter(
+                    (s: ServiceEntity) => selectedRowKeys.includes(s.id),
+                  );
+                  await handleExportSelected(selected);
+                })();
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ service: ["import"] }}
+            tooltipProps={{ title: "Upload services", placement: "bottom" }}
+            buttonProps={{
+              iconName: "cloudUpload",
+              onClick: () => {
+                showModal({
+                  component: (
+                    <ImportServicesModal
+                      onSuccess={() => {
+                        void loadServices();
+                      }}
+                      systemType={getDefaultType(tab)}
+                    />
+                  ),
+                });
+              },
+            }}
+          />
+          <ProtectedButton
+            require={{ service: ["create"] }}
+            tooltipProps={{ title: "Create service", placement: "bottom" }}
+            buttonProps={{
+              type: "primary",
+              iconName: "plus",
+              onClick: () => setCreateModalOpen(true),
+            }}
+          />
+        </Flex>
       </div>
 
-      <div>
-        <servicesTable.Table />
+      <div
+        ref={servicesTableAreaRef}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {servicesTable.tableElement}
         {error && (
           <div style={{ color: "var(--vscode-errorForeground, #d73a49)" }}>
             Error: {error}
           </div>
         )}
-
-        <FloatButtonGroup
-          trigger="hover"
-          icon={<OverridableIcon name="more" />}
-        >
-          <FloatButton
-            tooltip={{ title: "Download selected services", placement: "left" }}
-            icon={<OverridableIcon name="cloudDownload" />}
-            onClick={() => {
-              void (async () => {
-                if (selectedRowKeys.length === 0) {
-                  message.info("No services selected");
-                  return;
-                }
-                const selected: ServiceEntity[] = buildDataSource.filter(
-                  (s: ServiceEntity) => selectedRowKeys.includes(s.id),
-                );
-                await handleExportSelected(selected);
-              })();
-            }}
-          />
-          <FloatButton
-            tooltip={{ title: "Upload services", placement: "left" }}
-            icon={<OverridableIcon name="cloudUpload" />}
-            onClick={() => {
-              showModal({
-                component: (
-                  <ImportServicesModal
-                    onSuccess={() => {
-                      void loadServices();
-                    }}
-                    systemType={getDefaultType(tab)}
-                  />
-                ),
-              });
-            }}
-          />
-          <FloatButton
-            tooltip={{ title: "Create service", placement: "left" }}
-            icon={<OverridableIcon name="plus" />}
-            onClick={() => setCreateModalOpen(true)}
-          />
-        </FloatButtonGroup>
       </div>
 
       <CreateServiceModal
