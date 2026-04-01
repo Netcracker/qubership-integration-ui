@@ -26,7 +26,6 @@ import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
 import { TablePageLayout } from "../components/TablePageLayout.tsx";
 import { Require } from "../permissions/Require.tsx";
 import { useColumnSettingsBasedOnColumnsType } from "../components/table/useColumnSettingsButton.tsx";
-import { TableToolbar } from "../components/table/TableToolbar.tsx";
 import {
   createActionsColumnBase,
   disableResizeBeforeActions,
@@ -34,6 +33,8 @@ import {
 import commonStyles from "../components/admin_tools/CommonStyle.module.css";
 import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import { matchesByFields } from "../components/table/tableSearch.ts";
+import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
+import chainPageStyles from "./Chain.module.css";
 
 function deploymentMatchesSearch(
   deployment: Deployment,
@@ -195,33 +196,43 @@ export const Deployments: React.FC = () => {
     });
   }, [showModal, chainId, createDeployment]);
 
+  const chainTabToolbar = useMemo(
+    () => (
+      <Flex
+        className={chainPageStyles.chainTabToolbarRow}
+        align="center"
+        gap={8}
+        wrap="wrap"
+      >
+        <CompactSearch
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search deployments..."
+          allowClear
+          className={commonStyles.searchField as string}
+          style={{ minWidth: 160, maxWidth: 360, flex: "0 1 auto" }}
+        />
+        <Flex align="center" gap={8} wrap="wrap" style={{ flexShrink: 0 }}>
+          {columnSettingsButton}
+          <ProtectedButton
+            require={{ deployment: ["create"] }}
+            tooltipProps={{ title: "Create deployment" }}
+            buttonProps={{
+              type: "primary",
+              iconName: "plus",
+              onClick: onCreateClick,
+            }}
+          />
+        </Flex>
+      </Flex>
+    ),
+    [searchTerm, columnSettingsButton, onCreateClick],
+  );
+
+  useRegisterChainHeaderActions(chainTabToolbar, [searchTerm, onCreateClick]);
+
   return (
     <TablePageLayout>
-      <TableToolbar
-        leading={
-          <CompactSearch
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder="Search deployments..."
-            allowClear
-            className={commonStyles.searchField as string}
-          />
-        }
-        trailing={
-          <Flex align="center" gap={8} wrap="wrap">
-            {columnSettingsButton}
-            <ProtectedButton
-              require={{ deployment: ["create"] }}
-              tooltipProps={{ title: "Create deployment" }}
-              buttonProps={{
-                type: "primary",
-                iconName: "plus",
-                onClick: onCreateClick,
-              }}
-            />
-          </Flex>
-        }
-      />
       <Table
         className="flex-table"
         size="small"

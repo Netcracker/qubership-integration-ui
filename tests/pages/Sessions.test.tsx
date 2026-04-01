@@ -19,6 +19,7 @@ import {
 import { api } from "../../src/api/api.ts";
 import { Sessions } from "../../src/pages/Sessions.tsx";
 import { Modals } from "../../src/Modals.tsx";
+import { ChainHeaderActionsContextProvider } from "../../src/pages/ChainHeaderActionsContext.tsx";
 
 jest.mock("../../src/api/api.ts", () => ({
   api: {
@@ -207,12 +208,20 @@ function baseSession(overrides: Partial<Session> & { id: string }): Session {
   };
 }
 
-function renderSessions() {
-  return render(
+function SessionsWithChainHeader() {
+  const [header, setHeader] = React.useState<React.ReactNode>(null);
+  return (
     <Modals>
-      <Sessions />
-    </Modals>,
+      <ChainHeaderActionsContextProvider value={{ setActions: setHeader }}>
+        <Sessions />
+        <div data-testid="chain-header-slot">{header}</div>
+      </ChainHeaderActionsContextProvider>
+    </Modals>
   );
+}
+
+function renderSessions() {
+  return render(<SessionsWithChainHeader />);
 }
 
 describe("Sessions", () => {
