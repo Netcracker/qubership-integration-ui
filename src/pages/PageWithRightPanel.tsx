@@ -68,7 +68,7 @@ export const PageWithRightPanel = ({
   const notificationService = useNotificationService();
   const navigate = useNavigate();
   const [elements, setElements] = useState<Element[]>(
-      chainContext?.chain?.elements ?? [],
+    chainContext?.chain?.elements ?? [],
   );
 
   const allItems = useRef<MenuItem[]>([]);
