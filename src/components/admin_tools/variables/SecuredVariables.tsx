@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Typography,
   Button,
@@ -10,6 +10,7 @@ import {
   Tag,
   Flex,
   Tooltip,
+  type TableProps,
 } from "antd";
 import commonStyles from "../CommonStyle.module.css";
 import styles from "./SecuredVariables.module.css";
@@ -17,18 +18,31 @@ import VariablesTable from "./VariablesTable";
 import { SecretWithVariables, Variable } from "../../../api/apiTypes.ts";
 import { downloadFile } from "../../../misc/download-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
-import { ResizeCallbackData } from "react-resizable";
 import { LongActionButton } from "../../LongActionButton.tsx";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import { treeExpandIcon } from "../../table/TreeExpandIcon.tsx";
 import { api } from "../../../api/api.ts";
 import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
 import { Require } from "../../../permissions/Require.tsx";
 import { usePermissions } from "../../../permissions/usePermissions.tsx";
 import { hasPermissions } from "../../../permissions/funcs.ts";
+import {
+  attachResizeToColumns,
+  useTableColumnResize,
+} from "../../table/useTableColumnResize.tsx";
+import { CompactSearch } from "../../table/CompactSearch.tsx";
 
 const { Title } = Typography;
+type SecretRow = { key: string; secret: string };
+
+function secretNameMatchesSearch(secretName: string, term: string): boolean {
+  const t = term.trim().toLowerCase();
+  if (!t) return true;
+  return secretName.toLowerCase().includes(t);
+}
 
 export const SecuredVariables: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState("");
   const [secrets, setSecrets] = useState<string[]>([]);
   const [defaultSecret, setDefaultSecret] = useState<string>("");
   const [variables, setVariables] = useState<Record<string, Variable[]>>({});
@@ -45,23 +59,9 @@ export const SecuredVariables: React.FC = () => {
   );
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [createForm] = Form.useForm();
-  const [columnsWidth, setColumnsWidth] = useState<{ [key: string]: number }>({
-    key: 300,
-    value: 400,
-  });
   const notificationService = useNotificationService();
   const permissions = usePermissions();
-
-  const handleResize = useCallback(
-    (dataIndex: string) =>
-      (_: unknown, { size }: ResizeCallbackData) => {
-        setColumnsWidth((prev) => ({
-          ...prev,
-          [dataIndex]: size.width,
-        }));
-      },
-    [setColumnsWidth],
-  );
+  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
 
   const refreshSecretVariables = useCallback(
     async (secret: string): Promise<boolean> => {
@@ -93,13 +93,12 @@ export const SecuredVariables: React.FC = () => {
 
     if (response.success && response.data) {
       const secretsWithVariables: SecretWithVariables[] = response.data;
-      const sorted = secretsWithVariables.sort(
-        (a: SecretWithVariables, b: SecretWithVariables) => {
-          if (a.isDefaultSecret) return -1;
-          if (b.isDefaultSecret) return 1;
-          return 0;
-        },
-      );
+      const sorted = [...secretsWithVariables];
+      sorted.sort((a: SecretWithVariables, b: SecretWithVariables) => {
+        if (a.isDefaultSecret) return -1;
+        if (b.isDefaultSecret) return 1;
+        return 0;
+      });
 
       const bySecret: Record<string, Variable[]> = {};
       const secretNames: string[] = [];
@@ -151,7 +150,7 @@ export const SecuredVariables: React.FC = () => {
 
   const handleAddVariable = useCallback(
     async (secret: string, key: string, value: string) => {
-      if (!key || !value) return;
+      if (!key) return;
       const response = await api.createSecuredVariables(secret, [
         { key, value },
       ]);
@@ -285,8 +284,16 @@ export const SecuredVariables: React.FC = () => {
         }}
         onChangeEditingValue={setEditingValue}
         onCancelEditing={() => {
-          setEditing(null);
-          setEditingValue("");
+          if (editing) {
+            setEditing(null);
+            setEditingValue("");
+          } else {
+            setNewVariableKeys((prev) => {
+              const state = { ...prev };
+              delete state[secret];
+              return state;
+            });
+          }
         }}
         onConfirmEdit={(key, value) =>
           void handleUpdateVariable(secret, key, value)
@@ -301,8 +308,6 @@ export const SecuredVariables: React.FC = () => {
         enableValueSort={false}
         enableKeyFilter
         enableValueFilter={false}
-        columnsWidth={columnsWidth}
-        onResize={handleResize}
         calculateScrollHeight={calculateSecuredScrollHeight}
         enableEdit={hasPermissions(permissions, {
           securedVariable: ["update"],
@@ -318,8 +323,6 @@ export const SecuredVariables: React.FC = () => {
       newVariableKeys,
       editing,
       editingValue,
-      columnsWidth,
-      handleResize,
       calculateSecuredScrollHeight,
       permissions,
       handleUpdateVariable,
@@ -339,53 +342,156 @@ export const SecuredVariables: React.FC = () => {
     [notificationService],
   );
 
+  const openNewVariableEditor = useCallback((secret: string) => {
+    setNewVariableKeys((prev) => ({
+      ...prev,
+      [secret]: true,
+    }));
+  }, []);
+
+  const secretListColumnResize = useTableColumnResize({
+    secret: 520,
+  });
+
+  const secretListColumns = useMemo<TableProps<SecretRow>["columns"]>(
+    () => [
+      {
+        title: "Secret",
+        dataIndex: "secret",
+        key: "secret",
+        render: (secret: string) => (
+          <div className={styles["secret-content"]}>
+            <div className="secret-label">
+              <span>{secret}</span>
+              {secret === defaultSecret && (
+                <Tag
+                  color="green"
+                  style={{
+                    borderRadius: 12,
+                    padding: "0 8px",
+                    marginLeft: "8px",
+                  }}
+                >
+                  default
+                </Tag>
+              )}
+            </div>
+            <div>
+              <Require permissions={{ secret: ["export"] }}>
+                <Tooltip
+                  placement="topRight"
+                  title="Export secret as Helm Chart"
+                >
+                  <LongActionButton
+                    size="small"
+                    type="text"
+                    icon={<OverridableIcon name="cloudDownload" />}
+                    onSubmit={async () => exportHelmChart(secret)}
+                  />
+                </Tooltip>
+              </Require>
+              <ProtectedButton
+                require={{ securedVariable: ["create"] }}
+                tooltipProps={{
+                  placement: "topRight",
+                  title: "Add variable",
+                }}
+                buttonProps={{
+                  iconName: "plus",
+                  size: "small",
+                  type: "text",
+                  onClick: () => openNewVariableEditor(secret),
+                }}
+              />
+            </div>
+          </div>
+        ),
+      },
+    ],
+    [defaultSecret, exportHelmChart, openNewVariableEditor],
+  );
+
+  const secretListColumnsResized = useMemo(
+    () =>
+      attachResizeToColumns(
+        secretListColumns,
+        secretListColumnResize.columnWidths,
+        secretListColumnResize.createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [
+      secretListColumns,
+      secretListColumnResize.columnWidths,
+      secretListColumnResize.createResizeHandlers,
+    ],
+  );
+
+  const filteredSecrets = useMemo(
+    () => secrets.filter((s) => secretNameMatchesSearch(s, searchTerm)),
+    [secrets, searchTerm],
+  );
+
   return (
     <Flex vertical className={commonStyles["container"]}>
       <Flex
         vertical={false}
         justify="space-between"
         align="center"
+        gap={8}
+        wrap="wrap"
         style={{ marginBottom: 16 }}
       >
         <Title level={4} className={commonStyles["title"]}>
           <OverridableIcon name="lock" className={commonStyles["icon"]} />
           Secured Variables
         </Title>
-        <Flex vertical={false} gap={4}>
-          <ProtectedButton
-            require={{ securedVariable: ["delete"] }}
-            tooltipProps={{
-              title: "Delete selected variables",
-              placement: "bottom",
-            }}
-            buttonProps={{
-              iconName: "delete",
-              onClick: () => {
-                if (!hasSelected) return;
-                Modal.confirm({
-                  title: `Delete selected variable(s)?`,
-                  content: `Are you sure you want to delete variables(s)?`,
-                  onOk: handleDeleteSelected,
-                });
-              },
-              disabled: !hasSelected,
-            }}
+        <Flex vertical={false} align="center" gap={8} wrap="wrap">
+          <CompactSearch
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search secrets..."
+            allowClear
+            className={commonStyles["searchField"]}
           />
-          <ProtectedButton
-            require={{ secret: ["create"] }}
-            tooltipProps={{ title: "Add secret", placement: "bottom" }}
-            buttonProps={{
-              iconName: "plus",
-              onClick: () => setCreateModalVisible(true),
-            }}
-          />
+          <Flex vertical={false} gap={4}>
+            <ProtectedButton
+              require={{ securedVariable: ["delete"] }}
+              tooltipProps={{
+                title: "Delete selected variables",
+                placement: "bottom",
+              }}
+              buttonProps={{
+                iconName: "delete",
+                onClick: () => {
+                  if (!hasSelected) return;
+                  Modal.confirm({
+                    title: `Delete selected variable(s)?`,
+                    content: `Are you sure you want to delete variables(s)?`,
+                    onOk: handleDeleteSelected,
+                  });
+                },
+                disabled: !hasSelected,
+              }}
+            />
+            <ProtectedButton
+              require={{ secret: ["create"] }}
+              tooltipProps={{ title: "Add secret", placement: "bottom" }}
+              buttonProps={{
+                iconName: "plus",
+                onClick: () => setCreateModalVisible(true),
+              }}
+            />
+          </Flex>
         </Flex>
       </Flex>
 
       <Modal
-        title="Create New Secret"
+        title="Create Secret"
         open={createModalVisible}
-        onCancel={() => setCreateModalVisible(false)}
+        onCancel={() => {
+          createForm.resetFields();
+          setCreateModalVisible(false);
+        }}
         footer={null}
       >
         <Form<{ secretName: string }>
@@ -395,89 +501,57 @@ export const SecuredVariables: React.FC = () => {
         >
           <Form.Item
             name="secretName"
-            label="Secret Name"
-            rules={[{ required: true, message: "Enter secret name" }]}
+            label="Name"
+            rules={[
+              {
+                required: true,
+                pattern: /^[a-z][-a-z0-9]*$/,
+                message:
+                  'Please use lower case without special characters. If necessary, use "-" as a separator.',
+              },
+            ]}
           >
             <Input placeholder="e.g., my-secret" />
           </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block>
-              Create
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button
+              size="middle"
+              onClick={() => {
+                createForm.resetFields();
+                setCreateModalVisible(false);
+              }}
+            >
+              Cancel
             </Button>
-          </Form.Item>
+            <Button type="primary" size="middle" htmlType="submit">
+              Save
+            </Button>
+          </div>
         </Form>
       </Modal>
 
-      <Table<{ key: string; secret: string }>
+      <Table<SecretRow>
         className="flex-table"
-        dataSource={secrets.map((s) => ({ key: s, secret: s }))}
-        columns={[
-          {
-            title: "Secret",
-            dataIndex: "secret",
-            key: "secret",
-            render: (secret: string) => (
-              <div className={styles["secret-content"]}>
-                <div className="secret-label">
-                  <span>{secret}</span>
-                  {secret === defaultSecret && (
-                    <Tag
-                      color="green"
-                      style={{
-                        borderRadius: 12,
-                        padding: "0 8px",
-                        marginLeft: "8px",
-                      }}
-                    >
-                      default
-                    </Tag>
-                  )}
-                </div>
-                <div>
-                  <Require permissions={{ secret: ["export"] }}>
-                    <Tooltip
-                      placement="topRight"
-                      title="Export secret as Helm Chart"
-                    >
-                      <LongActionButton
-                        size="small"
-                        type="text"
-                        icon={<OverridableIcon name="cloudDownload" />}
-                        onSubmit={async () => exportHelmChart(secret)}
-                      />
-                    </Tooltip>
-                  </Require>
-                  <ProtectedButton
-                    require={{ securedVariable: ["create"] }}
-                    tooltipProps={{
-                      placement: "topRight",
-                      title: "Add variable",
-                    }}
-                    buttonProps={{
-                      iconName: "plus",
-                      size: "small",
-                      type: "text",
-                      onClick: () =>
-                        setNewVariableKeys((prev) => ({
-                          ...prev,
-                          [secret]: true,
-                        })),
-                    }}
-                  />
-                </div>
-              </div>
-            ),
-          },
-        ]}
+        dataSource={filteredSecrets.map((s) => ({ key: s, secret: s }))}
+        columns={secretListColumnsResized}
         expandable={{
+          expandIcon: treeExpandIcon(),
           expandedRowRender: (record) => expandedRowRender(record.secret),
           rowExpandable: () => true,
+          expandedRowKeys,
+          onExpandedRowsChange: (rowKeys) => {
+            setExpandedRowKeys([...rowKeys]);
+          },
         }}
         pagination={false}
         size="small"
         bordered={false}
         sticky
-        scroll={{ y: "" }}
+        scroll={{
+          x: secretListColumnResize.totalColumnsWidth,
+          y: "",
+        }}
+        components={secretListColumnResize.resizableHeaderComponents}
       />
     </Flex>
   );

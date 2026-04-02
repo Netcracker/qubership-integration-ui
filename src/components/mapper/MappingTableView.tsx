@@ -83,7 +83,18 @@ import {
 import { useMappingDescription } from "./useMappingDescription.tsx";
 import { MappingTableItemActionButton } from "./MappingTableItemActionButton.tsx";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { treeExpandIcon } from "../table/TreeExpandIcon.tsx";
 import { useColumnSettingsBasedOnColumnsType } from "../table/useColumnSettingsButton.tsx";
+import {
+  compareDataTypes,
+  hasBreakingChanges,
+} from "../../mapper/util/compare.ts";
+import { LoadConfirmationDialog } from "./LoadConfirmationDialog.tsx";
+import {
+  attachResizeToColumns,
+  sumScrollXForColumns,
+  useTableColumnResize,
+} from "../table/useTableColumnResize.tsx";
 
 export type MappingTableViewProps = Omit<
   React.HTMLAttributes<HTMLElement>,
@@ -228,6 +239,52 @@ function exportMappingAsMarkdown(mapping: MappingDescription): void {
   const fileName = `mapping-${timestamp}.md`;
   const file = new File([blob], fileName, { type: "text/markdown" });
   downloadFile(file);
+}
+
+export function loadTypeWithConfirmation(
+  item: MappingTableItem,
+  schemaKind: SchemaKind,
+  type: DataType,
+  mappingDescription: MappingDescription,
+  showModal: ReturnType<typeof useModalsContext>["showModal"],
+  loadDataType: (
+    item: MappingTableItem,
+    schemaKind: SchemaKind,
+    type: DataType,
+  ) => void,
+): void {
+  let presentContext;
+  if (isBodyGroup(item)) {
+    presentContext = {
+      type: mappingDescription[schemaKind].body ?? DataTypes.nullType(),
+      definitions: [],
+    };
+  } else if (isAttributeItem(item)) {
+    presentContext = {
+      type: item.resolvedType,
+      definitions: item.typeDefinitions,
+    };
+  } else {
+    presentContext = { type: DataTypes.nullType(), definitions: [] };
+  }
+  const path = isAttributeItem(item) ? item.path.map((a) => a.name) : [];
+  const differences = compareDataTypes(
+    presentContext,
+    { type, definitions: [] },
+    path,
+  );
+  if (hasBreakingChanges(differences)) {
+    showModal({
+      component: (
+        <LoadConfirmationDialog
+          differences={differences}
+          onSubmit={() => loadDataType(item, schemaKind, type)}
+        />
+      ),
+    });
+  } else {
+    loadDataType(item, schemaKind, type);
+  }
 }
 
 export function buildAttributeItemId(
@@ -776,6 +833,33 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
       });
     },
     [messageApi, updateConstant],
+  );
+
+  const loadDataType = useCallback(
+    (item: MappingTableItem, schemaKind: SchemaKind, type: DataType) => {
+      if (isBodyGroup(item)) {
+        updateBodyType(schemaKind, type);
+      } else if (isAttributeItem(item)) {
+        tryUpdateAttribute(item.kind, item.path, {
+          type,
+        });
+      }
+    },
+    [tryUpdateAttribute, updateBodyType],
+  );
+
+  const loadDataTypeWithConfirmation = useCallback(
+    (item: MappingTableItem, schemaKind: SchemaKind, type: DataType) => {
+      loadTypeWithConfirmation(
+        item,
+        schemaKind,
+        type,
+        mappingDescription,
+        showModal,
+        loadDataType,
+      );
+    },
+    [loadDataType, mappingDescription, showModal],
   );
 
   const buildColumns = useMemo((): TableProps<MappingTableItem>["columns"] => {
@@ -1640,13 +1724,7 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
               enableXmlNamespaces={bodyFormat === SourceFormat.XML.toString()}
               schemaKind={selectedSchema}
               onLoad={(type) => {
-                if (isBodyGroup(item)) {
-                  updateBodyType(selectedSchema, type);
-                } else if (isAttributeItem(item)) {
-                  tryUpdateAttribute(item.kind, item.path, {
-                    type,
-                  });
-                }
+                loadDataTypeWithConfirmation(item, selectedSchema, type);
               }}
               onExport={() => exportElement(item)}
               onUpdateXmlNamespaces={(namespaces) =>
@@ -1706,6 +1784,39 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
         : "sourceMappingTable",
       buildColumns ?? [],
     );
+
+  const mappingColumnResize = useTableColumnResize({
+    name: 200,
+    type: 140,
+    optionality: 110,
+    description: 160,
+    defaultValue: 140,
+    sources: 180,
+    targets: 180,
+    transformation: 180,
+    transformationDescription: 160,
+  });
+
+  const columnsWithResize = useMemo(
+    () =>
+      attachResizeToColumns(
+        orderedColumns,
+        mappingColumnResize.columnWidths,
+        mappingColumnResize.createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [
+      orderedColumns,
+      mappingColumnResize.columnWidths,
+      mappingColumnResize.createResizeHandlers,
+    ],
+  );
+
+  const scrollX = useMemo(
+    () =>
+      sumScrollXForColumns(columnsWithResize, mappingColumnResize.columnWidths),
+    [columnsWithResize, mappingColumnResize.columnWidths],
+  );
 
   return (
     <>
@@ -1773,12 +1884,16 @@ export const MappingTableView: React.FC<MappingTableViewProps> = ({
         <Table<MappingTableItem>
           className="flex-table"
           size="small"
-          columns={orderedColumns}
+          columns={columnsWithResize}
           dataSource={tableItems}
           rowKey="id"
           pagination={false}
-          scroll={{ y: "" }}
+          scroll={
+            tableItems.length > 0 ? { x: scrollX, y: "" } : { x: scrollX }
+          }
+          components={mappingColumnResize.resizableHeaderComponents}
           expandable={{
+            expandIcon: treeExpandIcon(),
             defaultExpandedRowKeys: [
               "constant-group",
               "header-group",

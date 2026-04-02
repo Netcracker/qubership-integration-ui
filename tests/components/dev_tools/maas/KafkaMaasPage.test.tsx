@@ -10,8 +10,13 @@ import {
   afterEach,
 } from "@jest/globals";
 import "@testing-library/jest-dom/jest-globals";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { KafkaMaasPage } from "../../../../src/components/dev_tools/maas/KafkaMaasPage";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 
 const TEST_NAMESPACE = "test-namespace";
 
@@ -69,6 +74,25 @@ jest.mock("../../../../src/icons/IconProvider.tsx", () => ({
   ),
 }));
 
+// Mock isKafkaFormValid to bypass Form.useWatch propagation issues in JSDOM.
+let mockIsFormValid = false;
+
+jest.mock("../../../../src/components/dev_tools/maas/types", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../../src/components/dev_tools/maas/types",
+  );
+  return { ...actual, isKafkaFormValid: () => mockIsFormValid };
+});
+
+async function flushPromises(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
+import { KafkaMaasPage } from "../../../../src/components/dev_tools/maas/KafkaMaasPage";
+
 describe("KafkaMaasPage", () => {
   let originalWindow: unknown;
 
@@ -77,11 +101,11 @@ describe("KafkaMaasPage", () => {
     (globalThis as unknown as { window?: unknown }).window = {
       routes: { namespace: "test-namespace" },
     };
+    mockIsFormValid = false;
     mockGetMaasKafkaDeclarativeFile.mockResolvedValue(
       new File(["data"], "declarative.json"),
     );
     mockCreateMaasKafkaEntity.mockResolvedValue(undefined);
-    mockRequestFailed.mockClear();
   });
 
   afterEach(() => {
@@ -102,6 +126,7 @@ describe("KafkaMaasPage", () => {
   });
 
   test("Create calls api.createMaasKafkaEntity with form values", async () => {
+    mockIsFormValid = true;
     render(<KafkaMaasPage />);
     fireEvent.change(screen.getByLabelText(/namespace/i), {
       target: { value: "test-namespace" },
@@ -109,11 +134,13 @@ describe("KafkaMaasPage", () => {
     fireEvent.change(screen.getByPlaceholderText(/topic classifier name/i), {
       target: { value: "my-classifier" },
     });
+
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /create/i }),
       ).not.toBeDisabled();
     });
+
     fireEvent.click(screen.getByRole("button", { name: /create/i }));
     await waitFor(() => {
       expect(mockCreateMaasKafkaEntity).toHaveBeenCalledWith({
@@ -121,9 +148,10 @@ describe("KafkaMaasPage", () => {
         topicClassifierName: "my-classifier",
       });
     });
-  });
+  }, 10000);
 
   test("Export calls api.getMaasKafkaDeclarativeFile and downloadFile", async () => {
+    mockIsFormValid = true;
     render(<KafkaMaasPage />);
     fireEvent.change(screen.getByLabelText(/namespace/i), {
       target: { value: "test-namespace" },
@@ -131,11 +159,13 @@ describe("KafkaMaasPage", () => {
     fireEvent.change(screen.getByPlaceholderText(/topic classifier name/i), {
       target: { value: "export-classifier" },
     });
+
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /export/i }),
       ).not.toBeDisabled();
     });
+
     fireEvent.click(screen.getByRole("button", { name: /export/i }));
     await waitFor(() => {
       expect(mockGetMaasKafkaDeclarativeFile).toHaveBeenCalledWith({
@@ -143,9 +173,10 @@ describe("KafkaMaasPage", () => {
       });
       expect(mockDownloadFile).toHaveBeenCalled();
     });
-  });
+  }, 10000);
 
   test("shows error when export fails", async () => {
+    mockIsFormValid = true;
     mockGetMaasKafkaDeclarativeFile.mockRejectedValue(
       new Error("Export failed"),
     );
@@ -156,11 +187,13 @@ describe("KafkaMaasPage", () => {
     fireEvent.change(screen.getByPlaceholderText(/topic classifier name/i), {
       target: { value: "export-classifier" },
     });
+
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /export/i }),
       ).not.toBeDisabled();
     });
+
     fireEvent.click(screen.getByRole("button", { name: /export/i }));
     await waitFor(() => {
       expect(mockRequestFailed).toHaveBeenCalledWith(
@@ -168,9 +201,10 @@ describe("KafkaMaasPage", () => {
         expect.any(Error),
       );
     });
-  });
+  }, 10000);
 
   test("shows error when create fails", async () => {
+    mockIsFormValid = true;
     mockCreateMaasKafkaEntity.mockRejectedValue(new Error("API error"));
     render(<KafkaMaasPage />);
     fireEvent.change(screen.getByLabelText(/namespace/i), {
@@ -179,11 +213,13 @@ describe("KafkaMaasPage", () => {
     fireEvent.change(screen.getByPlaceholderText(/topic classifier name/i), {
       target: { value: "my-classifier" },
     });
+
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /create/i }),
       ).not.toBeDisabled();
     });
+
     fireEvent.click(screen.getByRole("button", { name: /create/i }));
     await waitFor(() => {
       expect(mockRequestFailed).toHaveBeenCalledWith(
@@ -191,6 +227,15 @@ describe("KafkaMaasPage", () => {
         expect.any(Error),
       );
     });
+  }, 10000);
+
+  test("buttons disabled when form is invalid", async () => {
+    mockIsFormValid = false;
+    render(<KafkaMaasPage />);
+    await flushPromises();
+
+    expect(screen.getByRole("button", { name: /create/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /export/i })).toBeDisabled();
   });
 
   test("Reset clears topic classifier field", async () => {

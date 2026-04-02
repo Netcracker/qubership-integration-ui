@@ -1,26 +1,224 @@
-/**
- * @jest-environment jsdom
- */
+// Mock React component and browser-dependent modules to avoid JSX/DOM issues in node environment
+jest.mock("../../../src/Modals.tsx", () => ({
+  useModalsContext: () => ({
+    showModal: jest.fn(),
+  }),
+}));
 
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: jest.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
+jest.mock("../../../src/components/mapper/useMappingDescription.tsx", () => ({
+  useMappingDescription: jest.fn(),
+}));
+
+jest.mock("../../../src/components/table/useColumnSettingsButton.tsx", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../src/components/table/useColumnSettingsButton.tsx",
+  );
+  return actual;
 });
 
-import React from "react";
-import "@testing-library/jest-dom";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+jest.mock("../../../src/components/mapper/ConstantValue.tsx", () => ({
+  ConstantValue: () => null,
+}));
+
+jest.mock("../../../src/components/mapper/TransformationValue.tsx", () => ({
+  TransformationValue: () => null,
+}));
+
+jest.mock("../../../src/components/mapper/ConstantValueEditDialog.tsx", () => ({
+  ConstantValueEditDialog: () => null,
+}));
+
+jest.mock(
+  "../../../src/components/mapper/TransformationEditDialog.tsx",
+  () => ({
+    TransformationContext: {
+      Provider: () => null,
+    },
+    TransformationEditDialog: () => null,
+  }),
+);
+
+jest.mock("../../../src/components/mapper/InlineTypeEdit.tsx", () => ({
+  InlineTypeEdit: () => null,
+}));
+
+jest.mock("../../../src/components/InlineEdit.tsx", () => ({
+  InlineEdit: () => null,
+}));
+
+jest.mock("../../../src/components/table/TextValueEdit.tsx", () => ({
+  TextValueEdit: () => null,
+}));
+
+jest.mock("../../../src/components/table/SelectEdit.tsx", () => ({
+  SelectEdit: () => null,
+}));
+
+jest.mock("../../../src/components/mapper/DefaultValueEdit.tsx", () => ({
+  DefaultValueEdit: () => null,
+}));
+
+jest.mock(
+  "../../../src/components/mapper/InlineElementReferencesEdit.tsx",
+  () => ({
+    InlineElementReferencesEdit: () => null,
+  }),
+);
+
+jest.mock(
+  "../../../src/components/mapper/MappingTableItemActionButton.tsx",
+  () => ({
+    MappingTableItemActionButton: () => null,
+  }),
+);
+
+jest.mock("../../../src/icons/IconProvider.tsx", () => ({
+  OverridableIcon: () => null,
+}));
+
+jest.mock("../../../src/mapper/markdown/markdown.ts", () => ({
+  exportAsMarkdown: jest.fn(() => "markdown content"),
+}));
+
+jest.mock("../../../src/misc/download-utils.ts", () => ({
+  downloadFile: jest.fn(),
+}));
+
+jest.mock("../../../src/misc/format-utils.ts", () => ({
+  formatDate: () => "2024-01-01",
+  PLACEHOLDER: "PLACEHOLDER",
+}));
+
+jest.mock("../../../src/components/table/TextColumnFilterDropdown.tsx", () => ({
+  TextColumnFilterDropdown: () => null,
+  getTextColumnFilterFn: jest.fn(() => () => true),
+}));
+
+jest.mock("../../../src/components/table/EnumColumnFilterDropdown.tsx", () => ({
+  EnumColumnFilterDropdown: () => null,
+  getEnumColumnFilterFn: jest.fn(() => () => true),
+}));
+
+jest.mock(
+  "../../../src/components/mapper/ElementReferenceColumnFilterDropdown.tsx",
+  () => ({
+    ElementReferenceColumnFilterDropdown: () => null,
+    getElementReferenceColumnFilterFn: jest.fn(() => () => true),
+  }),
+);
+
+jest.mock(
+  "../../../src/components/mapper/TransformationColumnFilterDropdown.tsx",
+  () => ({
+    TransformationColumnFilterDropdown: () => null,
+    getTransformationColumnFilterFn: jest.fn(() => () => true),
+  }),
+);
+
+jest.mock("antd", () => ({
+  Button: () => null,
+  Dropdown: () => null,
+  Flex: () => null,
+  message: { useMessage: () => [{ open: jest.fn() }, null] },
+  Radio: Object.assign(() => null, { Group: () => null, Button: () => null }),
+  Select: () => null,
+  Space: () => null,
+  Table: () => null,
+}));
+
+jest.mock("../../../src/components/mapper/MappingTableView.module.css", () => ({
+  "invalid-value": "invalid-value",
+  "group-row": "group-row",
+}));
+jest.mock("../../../src/components/InlineEdit.module.css", () => ({
+  inlineEditValueWrap: "inlineEditValueWrap",
+}));
+
+jest.mock("../../../src/components/mapper/LoadConfirmationDialog.tsx", () => ({
+  LoadConfirmationDialog: () => null,
+}));
+
+// Mock mapper utility modules needed by the pure functions
+jest.mock("../../../src/mapper/util/metadata.ts", () => {
+  const actual: Record<string, Record<string, unknown>> = jest.requireActual(
+    "../../../src/mapper/util/metadata.ts",
+  );
+  return {
+    MetadataUtil: {
+      getTypedValue: actual.MetadataUtil.getTypedValue,
+      getValue: actual.MetadataUtil.getValue,
+      getString: jest.fn(
+        (obj: { metadata?: Record<string, string> }, key: string) =>
+          obj.metadata?.[key] ?? "",
+      ),
+      upsert: jest.fn(
+        (metadata: Record<string, unknown>, key: string, value: unknown) => ({
+          ...metadata,
+          [key]: value,
+        }),
+      ),
+      setValue: jest.fn(
+        (obj: Record<string, unknown>, key: string, value: unknown) => ({
+          ...obj,
+          [key]: value,
+        }),
+      ),
+    },
+    DESCRIPTION_KEY: "description",
+    METADATA_DATA_FORMAT_KEY: "dataFormat",
+    METADATA_SOURCE_XML_NAMESPACES_KEY: "xmlNamespaces",
+    isXmlNamespaces: actual.isXmlNamespaces,
+    SourceFormat: { JSON: "json", XML: "xml" },
+  };
+});
+
+jest.mock("../../../src/mapper/util/types.ts", () => ({
+  DataTypes: {
+    resolveType: jest.fn((type: { name?: string } | undefined) =>
+      type?.name === "array"
+        ? { type, definitions: [] }
+        : { type: undefined, definitions: [] },
+    ),
+    resolveArrayItemType: jest.fn(
+      (type: { name?: string; itemType?: unknown } | undefined) =>
+        type?.name === "array"
+          ? { type: type.itemType, definitions: [] }
+          : { type, definitions: [] },
+    ),
+    getTypeDefinitions: jest.fn(() => []),
+    buildTypeName: jest.fn(
+      (type: { name?: string } | undefined) => type?.name ?? "null",
+    ),
+    nullType: jest.fn(() => ({ name: "null" })),
+  },
+}));
+
+jest.mock("../../../src/mapper/util/attributes.ts", () => ({
+  Attributes: {
+    getChildAttributes: jest.fn(() => []),
+    buildAttribute: jest.fn(() => ({})),
+    extractTypeDefinitions: jest.fn().mockReturnValue([]),
+  },
+}));
+
+jest.mock("../../../src/mapper/util/actions.ts", () => ({
+  MappingActions: {
+    findActionsByElementReference: jest.fn(() => []),
+    resolveReference: jest.fn(),
+  },
+}));
+
+jest.mock("../../../src/mapper/util/mapping.ts", () => ({
+  MappingUtil: {
+    isAttributeReference: jest.fn(() => true),
+  },
+}));
+
+jest.mock("../../../src/mapper/verification/actions.ts", () => ({
+  verifyMappingAction: jest.fn(() => []),
+}));
+
 import {
-  MappingTableView,
   isConstantItem,
   isAttributeItem,
   isConstantGroup,
@@ -37,229 +235,38 @@ import {
   buildElementReference,
   compareGroupItems,
   updateConstantValueToMatchType,
-} from "../../../components/mapper/MappingTableView";
-import { MappingDescription } from "../../../mapper/model/model";
-import { SchemaKind } from "../../../mapper/model/model";
+} from "../../../src/components/mapper/MappingTableView";
+import type { MappingTableItem } from "../../../src/components/mapper/MappingTableView";
+import type {
+  MappingDescription,
+  DataType,
+  ValueSupplier,
+  MappingAction,
+} from "../../../src/mapper/model/model";
+import { SchemaKind } from "../../../src/mapper/model/model";
 
-jest.mock("../../../Modals.tsx", () => ({
-  useModalsContext: () => ({
-    showModal: jest.fn(),
-  }),
-}));
+type MockModule<K extends string> = Record<K, Record<string, jest.Mock>>;
 
-jest.mock("../../../components/mapper/useMappingDescription.tsx", () => ({
-  useMappingDescription: jest.fn(),
-}));
+function getAttributesMock(): Record<string, jest.Mock> {
+  const mod: MockModule<"Attributes"> = jest.requireMock(
+    "../../../src/mapper/util/attributes.ts",
+  );
+  return mod.Attributes;
+}
 
-jest.mock("../../../components/table/useColumnSettingsButton.tsx", () => ({
-  ...jest.requireActual(
-    "../../../components/table/useColumnSettingsButton.tsx",
-  ),
-}));
+function getMappingActionsMock(): Record<string, jest.Mock> {
+  const mod: MockModule<"MappingActions"> = jest.requireMock(
+    "../../../src/mapper/util/actions.ts",
+  );
+  return mod.MappingActions;
+}
 
-jest.mock("../../../components/mapper/ConstantValue.tsx", () => ({
-  ConstantValue: () => <div>ConstantValue</div>,
-}));
-
-jest.mock("../../../components/mapper/TransformationValue.tsx", () => ({
-  TransformationValue: () => <div>TransformationValue</div>,
-}));
-
-jest.mock("../../../components/mapper/ConstantValueEditDialog.tsx", () => ({
-  ConstantValueEditDialog: () => <div>ConstantValueEditDialog</div>,
-}));
-
-jest.mock("../../../components/mapper/TransformationEditDialog.tsx", () => ({
-  TransformationContext: {
-    Provider: (props: any) => <div>{props.children}</div>,
-  },
-  TransformationEditDialog: () => <div>TransformationEditDialog</div>,
-}));
-
-jest.mock("../../../components/mapper/InlineTypeEdit.tsx", () => ({
-  InlineTypeEdit: () => <div>InlineTypeEdit</div>,
-}));
-
-jest.mock("../../../components/InlineEdit.tsx", () => ({
-  InlineEdit: (props: any) => (
-    <div>
-      <button
-        onClick={() => props.onSubmit && props.onSubmit({ name: "edited" })}
-      >
-        Edit
-      </button>
-      {props.viewer}
-    </div>
-  ),
-}));
-
-jest.mock("../../../components/table/TextValueEdit.tsx", () => ({
-  TextValueEdit: () => <input data-testid="text-value-edit" />,
-}));
-
-jest.mock("../../../components/table/SelectEdit.tsx", () => ({
-  SelectEdit: () => <select data-testid="select-edit" />,
-}));
-
-jest.mock("../../../components/mapper/DefaultValueEdit.tsx", () => ({
-  DefaultValueEdit: () => <input data-testid="default-value-edit" />,
-}));
-
-jest.mock("../../../components/mapper/InlineElementReferencesEdit.tsx", () => ({
-  InlineElementReferencesEdit: (props: any) => (
-    <div>
-      <button onClick={() => props.onSubmit && props.onSubmit([])}>
-        EditRefs
-      </button>
-      InlineElementReferencesEdit
-    </div>
-  ),
-}));
-
-jest.mock(
-  "../../../components/mapper/MappingTableItemActionButton.tsx",
-  () => ({
-    MappingTableItemActionButton: (props: any) => (
-      <div>
-        <button onClick={props.onAdd}>Add</button>
-        <button onClick={props.onClear}>Clear</button>
-        <button onClick={props.onDelete}>Delete</button>
-        <button onClick={props.onExport}>Export</button>
-      </div>
-    ),
-  }),
-);
-
-jest.mock("../../../icons/IconProvider.tsx", () => ({
-  OverridableIcon: (props: any) => <span>{props.name}</span>,
-}));
-
-jest.mock("../../../mapper/markdown/markdown.ts", () => ({
-  exportAsMarkdown: jest.fn(() => "markdown content"),
-}));
-
-jest.mock("../../../misc/download-utils.ts", () => ({
-  downloadFile: jest.fn(),
-}));
-
-jest.mock("../../../misc/format-utils.ts", () => ({
-  formatDate: () => "2024-01-01",
-  PLACEHOLDER: "PLACEHOLDER",
-}));
-
-jest.mock("../../../mapper/util/metadata.ts", () => {
-  const actual = jest.requireActual("../../../mapper/util/metadata.ts");
-  return {
-    MetadataUtil: {
-      getTypedValue: actual.MetadataUtil.getTypedValue,
-      getValue: actual.MetadataUtil.getValue,
-      getString: jest.fn(
-        (obj, key) => (obj.metadata && obj.metadata[key]) || "",
-      ),
-      upsert: jest.fn((metadata, key, value) => ({
-        ...metadata,
-        [key]: value,
-      })),
-      setValue: jest.fn((obj, key, value) => ({ ...obj, [key]: value })),
-    },
-    DESCRIPTION_KEY: "description",
-    METADATA_DATA_FORMAT_KEY: "dataFormat",
-    METADATA_SOURCE_XML_NAMESPACES_KEY: "xmlNamespaces",
-    isXmlNamespaces: actual.isXmlNamespaces,
-    SourceFormat: { JSON: "json", XML: "xml" },
-  };
-});
-
-jest.mock("../../../mapper/util/types.ts", () => ({
-  DataTypes: {
-    resolveType: jest.fn((type) =>
-      type?.name === "array"
-        ? { type, definitions: [] }
-        : { type: undefined, definitions: [] },
-    ),
-    resolveArrayItemType: jest.fn((type) =>
-      type?.name === "array"
-        ? { type: type.itemType, definitions: [] }
-        : { type, definitions: [] },
-    ),
-    getTypeDefinitions: jest.fn(() => []),
-    buildTypeName: jest.fn((type) => type?.name ?? "null"),
-    nullType: jest.fn(() => ({ name: "null" })),
-  },
-}));
-
-jest.mock("../../../mapper/util/attributes.ts", () => ({
-  Attributes: {
-    getChildAttributes: jest.fn(() => []),
-    buildAttribute: jest.fn(() => ({})),
-    extractTypeDefinitions: jest.fn().mockReturnValue([]),
-  },
-}));
-
-jest.mock("../../../mapper/util/actions.ts", () => ({
-  MappingActions: {
-    findActionsByElementReference: jest.fn(() => []),
-    resolveReference: jest.fn(),
-  },
-}));
-
-jest.mock("../../../mapper/util/mapping.ts", () => ({
-  MappingUtil: {
-    isAttributeReference: jest.fn(() => true),
-  },
-}));
-
-jest.mock("../../../mapper/verification/actions.ts", () => ({
-  verifyMappingAction: jest.fn(() => []),
-}));
-
-jest.mock("../../../components/table/TextColumnFilterDropdown.tsx", () => ({
-  TextColumnFilterDropdown: () => <div>TextColumnFilterDropdown</div>,
-  getTextColumnFilterFn: jest.fn(() => () => true),
-}));
-
-jest.mock("../../../components/table/EnumColumnFilterDropdown.tsx", () => ({
-  EnumColumnFilterDropdown: () => <div>EnumColumnFilterDropdown</div>,
-  getEnumColumnFilterFn: jest.fn(() => () => true),
-}));
-
-jest.mock(
-  "../../../components/mapper/ElementReferenceColumnFilterDropdown.tsx",
-  () => ({
-    ElementReferenceColumnFilterDropdown: () => (
-      <div>ElementReferenceColumnFilterDropdown</div>
-    ),
-    getElementReferenceColumnFilterFn: jest.fn(() => () => true),
-  }),
-);
-
-jest.mock(
-  "../../../components/mapper/TransformationColumnFilterDropdown.tsx",
-  () => ({
-    TransformationColumnFilterDropdown: () => (
-      <div>TransformationColumnFilterDropdown</div>
-    ),
-    getTransformationColumnFilterFn: jest.fn(() => () => true),
-  }),
-);
-
-jest.mock("antd", () => {
-  const antd = jest.requireActual("antd");
-  return {
-    ...antd,
-    message: {
-      useMessage: () => [{ open: jest.fn() }, <div key="msg">msg</div>],
-    },
-  };
-});
-
-jest.mock("../../../components/mapper/MappingTableView.module.css", () => ({
-  "invalid-value": "invalid-value",
-  "group-row": "group-row",
-}));
-jest.mock("../../../components/InlineEdit.module.css", () => ({
-  inlineEditValueWrap: "inlineEditValueWrap",
-}));
+function getDataTypesMock(): Record<string, jest.Mock> {
+  const mod: MockModule<"DataTypes"> = jest.requireMock(
+    "../../../src/mapper/util/types.ts",
+  );
+  return mod.DataTypes;
+}
 
 const minimalMappingDescription = {
   constants: [
@@ -292,219 +299,6 @@ const minimalMappingDescription = {
     body: null,
   },
 };
-
-const useMappingDescriptionMock = {
-  mappingDescription: minimalMappingDescription,
-  clearConstants: jest.fn(),
-  clearTree: jest.fn(),
-  removeConstant: jest.fn(),
-  removeAttribute: jest.fn(),
-  updateBodyType: jest.fn(),
-  exportDataType: jest.fn(),
-  addConstant: jest.fn(),
-  addAttribute: jest.fn(),
-  updateAttribute: jest.fn(),
-  updateConstant: jest.fn(),
-  updateActions: jest.fn(),
-  createOrUpdateMappingActionForTarget: jest.fn(),
-  createOrUpdateMappingActionsForSource: jest.fn(),
-  updateXmlNamespaces: jest.fn(),
-};
-
-(
-  require("../../../components/mapper/useMappingDescription.tsx") as any
-).useMappingDescription.mockImplementation(() => useMappingDescriptionMock);
-
-describe("MappingTableView", () => {
-  const renderComponent = () => {
-    return render(
-      <MappingTableView
-        elementId="el1"
-        mapping={minimalMappingDescription as MappingDescription}
-      />,
-    );
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it("renders the table with source and target radio buttons and search", () => {
-    renderComponent();
-
-    expect(screen.getByRole("radio", { name: /Source/i })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Target/i })).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText(/Full text search/i),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /more/i })).toBeInTheDocument();
-  });
-
-  it("renders constants, headers, Clear button with real columns", () => {
-    renderComponent();
-    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
-    expect(screen.getByText(/constants/i)).toBeInTheDocument();
-    expect(screen.getByText(/headers/i)).toBeInTheDocument();
-    expect(
-      screen.getAllByRole("button", { name: /clear/i }).length,
-    ).toBeGreaterThan(0);
-  });
-
-  it("clearTreeForItem: click Clear in constant-group calls clearConstants", () => {
-    renderComponent();
-    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
-    const clearButtons = screen.getAllByRole("button", { name: /clear/i });
-    fireEvent.click(clearButtons[0]);
-    expect(useMappingDescriptionMock.clearConstants).toHaveBeenCalled();
-  });
-
-  it("exportElement: click Export calls exportDataType", () => {
-    renderComponent();
-    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
-    const exportButtons = screen.getAllByRole("button", { name: /export/i });
-    fireEvent.click(exportButtons[0]);
-    expect(useMappingDescriptionMock.exportDataType).toHaveBeenCalled();
-  });
-
-  it("tryAddElement: click Add in constant-group calls addConstant", () => {
-    renderComponent();
-    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
-    const addButtons = screen.getAllByRole("button", { name: /add/i });
-    fireEvent.click(addButtons[0]);
-    expect(useMappingDescriptionMock.addConstant).toHaveBeenCalled();
-  });
-
-  it("MappingTableItemActionButton: click Delete on constant item calls removeConstant", () => {
-    renderComponent();
-    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
-    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-    fireEvent.click(deleteButtons[1]);
-    expect(useMappingDescriptionMock.removeConstant).toHaveBeenCalled();
-  });
-
-  it("Table sort: click Name column header triggers onChange with sorts", () => {
-    renderComponent();
-    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
-    const nameHeader = screen.getByRole("columnheader", { name: /name/i });
-    fireEvent.click(nameHeader);
-    expect(screen.getByText(/constants/i)).toBeInTheDocument();
-  });
-
-  it("error handling: addConstant callback with error shows messageApi.open with type error", () => {
-    const messageOpenMock = jest.fn();
-    const antd = require("antd");
-    const originalUseMessage = antd.message.useMessage;
-    antd.message.useMessage = jest.fn(() => [
-      { open: messageOpenMock },
-      React.createElement("div", { key: "msg" }, "msg"),
-    ]);
-    useMappingDescriptionMock.addConstant.mockImplementation(
-      (_changes: unknown, callback: (err: unknown) => void) => {
-        callback(new Error("test"));
-      },
-    );
-    renderComponent();
-    fireEvent.click(screen.getByRole("radio", { name: /source/i }));
-    const addButtons = screen.getAllByRole("button", { name: /add/i });
-    fireEvent.click(addButtons[0]);
-    expect(messageOpenMock).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "error" }),
-    );
-    antd.message.useMessage = originalUseMessage;
-  });
-
-  it("should include selectedColumns in orderedColumns for SchemaKind.SOURCE", async () => {
-    const expectedSelectedColumns = [
-      "name",
-      "type",
-      "default value",
-      "targets",
-    ];
-
-    renderComponent();
-
-    const sourceRadio = screen.getByRole("radio", { name: /source/i });
-    sourceRadio.click();
-
-    await waitFor(() => {
-      const columnHeaders = screen.getAllByRole("columnheader");
-      const columnTitles = columnHeaders.map((header) =>
-        header.textContent?.trim().toLowerCase(),
-      );
-
-      expectedSelectedColumns.forEach((column) => {
-        const columnTitle = column.toLowerCase();
-        expect(columnTitles).toContainEqual(
-          expect.stringContaining(columnTitle),
-        );
-      });
-    });
-  });
-
-  it("dropdown Save as markdown triggers exportMappingAsMarkdown", async () => {
-    const { downloadFile } = require("../../../misc/download-utils.ts");
-    renderComponent();
-    const moreButton = screen.getByRole("button", { name: /more/i });
-    fireEvent.click(moreButton);
-    const markdownItem = await screen.findByText("Save as markdown");
-    fireEvent.click(markdownItem);
-    expect(downloadFile).toHaveBeenCalled();
-  });
-
-  it("search input triggers updateControlsState", () => {
-    renderComponent();
-    const searchInput = screen.getByPlaceholderText(/Full text search/i);
-    fireEvent.change(searchInput, { target: { value: "test" } });
-    expect(searchInput).toHaveValue("test");
-  });
-
-  it("dropdown Clear filters triggers updateControlsState", async () => {
-    renderComponent();
-    const moreButton = screen.getByRole("button", { name: /more/i });
-    fireEvent.click(moreButton);
-    const clearFiltersItem = await screen.findByText("Clear filters");
-    fireEvent.click(clearFiltersItem);
-    expect(moreButton).toBeInTheDocument();
-  });
-
-  it("dropdown Clear sorters triggers updateControlsState", async () => {
-    renderComponent();
-    const moreButton = screen.getByRole("button", { name: /more/i });
-    fireEvent.click(moreButton);
-    const clearSortersItem = await screen.findByText("Clear sorters");
-    fireEvent.click(clearSortersItem);
-    expect(moreButton).toBeInTheDocument();
-  });
-
-  it("should include selectedColumns in orderedColumns for SchemaKind.TARGET", async () => {
-    const expectedSelectedColumns = [
-      "name",
-      "type",
-      "optionality",
-      "sources",
-      "transformation",
-    ];
-
-    renderComponent();
-
-    const targetRadio = screen.getByRole("radio", { name: /target/i });
-    targetRadio.click();
-
-    await waitFor(() => {
-      const columnHeaders = screen.getAllByRole("columnheader");
-      const columnTitles = columnHeaders.map((header) =>
-        header.textContent?.trim().toLowerCase(),
-      );
-
-      expectedSelectedColumns.forEach((column) => {
-        const columnTitle = column.toLowerCase();
-        expect(columnTitles).toContainEqual(
-          expect.stringContaining(columnTitle),
-        );
-      });
-    });
-  });
-});
 
 describe("MappingTableView utils", () => {
   describe("type guards", () => {
@@ -696,7 +490,7 @@ describe("MappingTableView utils", () => {
         name: "object" as const,
         schema: { id: "obj1", attributes: [bodyAttr] },
       };
-      const { Attributes } = require("../../../mapper/util/attributes.ts");
+      const Attributes = getAttributesMock();
       Attributes.buildAttribute.mockImplementation(
         (
           _id: string,
@@ -717,7 +511,7 @@ describe("MappingTableView utils", () => {
         source: {
           headers: [],
           properties: [],
-          body: bodyType,
+          body: bodyType as DataType,
         },
         target: emptyMapping.target,
       };
@@ -737,7 +531,7 @@ describe("MappingTableView utils", () => {
         name: "child1",
         type: { name: "string" },
       };
-      const { Attributes } = require("../../../mapper/util/attributes.ts");
+      const Attributes = getAttributesMock();
       Attributes.getChildAttributes
         .mockImplementationOnce(() => [childAttr])
         .mockImplementation(() => []);
@@ -748,7 +542,7 @@ describe("MappingTableView utils", () => {
             {
               id: "h1",
               name: "H1",
-              type: { name: "object" },
+              type: { name: "object" } as DataType,
               required: false,
             },
           ],
@@ -786,7 +580,7 @@ describe("MappingTableView utils", () => {
           constant: { id: "c2" },
           actions: [],
         },
-      ] as never[];
+      ] as unknown as MappingTableItem[];
       const pred = (i: { id: string }) => i.id === "1";
       const filtered = filterMappingTableItems(items, pred);
       expect(filtered).toHaveLength(1);
@@ -818,7 +612,10 @@ describe("MappingTableView utils", () => {
         ],
       };
       const pred = (i: { id: string }) => i.id !== "remove";
-      const filtered = filterMappingTableItems([parent], pred);
+      const filtered = filterMappingTableItems(
+        [parent] as unknown as MappingTableItem[],
+        pred,
+      );
       expect(filtered).toHaveLength(1);
       const filteredParent = filtered[0] as { children: { id: string }[] };
       expect(filteredParent.children).toHaveLength(1);
@@ -862,7 +659,7 @@ describe("MappingTableView utils", () => {
       );
       const constantGroup = items[0];
       const constantItem =
-        "children" in constantGroup ? constantGroup.children[0] : null;
+        "children" in constantGroup ? constantGroup.children![0] : null;
       expect(constantItem).toBeTruthy();
       const pred = buildMappingTableItemPredicate(
         minimalMappingDescription as MappingDescription,
@@ -879,7 +676,7 @@ describe("MappingTableView utils", () => {
       );
       const constantGroup = items[0];
       const constantItem =
-        "children" in constantGroup ? constantGroup.children[0] : null;
+        "children" in constantGroup ? constantGroup.children![0] : null;
       expect(constantItem).toBeTruthy();
       const pred = buildMappingTableItemPredicate(
         minimalMappingDescription as MappingDescription,
@@ -896,7 +693,7 @@ describe("MappingTableView utils", () => {
       );
       const headerGroup = items[0];
       const attrItem =
-        "children" in headerGroup ? headerGroup.children[0] : null;
+        "children" in headerGroup ? headerGroup.children![0] : null;
       expect(attrItem).toBeTruthy();
       const pred = buildMappingTableItemPredicate(
         minimalMappingDescription as MappingDescription,
@@ -926,10 +723,10 @@ describe("MappingTableView utils", () => {
           {
             target: { type: "attribute", kind: "header", path: ["sh1"] },
             sources: [],
-          },
+          } as unknown as MappingAction,
         ],
       };
-      const { MappingActions } = require("../../../mapper/util/actions.ts");
+      const MappingActions = getMappingActionsMock();
       MappingActions.findActionsByElementReference.mockReturnValue([
         {
           target: { type: "attribute", kind: "header", path: ["sh1"] },
@@ -976,7 +773,7 @@ describe("MappingTableView utils", () => {
       const items = buildMappingTableItems(mapping, SchemaKind.SOURCE);
       const constantGroup = items[0];
       const constantItem =
-        "children" in constantGroup ? constantGroup.children[0] : null;
+        "children" in constantGroup ? constantGroup.children![0] : null;
       expect(constantItem).toBeTruthy();
       const pred = buildMappingTableItemPredicate(
         mapping,
@@ -1002,7 +799,7 @@ describe("MappingTableView utils", () => {
           body: null,
         },
       };
-      const { MappingActions } = require("../../../mapper/util/actions.ts");
+      const MappingActions = getMappingActionsMock();
       MappingActions.findActionsByElementReference.mockReturnValue([
         {
           target: { type: "attribute", kind: "header", path: ["th1"] },
@@ -1048,7 +845,7 @@ describe("MappingTableView utils", () => {
           body: null,
         },
       };
-      const { MappingActions } = require("../../../mapper/util/actions.ts");
+      const MappingActions = getMappingActionsMock();
       MappingActions.findActionsByElementReference.mockReturnValue([
         {
           target: { type: "attribute", kind: "header", path: ["th1"] },
@@ -1093,7 +890,7 @@ describe("MappingTableView utils", () => {
       const constantItem = {
         id: buildConstantId("c1"),
         itemType: "constant" as const,
-        constant: mapping.constants![0],
+        constant: mapping.constants[0],
         actions: [],
       };
       const pred = buildMappingTableItemPredicate(
@@ -1114,7 +911,7 @@ describe("MappingTableView utils", () => {
         actions: [],
       };
       const mapping: MappingDescription = { ...emptyMapping };
-      const item = { itemType: "header-group" as const };
+      const item = { itemType: "header-group" as const } as MappingTableItem;
       const result = getSourceSearchContexts(mapping, item);
       expect(result).toEqual([]);
     });
@@ -1127,7 +924,7 @@ describe("MappingTableView utils", () => {
     });
 
     it("returns empty array when resolveArrayItemType returns no type", () => {
-      const { DataTypes } = require("../../../mapper/util/types.ts");
+      const DataTypes = getDataTypesMock();
       DataTypes.resolveType.mockImplementationOnce(() => ({
         type: { name: "array", itemType: { name: "string" } },
         definitions: [],
@@ -1152,7 +949,7 @@ describe("MappingTableView utils", () => {
           metadata: { xmlNamespaces: namespaces },
         },
       };
-      const { DataTypes } = require("../../../mapper/util/types.ts");
+      const DataTypes = getDataTypesMock();
       DataTypes.resolveType.mockImplementationOnce(() => ({
         type: arrayType,
         definitions: [],
@@ -1173,7 +970,7 @@ describe("MappingTableView utils", () => {
           metadata: { xmlNamespaces: "invalid" },
         },
       };
-      const { DataTypes } = require("../../../mapper/util/types.ts");
+      const DataTypes = getDataTypesMock();
       DataTypes.resolveType.mockImplementationOnce(() => ({
         type: arrayType,
         definitions: [],
@@ -1229,7 +1026,7 @@ describe("MappingTableView utils", () => {
     });
 
     it("returns valueSupplier unchanged for default type", () => {
-      const supplier = { kind: "given", value: "hello" };
+      const supplier: ValueSupplier = { kind: "given", value: "hello" };
       const result = updateConstantValueToMatchType(supplier, {
         name: "string",
       });

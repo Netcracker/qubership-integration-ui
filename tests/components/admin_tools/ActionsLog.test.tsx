@@ -16,6 +16,10 @@ import { ActionsLog } from "../../../src/components/admin_tools/ActionsLog.tsx";
 // src/components/admin_tools/ActionsLog.integration.test.tsx
 // ====== MOCKS ======
 
+jest.mock("antd", () =>
+  require("tests/helpers/antdMockWithLightweightTable").antdMockWithLightweightTable(),
+);
+
 // Mock useActionLog
 jest.mock("../../../src/hooks/useActionLog.tsx", () => ({
   useActionLog: jest.fn(),
@@ -26,11 +30,12 @@ jest.mock("../../../src/hooks/useResizeHeigth.tsx", () => ({
   useResizeHeight: () => [jest.fn(), 500],
 }));
 
-jest.mock("../../../src/components/table/useColumnSettingsButton.tsx", () => ({
-  ...jest.requireActual(
+jest.mock("../../../src/components/table/useColumnSettingsButton.tsx", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
     "../../../src/components/table/useColumnSettingsButton.tsx",
-  ),
-}));
+  );
+  return actual;
+});
 
 // Mock exportActionsLogAsExcel
 jest.mock("../../../src/misc/log-export-utils.ts", () => ({
@@ -39,32 +44,45 @@ jest.mock("../../../src/misc/log-export-utils.ts", () => ({
 
 // Mock DateRangePicker
 jest.mock("../../../src/components/modal/DateRangePicker.tsx", () => {
-  return jest.fn(({ trigger, onRangeApply }) => (
-    <div>
-      <span
-        data-testid="date-range-picker-trigger"
-        onClick={() =>
-          onRangeApply(new Date("2023-01-01"), new Date("2023-01-02"))
-        }
-      >
-        {trigger}
-      </span>
-    </div>
-  ));
+  return jest.fn(
+    (props: {
+      trigger: React.ReactNode;
+      onRangeApply: (from: Date, to: Date) => void;
+    }) => (
+      <div>
+        <span
+          data-testid="date-range-picker-trigger"
+          onClick={() =>
+            props.onRangeApply(new Date("2023-01-01"), new Date("2023-01-02"))
+          }
+        >
+          {props.trigger}
+        </span>
+      </div>
+    ),
+  );
 });
 
 // Mock OverridableIcon
 jest.mock("../../../src/icons/IconProvider.tsx", () => ({
-  OverridableIcon: ({ name, className, style }) => (
-    <span data-testid={`icon-${name}`} className={className} style={style}>
-      {name}
+  OverridableIcon: (props: {
+    name: string;
+    className?: string;
+    style?: React.CSSProperties;
+  }) => (
+    <span
+      data-testid={`icon-${props.name}`}
+      className={props.className}
+      style={props.style}
+    >
+      {props.name}
     </span>
   ),
 }));
 
 // Mock Require (renders children always)
 jest.mock("../../../src/permissions/Require.tsx", () => ({
-  Require: ({ children }) => <>{children}</>,
+  Require: (props: { children?: React.ReactNode }) => <>{props.children}</>,
 }));
 
 // Mock TextColumnFilterDropdown and TimestampColumnFilterDropdown
@@ -90,9 +108,19 @@ jest.mock("../../../src/components/EnumColumnFilterDropdown.tsx", () => ({
   }),
 }));
 
-// Mock ResizableTitle
-jest.mock("../../../src/components/ResizableTitle.tsx", () => ({
-  ResizableTitle: ({ children }) => <th>{children}</th>,
+jest.mock("../../../src/components/table/ResizableTitle.tsx", () => ({
+  ResizableTitle: ({
+    children,
+    onResize: _onResize,
+    onResizeStop: _onResizeStop,
+    width: _width,
+    minResizeWidth: _minResizeWidth,
+    maxResizeWidth: _maxResizeWidth,
+    resizeHandleZIndex: _resizeHandleZIndex,
+    ...rest
+  }: {
+    children?: React.ReactNode;
+  }) => <th {...rest}>{children}</th>,
 }));
 
 // Mock CSS module
@@ -174,6 +202,22 @@ describe("ActionsLog() ActionsLog method", () => {
       expect(screen.getByTestId("icon-audit")).toBeInTheDocument();
     });
 
+    it("renders compact search with audit log placeholder", () => {
+      render(<ActionsLog />);
+      expect(
+        screen.getByPlaceholderText("Search audit log..."),
+      ).toBeInTheDocument();
+    });
+
+    it("filters rows by search term across log fields", () => {
+      render(<ActionsLog />);
+      const search = screen.getByPlaceholderText("Search audit log...");
+      fireEvent.change(search, { target: { value: "alice" } });
+      expect(screen.getByText("alice")).toBeInTheDocument();
+      expect(screen.queryByText("bob")).not.toBeInTheDocument();
+      expect(screen.queryByText("carol")).not.toBeInTheDocument();
+    });
+
     it("renders the refresh and export buttons", () => {
       // Test: The refresh and export buttons are rendered
       render(<ActionsLog />);
@@ -212,7 +256,7 @@ describe("ActionsLog() ActionsLog method", () => {
         refresh: refreshMock,
       });
       render(<ActionsLog />);
-      fireEvent.click(screen.getByTestId("icon-refresh").closest("button"));
+      fireEvent.click(screen.getByTestId("icon-refresh").closest("button")!);
       expect(refreshMock).toHaveBeenCalled();
     });
 

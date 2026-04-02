@@ -6,16 +6,16 @@ import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import { ColumnsType } from "antd/lib/table";
 import React from "react";
-import { ColumnsFilter } from "../../../components/table/ColumnsFilter";
-import { useColumnSettingsButton } from "../../../components/table/useColumnSettingsButton";
+import { ColumnsFilter } from "../../../src/components/table/ColumnsFilter";
+import { useColumnSettingsButton } from "../../../src/components/table/useColumnSettingsButton";
 
 // src/components/table/useColumnSettingsButton.test.tsx
 // Mock getColumnsOrderKey and getColumnsVisibleKey from ColumnsFilter
 jest.mock<typeof ColumnsFilter>(
-  "../../../components/table/ColumnsFilter",
+  "../../../src/components/table/ColumnsFilter",
   () => {
     const actual = jest.requireActual<typeof ColumnsFilter>(
-      "../../../components/table/ColumnsFilter",
+      "../../../src/components/table/ColumnsFilter",
     );
     return {
       ...actual,
@@ -140,8 +140,8 @@ describe("useColumnSettingsButton() useColumnSettingsButton method", () => {
         // But since ColumnSettingsButton is not mocked, we can't directly access onChange
         // Instead, we can simulate the change by exposing the handler
         // So we will expose the handleColumnsChange via a ref for testing
-        const [order, setOrder] = React.useState(["name", "age"]);
-        const [visible, setVisible] = React.useState(["name", "age"]);
+        const [, setOrder] = React.useState(["name", "age"]);
+        const [, setVisible] = React.useState(["name", "age"]);
         React.useEffect(() => {
           setOrder(["age", "name"]);
           setVisible(["age"]);

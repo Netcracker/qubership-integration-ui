@@ -1,10 +1,11 @@
 import "@xyflow/react/dist/style.css";
-import { Breadcrumb, Col, Flex, Row, Result, Button, Tabs } from "antd";
+import { Breadcrumb, Col, Flex, Row, Result, Button, Tabs, Tag } from "antd";
 import { ChainHeaderActionsContextProvider } from "./ChainHeaderActionsContext.tsx";
 import { Outlet, useLocation, useNavigate, useParams } from "react-router";
 import { useChain } from "../hooks/useChain.tsx";
 import styles from "./Chain.module.css";
 import {
+  type FC,
   type ReactNode,
   createContext,
   useCallback,
@@ -15,6 +16,7 @@ import { Chain } from "../api/apiTypes.ts";
 import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
+import { useChainFullscreenContext } from "./ChainFullscreenContext.tsx";
 
 export type ChainContextData = {
   chain: Chain | undefined;
@@ -49,24 +51,38 @@ const ChainPage = () => {
   }, [chainId, getChain, setChain]);
 
   useEffect(() => {
+    const link = (href: string, content: React.ReactNode) => (
+      <a
+        href={href}
+        onClick={(e) => {
+          e.preventDefault();
+          void navigate(href);
+        }}
+      >
+        {content}
+      </a>
+    );
+
     const navigationItems = Object.entries(chain?.navigationPath ?? [])
       .reverse()
       .map(([key, value], index, arr) => ({
-        title: value,
-        href: index < arr.length - 1 ? `/chains?folder=${key}` : undefined,
+        title:
+          index < arr.length - 1 ? link(`/chains?folder=${key}`, value) : value,
       }));
 
     setPathItems([
-      { href: "/chains", title: <OverridableIcon name="home" /> },
+      { title: link("/chains", <OverridableIcon name="home" />) },
       ...navigationItems,
       ...(sessionId
         ? [
-            { title: "Sessions", href: `/chains/${chainId}/sessions` },
+            {
+              title: link(`/chains/${chainId}/sessions`, "Sessions"),
+            },
             { title: sessionId },
           ]
         : []),
     ]);
-  }, [chain, chainId, sessionId]);
+  }, [chain, chainId, sessionId, navigate]);
 
   const handleTabChange = (key: string) => {
     void navigate(`/chains/${chainId}/${key}`);
@@ -138,55 +154,97 @@ const ChainPage = () => {
         }}
       >
         <Flex className={styles.stretched} gap={4} vertical>
-          {isVsCode ? (
-            <Tabs
-              activeKey={activeKey}
-              onChange={handleTabChange}
-              items={tabItems}
-              style={{ marginBottom: 0 }}
-              tabBarExtraContent={
-                <Flex
-                  gap={8}
-                  align="center"
-                  style={{ flexWrap: "wrap", minHeight: 32 }}
-                >
-                  {headerActions}
-                </Flex>
-              }
-            />
-          ) : (
-            <>
-              <Row
-                justify="space-between"
-                align="middle"
-                style={{ minHeight: 32 }}
-              >
-                <Col>
-                  <Breadcrumb items={pathItems} />
-                </Col>
-                <Col>
-                  <Flex
-                    gap={8}
-                    align="center"
-                    style={{ flexWrap: "wrap", minHeight: 32 }}
-                  >
-                    {headerActions}
-                  </Flex>
-                </Col>
-              </Row>
-              <Tabs
-                activeKey={activeKey}
-                onChange={handleTabChange}
-                items={tabItems}
-              />
-            </>
-          )}
+          <ChainPageHeader
+            activeKey={activeKey}
+            tabItems={tabItems}
+            headerActions={headerActions}
+            pathItems={pathItems}
+            onTabChange={handleTabChange}
+            showUnsavedChanges={!isVsCode && chain.unsavedChanges}
+          />
           <Flex className={styles.stretched}>
             <Outlet />
           </Flex>
         </Flex>
       </ChainContext.Provider>
     </ChainHeaderActionsContextProvider>
+  );
+};
+
+type ChainPageHeaderProps = {
+  activeKey: string;
+  tabItems: { key: string; label: string }[];
+  headerActions: ReactNode;
+  pathItems: BreadcrumbProps["items"];
+  onTabChange: (key: string) => void;
+  showUnsavedChanges: boolean;
+};
+
+const ChainPageHeader: FC<ChainPageHeaderProps> = ({
+  activeKey,
+  tabItems,
+  headerActions,
+  pathItems,
+  onTabChange,
+  showUnsavedChanges,
+}) => {
+  const fullscreenCtx = useChainFullscreenContext();
+  if (fullscreenCtx?.fullscreen) return null;
+
+  if (isVsCode) {
+    return (
+      <Tabs
+        className={styles.chainPageTabs as string}
+        activeKey={activeKey}
+        onChange={onTabChange}
+        items={tabItems}
+        style={{ marginBottom: 0 }}
+        tabBarExtraContent={
+          <div className={styles.chainTabBarExtra as string}>{headerActions}</div>
+        }
+      />
+    );
+  }
+
+  const tabsBarExtra = (
+    <div className={styles.chainTabBarExtra as string}>{headerActions}</div>
+  );
+
+  return (
+    <>
+      <Row
+        className={styles.chainPageHeaderRow as string}
+        justify="space-between"
+        align="middle"
+        style={{ minHeight: 32 }}
+      >
+        <Col flex="auto">
+          <Breadcrumb
+            items={pathItems}
+            className={styles.breadcrumb}
+            style={{ marginLeft: 8 }}
+          />
+        </Col>
+        {showUnsavedChanges ? (
+          <Col flex="none">
+            <Tag
+              color="warning"
+              className={styles.unsavedChangesTag as string}
+              data-testid="chain-unsaved-changes"
+            >
+              Unsaved changes
+            </Tag>
+          </Col>
+        ) : null}
+      </Row>
+      <Tabs
+        className={styles.chainPageTabs as string}
+        activeKey={activeKey}
+        onChange={onTabChange}
+        items={tabItems}
+        tabBarExtraContent={tabsBarExtra}
+      />
+    </>
   );
 };
 

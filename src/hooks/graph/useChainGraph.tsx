@@ -1,4 +1,4 @@
-import {
+﻿import {
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
@@ -518,7 +518,10 @@ export const useChainGraph = (
             )
           : [];
 
-        const updatedNodes = buildGraphNodes(response.updatedElements ?? [], libraryElements);
+        const updatedNodes = buildGraphNodes(
+          response.updatedElements ?? [],
+          libraryElements,
+        );
 
         const arrangedNodes = await arrangeNodes(
           childNodes.concat(newNode, ...updatedNodes),
@@ -542,6 +545,10 @@ export const useChainGraph = (
           structureChanged([parentNode?.id ?? newNode.parentId]);
         }
 
+        if (onChainUpdate) {
+          void onChainUpdate();
+        }
+
         clearDragVisuals();
       } catch (error) {
         notificationService.requestFailed("Failed to create element", error);
@@ -561,6 +568,7 @@ export const useChainGraph = (
       notificationService,
       structureChanged,
       clearDragVisuals,
+      onChainUpdate,
     ],
   );
 
@@ -690,13 +698,15 @@ export const useChainGraph = (
           deletedEdgeIds.push(connection.id),
         );
 
-        const updatedNodes = buildGraphNodes(elementsDeleteResponse.updatedElements ?? [], libraryElements);
+        const updatedNodes = buildGraphNodes(
+          elementsDeleteResponse.updatedElements ?? [],
+          libraryElements,
+        );
         const updatedNodeIds = new Set(updatedNodes.map((node) => node.id));
 
         const allNodes = (nodes as ChainGraphNode[]).filter(
           (node) =>
-            !deletedNodeIds.includes(node.id) &&
-            !updatedNodeIds.has(node.id),
+            !deletedNodeIds.includes(node.id) && !updatedNodeIds.has(node.id),
         );
         const allEdges = edges.filter(
           (edge) => !deletedEdgeIds.includes(edge.id),

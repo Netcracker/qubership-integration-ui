@@ -10,7 +10,12 @@ import {
   ImportInstructions,
   buildTableData,
 } from "../../../src/components/admin_tools/ImportInstructions";
-import { ImportInstructionAction } from "../../../src/api/apiTypes";
+import {
+  ImportEntityType,
+  ImportInstructionAction,
+  ImportInstructionStatus,
+} from "../../../src/api/apiTypes";
+import { uploadImportInstructionsFile } from "../../../src/components/admin_tools/importInstructionsHandlers";
 import { UserPermissionsContext } from "../../../src/permissions/UserPermissionsContext.tsx";
 import { getAllPermissions } from "../../../src/permissions/funcs.ts";
 
@@ -28,6 +33,8 @@ Object.defineProperty(globalThis, "matchMedia", {
   })),
 });
 
+jest.mock("react-resizable/css/styles.css", () => ({}));
+
 Object.defineProperty(URL, "createObjectURL", {
   writable: true,
   value: jest.fn().mockReturnValue("blob:test"),
@@ -37,6 +44,23 @@ Object.defineProperty(URL, "revokeObjectURL", {
   writable: true,
   value: jest.fn(),
 });
+
+jest.mock("antd", () =>
+  require("tests/helpers/antdMockWithLightweightTable").antdMockWithLightweightTable(),
+);
+
+jest.mock(
+  "../../../src/components/admin_tools/importInstructionsHandlers.ts",
+  () => {
+    const actual = jest.requireActual(
+      "../../../src/components/admin_tools/importInstructionsHandlers.ts",
+    ) as Record<string, unknown>;
+    return {
+      ...actual,
+      uploadImportInstructionsFile: jest.fn(),
+    };
+  },
+);
 
 jest.mock("antd/es/upload/Dragger", () => ({
   __esModule: true,
@@ -77,14 +101,10 @@ jest.mock("../../../src/api/api", () => ({
   },
 }));
 
-const mockApi = jest.requireMock("../../../src/api/api").api as {
-  getImportInstructions: jest.Mock;
-  addImportInstruction: jest.Mock;
-  updateImportInstruction: jest.Mock;
-  deleteImportInstructions: jest.Mock;
-  uploadImportInstructions: jest.Mock;
-  exportImportInstructions: jest.Mock;
-};
+const mockApiModule: { api: Record<string, jest.Mock> } = jest.requireMock(
+  "../../../src/api/api",
+);
+const mockApi = mockApiModule.api;
 
 const mockRequestFailed = jest.fn();
 const mockSuccess = jest.fn();
@@ -123,6 +143,11 @@ jest.mock("../../../src/components/InlineEdit.module.css", () => ({
   },
 }));
 
+const mockUploadImportInstructionsFile =
+  uploadImportInstructionsFile as jest.MockedFunction<
+    typeof uploadImportInstructionsFile
+  >;
+
 const sampleInstructions: GeneralImportInstructions = {
   chains: {
     ignore: [{ id: "chain-1", name: "Chain One" }],
@@ -149,15 +174,18 @@ const ContextProviders: React.FC<PropsWithChildren> = ({ children }) => {
 async function flushPromises(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
-    await Promise.resolve();
   });
+}
+
+/** Ant Design Form + async handlers often need more than one microtask tick (esp. under load / coverage). */
+async function flushMicrotasks(): Promise<void> {
+  await flushPromises();
+  await flushPromises();
 }
 
 describe("ImportInstructions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRequestFailed.mockClear();
-    mockSuccess.mockClear();
     mockApi.getImportInstructions.mockResolvedValue(sampleInstructions);
     mockApi.exportImportInstructions.mockResolvedValue(
       new File(["content"], "qip-import-instructions.yaml"),
@@ -165,6 +193,7 @@ describe("ImportInstructions", () => {
   });
 
   afterEach(() => {
+    // restoreAllMocks is needed to undo jest.spyOn (e.g. confirmSpy)
     jest.restoreAllMocks();
   });
 
@@ -307,60 +336,50 @@ describe("ImportInstructions", () => {
     expect(within(dialog).getByPlaceholderText("Enter id")).toBeInTheDocument();
   });
 
-  // it("shows Id is required validation error when submitting empty form", async () => {
-  //   render(<ImportInstructions />, { wrapper: ContextProviders });
+  it("Add Instruction modal footer shows Save", async () => {
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-  //   await flushPromises();
-  //   const addButton = screen
-  //     .getAllByRole("button", { name: /^add$/i })
-  //     .find((b) => !b.closest('[role="dialog"]'));
-  //   expect(addButton).toBeDefined();
-  //   fireEvent.click(addButton!);
+    await flushPromises();
+    const addButton = screen
+      .getAllByRole("button", { name: /^add$/i })
+      .find((b) => !b.closest('[role="dialog"]'));
+    expect(addButton).toBeDefined();
+    fireEvent.click(addButton!);
 
-  //   expect(screen.getByText("Add Instruction")).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByRole("button", { name: /^save$/i }),
+    ).toBeInTheDocument();
+  });
 
-  //   const addInModalButton = screen
-  //     .getAllByRole("button", { name: /^add$/i })
-  //     .find((b) => b.closest(".ant-modal-footer"));
-  //   expect(addInModalButton).toBeDefined();
-  //   fireEvent.click(addInModalButton!);
+  it("Add Instruction Save calls addImportInstruction with trimmed id", async () => {
+    mockApi.addImportInstruction.mockResolvedValue(undefined);
+    render(<ImportInstructions />, { wrapper: ContextProviders });
 
-  //   await waitFor(
-  //     () => {
-  //       expect(screen.getByText("Id is required")).toBeInTheDocument();
-  //     },
-  //     { timeout: 2000 },
-  //   );
-  //   expect(mockApi.addImportInstruction).not.toHaveBeenCalled();
-  // }, 8000);
+    await flushPromises();
+    const addButton = screen
+      .getAllByRole("button", { name: /^add$/i })
+      .find((b) => !b.closest('[role="dialog"]'));
+    expect(addButton).toBeDefined();
+    fireEvent.click(addButton!);
 
-  // it("calls addImportInstruction when form is filled and submitted", async () => {
-  //   mockApi.addImportInstruction.mockResolvedValue({});
-  //   render(<ImportInstructions />, { wrapper: ContextProviders });
+    const dialog = screen.getByRole("dialog");
+    await act(async () => {
+      fireEvent.change(within(dialog).getByPlaceholderText("Enter id"), {
+        target: { value: "  new-rule-id  " },
+      });
+      await flushMicrotasks();
+      fireEvent.click(within(dialog).getByRole("button", { name: /^save$/i }));
+      await flushMicrotasks();
+    });
 
-  //   await flushPromises();
-  //   const addButton = screen
-  //     .getAllByRole("button", { name: /^add$/i })
-  //     .find((b) => !b.closest('[role="dialog"]'));
-  //   expect(addButton).toBeDefined();
-  //   fireEvent.click(addButton!);
-
-  //   const dialog = screen.getByRole("dialog");
-  //   const idInput = within(dialog).getByPlaceholderText("Enter id");
-  //   fireEvent.change(idInput, { target: { value: "my-chain-id" } });
-
-  //   const addInModalButton = screen
-  //     .getAllByRole("button", { name: /^add$/i })
-  //     .find((b) => b.closest(".ant-modal-footer"));
-  //   if (addInModalButton) {
-  //     fireEvent.click(addInModalButton);
-  //   }
-
-  //   await flushPromises();
-  //   expect(mockApi.addImportInstruction).toHaveBeenCalledWith(
-  //     expect.objectContaining({ id: "my-chain-id" }),
-  //   );
-  // }, 8000);
+    expect(mockApi.addImportInstruction).toHaveBeenCalledWith({
+      id: "new-rule-id",
+      entityType: ImportEntityType.CHAIN,
+      action: ImportInstructionAction.IGNORE,
+      overriddenBy: undefined,
+    });
+  });
 
   it("UploadInstructionsModal Upload button is disabled when no file selected", async () => {
     render(<ImportInstructions />, { wrapper: ContextProviders });
@@ -379,9 +398,48 @@ describe("ImportInstructions", () => {
     expect(uploadButton).toBeDisabled();
   });
 
+  it("UploadInstructionsModal shows result table with Id and Status after upload", async () => {
+    mockUploadImportInstructionsFile.mockImplementation(
+      async (_fileList, _api, _notification, onSuccess) => {
+        onSuccess([
+          {
+            id: "row-1",
+            name: "UploadedName",
+            entityType: ImportEntityType.CHAIN,
+            status: ImportInstructionStatus.NO_ACTION,
+            errorMessage: "",
+          },
+        ]);
+      },
+    );
+
+    render(<ImportInstructions />, { wrapper: ContextProviders });
+    await flushPromises();
+    fireEvent.click(screen.getByTestId("import-instructions-upload"));
+    fireEvent.click(screen.getByTestId("dragger"));
+
+    const uploadButton = screen
+      .getAllByRole("button", { name: /^upload$/i })
+      .find((b) => b.closest(".ant-modal-footer"));
+    expect(uploadButton).toBeDefined();
+    fireEvent.click(uploadButton!);
+
+    await flushMicrotasks();
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("UploadedName")).toBeInTheDocument();
+    expect(
+      within(dialog).getAllByRole("columnheader", { name: "Id" }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(dialog).getByRole("columnheader", { name: "Status" }),
+    ).toBeInTheDocument();
+  });
+
   it("handleExport: URL.createObjectURL is called with the exported file blob", async () => {
-    const createObjectURL = URL.createObjectURL as jest.Mock;
-    createObjectURL.mockClear();
+    const createObjectURLMock = (URL as unknown as Record<string, jest.Mock>)
+      .createObjectURL;
+    createObjectURLMock.mockClear();
 
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
@@ -390,7 +448,7 @@ describe("ImportInstructions", () => {
 
     await flushPromises();
     expect(mockApi.exportImportInstructions).toHaveBeenCalled();
-    expect(createObjectURL).toHaveBeenCalled();
+    expect(createObjectURLMock).toHaveBeenCalled();
   });
 
   it("renders labels as Tag components and modifiedWhen as formatted date", async () => {
@@ -506,15 +564,11 @@ describe("ImportInstructions", () => {
   it("handleDelete: select row, confirm delete modal, deleteImportInstructions called", async () => {
     mockApi.deleteImportInstructions.mockResolvedValue(undefined);
 
-    const confirmSpy = jest
-      .spyOn(Modal, "confirm")
-      .mockImplementation((props = {}) => {
-        const onOk = props.onOk as
-          | ((...args: unknown[]) => unknown)
-          | undefined;
-        if (onOk) onOk();
-        return { destroy: jest.fn(), update: jest.fn() };
-      });
+    jest.spyOn(Modal, "confirm").mockImplementation((props = {}) => {
+      const onOk = props.onOk as ((...args: unknown[]) => unknown) | undefined;
+      if (onOk) onOk();
+      return { destroy: jest.fn(), update: jest.fn() };
+    });
 
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
@@ -534,41 +588,7 @@ describe("ImportInstructions", () => {
 
     await flushPromises();
     expect(mockApi.deleteImportInstructions).toHaveBeenCalled();
-
-    confirmSpy.mockRestore();
   });
-
-  // it("UploadInstructionsModal: selecting file enables Upload button and triggers uploadImportInstructions", async () => {
-  //   mockApi.uploadImportInstructions.mockResolvedValue([
-  //     {
-  //       id: "c1",
-  //       name: "Chain 1",
-  //       entityType: "CHAIN",
-  //       status: "CREATED",
-  //       errorMessage: null,
-  //     },
-  //   ]);
-
-  //   render(<ImportInstructions />, { wrapper: ContextProviders });
-
-  //   await flushPromises();
-  //   fireEvent.click(screen.getByTestId("import-instructions-upload"));
-
-  //   const dragger = screen.getByTestId("dragger");
-  //   fireEvent.click(dragger);
-
-  //   const uploadButton = screen
-  //     .queryAllByRole("button", { name: /^upload$/i })
-  //     .find(
-  //       (b) =>
-  //         b.closest(".ant-modal-footer") && !(b as HTMLButtonElement).disabled,
-  //     );
-  //   expect(uploadButton).toBeDefined();
-  //   fireEvent.click(uploadButton!);
-
-  //   await flushPromises();
-  //   expect(mockApi.uploadImportInstructions).toHaveBeenCalled();
-  // });
 
   it("UploadInstructionsModal: Close button refetches instructions", async () => {
     render(<ImportInstructions />, { wrapper: ContextProviders });
@@ -586,33 +606,6 @@ describe("ImportInstructions", () => {
     await flushPromises();
     expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(2);
   });
-
-  // it("AddInstructionModal: calls requestFailed when addImportInstruction throws", async () => {
-  //   mockApi.addImportInstruction.mockRejectedValue(new Error("server error"));
-
-  //   render(<ImportInstructions />, { wrapper: ContextProviders });
-
-  //   await flushPromises();
-  //   const addButton = screen
-  //     .getAllByRole("button", { name: /^add$/i })
-  //     .find((b) => !b.closest('[role="dialog"]'));
-  //   expect(addButton).toBeDefined();
-  //   fireEvent.click(addButton!);
-
-  //   const dialog = screen.getByRole("dialog");
-  //   const idInput = within(dialog).getByPlaceholderText("Enter id");
-  //   fireEvent.change(idInput, { target: { value: "some-id" } });
-
-  //   const addInModalButton = screen
-  //     .getAllByRole("button", { name: /^add$/i })
-  //     .find((b) => b.closest(".ant-modal-footer"));
-  //   expect(addInModalButton).toBeDefined();
-  //   fireEvent.click(addInModalButton!);
-
-  //   await flushPromises();
-  //   expect(mockApi.addImportInstruction).toHaveBeenCalled();
-  //   expect(mockRequestFailed).toHaveBeenCalled();
-  // }, 8000);
 });
 
 describe("buildTableData", () => {
@@ -696,7 +689,7 @@ describe("buildTableData", () => {
     expect(serviceGroup.children![0].key).toBe("Service-DELETE-s1");
   });
 
-  it("maps commonVariable-ignore into Common Variable group", async () => {
+  it("maps commonVariable-ignore into Common Variable group", () => {
     const result = buildTableData({
       chains: { ignore: [], override: [], delete: [] },
       services: { ignore: [], delete: [] },
@@ -712,7 +705,7 @@ describe("buildTableData", () => {
     expect(varGroup.children![0].key).toBe("Common Variable-IGNORE-v1");
   });
 
-  it("maps chain-delete into Chains group with DELETE action", async () => {
+  it("maps chain-delete into Chains group with DELETE action", () => {
     const result = buildTableData({
       chains: {
         ignore: [],
@@ -732,7 +725,7 @@ describe("buildTableData", () => {
     expect(chainGroup.children![0].entityType).toBe("Chain");
   });
 
-  it("maps service-ignore into Services group with IGNORE action", async () => {
+  it("maps service-ignore into Services group with IGNORE action", () => {
     const result = buildTableData({
       chains: { ignore: [], override: [], delete: [] },
       services: { ignore: [{ id: "s1", name: "Svc Ign" }], delete: [] },
@@ -750,7 +743,7 @@ describe("buildTableData", () => {
     expect(serviceGroup.children![0].entityType).toBe("Service");
   });
 
-  it("maps commonVariable-delete into Common Variable group with DELETE action", async () => {
+  it("maps commonVariable-delete into Common Variable group with DELETE action", () => {
     const result = buildTableData({
       chains: { ignore: [], override: [], delete: [] },
       services: { ignore: [], delete: [] },

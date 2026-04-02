@@ -5,20 +5,6 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
-Object.defineProperty(globalThis, "matchMedia", {
-  writable: true,
-  value: jest.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
-
 jest.mock("react-resizable/css/styles.css", () => ({}));
 jest.mock(
   "../../../../src/components/admin_tools/variables/Resizable.css",
@@ -56,31 +42,55 @@ jest.mock(
   }),
 );
 
-jest.mock("../../../../src/components/ResizableTitle.tsx", () => ({
-  ResizableTitle: (props: React.HTMLAttributes<HTMLElement>) => (
-    <th {...props} />
-  ),
+jest.mock("../../../../src/components/table/ResizableTitle.tsx", () => ({
+  ResizableTitle: React.forwardRef<
+    HTMLTableCellElement,
+    React.ThHTMLAttributes<HTMLTableCellElement> & {
+      onResize?: unknown;
+      onResizeStop?: unknown;
+      width?: unknown;
+      minResizeWidth?: unknown;
+      maxResizeWidth?: unknown;
+      resizeHandleZIndex?: unknown;
+    }
+  >((props, ref) => {
+    const {
+      onResize: _onResize,
+      onResizeStop: _onResizeStop,
+      width: _width,
+      minResizeWidth: _minResizeWidth,
+      maxResizeWidth: _maxResizeWidth,
+      resizeHandleZIndex: _resizeHandleZIndex,
+      ...rest
+    } = props;
+    return <th ref={ref} {...rest} />;
+  }),
 }));
 
 jest.mock("antd", () => {
-  const realAntd = jest.requireActual("antd");
-  return {
-    ...(realAntd as Record<string, unknown>),
+  const React = require("react");
+  const {
+    antdMockWithLightweightTable,
+  } = require("tests/helpers/antdMockWithLightweightTable");
+  return antdMockWithLightweightTable({
     Popconfirm: ({
       children,
       onConfirm,
     }: {
       children: React.ReactNode;
       onConfirm?: () => void;
-    }) => (
-      <div>
-        {children}
-        <button data-testid="popconfirm-ok" onClick={onConfirm}>
-          OK
-        </button>
-      </div>
-    ),
-  };
+    }) =>
+      React.createElement(
+        "div",
+        null,
+        children,
+        React.createElement(
+          "button",
+          { "data-testid": "popconfirm-ok", onClick: onConfirm },
+          "OK",
+        ),
+      ),
+  });
 });
 
 import VariablesTable from "../../../../src/components/admin_tools/variables/VariablesTable";
@@ -238,14 +248,13 @@ describe("VariablesTable", () => {
     expect(buttons.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("calls onAdd via Enter on key input when key and value are filled", () => {
+  it("calls onAdd via Enter on key input when value is not filled", () => {
     const onAdd = jest.fn();
     renderTable({ isAddingNew: true, onAdd });
     const keyInput = screen.getByPlaceholderText("Key");
     fireEvent.change(keyInput, { target: { value: "my-new-key" } });
     fireEvent.keyDown(keyInput, { key: "Enter" });
-    // onAdd is NOT called because value is empty; just verifying no error
-    expect(onAdd).not.toHaveBeenCalled();
+    expect(onAdd).toHaveBeenCalled();
   });
 
   it("does not include NEW_VARIABLE_KEY row when isAddingNew=false", () => {

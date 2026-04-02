@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import styles from "./Services.module.css";
-import { Input, Typography, message, Flex } from "antd";
+import { Typography, message, Flex } from "antd";
 import { CompactSearch } from "../table/CompactSearch.tsx";
 import { CreateServiceModal } from "./modals/CreateServiceModal";
 import { useNavigate } from "react-router-dom";
@@ -32,18 +32,24 @@ import type {
   SpecificationGroup,
 } from "../../api/apiTypes";
 import { downloadFile } from "../../misc/download-utils";
-import { prepareFile } from "./utils.tsx";
+import { invalidateServiceCache, prepareFile } from "./utils.tsx";
 import ImportServicesModal from "./modals/ImportServicesModal";
+import { ImportSpecificationsModal } from "./modals/ImportSpecificationsModal";
 import { useModalsContext } from "../../Modals";
 import { getErrorMessage } from "../../misc/error-utils";
 import { useAsyncRequest } from "./useAsyncRequest";
-import type { ExpandableConfig } from "antd/es/table/interface";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
+import { treeExpandIcon } from "../table/TreeExpandIcon.tsx";
 import { ServiceDiscoveryButton } from "./ui/ServiceDiscoveryButton.tsx";
 import { Require } from "../../permissions/Require.tsx";
 import { ProtectedButton } from "../../permissions/ProtectedButton.tsx";
+import commonStyles from "../admin_tools/CommonStyle.module.css";
+import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
 
 const STORAGE_KEY = "servicesListTable";
+
+/** `scroll.y` is body max-height; reserve thead (tree + filter row on Name). */
+const SERVICES_LIST_TABLE_HEAD_RESERVE_PX = 100;
 
 const visibleColumns: string[] = [
   "name",
@@ -56,7 +62,7 @@ const visibleColumns: string[] = [
 
 export const ServicesListPage: React.FC = () => {
   type TabType = "external" | "internal" | "implemented" | "context";
-  const [tab] = useHashTab("implemented") as [TabType, (tab: TabType) => void];
+  const [tab] = useHashTab("external") as [TabType, (tab: TabType) => void];
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -239,36 +245,7 @@ export const ServicesListPage: React.FC = () => {
       );
     },
     childrenColumnName: "children",
-    expandIcon: ({
-      expanded,
-      onExpand,
-      record,
-    }: Parameters<
-      NonNullable<ExpandableConfig<ServiceEntity>["expandIcon"]>
-    >[0]) =>
-      expandable.rowExpandable(record) ? (
-        <span
-          onClick={(e) => {
-            onExpand(record, e);
-            e.stopPropagation();
-          }}
-          style={{
-            cursor: "pointer",
-            fontSize: 11,
-            color: "var(--vscode-descriptionForeground, rgba(0, 0, 0, 0.45))",
-            display: "inline-flex",
-            alignItems: "center",
-            verticalAlign: "sub",
-            marginRight: 6,
-          }}
-        >
-          {expanded ? (
-            <OverridableIcon name="down" />
-          ) : (
-            <OverridableIcon name="right" />
-          )}
-        </span>
-      ) : null,
+    expandIcon: treeExpandIcon<ServiceEntity>(),
   };
 
   const isRootEntity = (record: ServiceEntity) => {
@@ -350,6 +327,28 @@ export const ServicesListPage: React.FC = () => {
     }
   };
 
+  const handleAddSpecificationGroup = useCallback(
+    (record: ServiceEntity) => {
+      if (!isIntegrationSystem(record)) return;
+      showModal({
+        component: (
+          <ImportSpecificationsModal
+            systemId={record.id}
+            groupMode={true}
+            isImplementedService={
+              record.type === IntegrationSystemType.IMPLEMENTED
+            }
+            onSuccess={() => {
+              void loadServices();
+              invalidateServiceCache(record.id);
+            }}
+          />
+        ),
+      });
+    },
+    [showModal, loadServices],
+  );
+
   const actionsColumn: ServicesTableColumn = getActionsColumn(
     getServiceActions({
       onEdit: handleEdit,
@@ -363,17 +362,36 @@ export const ServicesListPage: React.FC = () => {
       onExportSelected: (selected) => {
         void handleExportSelected(selected);
       },
+      onAddSpecificationGroup: handleAddSpecificationGroup,
     }),
   );
 
   const rowClassName = (record: ServiceEntity) =>
     loadingRows.includes(record.id) ? styles.loadingRow : "";
 
+  const [servicesTableAreaRef, servicesTableAreaHeight] =
+    useResizeHeight<HTMLDivElement>();
+
+  const servicesTableBodyScrollY = useMemo(() => {
+    if (servicesTableAreaHeight <= 0) {
+      return 400;
+    }
+    return Math.max(
+      120,
+      servicesTableAreaHeight - SERVICES_LIST_TABLE_HEAD_RESERVE_PX,
+    );
+  }, [servicesTableAreaHeight]);
+
+  const servicesTableScroll = useMemo(
+    () => ({ y: servicesTableBodyScrollY }),
+    [servicesTableBodyScrollY],
+  );
+
   const servicesTable = useServicesTreeTable<ServiceEntity>({
     dataSource: buildDataSource,
     rowKey: "id",
     columns: allServicesTreeTableColumns.map((col) => col.key),
-    scroll: { y: "" },
+    scroll: servicesTableScroll,
     className: "flex-table",
     style: { flex: 1, minHeight: 0 },
     allColumns: [
@@ -583,13 +601,13 @@ export const ServicesListPage: React.FC = () => {
           })()}
         </Typography.Title>
 
-        <div className={styles["actions"]}>
+        <Flex className={styles["actions"]} align="center" gap={8} wrap="wrap">
           <CompactSearch
             value={searchString}
             onChange={handleSearchChange}
             placeholder="Search services..."
             allowClear
-            style={{ width: 500 }}
+            className={commonStyles["searchField"] as string}
             onSearchConfirm={(v) => {
               clearTimeout(searchDebounceRef.current);
               setDebouncedSearch(v);
@@ -658,10 +676,11 @@ export const ServicesListPage: React.FC = () => {
               onClick: () => setCreateModalOpen(true),
             }}
           />
-        </div>
+        </Flex>
       </div>
 
       <div
+        ref={servicesTableAreaRef}
         style={{
           flex: 1,
           minHeight: 0,
@@ -669,7 +688,7 @@ export const ServicesListPage: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <servicesTable.Table />
+        {servicesTable.tableElement}
         {error && (
           <div style={{ color: "var(--vscode-errorForeground, #d73a49)" }}>
             Error: {error}
