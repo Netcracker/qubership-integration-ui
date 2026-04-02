@@ -22,7 +22,6 @@ import { api } from "../api/api.ts";
 import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
-import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
 import { TablePageLayout } from "../components/TablePageLayout.tsx";
 import { Require } from "../permissions/Require.tsx";
 import { useColumnSettingsBasedOnColumnsType } from "../components/table/useColumnSettingsButton.tsx";
@@ -30,9 +29,10 @@ import {
   createActionsColumnBase,
   disableResizeBeforeActions,
 } from "../components/table/actionsColumn.ts";
-import commonStyles from "../components/admin_tools/CommonStyle.module.css";
-import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import { matchesByFields } from "../components/table/tableSearch.ts";
+import { CompactSearch } from "../components/table/CompactSearch.tsx";
+import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+import commonStyles from "../components/admin_tools/CommonStyle.module.css";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
 import chainPageStyles from "./Chain.module.css";
 
@@ -72,59 +72,75 @@ export const Deployments: React.FC = () => {
     [deployments, searchTerm, snapshots],
   );
 
-  const columns: TableProps<Deployment>["columns"] = [
-    {
-      title: "Snapshot",
-      dataIndex: "snapshotId",
-      key: "snapshotId",
-      render: (_, deployment) => (
-        <>
-          {snapshots?.find((snapshot) => snapshot.id === deployment.snapshotId)
-            ?.name ?? deployment.snapshotId}
-        </>
-      ),
+  const deleteDeployment = useCallback(
+    async (deployment: Deployment) => {
+      try {
+        await api.deleteDeployment(deployment.id);
+        removeDeployment(deployment);
+      } catch (error) {
+        notificationService.requestFailed("Failed to delete deployment", error);
+      }
     },
-    { title: "Domain", dataIndex: "domain", key: "domain" },
-    {
-      title: "Status",
-      dataIndex: "runtime",
-      key: "runtime",
-      render: (_, deployment) => (
-        <DeploymentRuntimeStates
-          timestamp={deployment.createdWhen}
-          service={deployment.serviceName}
-          runtimeStates={deployment.runtime ?? { states: {} }}
-        />
-      ),
-    },
-    {
-      title: "Created By",
-      dataIndex: "createdBy",
-      key: "createdBy",
-      render: (_, deployment) => deployment.createdBy.username,
-    },
-    {
-      title: "Created At",
-      dataIndex: "createdWhen",
-      key: "createdWhen",
-      render: (_, deployment) => formatTimestamp(deployment.createdWhen),
-    },
-    {
-      ...createActionsColumnBase<Deployment>(),
-      render: (_, deployment) => (
-        <Require permissions={{ deployment: ["delete"] }}>
-          <Tooltip title="Delete deployment" placement="topRight">
-            <LongActionButton
-              size="small"
-              icon={<OverridableIcon name="delete" />}
-              type="text"
-              onSubmit={async () => deleteDeployment(deployment)}
-            />
-          </Tooltip>
-        </Require>
-      ),
-    },
-  ];
+    [removeDeployment, notificationService],
+  );
+
+  const columns: TableProps<Deployment>["columns"] = useMemo(
+    () => [
+      {
+        title: "Snapshot",
+        dataIndex: "snapshotId",
+        key: "snapshotId",
+        render: (_, deployment) => (
+          <>
+            {snapshots?.find(
+              (snapshot) => snapshot.id === deployment.snapshotId,
+            )?.name ?? deployment.snapshotId}
+          </>
+        ),
+      },
+      { title: "Domain", dataIndex: "domain", key: "domain" },
+      {
+        title: "Status",
+        dataIndex: "runtime",
+        key: "runtime",
+        render: (_, deployment) => (
+          <DeploymentRuntimeStates
+            timestamp={deployment.createdWhen}
+            service={deployment.serviceName}
+            runtimeStates={deployment.runtime ?? { states: {} }}
+          />
+        ),
+      },
+      {
+        title: "Created By",
+        dataIndex: "createdBy",
+        key: "createdBy",
+        render: (_, deployment) => deployment.createdBy.username,
+      },
+      {
+        title: "Created At",
+        dataIndex: "createdWhen",
+        key: "createdWhen",
+        render: (_, deployment) => formatTimestamp(deployment.createdWhen),
+      },
+      {
+        ...createActionsColumnBase<Deployment>(),
+        render: (_, deployment) => (
+          <Require permissions={{ deployment: ["delete"] }}>
+            <Tooltip title="Delete deployment" placement="topRight">
+              <LongActionButton
+                size="small"
+                icon={<OverridableIcon name="delete" />}
+                type="text"
+                onSubmit={async () => deleteDeployment(deployment)}
+              />
+            </Tooltip>
+          </Require>
+        ),
+      },
+    ],
+    [snapshots, deleteDeployment],
+  );
 
   const { orderedColumns, columnSettingsButton } =
     useColumnSettingsBasedOnColumnsType<Deployment>(
@@ -162,15 +178,6 @@ export const Deployments: React.FC = () => {
       ),
     [columnsWithResize, deploymentsColumnResize.columnWidths],
   );
-
-  const deleteDeployment = async (deployment: Deployment) => {
-    try {
-      await api.deleteDeployment(deployment.id);
-      removeDeployment(deployment);
-    } catch (error) {
-      notificationService.requestFailed("Failed to delete deployment", error);
-    }
-  };
 
   const createDeployment = useCallback(
     async (request: CreateDeploymentRequest) => {
@@ -226,10 +233,14 @@ export const Deployments: React.FC = () => {
         </Flex>
       </Flex>
     ),
-    [searchTerm, columnSettingsButton, onCreateClick],
+    [searchTerm, setSearchTerm, columnSettingsButton, onCreateClick],
   );
 
-  useRegisterChainHeaderActions(chainTabToolbar, [searchTerm, onCreateClick]);
+  useRegisterChainHeaderActions(chainTabToolbar, [
+    searchTerm,
+    setSearchTerm,
+    onCreateClick,
+  ]);
 
   return (
     <TablePageLayout>

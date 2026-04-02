@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { Button, Flex, Table } from "antd";
-import commonStyles from "../components/admin_tools/CommonStyle.module.css";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
@@ -28,7 +27,6 @@ import { LabelsEdit } from "../components/table/LabelsEdit.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
-import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
 import { TablePageLayout } from "../components/TablePageLayout.tsx";
 import { filterOutByIds, toStringIds } from "../misc/selection-utils.ts";
 import { confirmAndRun } from "../misc/confirm-utils.ts";
@@ -44,8 +42,10 @@ import {
   createActionsColumnBase,
   disableResizeBeforeActions,
 } from "../components/table/actionsColumn.ts";
-import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import { matchesByFields } from "../components/table/tableSearch.ts";
+import { CompactSearch } from "../components/table/CompactSearch.tsx";
+import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+import commonStyles from "../components/admin_tools/CommonStyle.module.css";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
 import chainPageStyles from "./Chain.module.css";
 

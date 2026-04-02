@@ -28,10 +28,10 @@ import {
   useTableColumnResize,
 } from "../components/table/useTableColumnResize.tsx";
 import { disableResizeBeforeActions } from "../components/table/actionsColumn.ts";
-import commonStyles from "../components/admin_tools/CommonStyle.module.css";
-import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import { matchesByFields } from "../components/table/tableSearch.ts";
+import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+import commonStyles from "../components/admin_tools/CommonStyle.module.css";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
 import chainPageStyles from "./Chain.module.css";
 
@@ -319,6 +319,7 @@ export const Masking: React.FC = () => {
     [searchTerm, columnSettingsButton, selectedRowKeys],
   );
 
+  /* columnSettingsButton omitted: unstable identity would retrigger parent setState in a loop */
   useRegisterChainHeaderActions(chainTabToolbar, [searchTerm, selectedRowKeys]);
 
   return (
