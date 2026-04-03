@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { ReactNode, useState } from "react";
 import { FilterItemState } from "./FilterItem";
 import { Filter } from "./Filter.tsx";
 import { useModalsContext } from "../../../Modals";
@@ -9,7 +9,7 @@ export const useFilter = (
   filterColumns: FilterColumn[],
 ): {
   filters: EntityFilterModel[];
-  filterButton: JSX.Element;
+  filterButton: ReactNode;
   resetFilters: () => void;
   filterColumns: FilterColumn[];
   filterItemStates: FilterItemState[];
