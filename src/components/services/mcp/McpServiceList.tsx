@@ -348,6 +348,9 @@ export const McpServiceList: React.FC = () => {
           selectedRowKeys,
           onChange: (keys) => setSelectedRowKeys(keys),
         }}
+        onRow={(system) => ({
+          onClick: () => void navigate(`/services/mcp/${system.id}/parameters`),
+        })}
         components={columnResize.resizableHeaderComponents}
       />
     </GenericServiceListPage>
