@@ -123,7 +123,6 @@ export interface ServicesTreeTableProps<
   size?: "small" | "middle" | "large";
   pagination?: false | object;
   style?: React.CSSProperties;
-  scroll?: { y?: string | number };
   className?: string;
   actionsColumn?: ServicesTableColumn;
   enableSelection?: boolean;
@@ -560,7 +559,6 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
   rowClassName,
   onUpdateLabels,
   onRowClick,
-  scroll,
   className,
   style,
   urlColumnTitle,
@@ -665,24 +663,11 @@ export function useServicesTreeTable<T extends ServiceEntity = ServiceEntity>({
       columnWidths,
       Object.keys(extras).length > 0 ? extras : undefined,
     );
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit y from rest (empty table: no scroll.y)
-    const { y, ...scrollWithoutY } = scroll ?? {};
-    if (dataSource.length === 0) {
-      return { ...scrollWithoutY, x: scrollX };
-    }
     return {
-      ...scrollWithoutY,
       x: scrollX,
-      y: scroll?.y ?? "",
+      y: "",
     };
-  }, [
-    scroll,
-    columnsWithResize,
-    columnWidths,
-    expandable,
-    enableSelection,
-    dataSource.length,
-  ]);
+  }, [columnsWithResize, columnWidths, expandable, enableSelection]);
 
   const mergedExpandable = useMemo(
     () => ({

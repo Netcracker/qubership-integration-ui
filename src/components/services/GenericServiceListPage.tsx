@@ -65,7 +65,7 @@ export const GenericServiceListPage: React.FC<GenericServiceListPageProps> = ({
 
   return (
     <Flex vertical gap={8} style={{ height: "100%" }}>
-      <Flex vertical={false} align={"center"}>
+      <Flex vertical={false} align={"center"} justify={"space-between"}>
         <Flex vertical={false} gap={8} flex={1} align={"center"}>
           <Typography.Title level={4} style={{ marginTop: 0 }}>
             <Space size={"large"}>

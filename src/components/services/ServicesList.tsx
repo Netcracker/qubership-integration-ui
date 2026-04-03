@@ -2,16 +2,16 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import styles from "./Services.module.css";
-import { Typography, message, Flex } from "antd";
-import { CompactSearch } from "../table/CompactSearch.tsx";
-import { CreateServiceModal } from "./modals/CreateServiceModal";
+import { message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
-import { IntegrationSystemType, Specification } from "../../api/apiTypes";
+import {
+  IntegrationSystemType,
+  Specification,
+} from "../../api/apiTypes";
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { useServiceFilters } from "../../hooks/useServiceFilter";
 import {
@@ -33,24 +33,16 @@ import type {
 } from "../../api/apiTypes";
 import { downloadFile } from "../../misc/download-utils";
 import { invalidateServiceCache, prepareFile } from "./utils.tsx";
-import ImportServicesModal from "./modals/ImportServicesModal";
 import { ImportSpecificationsModal } from "./modals/ImportSpecificationsModal";
 import { useModalsContext } from "../../Modals";
 import { getErrorMessage } from "../../misc/error-utils";
 import { useAsyncRequest } from "./useAsyncRequest";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { treeExpandIcon } from "../table/TreeExpandIcon.tsx";
-import { ServiceDiscoveryButton } from "./ui/ServiceDiscoveryButton.tsx";
-import { Require } from "../../permissions/Require.tsx";
-import { ProtectedButton } from "../../permissions/ProtectedButton.tsx";
-import commonStyles from "../admin_tools/CommonStyle.module.css";
-import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
 import { capitalize } from "../../misc/format-utils.ts";
+import { GenericServiceListPage } from "./GenericServiceListPage.tsx";
 
 const STORAGE_KEY = "servicesListTable";
-
-/** `scroll.y` is body max-height; reserve thead (tree + filter row on Name). */
-const SERVICES_LIST_TABLE_HEAD_RESERVE_PX = 100;
 
 const visibleColumns: string[] = [
   "name",
@@ -89,26 +81,23 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   const [loadingRows, setLoadingRows] = useState<string[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [searchString, setSearchString] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const notify = useNotificationService();
+  const notificationService = useNotificationService();
   const navigate = useNavigate();
   const { showModal } = useModalsContext();
   const { filters, filterButton, resetFilters } = useServiceFilters();
 
   const {
     loading,
-    error,
     execute: loadServices,
   } = useAsyncRequest(
     async () => {
-      const hasSearch = debouncedSearch.trim().length > 0;
+      const hasSearch = searchString.trim().length > 0;
       const hasFilters = filters.length > 0;
 
       let servicesArray: IntegrationSystem[];
       if (hasSearch && hasFilters) {
         const [searched, filtered] = await Promise.all([
-          api.searchServices(debouncedSearch.trim()),
+          api.searchServices(searchString.trim()),
           api.filterServices(filters),
         ]);
         const filteredIds = new Set(filtered.map((s) => s.id));
@@ -116,7 +105,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
       } else if (hasFilters) {
         servicesArray = await api.filterServices(filters);
       } else if (hasSearch) {
-        servicesArray = await api.searchServices(debouncedSearch.trim());
+        servicesArray = await api.searchServices(searchString.trim());
       } else {
         const all = await api.getServices("", false);
         servicesArray = Array.isArray(all) ? all : [];
@@ -151,26 +140,11 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
 
   useEffect(() => {
     void loadServices();
-  }, [filters, debouncedSearch, tab]);
+  }, [filters, searchString, tab]);
 
   useEffect(() => {
-    setSearchString("");
-    setDebouncedSearch("");
-    clearTimeout(searchDebounceRef.current);
     resetFilters();
   }, [tab]);
-
-  const handleSearchChange = (value: string) => {
-    setSearchString(value);
-    clearTimeout(searchDebounceRef.current);
-    if (value.trim() === "") {
-      setDebouncedSearch("");
-    } else {
-      searchDebounceRef.current = setTimeout(() => {
-        setDebouncedSearch(value);
-      }, 500);
-    }
-  };
 
   const getServicesByTab = useCallback(():
     | IntegrationSystem[]
@@ -208,7 +182,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
         const groups = await api.getApiSpecifications(record.id);
         setSpecGroupsByService((prev) => ({ ...prev, [record.id]: groups }));
       } catch (e: unknown) {
-        notify.requestFailed(
+        notificationService.requestFailed(
           getErrorMessage(e, "Specifications load error"),
           e,
         );
@@ -283,7 +257,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
               [service.id]: groups,
             }));
           } catch (e: unknown) {
-            notify.requestFailed(
+            notificationService.requestFailed(
               getErrorMessage(e, "Error loading specifications groups"),
               e,
             );
@@ -371,29 +345,10 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   const rowClassName = (record: ServiceEntity) =>
     loadingRows.includes(record.id) ? styles.loadingRow : "";
 
-  const [servicesTableAreaRef, servicesTableAreaHeight] =
-    useResizeHeight<HTMLDivElement>();
-
-  const servicesTableBodyScrollY = useMemo(() => {
-    if (servicesTableAreaHeight <= 0) {
-      return 400;
-    }
-    return Math.max(
-      120,
-      servicesTableAreaHeight - SERVICES_LIST_TABLE_HEAD_RESERVE_PX,
-    );
-  }, [servicesTableAreaHeight]);
-
-  const servicesTableScroll = useMemo(
-    () => ({ y: servicesTableBodyScrollY }),
-    [servicesTableBodyScrollY],
-  );
-
   const servicesTable = useServicesTreeTable<ServiceEntity>({
     dataSource: buildDataSource,
     rowKey: "id",
     columns: allServicesTreeTableColumns.map((col) => col.key),
-    scroll: servicesTableScroll,
     className: "flex-table",
     style: { flex: 1, minHeight: 0 },
     allColumns: [
@@ -482,7 +437,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
         : await api.exportServices(systemIds, []);
       downloadFile(prepareFile(file));
     } catch (e: unknown) {
-      notify.requestFailed(getErrorMessage(e, "Export error"), e);
+      notificationService.requestFailed(getErrorMessage(e, "Export error"), e);
     }
   };
 
@@ -505,11 +460,11 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
           `/services/${type === IntegrationSystemType.CONTEXT ? "context" : "systems"}/${service.id}/parameters`,
         );
       } catch (e: unknown) {
-        notify.requestFailed(getErrorMessage(e, "Service creation error"), e);
+        notificationService.requestFailed(getErrorMessage(e, "Service creation error"), e);
         throw e;
       }
     },
-    [tab, loadServices, navigate, notify],
+    [tab, navigate, notificationService],
   );
 
   const handleDelete = async (id: string) => {
@@ -518,7 +473,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
       void loadServices();
       message.success("Service deleted");
     } catch (e: unknown) {
-      notify.requestFailed(getErrorMessage(e, "Service deletion error"), e);
+      notificationService.requestFailed(getErrorMessage(e, "Service deletion error"), e);
     }
   };
 
@@ -528,7 +483,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
       void loadServices();
       message.success("Service deleted");
     } catch (e: unknown) {
-      notify.requestFailed(getErrorMessage(e, "Service deletion error"), e);
+      notificationService.requestFailed(getErrorMessage(e, "Service deletion error"), e);
     }
   };
 
@@ -554,152 +509,45 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   };
 
   return (
-    <Flex vertical className={styles["container"]}>
-      <div className={styles["header"]}>
-        <Typography.Title level={4} className={styles["title"]}>
-          {(() => {
+    <GenericServiceListPage
+      title={`${capitalize(tab)} Services`}
+      icon={
+        <OverridableIcon
+          name={(() => {
             switch (tab) {
               case "external":
-                return (
-                  <OverridableIcon name="global" className={styles["icon"]} />
-                );
+                return "global";
               case "internal":
-                return (
-                  <OverridableIcon name="cloud" className={styles["icon"]} />
-                );
+                return "cloud";
               case "implemented":
-                return (
-                  <OverridableIcon name="cluster" className={styles["icon"]} />
-                );
+                return "cluster";
               case "context":
-                return (
-                  <OverridableIcon name="database" className={styles["icon"]} />
-                );
+                return "database";
               default:
-                return (
-                  <OverridableIcon name="table" className={styles["icon"]} />
-                );
+                return "table";
             }
           })()}
-          {(() => {
-            switch (tab) {
-              case "external":
-                return "External Services";
-              case "internal":
-                return "Internal Services";
-              case "implemented":
-                return "Implemented Services";
-              case "context":
-                return "Context Services";
-              default:
-                return "Services";
-            }
-          })()}
-        </Typography.Title>
-
-        <Flex className={styles["actions"]} align="center" gap={8} wrap="wrap">
-          <CompactSearch
-            value={searchString}
-            onChange={handleSearchChange}
-            placeholder="Search services..."
-            allowClear
-            className={commonStyles["searchField"] as string}
-            onSearchConfirm={(v) => {
-              clearTimeout(searchDebounceRef.current);
-              setDebouncedSearch(v);
-            }}
-          />
-          {tab === "internal" && (
-            <Require permissions={{ service: ["execute"] }}>
-              <ServiceDiscoveryButton
-                onSystemsDiscovered={(systemIds: string[]) => {
-                  if (systemIds.length > 0) {
-                    void loadServices();
-                  }
-                }}
-              />
-            </Require>
-          )}
-          {filterButton}
-          {servicesTable.FilterButton()}
-          <ProtectedButton
-            require={{ service: ["export"] }}
-            tooltipProps={{
-              title: "Download selected services",
-              placement: "bottom",
-            }}
-            buttonProps={{
-              iconName: "cloudDownload",
-              onClick: () => {
-                void (async () => {
-                  if (selectedRowKeys.length === 0) {
-                    message.info("No services selected");
-                    return;
-                  }
-                  const selected: ServiceEntity[] = buildDataSource.filter(
-                    (s: ServiceEntity) => selectedRowKeys.includes(s.id),
-                  );
-                  await handleExportSelected(selected);
-                })();
-              },
-            }}
-          />
-          <ProtectedButton
-            require={{ service: ["import"] }}
-            tooltipProps={{ title: "Upload services", placement: "bottom" }}
-            buttonProps={{
-              iconName: "cloudUpload",
-              onClick: () => {
-                showModal({
-                  component: (
-                    <ImportServicesModal
-                      onSuccess={() => {
-                        void loadServices();
-                      }}
-                      systemType={getSystemType(tab)}
-                    />
-                  ),
-                });
-              },
-            }}
-          />
-          <ProtectedButton
-            require={{ service: ["create"] }}
-            tooltipProps={{ title: "Create service", placement: "bottom" }}
-            buttonProps={{
-              type: "primary",
-              iconName: "plus",
-              onClick: () => {
-                showModal({
-                  component: (
-                    <CreateServiceModal
-                      defaultName={`New ${capitalize(tab)} service`}
-                      onSubmit={handleCreate}
-                    />
-                  ),
-                });
-              },
-            }}
-          />
-        </Flex>
-      </div>
-
-      <div
-        ref={servicesTableAreaRef}
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {servicesTable.tableElement}
-        {error && (
-          <div style={{ color: "var(--vscode-errorForeground, #d73a49)" }}>
-            Error: {error}
-          </div>
-        )}
-      </div>
-    </Flex>
+        />
+      }
+      extraActions={[filterButton, servicesTable.FilterButton()]}
+      serviceType={getSystemType(tab)}
+      onCreate={(name, description) => handleCreate(name, description)}
+      onSearch={(value) => setSearchString(value)}
+      onExport={() => {
+        void (async () => {
+          if (selectedRowKeys.length === 0) {
+            message.info("No services selected");
+            return;
+          }
+          const selected: ServiceEntity[] = buildDataSource.filter(
+            (s: ServiceEntity) => selectedRowKeys.includes(s.id),
+          );
+          await handleExportSelected(selected);
+        })();
+      }}
+      onImport={() => void loadServices()}
+    >
+      {servicesTable.tableElement}
+    </GenericServiceListPage>
   );
 };
