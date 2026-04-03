@@ -89,6 +89,8 @@ const { isDark, isVSCodeWebview, palette } = useVSCodeTheme();
   (`normalizeSearchTerm`, `matchesByFields`) instead of local duplicated logic.
 - In search haystack builders for mixed types, do not use `filter(Boolean)`; keep valid
   `0`/`false` values and explicitly filter only `null`/`undefined`/`""`.
+- Column with action button should have "actions-column" class. 
+  See ACTIONS_COLUMN_CLASS constant and functions in `actionsColumn.ts`.
 
 ## Access control
 
