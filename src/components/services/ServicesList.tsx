@@ -1,17 +1,9 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./Services.module.css";
 import { message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";
-import {
-  IntegrationSystemType,
-  Specification,
-} from "../../api/apiTypes";
+import { IntegrationSystemType, Specification } from "../../api/apiTypes";
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { useServiceFilters } from "../../hooks/useServiceFilter";
 import {
@@ -24,7 +16,6 @@ import {
   isSpecification,
   isSpecificationGroup,
   isIntegrationSystem,
-  isContextSystem,
 } from "./ServicesTreeTable";
 import type {
   ContextSystem,
@@ -53,7 +44,7 @@ const visibleColumns: string[] = [
   "usedBy",
 ];
 
-type TabType = "external" | "internal" | "implemented" | "context";
+type TabType = "external" | "internal" | "implemented";
 
 export type ServicesListProps = {
   tab: TabType;
@@ -61,17 +52,7 @@ export type ServicesListProps = {
 
 export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
-  const [servicesByType, setServicesByType] = useState<{
-    external: IntegrationSystem[];
-    internal: IntegrationSystem[];
-    implemented: IntegrationSystem[];
-    context: ContextSystem[];
-  }>({
-    external: [],
-    internal: [],
-    implemented: [],
-    context: [],
-  });
+  const [services, setServices] = useState<IntegrationSystem[]>([]);
   const [specGroupsByService, setSpecGroupsByService] = useState<
     Record<string, SpecificationGroup[]>
   >({});
@@ -86,10 +67,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   const { showModal } = useModalsContext();
   const { filters, filterButton, resetFilters } = useServiceFilters();
 
-  const {
-    loading,
-    execute: loadServices,
-  } = useAsyncRequest(
+  const { loading, execute: loadServices } = useAsyncRequest(
     async () => {
       const hasSearch = searchString.trim().length > 0;
       const hasFilters = filters.length > 0;
@@ -111,29 +89,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
         servicesArray = Array.isArray(all) ? all : [];
       }
 
-      let contextServices: ContextSystem[] = [];
-      if (tab === "context") {
-        try {
-          contextServices = await api.getContextServices();
-          if (!Array.isArray(contextServices)) {
-            contextServices = [];
-          }
-        } catch {
-          contextServices = [];
-        }
-      }
-      setServicesByType({
-        external: servicesArray.filter(
-          (s) => s.type === IntegrationSystemType.EXTERNAL,
-        ),
-        internal: servicesArray.filter(
-          (s) => s.type === IntegrationSystemType.INTERNAL,
-        ),
-        implemented: servicesArray.filter(
-          (s) => s.type === IntegrationSystemType.IMPLEMENTED,
-        ),
-        context: contextServices,
-      });
+      setServices(servicesArray.filter((s) => s.type === getSystemType(tab)));
     },
     { initialValue: undefined },
   );
@@ -146,15 +102,8 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
     resetFilters();
   }, [tab]);
 
-  const getServicesByTab = useCallback(():
-    | IntegrationSystem[]
-    | ContextSystem[] => {
-    if (tab === "internal") return servicesByType["internal"];
-    return servicesByType[tab] ?? [];
-  }, [servicesByType, tab]);
-
   const buildDataSource = useMemo((): ServiceEntity[] => {
-    return getServicesByTab().map(
+    return services.map(
       (service: IntegrationSystem | ContextSystem) => {
         const groups = specGroupsByService[service.id];
         return {
@@ -172,7 +121,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
         };
       },
     );
-  }, [getServicesByTab, specGroupsByService, specsByGroup]);
+  }, [services, specGroupsByService, specsByGroup]);
 
   const handleExpand = async (expanded: boolean, record: ServiceEntity) => {
     if (!expanded) return;
@@ -225,23 +174,17 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   };
 
   const isRootEntity = (record: ServiceEntity) => {
-    return isIntegrationSystem(record) || isContextSystem(record);
-  };
-
-  const isExpandAvailable = (record: ServiceEntity) => {
-    return !isContextSystem(record);
+    return isIntegrationSystem(record);
   };
 
   const handleEdit = (record: ServiceEntity) => {
     if (isIntegrationSystem(record)) {
       void navigate(`/services/systems/${record.id}/specificationGroups`);
-    } else if (isContextSystem(record)) {
-      void navigate(`/services/context/${record.id}/parameters`);
     }
   };
 
   const handleExpandAll = async () => {
-    const roots = getServicesByTab();
+    const roots = services;
 
     const groupsMap: Record<string, SpecificationGroup[]> = {
       ...specGroupsByService,
@@ -298,8 +241,6 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   const handleDeleteWithConfirm = (record: ServiceEntity) => {
     if (isIntegrationSystem(record)) {
       void handleDelete(record.id);
-    } else if (isContextSystem(record)) {
-      void handleDeleteContext(record.id);
     }
   };
 
@@ -334,7 +275,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
       },
       onCollapseAll: handleCollapseAll,
       isRootEntity,
-      isExpandAvailable,
+      isExpandAvailable: () => true,
       onExportSelected: (selected) => {
         void handleExportSelected(selected);
       },
@@ -419,8 +360,6 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
           }));
           setLoadingRows((rows) => rows.filter((id) => id !== record.id));
         }
-      } else if (isContextSystem(record)) {
-        void navigate(`/services/context/${record.id}/parameters`);
       }
     },
   });
@@ -432,9 +371,7 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
     }
     try {
       const systemIds = selected.map((s) => s.id);
-      const file = isContextSystem(selected[0])
-        ? await api.exportContextServices(systemIds)
-        : await api.exportServices(systemIds, []);
+      const file = await api.exportServices(systemIds, []);
       downloadFile(prepareFile(file));
     } catch (e: unknown) {
       notificationService.requestFailed(getErrorMessage(e, "Export error"), e);
@@ -460,7 +397,10 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
           `/services/${type === IntegrationSystemType.CONTEXT ? "context" : "systems"}/${service.id}/parameters`,
         );
       } catch (e: unknown) {
-        notificationService.requestFailed(getErrorMessage(e, "Service creation error"), e);
+        notificationService.requestFailed(
+          getErrorMessage(e, "Service creation error"),
+          e,
+        );
         throw e;
       }
     },
@@ -473,17 +413,10 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
       void loadServices();
       message.success("Service deleted");
     } catch (e: unknown) {
-      notificationService.requestFailed(getErrorMessage(e, "Service deletion error"), e);
-    }
-  };
-
-  const handleDeleteContext = async (id: string) => {
-    try {
-      await api.deleteContextService(id);
-      void loadServices();
-      message.success("Service deleted");
-    } catch (e: unknown) {
-      notificationService.requestFailed(getErrorMessage(e, "Service deletion error"), e);
+      notificationService.requestFailed(
+        getErrorMessage(e, "Service deletion error"),
+        e,
+      );
     }
   };
 
@@ -521,8 +454,6 @@ export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
                 return "cloud";
               case "implemented":
                 return "cluster";
-              case "context":
-                return "database";
               default:
                 return "table";
             }

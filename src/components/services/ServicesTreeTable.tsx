@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Table, Button, Modal } from "antd";
 import type {
   FilterDropdownProps,
@@ -153,7 +159,7 @@ const iconStyle: React.CSSProperties = {
   verticalAlign: "middle",
 };
 
-function getIcon(record: ServiceEntity): React.JSX.Element | null {
+function getIcon(record: ServiceEntity): ReactNode {
   if (isIntegrationSystem(record)) {
     switch (record.type) {
       case IntegrationSystemType.EXTERNAL:
