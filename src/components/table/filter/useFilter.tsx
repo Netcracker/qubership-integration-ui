@@ -47,7 +47,11 @@ export const useFilter = (
   };
 
   const filterButton = (
-    <FilterButton count={filterItemStates.length} onClick={addFilter} />
+    <FilterButton
+      key="filterButton"
+      count={filterItemStates.length}
+      onClick={addFilter}
+    />
   );
 
   const resetFilters = () => {
