@@ -512,9 +512,7 @@ function findInHeaderModification(
   }
 }
 
-function toUsedProperties(
-  map: Map<string, PropertyBuilder>,
-): UsedProperty[] {
+function toUsedProperties(map: Map<string, PropertyBuilder>): UsedProperty[] {
   const result: UsedProperty[] = [];
   for (const builder of map.values()) {
     const relatedElements: Record<string, UsedPropertyElement> = {};

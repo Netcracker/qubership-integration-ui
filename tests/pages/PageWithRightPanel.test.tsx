@@ -266,18 +266,20 @@ describe("PageWithRightPanel", () => {
     expect(api.getElements).toHaveBeenCalledWith("test-chain-id");
   });
 
-  it("shows only listElements tab when isVsCode is true", () => {
+  it("shows only listElements and elementProperties tabs when isVsCode is true", () => {
     mockIsVsCode = true;
     renderWithContext(<PageWithRightPanel />);
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(1);
-    expect(tabs[0].querySelector('[data-icon="unorderedList"]')).toBeTruthy();
+    expect(tabs).toHaveLength(2);
+    expect(
+      tabs.some((tab) => tab.querySelector('[data-icon="unorderedList"]')),
+    ).toBe(true);
+    expect(
+      tabs.some((tab) => tab.querySelector('[data-icon="menuUnfold"]')),
+    ).toBe(true);
     expect(tabs.some((tab) => tab.querySelector('[data-icon="file"]'))).toBe(
       false,
     );
-    expect(
-      tabs.some((tab) => tab.querySelector('[data-icon="menuUnfold"]')),
-    ).toBe(false);
   });
 
   it("renders textViewContent from elementAsCode in text view tab", () => {
