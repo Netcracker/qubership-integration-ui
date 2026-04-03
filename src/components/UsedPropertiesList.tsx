@@ -1,12 +1,16 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Spin, Empty } from "antd";
-import { useUsedProperties } from "../hooks/useUsedProperties.tsx";
 import { UsedProperty } from "../api/apiTypes.ts";
 import { useLibraryContext } from "./LibraryContext.tsx";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
 import styles from "./UsedPropertiesList.module.css";
 import { SidebarSearch } from "./elements_library/SidebarSearch.tsx";
 import { MenuItem } from "./elements_library/ElementsLibrarySidebar";
+import {
+  analyzeUsedProperties,
+  AnalyzableElement,
+} from "../misc/used-properties-analyzer.ts";
+import { useUsedProperties } from "../hooks/useUsedProperties.tsx";
 
 const USED_PROPERTY_SOURCE_LABEL_MAPPING: { [key: string]: string } = {
   HEADER: "H",
@@ -28,17 +32,6 @@ const usedPropertyElementOperationColorMapping: {
   SET: "blue",
 };
 
-interface ParsedProperty {
-  id: string;
-  name: string;
-  source: string;
-  sourceCode: string;
-  type: string;
-  isArray: boolean;
-  childrenCount: number;
-  children: ParsedElement[];
-}
-
 interface ParsedElement {
   id: string;
   elementId: string;
@@ -51,18 +44,31 @@ interface ParsedElement {
   }>;
 }
 
-interface UsedPropertiesListProps {
-  chainId: string;
+type UsedPropertiesListProps = {
   onElementSingleClick?: (elementId: string) => void;
   onElementDoubleClick?: (elementId: string) => void;
-}
+} & (
+  | { elements: AnalyzableElement[]; chainId?: never }
+  | { chainId: string; elements?: never }
+);
 
 export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
+  elements,
   chainId,
   onElementSingleClick,
   onElementDoubleClick,
 }) => {
-  const { properties, isLoading } = useUsedProperties(chainId);
+  const { properties: apiProperties, isLoading } = useUsedProperties(
+    chainId ?? "",
+  );
+
+  const properties = useMemo(() => {
+    if (elements) {
+      return analyzeUsedProperties(elements);
+    }
+    return apiProperties;
+  }, [elements, apiProperties]);
+
   const { libraryElements } = useLibraryContext();
 
   const allItems = useRef<MenuItem[]>([]);
@@ -149,8 +155,8 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
        label: element.name,
        name: element.name,
       })),
-    }));  
-  
+    }));
+
     allItems.current = menuItems;
     if (!isSearch) {
       setItems(menuItems);
@@ -180,7 +186,7 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
   const displayProperties = useMemo(() => {
     if (!isSearch) return parsedProperties;
     const itemMap = new Map(items.map((item) => [item.key, item]));
-    
+
     return parsedProperties
       .filter((p) => itemMap.has(p.id))
       .map((p) => {
@@ -194,7 +200,7 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
       });
   }, [isSearch, items, parsedProperties]);
 
-  if (isLoading) {
+  if (!elements && isLoading) {
     return (
       <div
         style={{ display: "flex", justifyContent: "center", padding: "24px" }}

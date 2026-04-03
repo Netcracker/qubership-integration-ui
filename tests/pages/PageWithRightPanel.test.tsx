@@ -86,12 +86,18 @@ jest.mock("../../src/icons/IconProvider", () => ({
 jest.mock("../../src/components/UsedPropertiesList", () => ({
   UsedPropertiesList: ({
     chainId,
+    elements,
     onElementDoubleClick,
   }: {
-    chainId: string;
+    chainId?: string;
+    elements?: unknown[];
     onElementDoubleClick?: (id: string) => void;
   }) => (
-    <div data-testid="used-properties-list" data-chain-id={chainId}>
+    <div
+      data-testid="used-properties-list"
+      data-chain-id={chainId}
+      data-element-count={elements?.length}
+    >
       {onElementDoubleClick && (
         <button
           type="button"
@@ -245,7 +251,7 @@ describe("PageWithRightPanel", () => {
     }
   });
 
-  it("passes chainId to UsedPropertiesList when element properties tab", () => {
+  it("passes chainId to UsedPropertiesList when not in VSCode", () => {
     renderWithContext(<PageWithRightPanel />);
     const propsTab = screen
       .getAllByRole("tab")

@@ -32,6 +32,7 @@ import { ChainGraphNode } from "../components/graph/nodes/ChainGraphNodeTypes.ts
 import { useElkDirectionContext } from "./ElkDirectionContext.tsx";
 import { useFocusToElementId } from "../components/graph/ElementFocus.tsx";
 import { UsedPropertiesList } from "../components/UsedPropertiesList.tsx";
+import { AnalyzableElement } from "../misc/used-properties-analyzer.ts";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { useElementsAsCode } from "../hooks/useElementsAsCode.tsx";
 import { SidebarSearch } from "../components/elements_library/SidebarSearch.tsx";
@@ -132,7 +133,7 @@ export const PageWithRightPanel = ({
       setItems(filtered);
     },
     [isSearch, openKeysState],
-  );  
+  );
 
   const handleElementDoubleClick = useCallback(
     (element: Element) => {
@@ -250,13 +251,13 @@ export const PageWithRightPanel = ({
               key: "listElements",
               label: <OverridableIcon name="unorderedList" />,
             },
+            {
+                key: "elementProperties",
+                label: <OverridableIcon name="menuUnfold" />,
+            },
             ...(isVsCode
               ? []
               : [
-                  {
-                    key: "elementProperties",
-                    label: <OverridableIcon name="menuUnfold" />,
-                  },
                   {
                     key: "textView",
                     label: <OverridableIcon name="file" />,
@@ -292,7 +293,7 @@ export const PageWithRightPanel = ({
           <Menu
             className={styles.libraryElements}
             mode="vertical"
-            items={items}
+            items={elementMenuItems}
             selectable={false}
             selectedKeys={[]}
             onClick={({ key }) => handleElementSingleClick(String(key))}
@@ -301,14 +302,22 @@ export const PageWithRightPanel = ({
           </Flex>
         )}
         {activeTab === "elementProperties" && chainId && (
-          <UsedPropertiesList
-            chainId={chainId}
-            onElementSingleClick={handleElementSingleClick}
-            onElementDoubleClick={handleElementDoubleClickById}
-          />
+          isVsCode ? (
+            <UsedPropertiesList
+              elements={elements as unknown as AnalyzableElement[]}
+              onElementSingleClick={handleElementSingleClick}
+              onElementDoubleClick={handleElementDoubleClickById}
+            />
+          ) : (
+            <UsedPropertiesList
+              chainId={chainId}
+              onElementSingleClick={handleElementSingleClick}
+              onElementDoubleClick={handleElementDoubleClickById}
+            />
+          )
         )}
         {activeTab === "elementProperties" && !chainId && (
-          <div style={{ padding: "16px", textAlign: "center", color: "#999" }}>
+          <div style={{ padding: "16px", textAlign: "center", color: "var(--vscode-descriptionForeground)" }}>
             No chain selected
           </div>
         )}
