@@ -118,6 +118,7 @@ There are two form kinds in the application:
 - Integration chain elements' parameters forms.
 
 Regular forms are build using Ant Design `Form` component.
+Use `normalize` and `getValueProps` callbacks of `Form.Item` to handle non-trivial properties.
 
 Integration chain elements' parameters forms are generated from JSON schemas using `@rjsf/antd`. These
 schemas are dynamically loaded at runtime:
