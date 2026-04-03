@@ -136,10 +136,8 @@ export const ContextServiceList: React.FC = () => {
     defaultVisibleKeys: visibleColumns,
     storageKey: STORAGE_KEY,
     loading,
-    expandable: undefined,
     actionsColumn,
     enableSelection: true,
-    isRootEntity: () => true,
     onExportSelected: (selected) => {
       void handleExportSelected(selected);
     },
