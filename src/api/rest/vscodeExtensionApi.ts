@@ -6,6 +6,7 @@ import type {
   ImportInstruction,
   ImportInstructionRequest,
   ImportInstructionResult,
+  MCPSystem,
   SecretWithVariables,
   Variable,
 } from "../apiTypes.ts";
@@ -77,6 +78,7 @@ import {
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
+import type { EntityFilterModel } from "../../components/table/filter/filter.ts";
 
 export const NAVIGATE_EVENT = "navigate";
 export const STARTUP_EVENT = "startup";
@@ -1147,6 +1149,34 @@ export class VSCodeExtensionApi implements Api {
 
   getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
     throw new Error("Method getElementsAsCode not implemented.");
+  }
+
+  getMcpSystems(): Promise<MCPSystem[]> {
+    throw new Error("Method getMcpSystems not implemented.");
+  }
+
+  getMcpSystem(): Promise<MCPSystem> {
+    throw new Error("Method getMcpSystem not implemented.");
+  }
+
+  createMcpSystem(): Promise<MCPSystem> {
+    throw new Error("Method createMcpSystem not implemented.");
+  }
+
+  updateMcpSystem(): Promise<MCPSystem> {
+    throw new Error("Method updateMcpSystem not implemented.");
+  }
+
+  deleteMcpSystem(): Promise<void> {
+    throw new Error("Method deleteMcpSystem not implemented.");
+  }
+
+  filterMcpSystems(): Promise<MCPSystem[]> {
+    throw new Error("Method filterMcpSystems not implemented.");
+  }
+
+  exportMcpSystems(): Promise<File> {
+    throw new Error("Method exportMcpSystems not implemented.");
   }
 }
 

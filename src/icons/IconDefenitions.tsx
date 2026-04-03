@@ -118,6 +118,7 @@ import {
   WarningOutlined,
   InsertRowRightOutlined,
   InsertRowLeftOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 
 /**
@@ -247,6 +248,7 @@ export const commonIcons = {
   importInstructions: ImportOutlined,
   warning: WarningOutlined,
   checkSquare: CheckSquareOutlined,
+  mcp: MessageOutlined,
 };
 
 export const elementIcons = {

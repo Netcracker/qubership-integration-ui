@@ -45,6 +45,7 @@ import { Require } from "../../permissions/Require.tsx";
 import { ProtectedButton } from "../../permissions/ProtectedButton.tsx";
 import commonStyles from "../admin_tools/CommonStyle.module.css";
 import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
+import { capitalize } from "../../misc/format-utils.ts";
 
 const STORAGE_KEY = "servicesListTable";
 
@@ -60,12 +61,13 @@ const visibleColumns: string[] = [
   "usedBy",
 ];
 
-export const ServicesListPage: React.FC = () => {
-  type TabType = "external" | "internal" | "implemented" | "context";
-  const [tab] = useHashTab("external") as [TabType, (tab: TabType) => void];
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+type TabType = "external" | "internal" | "implemented" | "context";
+
+export type ServicesListProps = {
+  tab: TabType;
+};
+
+export const ServicesList: React.FC<ServicesListProps> = ({ tab }) => {
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
   const [servicesByType, setServicesByType] = useState<{
     external: IntegrationSystem[];
@@ -484,37 +486,31 @@ export const ServicesListPage: React.FC = () => {
     }
   };
 
-  const handleCreate = async (
-    name: string,
-    description: string | undefined,
-    type: IntegrationSystemType,
-  ) => {
-    setCreateLoading(true);
-    setCreateError(null);
-    try {
-      const service: IntegrationSystem | ContextSystem =
-        type === IntegrationSystemType.CONTEXT
-          ? await api.createContextService({ name, description })
-          : await api.createService({ name, description, type });
-      if (
-        type === IntegrationSystemType.INTERNAL ||
-        type === IntegrationSystemType.IMPLEMENTED
-      ) {
-        await api.createEnvironment(service.id, { name, address: "/" });
+  const handleCreate = useCallback(
+    async (name: string, description: string) => {
+      try {
+        const type = getSystemType(tab);
+        const service: IntegrationSystem | ContextSystem =
+          type === IntegrationSystemType.CONTEXT
+            ? await api.createContextService({ name, description })
+            : await api.createService({ name, description, type });
+        if (
+          type === IntegrationSystemType.INTERNAL ||
+          type === IntegrationSystemType.IMPLEMENTED
+        ) {
+          await api.createEnvironment(service.id, { name, address: "/" });
+        }
+        message.success("Service created");
+        void navigate(
+          `/services/${type === IntegrationSystemType.CONTEXT ? "context" : "systems"}/${service.id}/parameters`,
+        );
+      } catch (e: unknown) {
+        notify.requestFailed(getErrorMessage(e, "Service creation error"), e);
+        throw e;
       }
-      void loadServices();
-      setCreateModalOpen(false);
-      message.success("Service created");
-      void navigate(
-        `/services/${type === IntegrationSystemType.CONTEXT ? "context" : "systems"}/${service.id}/parameters`,
-      );
-    } catch (e: unknown) {
-      setCreateError(getErrorMessage(e, "Service creation error"));
-      notify.requestFailed(getErrorMessage(e, "Service creation error"), e);
-    } finally {
-      setCreateLoading(false);
-    }
-  };
+    },
+    [tab, loadServices, navigate, notify],
+  );
 
   const handleDelete = async (id: string) => {
     try {
@@ -551,7 +547,7 @@ export const ServicesListPage: React.FC = () => {
     return newMap;
   }
 
-  const getDefaultType = (tab: string): IntegrationSystemType => {
+  const getSystemType = (tab: string): IntegrationSystemType => {
     return IntegrationSystemType[
       tab.toUpperCase() as keyof typeof IntegrationSystemType
     ];
@@ -660,7 +656,7 @@ export const ServicesListPage: React.FC = () => {
                       onSuccess={() => {
                         void loadServices();
                       }}
-                      systemType={getDefaultType(tab)}
+                      systemType={getSystemType(tab)}
                     />
                   ),
                 });
@@ -673,7 +669,16 @@ export const ServicesListPage: React.FC = () => {
             buttonProps={{
               type: "primary",
               iconName: "plus",
-              onClick: () => setCreateModalOpen(true),
+              onClick: () => {
+                showModal({
+                  component: (
+                    <CreateServiceModal
+                      defaultName={`New ${capitalize(tab)} service`}
+                      onSubmit={handleCreate}
+                    />
+                  ),
+                });
+              },
             }}
           />
         </Flex>
@@ -695,36 +700,6 @@ export const ServicesListPage: React.FC = () => {
           </div>
         )}
       </div>
-
-      <CreateServiceModal
-        open={createModalOpen}
-        onCancel={() => {
-          setCreateModalOpen(false);
-          setCreateError(null);
-        }}
-        onCreate={handleCreate}
-        loading={createLoading}
-        error={createError}
-        defaultType={getDefaultType(tab)}
-      />
     </Flex>
   );
 };
-
-function useHashTab(defaultTab: string): [string, (tab: string) => void] {
-  const [tab, setTab] = useState(() => location.hash.slice(1) || defaultTab);
-
-  useEffect(() => {
-    const onHashChange = () => {
-      setTab(location.hash.slice(1) || defaultTab);
-    };
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, [defaultTab]);
-
-  const navigate = (nextTab: string) => {
-    window.location.hash = nextTab;
-  };
-
-  return [tab, navigate];
-}

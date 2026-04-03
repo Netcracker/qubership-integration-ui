@@ -160,7 +160,7 @@ jest.mock("../../src/permissions/ProtectedButton.tsx", () => ({
 }));
 
 import { message } from "antd";
-import { ServicesListPage } from "../../src/components/services/ServicesListPage";
+import { ServicesList } from "../../src/components/services/ServicesList.tsx";
 
 const makeService = (
   id: string,
@@ -200,7 +200,7 @@ describe("ServicesListPage", () => {
 
   it("calls getServices on initial load when no search/filters", async () => {
     jest.useRealTimers();
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     await waitFor(() => {
       expect(mockGetServices).toHaveBeenCalledWith("", false);
     });
@@ -209,7 +209,7 @@ describe("ServicesListPage", () => {
   });
 
   it("renders search input and updates value when typing", () => {
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     const searchInput = screen.getByPlaceholderText("Search services...");
     expect(searchInput).toBeInTheDocument();
     fireEvent.change(searchInput, { target: { value: "test query" } });
@@ -217,12 +217,12 @@ describe("ServicesListPage", () => {
   });
 
   it("renders page without errors", () => {
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     expect(screen.getByTestId("services-table")).toBeInTheDocument();
   });
 
   it("updates search input value when typing", () => {
-    render(<ServicesListPage />);
+    render(<ServicesList />);
 
     const searchInput = screen.getByPlaceholderText("Search services...");
     fireEvent.change(searchInput, { target: { value: "test query" } });
@@ -231,7 +231,7 @@ describe("ServicesListPage", () => {
   });
 
   it("calls searchServices after user types and debounce passes", async () => {
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     const searchInput = screen.getByPlaceholderText("Search services...");
     fireEvent.change(searchInput, { target: { value: "my-service" } });
 
@@ -245,7 +245,7 @@ describe("ServicesListPage", () => {
   it("calls filterServices when filters are present", async () => {
     mockFilters = [{ column: "NAME", condition: "CONTAINS", value: "x" }];
     mockFilterSystems.mockResolvedValue([]);
-    render(<ServicesListPage />);
+    render(<ServicesList />);
 
     await waitFor(() => {
       expect(mockFilterSystems).toHaveBeenCalledWith(mockFilters);
@@ -255,7 +255,7 @@ describe("ServicesListPage", () => {
   it("calls getContextServices when tab is context", async () => {
     window.location.hash = "#context";
     mockGetContextServices.mockResolvedValue([]);
-    render(<ServicesListPage />);
+    render(<ServicesList />);
 
     await waitFor(() => {
       expect(mockGetContextServices).toHaveBeenCalled();
@@ -265,7 +265,7 @@ describe("ServicesListPage", () => {
   it("shows External Services title when hash is empty", async () => {
     jest.useRealTimers();
     window.location.hash = "";
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     await waitFor(() => expect(mockGetServices).toHaveBeenCalled());
     expect(screen.getByText("External Services")).toBeInTheDocument();
   });
@@ -273,14 +273,14 @@ describe("ServicesListPage", () => {
   it("shows Implemented Services title when hash is #implemented", async () => {
     jest.useRealTimers();
     window.location.hash = "#implemented";
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     await waitFor(() => expect(mockGetServices).toHaveBeenCalled());
     expect(screen.getByText("Implemented Services")).toBeInTheDocument();
   });
 
   it("calls showModal when Upload services is clicked", async () => {
     jest.useRealTimers();
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     await waitFor(() => expect(mockGetServices).toHaveBeenCalled());
     fireEvent.click(screen.getByTestId("svc-action-upload-services"));
     expect(mockShowModal).toHaveBeenCalledWith(
@@ -292,7 +292,7 @@ describe("ServicesListPage", () => {
 
   it("opens Create service modal when Create service is clicked", async () => {
     jest.useRealTimers();
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     await waitFor(() => expect(mockGetServices).toHaveBeenCalled());
     expect(screen.queryByTestId("create-modal")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("svc-action-create-service"));
@@ -301,7 +301,7 @@ describe("ServicesListPage", () => {
 
   it("shows message when Download selected with no selection", async () => {
     jest.useRealTimers();
-    render(<ServicesListPage />);
+    render(<ServicesList />);
     await waitFor(() => expect(mockGetServices).toHaveBeenCalled());
     fireEvent.click(
       screen.getByTestId("svc-action-download-selected-services"),

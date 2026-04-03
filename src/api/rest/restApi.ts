@@ -90,6 +90,9 @@ import {
   DeleteImportInstructionsRequest,
   ImportEntityType,
   ChainElementCodeResponse,
+  type MCPSystem,
+  type MCPSystemCreateRequest,
+  type MCPSystemUpdateRequest,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -105,6 +108,7 @@ import type {
   SecretWithVariables,
   Variable,
 } from "../apiTypes.ts";
+import { File } from "node:buffer";
 
 export class RestApi implements Api {
   instance: AxiosInstance;
@@ -1672,7 +1676,9 @@ export class RestApi implements Api {
     const url =
       systemType === IntegrationSystemType.CONTEXT
         ? `${this.v1()}/catalog/context-system/import`
-        : `${this.v1()}/systems-catalog/import/system`;
+        : systemType === IntegrationSystemType.MCP
+          ? `${this.v1()}/catalog/mcp-system/import`
+          : `${this.v1()}/systems-catalog/import/system`;
     const response = await this.instance.post<ImportSystemResult[]>(
       url,
       formData,
@@ -2198,6 +2204,70 @@ export class RestApi implements Api {
   exportImportInstructions = async (): Promise<File> => {
     const response = await this.instance.get<Blob>(
       `${this.v1()}/catalog/import-instructions/export`,
+      { responseType: "blob" },
+    );
+    return getFileFromResponse(response);
+  };
+
+  getMcpSystems = async (withChains: boolean): Promise<MCPSystem[]> => {
+    const response = await this.instance.get<MCPSystem[]>(
+      `${this.v1()}/catalog/mcp-system`,
+      {
+        params: {
+          withChains,
+        },
+      },
+    );
+    return response.data;
+  };
+
+  getMcpSystem = async (id: string): Promise<MCPSystem> => {
+    const response = await this.instance.get<MCPSystem>(
+      `${this.v1()}/catalog/mcp-system/${id}`,
+    );
+    return response.data;
+  };
+
+  createMcpSystem = async (
+    request: MCPSystemCreateRequest,
+  ): Promise<MCPSystem> => {
+    const response = await this.instance.post<MCPSystem>(
+      `${this.v1()}/catalog/mcp-system`,
+      request,
+    );
+    return response.data;
+  };
+
+  updateMcpSystem = async (
+    id: string,
+    request: MCPSystemUpdateRequest,
+  ): Promise<MCPSystem> => {
+    const response = await this.instance.put<MCPSystem>(
+      `${this.v1()}/catalog/mcp-system/${id}`,
+      request,
+    );
+    return response.data;
+  };
+
+  deleteMcpSystem = async (id: string): Promise<void> => {
+    await this.instance.delete(`${this.v1()}/catalog/mcp-system/${id}`);
+  };
+
+  filterMcpSystems = async (
+    searchString: string,
+    filters: EntityFilterModel[],
+  ): Promise<MCPSystem[]> => {
+    const response = await this.instance.post<MCPSystem[]>(
+      `${this.v1()}/catalog/mcp-system/filter`,
+      { searchString, filters },
+    );
+    return response.data;
+  };
+
+  exportMcpSystems = async (ids: string[]): Promise<File> => {
+    const response = await this.instance.post<Blob>(
+      `${this.v1()}/catalog/mcp-system/export`,
+      ids,
       { responseType: "blob" },
     );
     return getFileFromResponse(response);
