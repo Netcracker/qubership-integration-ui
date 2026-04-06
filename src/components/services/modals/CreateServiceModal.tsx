@@ -30,7 +30,6 @@ export const CreateServiceModal: React.FC<CreateServiceModalProps> = ({
         await onSubmit(name, description);
         closeContainingModal();
       } catch (e) {
-        console.log({ e });
         setErrorText(getErrorMessage(e));
       } finally {
         setIsLoading(false);
