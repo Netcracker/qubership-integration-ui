@@ -226,3 +226,10 @@ All in `src/misc/`:
 | `tree-utils.ts`       | Tree structure traversal (folders/chains)                           |
 | `clipboard-util.ts`   | Copy to clipboard                                                   |
 | `log-export-utils.ts` | Export logs to Excel (exceljs)                                      |
+
+## Testing
+
+Description of unit test should follow the following pattern, if applicable: "should ... when ...".
+Here are some examples:
+* should show full URI when no path component exists
+* should export participants with names
