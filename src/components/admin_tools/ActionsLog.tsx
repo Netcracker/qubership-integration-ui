@@ -10,7 +10,7 @@ import {
   Typography,
 } from "antd";
 import { TableProps } from "antd/lib/table";
-import React, { UIEvent, useRef, useState } from "react";
+import React, { UIEvent, useMemo, useRef, useState } from "react";
 import { useActionLog } from "../../hooks/useActionLog.tsx";
 import {
   capitalize,
@@ -30,11 +30,16 @@ import {
 } from "../table/TimestampColumnFilterDropdown.tsx";
 import { makeEnumColumnFilterDropdown } from "../EnumColumnFilterDropdown.tsx";
 import { useResizeHeight } from "../../hooks/useResizeHeigth.tsx";
-import { ResizableTitle } from "../ResizableTitle.tsx";
 import commonStyles from "./CommonStyle.module.css";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 import { Require } from "../../permissions/Require.tsx";
 import { useColumnSettingsBasedOnColumnsType } from "../table/useColumnSettingsButton.tsx";
+import {
+  attachResizeToColumns,
+  useTableColumnResize,
+} from "../table/useTableColumnResize.tsx";
+import { CompactSearch } from "../table/CompactSearch.tsx";
+import { matchesByFields } from "../table/tableSearch.ts";
 
 export enum OperationType {
   READ = "read",
@@ -142,6 +147,21 @@ const { Title } = Typography;
 
 const EXTERNAL_ENTITY_PATTERN = /^[^\\/:*?"<>|]+\.(zip|ya?ml|xml|wsdl)$/i;
 
+function actionLogMatchesSearch(log: ActionLog, term: string): boolean {
+  return matchesByFields(term, [
+    log.username,
+    log.userId,
+    log.operation,
+    log.entityType,
+    log.parentType,
+    log.entityName,
+    log.parentName,
+    log.entityId,
+    log.parentId,
+    log.requestId,
+  ]);
+}
+
 export const ActionsLog: React.FC = () => {
   const {
     logsData,
@@ -151,8 +171,14 @@ export const ActionsLog: React.FC = () => {
     isLoading,
     refresh,
   } = useActionLog();
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentActionLog, setCurrentActionLog] = useState<ActionLog | null>(
     null,
+  );
+
+  const filteredLogsData = useMemo(
+    () => logsData.filter((log) => actionLogMatchesSearch(log, searchTerm)),
+    [logsData, searchTerm],
   );
 
   const onScroll = async (event: UIEvent<HTMLDivElement>) => {
@@ -166,19 +192,17 @@ export const ActionsLog: React.FC = () => {
 
   const [containerRef, containerHeight] = useResizeHeight<HTMLElement>();
 
-  const [columnsWidth, setColumnsWidth] = useState<{ [key: string]: number }>({
+  const actionLogColumnResize = useTableColumnResize({
     actionTime: 200,
     username: 200,
     operation: 200,
     entityType: 300,
     entityName: 500,
     parentName: 400,
+    entityId: 300,
+    parentId: 300,
+    requestId: 300,
   });
-
-  const totalColumnsWidth = Object.values(columnsWidth).reduce(
-    (acc, width) => acc + width,
-    0,
-  );
 
   const operationOptions = Object.values(LogOperation).map((value) => ({
     label: formatSnakeCased(capitalize(value)),
@@ -214,45 +238,33 @@ export const ActionsLog: React.FC = () => {
       title: "Action Time",
       key: "actionTime",
       dataIndex: "actionTime",
-      width: columnsWidth.actionTime,
+      width: actionLogColumnResize.columnWidths.actionTime,
       sorter: (a: ActionLog, b: ActionLog) => b.actionTime - a.actionTime,
       filterDropdown: (props: FilterDropdownProps) => (
         <TimestampColumnFilterDropdown {...props} />
       ),
       onFilter: getTimestampColumnFilterFn((log) => log.actionTime),
-      onHeaderCell: () => ({
-        width: columnsWidth.actionTime,
-        onResize: handleResize("actionTime"),
-      }),
       render: (_, actionLog) => <>{formatTimestamp(actionLog.actionTime)}</>,
     },
     {
       title: "Initiator",
       key: "username",
       dataIndex: "username",
-      width: columnsWidth.username,
+      width: actionLogColumnResize.columnWidths.username,
       filterDropdown: (props: FilterDropdownProps) => (
         <TextColumnFilterDropdown {...props} />
       ),
       onFilter: getTextColumnFilterFn((log) =>
         log?.username ? log?.username : "",
       ),
-      onHeaderCell: () => ({
-        width: columnsWidth.username,
-        onResize: handleResize("username"),
-      }),
     },
     {
       title: "Operation",
       key: "operation",
       dataIndex: "operation",
-      width: columnsWidth.operation,
+      width: actionLogColumnResize.columnWidths.operation,
       filterDropdown: operationFilter,
       onFilter: operationOnFilter,
-      onHeaderCell: () => ({
-        width: columnsWidth.operation,
-        onResize: handleResize("operation"),
-      }),
       render: (_, actionLog) => (
         <>
           <Badge
@@ -267,13 +279,9 @@ export const ActionsLog: React.FC = () => {
       title: "Entity Type",
       key: "entityType",
       dataIndex: "entityType",
-      width: columnsWidth.entityType,
+      width: actionLogColumnResize.columnWidths.entityType,
       filterDropdown: entityTypeFilter,
       onFilter: entityTypeOnFilter,
-      onHeaderCell: () => ({
-        width: columnsWidth.entityType,
-        onResize: handleResize("entityType"),
-      }),
       render: (_, actionLog) => (
         <>
           {getIconByEntityType(actionLog.entityType)}
@@ -285,37 +293,35 @@ export const ActionsLog: React.FC = () => {
       title: "Entity Name",
       key: "entityName",
       dataIndex: "entityName",
-      width: columnsWidth.entityName,
+      width: actionLogColumnResize.columnWidths.entityName,
       filterDropdown: (props: FilterDropdownProps) => (
         <TextColumnFilterDropdown {...props} />
       ),
       onFilter: getTextColumnFilterFn((log) =>
         log?.entityName ? log.entityName : "",
       ),
-      onHeaderCell: () => ({
-        width: columnsWidth.entityName,
-        onResize: handleResize("entityName"),
-      }),
       render: (_, actionLog) =>
-        renderEntityLink(actionLog, columnsWidth.entityName),
+        renderEntityLink(
+          actionLog,
+          actionLogColumnResize.columnWidths.entityName,
+        ),
     },
     {
       title: "Parent Name",
       key: "parentName",
       dataIndex: "parentName",
-      width: columnsWidth.parentName,
+      width: actionLogColumnResize.columnWidths.parentName,
       filterDropdown: (props: FilterDropdownProps) => (
         <TextColumnFilterDropdown {...props} />
       ),
       onFilter: getTextColumnFilterFn((log) =>
         log?.parentName ? log.parentName : "",
       ),
-      onHeaderCell: () => ({
-        width: columnsWidth.parentName,
-        onResize: handleResize("parentName"),
-      }),
       render: (_, actionLog) =>
-        renderParentLink(actionLog, columnsWidth.parentName),
+        renderParentLink(
+          actionLog,
+          actionLogColumnResize.columnWidths.parentName,
+        ),
     },
     {
       title: "ID",
@@ -324,37 +330,43 @@ export const ActionsLog: React.FC = () => {
     },
     {
       title: "Entity Id",
+      key: "entityId",
       dataIndex: "entityId",
+      width: actionLogColumnResize.columnWidths.entityId,
       hidden: true,
     },
     {
       title: "Parent Id",
+      key: "parentId",
       dataIndex: "parentId",
+      width: actionLogColumnResize.columnWidths.parentId,
       hidden: true,
     },
     {
       title: "Request Id",
+      key: "requestId",
       dataIndex: "requestId",
+      width: actionLogColumnResize.columnWidths.requestId,
       hidden: true,
     },
   ];
 
   const { orderedColumns, columnSettingsButton } =
     useColumnSettingsBasedOnColumnsType<ActionLog>("actionsLogTable", columns);
-
-  const handleResize =
-    (dataIndex: string) =>
-    (
-      _: React.SyntheticEvent<Element>,
-      { size }: { size: { width: number } },
-    ) => {
-      requestAnimationFrame(() => {
-        setColumnsWidth((prev) => ({
-          ...prev,
-          [dataIndex]: size.width,
-        }));
-      });
-    };
+  const orderedColumnsResized = useMemo(
+    () =>
+      attachResizeToColumns(
+        orderedColumns,
+        actionLogColumnResize.columnWidths,
+        actionLogColumnResize.createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [
+      orderedColumns,
+      actionLogColumnResize.columnWidths,
+      actionLogColumnResize.createResizeHandlers,
+    ],
+  );
 
   const showDrawer = (actionLog: ActionLog) => {
     setCurrentActionLog(actionLog);
@@ -461,7 +473,20 @@ export const ActionsLog: React.FC = () => {
           <OverridableIcon name="audit" className={commonStyles["icon"]} />
           Audit
         </Title>
-        <Flex vertical={false} gap={4} className={commonStyles["actions"]}>
+        <Flex
+          vertical={false}
+          align="center"
+          gap={8}
+          wrap="wrap"
+          className={commonStyles["actions"]}
+        >
+          <CompactSearch
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search audit log..."
+            allowClear
+            className={commonStyles["searchField"] as string}
+          />
           {columnSettingsButton}
           <Tooltip title="Refresh" placement="bottom">
             <Button
@@ -494,7 +519,7 @@ export const ActionsLog: React.FC = () => {
           display: "flex",
           flexDirection: "column",
           borderRadius: "8px",
-          overflowY: "auto",
+          overflow: "hidden",
         }}
       >
         {currentActionLog && (
@@ -559,18 +584,17 @@ export const ActionsLog: React.FC = () => {
             <Table<ActionLog>
               className="flex-table"
               size="small"
-              columns={orderedColumns}
-              dataSource={logsData}
-              scroll={{ x: totalColumnsWidth, y: containerHeight - 59 || 400 }}
+              columns={orderedColumnsResized}
+              dataSource={filteredLogsData}
+              scroll={{
+                x: actionLogColumnResize.totalColumnsWidth,
+                y: containerHeight - 59 || 400,
+              }}
               pagination={false}
               rowKey="id"
               loading={isFetching}
               onScroll={(event) => void onScroll(event)}
-              components={{
-                header: {
-                  cell: ResizableTitle,
-                },
-              }}
+              components={actionLogColumnResize.resizableHeaderComponents}
               onRow={(row) => {
                 return {
                   onClick: () => {

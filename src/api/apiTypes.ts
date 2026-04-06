@@ -1119,6 +1119,8 @@ export interface SystemOperation {
   path: string;
   modelId: string;
   chains: BaseEntity[];
+  channel?: string;
+  topic?: string;
 }
 
 export interface OperationInfo {
@@ -1345,6 +1347,30 @@ export enum BulkDeploymentStatus {
   IGNORED = "IGNORED",
 }
 
+export type CreateMaasKafkaRequest = {
+  namespace: string;
+  topicClassifierName: string;
+};
+
+export type CreateMaasRabbitMQRequest = {
+  namespace: string;
+  vhost: string;
+  exchange: string;
+  queue: string;
+  routingKey?: string;
+};
+
+export type GetMaasKafkaDeclarativeRequest = {
+  topicClassifierName: string;
+};
+
+export type GetMaasRabbitMQDeclarativeRequest = {
+  vhost: string;
+  exchange: string;
+  queue: string;
+  routingKey?: string;
+};
+
 export enum UsedPropertySource {
   HEADER = "HEADER",
   EXCHANGE_PROPERTY = "EXCHANGE_PROPERTY",
@@ -1389,4 +1415,8 @@ export interface DiscoveryResponse {
   discoveredSpecificationIds: string[];
   updatedSystemsIds: string[];
   errorMessages: DiscoveryError[];
+}
+
+export interface ChainElementCodeResponse {
+  code: string;
 }

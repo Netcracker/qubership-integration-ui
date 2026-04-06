@@ -72,6 +72,10 @@ import {
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
   ImportVariablesResult,
   VariableImportPreview,
   UsedProperty,
@@ -85,6 +89,7 @@ import {
   ImportInstructionResult,
   DeleteImportInstructionsRequest,
   ImportEntityType,
+  ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getFileFromResponse } from "../../misc/download-utils.ts";
@@ -1936,6 +1941,64 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  createMaasKafkaEntity = async (
+    request: CreateMaasKafkaRequest,
+  ): Promise<void> => {
+    await this.instance.post(`/api/cip/v1/maas-actions/kafka`, undefined, {
+      params: {
+        namespace: request.namespace,
+        topicClassifierName: request.topicClassifierName,
+      },
+    });
+  };
+
+  createMaasRabbitMQEntity = async (
+    request: CreateMaasRabbitMQRequest,
+  ): Promise<void> => {
+    await this.instance.post(`/api/cip/v1/maas-actions/rabbitmq`, undefined, {
+      params: {
+        namespace: request.namespace,
+        vhost: request.vhost,
+        exchange: request.exchange,
+        queue: request.queue,
+        routingKey: request.routingKey,
+      },
+    });
+  };
+
+  getMaasKafkaDeclarativeFile = async (
+    request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File> => {
+    const response = await this.instance.post<Blob>(
+      `/api/cip/v1/maas-actions/kafka/declarative`,
+      undefined,
+      {
+        params: { topicClassifierName: request.topicClassifierName },
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
+  };
+
+  getMaasRabbitMQDeclarativeFile = async (
+    request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File> => {
+    const response = await this.instance.post<Blob>(
+      `/api/cip/v1/maas-actions/rabbitmq/declarative`,
+      undefined,
+      {
+        params: {
+          vhost: request.vhost,
+          exchange: request.exchange,
+          queue: request.queue,
+          routingKey: request.routingKey,
+        },
+        responseType: "blob",
+      },
+    );
+    return getFileFromResponse(response);
+  };
+
   getUsedProperties = async (chainId: string): Promise<UsedProperty[]> => {
     const response = await this.instance.get<UsedProperty[]>(
       `${this.v1()}/catalog/chains/${chainId}/elements/properties/used`,
@@ -1993,6 +2056,16 @@ export class RestApi implements Api {
     const response = await this.instance.get<DiscoveryResponse>(
       `${this.v1()}/systems-catalog/systems/discovery/result`,
     );
+    return response.data;
+  };
+
+  getElementsAsCode = async (
+    chainId: string,
+  ): Promise<ChainElementCodeResponse> => {
+    const response = await this.instance.get<ChainElementCodeResponse>(
+      `${this.v1()}/catalog/chains/${chainId}/elements/code`,
+    );
+
     return response.data;
   };
 

@@ -64,11 +64,16 @@ import {
   Specification,
   SpecificationGroup,
   SystemOperation,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
   SystemRequest,
   TransferElementRequest,
   UsedProperty,
   UsedService,
   VariableImportPreview,
+  ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -998,6 +1003,25 @@ export class VSCodeExtensionApi implements Api {
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
   }
+  createMaasKafkaEntity(_request: CreateMaasKafkaRequest): Promise<void> {
+    throw new Error("Method createMaasKafkaEntity not implemented.");
+  }
+
+  createMaasRabbitMQEntity(_request: CreateMaasRabbitMQRequest): Promise<void> {
+    throw new Error("Method createMaasRabbitMQEntity not implemented.");
+  }
+
+  getMaasKafkaDeclarativeFile(
+    _request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File> {
+    throw new Error("Method getMaasKafkaDeclarativeFile not implemented.");
+  }
+
+  getMaasRabbitMQDeclarativeFile(
+    _request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File> {
+    throw new Error("Method getMaasRabbitMQDeclarativeFile not implemented.");
+  }
 
   loadHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
     throw new Error("Method loadHttpTriggerAccessControl not implemented.");
@@ -1083,7 +1107,7 @@ export class VSCodeExtensionApi implements Api {
   }
 
   getUsedProperties(_chainId: string): Promise<UsedProperty[]> {
-    throw new Error("Method loadHttpTriggerAccessControl not implemented.");
+    throw new Error("Method getUsedProperties not implemented.");
   }
 
   runServiceDiscovery(): Promise<unknown> {
@@ -1119,6 +1143,10 @@ export class VSCodeExtensionApi implements Api {
   }
   exportImportInstructions(): Promise<File> {
     throw new Error("Method exportImportInstructions not implemented.");
+  }
+
+  getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
+    throw new Error("Method getElementsAsCode not implemented.");
   }
 }
 

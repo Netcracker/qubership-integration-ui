@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
-import { getColumnsOrderKey, getColumnsVisibleKey } from "./ColumnsFilter";
+import { useEffect, useMemo, useState } from "react";
 import { ColumnSettingsButton } from "./ColumnSettingsButton";
 import { ColumnsType } from "antd/lib/table";
+import { getColumnsOrderKey, getColumnsVisibleKey } from "./ColumnsFilter";
 import { parseJsonOrDefault } from "../../misc/json-helper";
-
-const ACTIONS_COLUMN_NAME = "actions"; //always displayed last and not manageable
+import { ACTIONS_COLUMN_KEY } from "./actionsColumn.ts";
 
 export const useColumnSettingsButton = <T,>(
   storageKey: string,
@@ -12,21 +11,35 @@ export const useColumnSettingsButton = <T,>(
   visibleKeys: string[],
   tableColumnDefinitions: ColumnsType<T>,
 ) => {
-  const [columnsOrder, setColumnsOrder] = useState<string[]>(() => {
+  const allColumnKeysMemo = useMemo(() => {
     const storedOrder = localStorage.getItem(getColumnsOrderKey(storageKey));
     return storedOrder
       ? parseJsonOrDefault<string[]>(storedOrder, [])
       : allColumnKeys;
-  });
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  const visibleKeysMemo = useMemo(() => {
     const storedVisible = localStorage.getItem(
       getColumnsVisibleKey(storageKey),
     );
     return storedVisible
       ? parseJsonOrDefault<string[]>(storedVisible, [])
       : visibleKeys;
-  });
-  const hasActions = allColumnKeys.includes(ACTIONS_COLUMN_NAME);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  const [columnsOrder, setColumnsOrder] = useState<string[]>(allColumnKeysMemo);
+  const [visibleColumns, setVisibleColumns] =
+    useState<string[]>(visibleKeysMemo);
+  const hasActions = allColumnKeys.includes(ACTIONS_COLUMN_KEY);
+
+  useEffect(() => {
+    setColumnsOrder(allColumnKeysMemo);
+    setVisibleColumns(visibleKeysMemo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
 
   const handleColumnsChange = (order: string[], visible: string[]) => {
     setColumnsOrder(order);
@@ -40,16 +53,16 @@ export const useColumnSettingsButton = <T,>(
         return tableColumnDefinitions.find((col) => col.key === key);
       })
       .filter(Boolean)
-      .map((columnType) => {
-        columnType.hidden = false;
-        return columnType;
-      }) as ColumnsType<T>;
+      .map((columnType) => ({
+        ...columnType,
+        hidden: false,
+      })) as ColumnsType<T>;
     if (
       hasActions &&
-      !ordered.find((column) => column.key === ACTIONS_COLUMN_NAME)
+      !ordered.some((column) => column.key === ACTIONS_COLUMN_KEY)
     ) {
       ordered.push(
-        tableColumnDefinitions.find((col) => col.key === ACTIONS_COLUMN_NAME)!,
+        tableColumnDefinitions.find((col) => col.key === ACTIONS_COLUMN_KEY)!,
       );
     }
     return ordered;
@@ -57,7 +70,8 @@ export const useColumnSettingsButton = <T,>(
 
   const columnSettingsButton = (
     <ColumnSettingsButton
-      allColumns={allColumnKeys.filter((key) => key !== ACTIONS_COLUMN_NAME)}
+      key={storageKey + "SettingsButton"}
+      allColumns={allColumnKeysMemo.filter((key) => key !== ACTIONS_COLUMN_KEY)}
       defaultColumns={visibleKeys}
       storageKey={storageKey}
       labelsByKey={Object.fromEntries(

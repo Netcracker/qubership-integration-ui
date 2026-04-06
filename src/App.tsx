@@ -47,40 +47,54 @@ import {
 } from "./theme/themeInit.ts";
 import { getAntdThemeConfig } from "./theme/antdTokens.ts";
 import { IconProvider } from "./icons/IconProvider.tsx";
-import { createContext, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { getConfig } from "./appConfig.ts";
 import { reapplyCssVariables } from "./config/initConfig.ts";
 import { LiveExchanges } from "./components/admin_tools/exchanges/LiveExchanges.tsx";
 import { ContextServiceParametersPage } from "./components/services/context/ContextServiceParametersPage.tsx";
 import DevTools from "./pages/DevTools.tsx";
 import { DiagnosticValidationPage } from "./components/dev_tools/DiagnosticValidationPage.tsx";
+import { KafkaMaasPage } from "./components/dev_tools/maas/KafkaMaasPage.tsx";
+import { RabbitMQMaasPage } from "./components/dev_tools/maas/RabbitMQMaasPage.tsx";
 import { DesignTemplates } from "./components/admin_tools/design-templates/DesignTemplates.tsx";
 import { ImportInstructions } from "./components/admin_tools/ImportInstructions.tsx";
 import { UserPermissionsProvider } from "./permissions/UserPermissionsProvider.tsx";
 import { Require } from "./permissions/Require.tsx";
 import { NotAuthorized } from "./permissions/NotAuthorized.tsx";
+import { ThemeContext, ThemeContextValue } from "./theme/context.tsx";
+import {
+  ChainFullscreenContextProvider,
+  useChainFullscreenContext,
+} from "./pages/ChainFullscreenContext.tsx";
 
 const { Header } = Layout;
-
-type ThemeContextValue = {
-  theme: ThemeMode;
-  onThemeChange: (theme: ThemeMode) => void;
-  showThemeSwitcher: boolean;
-};
-
-const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const RootLayout = () => {
   const themeContext = useContext(ThemeContext);
   return (
+    <ChainFullscreenContextProvider>
+      <RootLayoutInner themeContext={themeContext} />
+    </ChainFullscreenContextProvider>
+  );
+};
+
+const RootLayoutInner = ({
+  themeContext,
+}: {
+  themeContext: ThemeContextValue | null;
+}) => {
+  const fullscreenCtx = useChainFullscreenContext();
+  return (
     <Layout className={styles.layout}>
-      <Header className={styles.header}>
-        <Navigation
-          showThemeSwitcher={themeContext?.showThemeSwitcher ?? false}
-          currentTheme={themeContext?.theme}
-          onThemeChange={themeContext?.onThemeChange}
-        />
-      </Header>
+      {!fullscreenCtx?.fullscreen && (
+        <Header className={styles.header}>
+          <Navigation
+            showThemeSwitcher={themeContext?.showThemeSwitcher ?? false}
+            currentTheme={themeContext?.theme}
+            onThemeChange={themeContext?.onThemeChange}
+          />
+        </Header>
+      )}
       <Content className={styles.content}>
         <Outlet />
       </Content>
@@ -103,7 +117,9 @@ const router = createBrowserRouter(
             </Require>
           }
         >
-          <Route path="" element={<Navigate to="diagnostic/validations" />} />
+          <Route path="" element={<Navigate to="maas/kafka" />} />
+          <Route path="maas/kafka" element={<KafkaMaasPage />} />
+          <Route path="maas/rabbitmq" element={<RabbitMQMaasPage />} />
           <Route
             path="diagnostic/validations"
             element={<DiagnosticValidationPage />}

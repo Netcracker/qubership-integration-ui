@@ -15,16 +15,25 @@ import {
   ValidationState,
 } from "../../api/apiTypes";
 import { TableProps } from "antd/lib/table";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TableRowSelection } from "antd/lib/table/interface";
 import { api } from "../../api/api";
 import { useNotificationService } from "../../hooks/useNotificationService";
 import { formatTimestamp } from "../../misc/format-utils";
 import { IconName, OverridableIcon } from "../../icons/IconProvider";
+import { treeExpandIcon } from "../table/TreeExpandIcon";
 import { useModalsContext } from "../../Modals";
 import { DiagnosticValidationModal } from "./DiagnosticValidationModal";
 import { useDiagnosticValidationFilters } from "./useDiagnosticValidationFilters";
 import { useColumnSettingsBasedOnColumnsType } from "../table/useColumnSettingsButton";
+import {
+  attachResizeToColumns,
+  useTableColumnResize,
+} from "../table/useTableColumnResize.tsx";
+import commonStyles from "../admin_tools/CommonStyle.module.css";
+
+const DIAGNOSTIC_EXPAND_COLUMN_WIDTH = 48;
+const DIAGNOSTIC_SELECTION_COLUMN_WIDTH = 48;
 
 export const VALIDATION_STATE_TO_LABEL: { [key: string]: string } = {
   [ValidationState.OK]: "Finished",
@@ -142,7 +151,6 @@ export const Diagnostic: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 130,
       render: (_, validation) =>
         isDiagnosticValidation(validation) && (
           <Badge
@@ -163,7 +171,6 @@ export const Diagnostic: React.FC = () => {
       title: "Alerts",
       dataIndex: "alertsCount",
       key: "alertsCount",
-      width: 90,
       sorter: (a, b) => (a.alertsCount ?? 0) - (b.alertsCount ?? 0),
       render: (_, record) => {
         const count = record.alertsCount;
@@ -185,7 +192,6 @@ export const Diagnostic: React.FC = () => {
       title: "Hint",
       dataIndex: "hint",
       key: "hint",
-      width: 70,
       render: (_, validation) =>
         isDiagnosticValidation(validation) && (
           <Tooltip placement="left" title={validation.suggestion}>
@@ -197,7 +203,6 @@ export const Diagnostic: React.FC = () => {
       title: "Start Time",
       dataIndex: "startedWhen",
       key: "startTime",
-      width: 180,
       render: (_, validation) =>
         isDiagnosticValidation(validation) &&
         validation?.status?.startedWhen &&
@@ -210,6 +215,34 @@ export const Diagnostic: React.FC = () => {
       "diagnosticTable",
       columns,
     );
+
+  const diagnosticColumnResize = useTableColumnResize({
+    title: 360,
+    status: 130,
+    alertsCount: 100,
+    hint: 80,
+    startTime: 180,
+  });
+
+  const columnsWithResize = useMemo(
+    () =>
+      attachResizeToColumns(
+        orderedColumns,
+        diagnosticColumnResize.columnWidths,
+        diagnosticColumnResize.createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [
+      orderedColumns,
+      diagnosticColumnResize.columnWidths,
+      diagnosticColumnResize.createResizeHandlers,
+    ],
+  );
+
+  const scrollX =
+    diagnosticColumnResize.totalColumnsWidth +
+    DIAGNOSTIC_EXPAND_COLUMN_WIDTH +
+    DIAGNOSTIC_SELECTION_COLUMN_WIDTH;
 
   const rowSelection: TableRowSelection<DiagnosticValidationTableItem> = {
     type: "checkbox",
@@ -399,12 +432,13 @@ export const Diagnostic: React.FC = () => {
         showIcon
         message="This menu is only available for testing environment and won't be accessible on production. Data, created via this tab won't be exported with the chains."
       />
-      <Flex vertical={false} gap={4}>
+      <Flex vertical={false} align="center" gap={8} wrap="wrap">
         <CompactSearch
           value={searchString}
           onChange={setSearchString}
-          placeholder="Full text search"
+          placeholder="Search validations..."
           allowClear
+          className={commonStyles["searchField"] as string}
         />
         {columnSettingsButton}
         {filterButton}
@@ -422,25 +456,17 @@ export const Diagnostic: React.FC = () => {
       <Table<DiagnosticValidationTableItem>
         size="small"
         className="flex-table"
-        columns={orderedColumns}
+        columns={columnsWithResize}
         rowSelection={rowSelection}
         dataSource={tableData}
         pagination={false}
         loading={isLoading}
         rowKey="itemId"
         sticky
-        scroll={{ y: "" }}
+        scroll={{ x: scrollX, y: "" }}
+        components={diagnosticColumnResize.resizableHeaderComponents}
         expandable={{
-          expandIcon: ({ expanded, onExpand, record, expandable }) =>
-            expandable ? (
-              <OverridableIcon
-                name={expanded ? "down" : "right"}
-                style={{ cursor: "pointer", marginRight: 8, fontSize: 12 }}
-                onClick={(e) => onExpand(record, e)}
-              />
-            ) : (
-              <span style={{ display: "inline-block", width: 20 }} />
-            ),
+          expandIcon: treeExpandIcon(),
           expandedRowKeys,
           onExpandedRowsChange: (rowKeys) => {
             setExpandedRowKeys([...rowKeys]);
