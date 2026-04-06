@@ -35,6 +35,7 @@ import {
   StringFilterConditions,
 } from "../../table/filter/filter.ts";
 import { LabelsStringTableFilter } from "../../../hooks/useChainFilter.ts";
+import { ChainColumn } from "../ui/ChainColumn.tsx";
 
 const SELECTION_COLUMN_WIDTH = 48;
 
@@ -189,36 +190,8 @@ export const McpServiceList: React.FC = () => {
       dataIndex: "usedBy",
       key: "usedBy",
       width: 120,
-      // TODO
-      // render: (_: unknown, record: ServiceEntity) => {
-      //   if (isIntegrationSystem(record))
-      //     return (
-      //       <div
-      //         style={{
-      //           display: "flex",
-      //           justifyContent: "center",
-      //           alignItems: "center",
-      //           height: "100%",
-      //         }}
-      //       ></div>
-      //     );
-      //   const chains =
-      //     "chains" in record && Array.isArray(record.chains)
-      //       ? record.chains
-      //       : [];
-      //   return (
-      //     <div
-      //       style={{
-      //         display: "flex",
-      //         justifyContent: "center",
-      //         alignItems: "center",
-      //         height: "100%",
-      //       }}
-      //     >
-      //       <ChainColumn chains={chains} />
-      //     </div>
-      //   );
-      // },
+      render: (_: unknown, system) =>
+        <ChainColumn chains={system.chains ?? []} />,
     },
     {
       title: "Created At",

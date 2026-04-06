@@ -1019,6 +1019,7 @@ export type MCPSystem = BaseEntity & {
   identifier: string;
   instructions: string;
   labels: EntityLabel[];
+  chains?: Chain[];
 };
 
 export type MCPSystemCreateRequest = Partial<
