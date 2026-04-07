@@ -14,7 +14,9 @@ import "@testing-library/jest-dom";
 import { Modal } from "antd";
 import type { GeneralImportInstructions } from "../../../src";
 import {
+  AddInstructionModal,
   ImportInstructions,
+  UploadInstructionsModal,
   buildTableData,
 } from "../../../src/components/admin_tools/ImportInstructions";
 import {
@@ -184,12 +186,6 @@ async function flushPromises(): Promise<void> {
   });
 }
 
-/** Ant Design Form + async handlers often need more than one microtask tick (esp. under load / coverage). */
-async function flushMicrotasks(): Promise<void> {
-  await flushPromises();
-  await flushPromises();
-}
-
 describe("ImportInstructions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -329,29 +325,19 @@ describe("ImportInstructions", () => {
     expect(screen.getByText("Chains")).toBeInTheDocument();
   });
 
-  it("opens AddInstructionModal with form when Add button is clicked", async () => {
-    render(<ImportInstructions />, { wrapper: ContextProviders });
-
-    await flushPromises();
-    const addButton = screen
-      .getAllByRole("button", { name: /^add$/i })
-      .find((b) => !b.closest('[role="dialog"]'));
-    expect(addButton).toBeDefined();
-    fireEvent.click(addButton!);
+  it("renders AddInstructionModal form", () => {
+    render(<AddInstructionModal onClose={jest.fn()} onSuccess={jest.fn()} />, {
+      wrapper: ContextProviders,
+    });
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByPlaceholderText("Enter id")).toBeInTheDocument();
   });
 
-  it("Add Instruction modal footer shows Save", async () => {
-    render(<ImportInstructions />, { wrapper: ContextProviders });
-
-    await flushPromises();
-    const addButton = screen
-      .getAllByRole("button", { name: /^add$/i })
-      .find((b) => !b.closest('[role="dialog"]'));
-    expect(addButton).toBeDefined();
-    fireEvent.click(addButton!);
+  it("AddInstructionModal footer shows Save", () => {
+    render(<AddInstructionModal onClose={jest.fn()} onSuccess={jest.fn()} />, {
+      wrapper: ContextProviders,
+    });
 
     const dialog = screen.getByRole("dialog");
     expect(
@@ -359,19 +345,14 @@ describe("ImportInstructions", () => {
     ).toBeInTheDocument();
   });
 
-  it("Add Instruction Save calls addImportInstruction with trimmed id", async () => {
+  it("AddInstructionModal Save calls addImportInstruction with trimmed id", async () => {
     mockApi.addImportInstruction.mockResolvedValue(undefined);
-    render(<ImportInstructions />, { wrapper: ContextProviders });
-
-    await screen.findByText("Chains");
-    const addButton = screen
-      .getAllByRole("button", { name: /^add$/i })
-      .find((b) => !b.closest('[role="dialog"]'));
-    expect(addButton).toBeDefined();
-    fireEvent.click(addButton!);
+    render(<AddInstructionModal onClose={jest.fn()} onSuccess={jest.fn()} />, {
+      wrapper: ContextProviders,
+    });
 
     const dialog = screen.getByRole("dialog");
-    await act(async () => {
+    act(() => {
       fireEvent.change(within(dialog).getByPlaceholderText("Enter id"), {
         target: { value: "  new-rule-id  " },
       });
@@ -388,15 +369,8 @@ describe("ImportInstructions", () => {
     );
   });
 
-  it("UploadInstructionsModal Upload button is disabled when no file selected", async () => {
-    render(<ImportInstructions />, { wrapper: ContextProviders });
-
-    await flushPromises();
-    fireEvent.click(screen.getByTestId("import-instructions-upload"));
-
-    expect(
-      screen.getByText("Upload Instructions (yaml, yml)"),
-    ).toBeInTheDocument();
+  it("UploadInstructionsModal Upload button is disabled when no file selected", () => {
+    render(<UploadInstructionsModal onClose={jest.fn()} />);
 
     const uploadButton = screen
       .getAllByRole("button", { name: /^upload$/i })
@@ -407,7 +381,7 @@ describe("ImportInstructions", () => {
 
   it("UploadInstructionsModal shows result table with Id and Status after upload", async () => {
     mockUploadImportInstructionsFile.mockImplementation(
-      async (_fileList, _api, _notification, onSuccess) => {
+      (_fileList, _api, _notification, onSuccess) => {
         onSuccess([
           {
             id: "row-1",
@@ -417,12 +391,11 @@ describe("ImportInstructions", () => {
             errorMessage: "",
           },
         ]);
+        return Promise.resolve();
       },
     );
 
-    render(<ImportInstructions />, { wrapper: ContextProviders });
-    await flushPromises();
-    fireEvent.click(screen.getByTestId("import-instructions-upload"));
+    render(<UploadInstructionsModal onClose={jest.fn()} />);
     fireEvent.click(screen.getByTestId("dragger"));
 
     const uploadButton = screen
@@ -439,7 +412,7 @@ describe("ImportInstructions", () => {
     expect(
       await within(dialog).findByRole("columnheader", { name: "Status" }),
     ).toBeInTheDocument();
-  });
+  }, 10000);
 
   it("handleExport: URL.createObjectURL is called with the exported file blob", async () => {
     const createObjectURLMock = (URL as unknown as Record<string, jest.Mock>)

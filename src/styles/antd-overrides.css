@@ -599,6 +599,7 @@ pre[class*="language-"] .token.punctuation {
   color: var(--vscode-descriptionForeground, #fff) !important;
   border-color: transparent !important;
 }
+
 .ant-segmented-item-selected {
   background-color: var(--vscode-button-background, #0078d4);
   color: var(--vscode-button-foreground, #fff) !important;
@@ -779,6 +780,7 @@ pre[class*="language-"] .token.punctuation {
  * Expanded: antd `.ant-modal-wrap` uses overflow:auto; `.ant-modal` has padding-bottom.
  * Near-full vh + padding overflows the wrap → spurious outer scroll (see #552 progress).
  */
+
 /* Collapsed only — when expanded, only the `--expanded` rules below should apply
    (avoids competing height/max-height on the same nodes). */
 html
@@ -879,7 +881,7 @@ html
 
 /* Expanded: more vertical space on tall viewports (table readability). Step 1 wrap fix
  * stays; only the vh budget tightens so the dialog uses more of the screen. */
-@media (min-height: 960px) {
+@media (height >= 960px) {
   html
     body
     .ant-modal-root.environment-params-modal.environment-params-modal--expanded
@@ -898,7 +900,7 @@ html
   }
 }
 
-@media (min-height: 1100px) {
+@media (height >= 1100px) {
   html
     body
     .ant-modal-root.environment-params-modal.environment-params-modal--expanded
