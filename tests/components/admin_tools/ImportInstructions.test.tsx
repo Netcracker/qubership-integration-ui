@@ -2,7 +2,14 @@
  * @jest-environment jsdom
  */
 import React, { PropsWithChildren } from "react";
-import { render, screen, fireEvent, within, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  act,
+  waitFor,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { Modal } from "antd";
 import type { GeneralImportInstructions } from "../../../src";
@@ -203,7 +210,7 @@ describe("ImportInstructions", () => {
     expect(screen.getByText(/import/i)).toBeInTheDocument();
     expect(screen.getByText(/instructions/i)).toBeInTheDocument();
 
-    await flushPromises();
+    expect(await screen.findByText("Chains")).toBeInTheDocument();
     expect(screen.getByText("Chains")).toBeInTheDocument();
     expect(screen.getByText("Services")).toBeInTheDocument();
     expect(screen.getByText("Common Variables")).toBeInTheDocument();
@@ -213,15 +220,16 @@ describe("ImportInstructions", () => {
   it("shows Add, Export, Upload buttons", async () => {
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
-    expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /add/i }),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
   });
 
   it("displays chain and variable items from instructions", async () => {
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    expect(await screen.findByText("Chain One")).toBeInTheDocument();
     expect(screen.getByText("Chains")).toBeInTheDocument();
     expect(screen.getByText("Chain One")).toBeInTheDocument();
     expect(screen.getByText("Var One")).toBeInTheDocument();
@@ -230,14 +238,15 @@ describe("ImportInstructions", () => {
   it("fetches export on Export button click", async () => {
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    await screen.findByText("Chains");
     expect(mockApi.getImportInstructions).toHaveBeenCalled();
 
     const exportButton = screen.getByTestId("import-instructions-export");
     fireEvent.click(exportButton);
 
-    await flushPromises();
-    expect(mockApi.exportImportInstructions).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mockApi.exportImportInstructions).toHaveBeenCalled(),
+    );
   });
 
   it("opens Add modal when Add button is clicked", async () => {
@@ -274,8 +283,7 @@ describe("ImportInstructions", () => {
     mockApi.getImportInstructions.mockRejectedValue(new Error("Network error"));
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
-    expect(mockRequestFailed).toHaveBeenCalled();
+    await waitFor(() => expect(mockRequestFailed).toHaveBeenCalled());
   });
 
   it("calls requestFailed when handleExport throws", async () => {
@@ -284,11 +292,10 @@ describe("ImportInstructions", () => {
     );
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    await screen.findByText("Chains");
     fireEvent.click(screen.getByTestId("import-instructions-export"));
 
-    await flushPromises();
-    expect(mockRequestFailed).toHaveBeenCalled();
+    await waitFor(() => expect(mockRequestFailed).toHaveBeenCalled());
   });
 
   it("Delete button is disabled when no rows are selected", async () => {
@@ -356,7 +363,7 @@ describe("ImportInstructions", () => {
     mockApi.addImportInstruction.mockResolvedValue(undefined);
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    await screen.findByText("Chains");
     const addButton = screen
       .getAllByRole("button", { name: /^add$/i })
       .find((b) => !b.closest('[role="dialog"]'));
@@ -368,17 +375,17 @@ describe("ImportInstructions", () => {
       fireEvent.change(within(dialog).getByPlaceholderText("Enter id"), {
         target: { value: "  new-rule-id  " },
       });
-      await flushMicrotasks();
       fireEvent.click(within(dialog).getByRole("button", { name: /^save$/i }));
-      await flushMicrotasks();
     });
 
-    expect(mockApi.addImportInstruction).toHaveBeenCalledWith({
-      id: "new-rule-id",
-      entityType: ImportEntityType.CHAIN,
-      action: ImportInstructionAction.IGNORE,
-      overriddenBy: undefined,
-    });
+    await waitFor(() =>
+      expect(mockApi.addImportInstruction).toHaveBeenCalledWith({
+        id: "new-rule-id",
+        entityType: ImportEntityType.CHAIN,
+        action: ImportInstructionAction.IGNORE,
+        overriddenBy: undefined,
+      }),
+    );
   });
 
   it("UploadInstructionsModal Upload button is disabled when no file selected", async () => {
@@ -424,15 +431,13 @@ describe("ImportInstructions", () => {
     expect(uploadButton).toBeDefined();
     fireEvent.click(uploadButton!);
 
-    await flushMicrotasks();
-
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("UploadedName")).toBeInTheDocument();
+    expect(await within(dialog).findByText("UploadedName")).toBeInTheDocument();
     expect(
       within(dialog).getAllByRole("columnheader", { name: "Id" }).length,
     ).toBeGreaterThan(0);
     expect(
-      within(dialog).getByRole("columnheader", { name: "Status" }),
+      await within(dialog).findByRole("columnheader", { name: "Status" }),
     ).toBeInTheDocument();
   });
 
@@ -443,12 +448,13 @@ describe("ImportInstructions", () => {
 
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    await screen.findByText("Chains");
     fireEvent.click(screen.getByTestId("import-instructions-export"));
 
-    await flushPromises();
-    expect(mockApi.exportImportInstructions).toHaveBeenCalled();
-    expect(createObjectURLMock).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mockApi.exportImportInstructions).toHaveBeenCalled(),
+    );
+    await waitFor(() => expect(createObjectURLMock).toHaveBeenCalled());
   });
 
   it("renders labels as Tag components and modifiedWhen as formatted date", async () => {
@@ -473,7 +479,7 @@ describe("ImportInstructions", () => {
 
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    expect(await screen.findByText("Tagged Chain")).toBeInTheDocument();
     expect(screen.getByText("Tagged Chain")).toBeInTheDocument();
     expect(screen.getByText("tag1")).toBeInTheDocument();
     expect(screen.getByText("tag2")).toBeInTheDocument();
@@ -498,7 +504,7 @@ describe("ImportInstructions", () => {
       wrapper: ContextProviders,
     });
 
-    await flushPromises();
+    expect(await screen.findByText("Chain One")).toBeInTheDocument();
     expect(screen.getByText("Chain One")).toBeInTheDocument();
 
     const cellTriggers = document.querySelectorAll(".inline-edit-value-wrap");
@@ -506,15 +512,17 @@ describe("ImportInstructions", () => {
 
     fireEvent.click(cellTriggers[0]);
 
-    await flushPromises();
-    expect(container.querySelector(".ant-select")).toBeTruthy();
+    await waitFor(() =>
+      expect(container.querySelector(".ant-select")).toBeTruthy(),
+    );
 
     const ignoreOption = screen.getByText("Ignore");
     fireEvent.click(ignoreOption);
 
-    await flushPromises();
-    expect(mockApi.updateImportInstruction).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "chain-1", action: "IGNORE" }),
+    await waitFor(() =>
+      expect(mockApi.updateImportInstruction).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "chain-1", action: "IGNORE" }),
+      ),
     );
   });
 
@@ -536,7 +544,7 @@ describe("ImportInstructions", () => {
 
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    expect(await screen.findByText("Chain Two")).toBeInTheDocument();
     expect(screen.getByText("Chain Two")).toBeInTheDocument();
 
     const cellTriggers = document.querySelectorAll(".inline-edit-value-wrap");
@@ -544,20 +552,20 @@ describe("ImportInstructions", () => {
 
     fireEvent.click(cellTriggers[1]);
 
-    await flushPromises();
-    const input = screen.getByDisplayValue("other-chain");
+    const input = await screen.findByDisplayValue("other-chain");
     fireEvent.change(input, { target: { value: "other-chain-updated" } });
 
     const applyButton = document.querySelector(".inline-edit-buttons button");
     expect(applyButton).toBeTruthy();
     fireEvent.click(applyButton!);
 
-    await flushPromises();
-    expect(mockApi.updateImportInstruction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "chain-2",
-        action: "OVERRIDE",
-      }),
+    await waitFor(() =>
+      expect(mockApi.updateImportInstruction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "chain-2",
+          action: "OVERRIDE",
+        }),
+      ),
     );
   });
 
@@ -572,7 +580,7 @@ describe("ImportInstructions", () => {
 
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
+    expect(await screen.findByText("Chain One")).toBeInTheDocument();
     expect(screen.getByText("Chain One")).toBeInTheDocument();
 
     const enabledCheckbox = document.querySelector<HTMLInputElement>(
@@ -586,15 +594,17 @@ describe("ImportInstructions", () => {
 
     fireEvent.click(deleteButton);
 
-    await flushPromises();
-    expect(mockApi.deleteImportInstructions).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mockApi.deleteImportInstructions).toHaveBeenCalled(),
+    );
   });
 
   it("UploadInstructionsModal: Close button refetches instructions", async () => {
     render(<ImportInstructions />, { wrapper: ContextProviders });
 
-    await flushPromises();
-    expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(1),
+    );
 
     fireEvent.click(screen.getByTestId("import-instructions-upload"));
     expect(
@@ -603,8 +613,9 @@ describe("ImportInstructions", () => {
 
     fireEvent.click(screen.getByText("Close"));
 
-    await flushPromises();
-    expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(2);
+    await waitFor(() =>
+      expect(mockApi.getImportInstructions).toHaveBeenCalledTimes(2),
+    );
   });
 });
 
