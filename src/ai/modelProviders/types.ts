@@ -54,25 +54,11 @@ export interface ChatResponse {
   conversationId?: string;
 }
 
-export interface ProviderCapabilities {
-  supportsStreaming: boolean;
-  supportsTools: boolean;
-}
+export type StreamingChunkType = "done" | "error" | "progress";
 
-export type StreamingChunkType = "delta" | "done" | "error" | "progress";
-
+/** SSE chunks from POST /api/chat/with-progress */
 export interface StreamingChunk {
   type: StreamingChunkType;
-  contentDelta?: string;
-  toolCalls?: Array<{
-    id?: string;
-    index?: number;
-    type?: string;
-    function?: {
-      name?: string;
-      arguments?: string;
-    };
-  }>;
   usage?: ChatUsage;
   finishReason?: string;
   errorMessage?: string;

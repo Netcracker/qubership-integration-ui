@@ -5,7 +5,16 @@ import type { Chain } from "../../api/apiTypes.ts";
 export type ChainModificationAction =
   | {
       action: "updateChain";
-      patch: Partial<Pick<Chain, "name" | "description" | "businessDescription" | "assumptions" | "outOfScope">> & {
+      patch: Partial<
+        Pick<
+          Chain,
+          | "name"
+          | "description"
+          | "businessDescription"
+          | "assumptions"
+          | "outOfScope"
+        >
+      > & {
         labels?: { name: string; technical?: boolean }[];
       };
     }
@@ -101,7 +110,8 @@ export const ChainModificationConfirmation: React.FC<Props> = ({
     >
       {!proposal || changes.length === 0 ? (
         <Typography.Text type="secondary">
-          No structured chain modifications were detected in the last assistant response.
+          No structured chain modifications were detected in the last assistant
+          response.
         </Typography.Text>
       ) : (
         <>
@@ -154,5 +164,3 @@ export const ChainModificationConfirmation: React.FC<Props> = ({
     </Modal>
   );
 };
-
-

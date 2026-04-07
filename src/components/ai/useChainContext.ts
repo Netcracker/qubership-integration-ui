@@ -1,7 +1,10 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Chain } from "../../api/apiTypes.ts";
 import { api } from "../../api/api.ts";
-import { createCompactChainSchema, CompactChainSchema } from "./chainContextUtils.ts";
+import {
+  createCompactChainSchema,
+  CompactChainSchema,
+} from "./chainContextUtils.ts";
 
 export interface ChainContext {
   chain: Chain;
@@ -26,29 +29,40 @@ export function useChainContext(): ChainContext | null {
   const refreshChain = useCallback(async () => {
     const pathMatch = pathname.match(/^\/chains\/([^/]+)/);
     const chainId = pathMatch ? pathMatch[1] : null;
-    
+
     if (!chainId) {
       console.log("[useChainContext] refreshChain: no chainId");
       return;
     }
 
-    console.log(`[useChainContext] refreshChain: fetching chain data for chainId: ${chainId}`);
+    console.log(
+      `[useChainContext] refreshChain: fetching chain data for chainId: ${chainId}`,
+    );
     try {
       const chainData = await api.getChain(chainId);
       if (lastChainIdRef.current === chainId) {
-        console.log(`[useChainContext] refreshChain: chain data updated for chainId: ${chainId}`, {
-          chainName: chainData.name,
-          elementsCount: chainData.elements?.length || 0,
-        });
+        console.log(
+          `[useChainContext] refreshChain: chain data updated for chainId: ${chainId}`,
+          {
+            chainName: chainData.name,
+            elementsCount: chainData.elements?.length || 0,
+          },
+        );
         setChain(chainData);
       } else {
-        console.log(`[useChainContext] refreshChain: chainId mismatch, ignoring update`, {
-          fetchedChainId: chainId,
-          lastChainId: lastChainIdRef.current,
-        });
+        console.log(
+          `[useChainContext] refreshChain: chainId mismatch, ignoring update`,
+          {
+            fetchedChainId: chainId,
+            lastChainId: lastChainIdRef.current,
+          },
+        );
       }
     } catch (error) {
-      console.error(`[useChainContext] refreshChain: failed to refresh chain for chainId: ${chainId}`, error);
+      console.error(
+        `[useChainContext] refreshChain: failed to refresh chain for chainId: ${chainId}`,
+        error,
+      );
       if (isDebugEnabled) {
         // eslint-disable-next-line no-console
         console.debug("[AI Chat] Failed to refresh chain for context", error);
@@ -114,7 +128,8 @@ export function useChainContext(): ChainContext | null {
 
     lastChainIdRef.current = chainId;
 
-    api.getChain(chainId)
+    api
+      .getChain(chainId)
       .then((chainData) => {
         if (lastChainIdRef.current === chainId) {
           setChain(chainData);
@@ -140,7 +155,9 @@ export function useChainContext(): ChainContext | null {
       return;
     }
 
-    console.log(`[useChainContext] Setting up chain-updated listener for chainId: ${chainId}`);
+    console.log(
+      `[useChainContext] Setting up chain-updated listener for chainId: ${chainId}`,
+    );
 
     const handleChainUpdated = (event: CustomEvent<string>) => {
       const updatedChainId = event.detail;
@@ -148,19 +165,30 @@ export function useChainContext(): ChainContext | null {
         updatedChainId,
         currentChainId: chainId,
         lastChainId: lastChainIdRef.current,
-        matches: updatedChainId === chainId && lastChainIdRef.current === chainId,
+        matches:
+          updatedChainId === chainId && lastChainIdRef.current === chainId,
       });
       if (updatedChainId === chainId && lastChainIdRef.current === chainId) {
-        console.log(`[useChainContext] Refreshing chain data for chainId: ${chainId}`);
+        console.log(
+          `[useChainContext] Refreshing chain data for chainId: ${chainId}`,
+        );
         refreshChain();
       }
     };
 
-    window.addEventListener('chain-updated', handleChainUpdated as EventListener);
+    window.addEventListener(
+      "chain-updated",
+      handleChainUpdated as EventListener,
+    );
 
     return () => {
-      console.log(`[useChainContext] Removing chain-updated listener for chainId: ${chainId}`);
-      window.removeEventListener('chain-updated', handleChainUpdated as EventListener);
+      console.log(
+        `[useChainContext] Removing chain-updated listener for chainId: ${chainId}`,
+      );
+      window.removeEventListener(
+        "chain-updated",
+        handleChainUpdated as EventListener,
+      );
     };
   }, [pathname, refreshChain]);
 
@@ -179,4 +207,3 @@ export function useChainContext(): ChainContext | null {
 
   return context;
 }
-
