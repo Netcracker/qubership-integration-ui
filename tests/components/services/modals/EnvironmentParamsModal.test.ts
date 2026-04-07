@@ -2,7 +2,13 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { EnvironmentSourceType } from "../../../../src/api/apiTypes";
 import { EnvironmentParamsModal } from "../../../../src/components/services/modals/EnvironmentParamsModal";
@@ -68,6 +74,90 @@ function renderModal(
 }
 
 describe("EnvironmentParamsModal", () => {
+  it("restores environment properties when the modal is reopened", async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const onClose = jest.fn();
+    const environment = {
+      id: "env-1",
+      name: "Env 1",
+      address: "localhost",
+      labels: [],
+      sourceType: EnvironmentSourceType.MANUAL,
+      properties: {
+        key: "value",
+        authMethod: "SASL_SSL",
+      },
+    };
+
+    const { rerender } = render(
+      React.createElement(
+        ServiceContext.Provider,
+        { value: { id: "svc-1", protocol: "kafka" } as never },
+        React.createElement(EnvironmentParamsModal, {
+          open: true,
+          environment,
+          onClose,
+          onSave,
+          saving: false,
+        }),
+      ),
+    );
+
+    fireEvent.click(screen.getByLabelText("Expand properties"));
+    fireEvent.click(screen.getByRole("switch"));
+
+    let panel = await screen.findByTestId("environment-properties-panel");
+    let textArea = within(panel).getByRole("textbox");
+
+    fireEvent.focus(textArea);
+    fireEvent.change(textArea, {
+      target: { value: "bootstrap.servers=broker:9092;" },
+    });
+    fireEvent.blur(textArea);
+
+    rerender(
+      React.createElement(
+        ServiceContext.Provider,
+        { value: { id: "svc-1", protocol: "kafka" } as never },
+        React.createElement(EnvironmentParamsModal, {
+          open: false,
+          environment,
+          onClose,
+          onSave,
+          saving: false,
+        }),
+      ),
+    );
+
+    rerender(
+      React.createElement(
+        ServiceContext.Provider,
+        { value: { id: "svc-1", protocol: "kafka" } as never },
+        React.createElement(EnvironmentParamsModal, {
+          open: true,
+          environment,
+          onClose,
+          onSave,
+          saving: false,
+        }),
+      ),
+    );
+
+    const expandPropertiesButton = screen.queryByLabelText("Expand properties");
+    if (expandPropertiesButton) {
+      fireEvent.click(expandPropertiesButton);
+    }
+
+    panel = await screen.findByTestId("environment-properties-panel");
+    textArea = within(panel).queryByRole("textbox");
+    if (!textArea) {
+      fireEvent.click(screen.getByRole("switch"));
+      textArea = within(panel).getByRole("textbox");
+    }
+
+    expect(textArea).toHaveValue("key=value;\nauthMethod=SASL_SSL;");
+  });
+
   it("renders the properties panel with flex layout when expanded", async () => {
     renderModal("kafka");
 
@@ -115,6 +205,35 @@ describe("EnvironmentParamsModal", () => {
       expect.objectContaining({
         sourceType: EnvironmentSourceType.MAAS_BY_CLASSIFIER,
         address: undefined,
+      }),
+    );
+  });
+
+  it("parses key-value properties text and ignores invalid lines on save", async () => {
+    const { onSave } = renderModal("kafka");
+
+    fireEvent.click(screen.getByLabelText("Expand properties"));
+    fireEvent.click(screen.getByRole("switch"));
+
+    const panel = await screen.findByTestId("environment-properties-panel");
+    const textArea = within(panel).getByRole("textbox");
+
+    fireEvent.focus(textArea);
+    fireEvent.change(textArea, {
+      target: {
+        value: "bootstrap.servers=broker:9092;\ninvalid line\nclient.id=qip",
+      },
+    });
+    fireEvent.blur(textArea);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        properties: {
+          "bootstrap.servers": "broker:9092",
+          "client.id": "qip",
+        },
       }),
     );
   });

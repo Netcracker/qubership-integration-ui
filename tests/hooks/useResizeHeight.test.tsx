@@ -27,7 +27,23 @@ function HookHost() {
   return <div ref={ref}>content</div>;
 }
 
+function HookHostWithoutAttachedRef() {
+  useResizeHeight<HTMLDivElement>();
+
+  return <div>content</div>;
+}
+
 describe("useResizeHeight", () => {
+  beforeEach(() => {
+    resizeObserverCallback = undefined;
+  });
+
+  it("does nothing when no element is attached to the ref", () => {
+    render(<HookHostWithoutAttachedRef />);
+
+    expect(resizeObserverCallback).toBeUndefined();
+  });
+
   it("does not throw if a queued resize callback runs after unmount", () => {
     const { unmount } = render(<HookHost />);
 
