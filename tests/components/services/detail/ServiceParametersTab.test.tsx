@@ -283,6 +283,32 @@ describe("ServiceParametersTab", () => {
     expect(proceed).toHaveBeenCalled();
   });
 
+  it("unsaved modal Yes does not open a second prompt when save updates system", async () => {
+    const proceed = jest.fn();
+    jest.mocked(useBlocker).mockReturnValue({
+      state: "blocked" as const,
+      proceed,
+      reset: jest.fn(),
+    });
+    renderTab();
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: /name/i })).toHaveValue("Svc"),
+    );
+    await waitFor(() => expect(mockShowModal).toHaveBeenCalledTimes(1));
+    const showModalCallsAfterFirstPrompt = mockShowModal.mock.calls.length;
+    const modal = mockShowModal.mock.calls.at(-1)?.[0]
+      .component as React.ReactElement;
+    render(modal);
+    fireEvent.click(screen.getByTestId("unsaved-yes"));
+    await waitFor(() => expect(mockUpdateService).toHaveBeenCalled());
+    expect(proceed).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockShowModal.mock.calls.length).toBe(
+        showModalCallsAfterFirstPrompt,
+      );
+    });
+  });
+
   it("unsaved modal No calls blocker proceed without saving", async () => {
     const proceed = jest.fn();
     jest.mocked(useBlocker).mockReturnValue({
