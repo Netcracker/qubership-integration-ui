@@ -54,7 +54,7 @@ export const McpServiceParametersPage: React.FC = () => {
         const result = await api.getMcpSystem(id);
         setSystem(result);
       } catch (e) {
-        notificationService.requestFailed("Failed to load MCP services", e);
+        notificationService.requestFailed("Failed to load MCP service", e);
         setSystem(null);
       } finally {
         setIsLoading(false);
