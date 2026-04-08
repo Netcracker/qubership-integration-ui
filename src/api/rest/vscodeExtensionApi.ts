@@ -1167,13 +1167,13 @@ export class VSCodeExtensionApi implements Api {
 
   getMcpSystems = async (): Promise<MCPSystem[]> => {
     return <MCPSystem[]>(
-      (await this.sendMessageToExtension("getMcpSystems")).payload
+      (await this.sendMessageToExtension("getMcpServices")).payload
     );
   };
 
   getMcpSystem = async (id: string): Promise<MCPSystem> => {
     return <MCPSystem>(
-      (await this.sendMessageToExtension("getMcpSystem", { id })).payload
+      (await this.sendMessageToExtension("getMcpService", { id })).payload
     );
   };
 
@@ -1186,7 +1186,7 @@ export class VSCodeExtensionApi implements Api {
     request: MCPSystemUpdateRequest,
   ): Promise<MCPSystem> => {
     return <MCPSystem>(
-      (await this.sendMessageToExtension("updateMcpSystem", { id, request }))
+      (await this.sendMessageToExtension("updateMcpService", { id, request }))
         .payload
     );
   };
