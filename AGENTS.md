@@ -20,9 +20,6 @@ All UI decisions must account for both environments and all four theme modes.
 - **Test:** `npm run test` runs unit-test, must pass on solution before commits.
   - **Run a single test file:** `npm test -- --testPathPattern=tests/api/restApi`
   - **Run tests matching name:** `npm test -- --testNamePattern="should parse"`
-  - Prefer `flushPromises` (act + Promise.resolve) over `waitFor`/`findBy` when possible — faster and more stable.
-  - For flaky async tests (form submit, API calls): extract handlers into pure functions in a separate
-    `*Handlers.ts` file, unit test them directly.
 - **Linter:** `npm run lint` runs linter on source files.
 - **Prettier:** `npm run format:check` runs code format check, must pass on solution before commits.
 
