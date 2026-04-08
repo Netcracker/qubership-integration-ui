@@ -23,7 +23,8 @@ export function getAiServiceUrl(): string | null {
 
   if (
     typeof window !== "undefined" &&
-    (window.location.protocol === "http:" || window.location.protocol === "https:")
+    (window.location.protocol === "http:" ||
+      window.location.protocol === "https:")
   ) {
     return window.location.origin;
   }
@@ -32,24 +33,23 @@ export function getAiServiceUrl(): string | null {
 }
 
 export function getIsAiServiceAvailable(): boolean {
-  const [ isAiServiceAvailable, setIsAiServiceAvailable] = useState(false);
+  const [isAiServiceAvailable, setIsAiServiceAvailable] = useState(false);
 
   const url = getAiServiceUrl();
 
   useEffect(() => {
-      const url = getAiServiceUrl();
-      if (!url) {
-        setIsAiServiceAvailable(false);
-        return;
-      }
-      const base = url.replace(/\/$/, "");
-      fetch(`${base}/health`, { method: "GET" })
-        .then(response => {
-            console.log("status:" , response.status);
-            setIsAiServiceAvailable(response.ok)})
-        .catch(() => setIsAiServiceAvailable(false));
-    }, []);
+    const url = getAiServiceUrl();
+    if (!url) {
+      setIsAiServiceAvailable(false);
+      return;
+    }
+    const base = url.replace(/\/$/, "");
+    fetch(`${base}/health`, { method: "GET" })
+      .then((response) => {
+        console.log("status:", response.status);
+        setIsAiServiceAvailable(response.ok);
+      })
+      .catch(() => setIsAiServiceAvailable(false));
+  }, []);
   return isAiServiceAvailable;
 }
-
-

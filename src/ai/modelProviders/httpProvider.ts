@@ -1,5 +1,10 @@
 import { AiModelProvider } from "./AiModelProvider.ts";
-import { ChatRequest, ChatResponse, ChatMessage, StreamingChunk } from "./types.ts";
+import {
+  ChatRequest,
+  ChatResponse,
+  ChatMessage,
+  StreamingChunk,
+} from "./types.ts";
 import axios from "axios";
 import { getHeadersForContext } from "../../api/rest/requestHeadersInterceptor.ts";
 
@@ -17,7 +22,10 @@ function buildRequestBody(request: ChatRequest): ChatRequestBody {
   };
 }
 
-function getBearerHeader(serviceUrl: string, path: string): Record<string, string> {
+function getBearerHeader(
+  serviceUrl: string,
+  path: string,
+): Record<string, string> {
   const base = serviceUrl.replace(/\/$/, "");
   const url = `${base}${path}`;
   const raw = getHeadersForContext({ url, baseURL: base });
@@ -41,7 +49,7 @@ export class HttpAiModelProvider implements AiModelProvider {
    */
   async chatWithProgress(
     request: ChatRequest,
-    onChunk: (chunk: StreamingChunk) => void
+    onChunk: (chunk: StreamingChunk) => void,
   ): Promise<ChatResponse> {
     const url = `${this.serviceUrl.replace(/\/$/, "")}/api/chat/with-progress`;
 
@@ -102,7 +110,11 @@ export class HttpAiModelProvider implements AiModelProvider {
                 toolArgs: parsed.toolArgs,
               });
             } else if (parsed.type === "done") {
-              onChunk({ type: "done", finishReason: parsed.finishReason, usage: parsed.usage });
+              onChunk({
+                type: "done",
+                finishReason: parsed.finishReason,
+                usage: parsed.usage,
+              });
               resolve({
                 messages: parsed.messages ?? [],
                 usage: parsed.usage,

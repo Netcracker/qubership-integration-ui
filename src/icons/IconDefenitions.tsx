@@ -250,7 +250,7 @@ export const commonIcons = {
   warning: WarningOutlined,
   checkSquare: CheckSquareOutlined,
   comment: CommentOutlined,
-  paperClip: PaperClipOutlined
+  paperClip: PaperClipOutlined,
 };
 
 export const elementIcons = {

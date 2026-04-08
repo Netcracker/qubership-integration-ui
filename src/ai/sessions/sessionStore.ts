@@ -1,4 +1,9 @@
-import { ChatSession, ChatMode, ChainCreationPlan, ElementCreationStatus } from "./types.ts";
+import {
+  ChatSession,
+  ChatMode,
+  ChainCreationPlan,
+  ElementCreationStatus,
+} from "./types.ts";
 import { ChatMessage } from "../modelProviders/types.ts";
 import { v4 as uuidv4 } from "uuid";
 
@@ -108,8 +113,8 @@ class ChatSessionStore {
     const session = sessions.find((s) => s.id === sessionId);
     if (session) {
       // Ensure all messages have IDs and deduplicate
-      const messagesWithIds = messages.map(m => this.ensureMessageId(m));
-      
+      const messagesWithIds = messages.map((m) => this.ensureMessageId(m));
+
       // Deduplicate by ID (keep last occurrence)
       const seen = new Map<string, ChatMessage>();
       for (const msg of messagesWithIds) {
@@ -117,7 +122,7 @@ class ChatSessionStore {
           seen.set(msg.id, msg);
         }
       }
-      
+
       session.messages = Array.from(seen.values());
       session.updatedAt = Date.now();
       this.saveSessions(sessions); // Debounced save for message updates
@@ -137,7 +142,10 @@ class ChatSessionStore {
   /**
    * Update (or clear) the server-side conversation ID for lightweight chat mode.
    */
-  updateConversationId(sessionId: string, conversationId: string | undefined): void {
+  updateConversationId(
+    sessionId: string,
+    conversationId: string | undefined,
+  ): void {
     const sessions = this.getStoredSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (session) {
@@ -147,7 +155,10 @@ class ChatSessionStore {
     }
   }
 
-  updateSessionLastAttachmentUrls(sessionId: string, urls: string[] | undefined): void {
+  updateSessionLastAttachmentUrls(
+    sessionId: string,
+    urls: string[] | undefined,
+  ): void {
     const sessions = this.getStoredSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (session) {
@@ -174,7 +185,10 @@ class ChatSessionStore {
     this.saveSessions(filtered, true); // Immediate save for deletion
   }
 
-  updateChainCreationPlan(sessionId: string, plan: ChainCreationPlan | null): void {
+  updateChainCreationPlan(
+    sessionId: string,
+    plan: ChainCreationPlan | null,
+  ): void {
     const sessions = this.getStoredSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (session) {
@@ -195,12 +209,14 @@ class ChatSessionStore {
     elementId: string,
     status: ElementCreationStatus,
     createdElementId?: string,
-    error?: string
+    error?: string,
   ): void {
     const sessions = this.getStoredSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (session?.chainCreationPlan) {
-      const element = session.chainCreationPlan.elements.find((e) => e.id === elementId);
+      const element = session.chainCreationPlan.elements.find(
+        (e) => e.id === elementId,
+      );
       if (element) {
         element.status = status;
         if (createdElementId) {
@@ -223,12 +239,14 @@ class ChatSessionStore {
     sessionId: string,
     connectionId: string,
     status: "created" | "failed",
-    error?: string
+    error?: string,
   ): void {
     const sessions = this.getStoredSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (session?.chainCreationPlan) {
-      const connection = session.chainCreationPlan.connections.find((c) => c.id === connectionId);
+      const connection = session.chainCreationPlan.connections.find(
+        (c) => c.id === connectionId,
+      );
       if (connection) {
         connection.status = status;
         if (error) {
@@ -250,11 +268,3 @@ export function getChatSessionStore(): ChatSessionStore {
   }
   return instance;
 }
-
-
-
-
-
-
-
-

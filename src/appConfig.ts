@@ -23,7 +23,7 @@ const appConfigValue: AppConfig = {
   appName: import.meta.env.VITE_API_APP,
   apiGateway: import.meta.env.VITE_GATEWAY,
   aiServiceUrl: import.meta.env.VITE_AI_SERVICE_URL as string | undefined,
-  aiAssistantName: (import.meta.env.VITE_AI_ASSISTANT_NAME as string | undefined),
+  aiAssistantName: import.meta.env.VITE_AI_ASSISTANT_NAME as string | undefined,
   icons: {},
   dev: import.meta.env.DEV,
 };
@@ -106,7 +106,9 @@ export function configure(config: Partial<AppConfig>): void {
   if (config.aiAssistantName !== undefined) {
     const oldValue = appConfigValue.aiAssistantName;
     appConfigValue.aiAssistantName = config.aiAssistantName;
-    overrides.push(`aiAssistantName: "${oldValue}" -> "${config.aiAssistantName}"`);
+    overrides.push(
+      `aiAssistantName: "${oldValue}" -> "${config.aiAssistantName}"`,
+    );
   }
   if (config.icons !== undefined) {
     const previousIcons = appConfigValue.icons || {};
@@ -196,12 +198,16 @@ export function loadConfigFromEnv(): Partial<AppConfig> {
     config.appName = appName;
   }
 
-  const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL as string | undefined;
+  const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL as
+    | string
+    | undefined;
   if (aiServiceUrl) {
     config.aiServiceUrl = aiServiceUrl;
   }
 
-  const aiAssistantName = import.meta.env.VITE_AI_ASSISTANT_NAME as string | undefined;
+  const aiAssistantName = import.meta.env.VITE_AI_ASSISTANT_NAME as
+    | string
+    | undefined;
   if (aiAssistantName) {
     config.aiAssistantName = aiAssistantName;
   }

@@ -10,8 +10,7 @@ export function getDefaultAiProvider(): AiModelProvider {
 
     if (!serviceUrl) {
       throw new Error(
-        "AI service is not configured. Please set VITE_AI_SERVICE_URL environment variable " +
-        "or configure aiServiceUrl in VS Code extension settings."
+        "AI service is not configured."
       );
     }
 
@@ -23,4 +22,3 @@ export function getDefaultAiProvider(): AiModelProvider {
 export function resetAiProvider(): void {
   cachedProvider = null;
 }
-

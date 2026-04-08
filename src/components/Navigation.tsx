@@ -13,7 +13,7 @@ import {
   ProtectedMenuItem,
   protectMenuItems,
 } from "../permissions/ProtectedDropdown.tsx";
-import {AiAssistant} from "./ai/AiAssistant.tsx";
+import { AiAssistant } from "./ai/AiAssistant.tsx";
 import { getIsAiServiceAvailable } from "../ai/appConfig";
 
 interface NavigationProps {
@@ -104,7 +104,7 @@ const Navigation = ({
             onThemeChange={onThemeChange}
           />
         )}
-        { isAiServiceAvailable && <AiAssistant /> }
+        {isAiServiceAvailable && <AiAssistant />}
         <NotificationBar />
       </div>
     </nav>

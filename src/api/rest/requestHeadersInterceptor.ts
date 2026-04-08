@@ -133,8 +133,9 @@ export function getRestAxiosInstance(): AxiosInstance | null {
   return lastRestAxiosInstance;
 }
 
-
-export function getHeadersForContext(context: RequestHeadersContext): RequestHeaders {
+export function getHeadersForContext(
+  context: RequestHeadersContext,
+): RequestHeaders {
   const provider = activeProvider;
   if (!provider) return {};
   const headers = provider(context);

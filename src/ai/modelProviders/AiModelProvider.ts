@@ -8,7 +8,7 @@ export interface AiModelProvider {
    */
   chatWithProgress(
     request: ChatRequest,
-    onChunk: (chunk: StreamingChunk) => void
+    onChunk: (chunk: StreamingChunk) => void,
   ): Promise<ChatResponse>;
   /** Upload a file for chat attachment; returns object URL. Optional – only HTTP provider supports it. */
   uploadFile?(file: File, sessionId?: string): Promise<{ url: string }>;

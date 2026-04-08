@@ -16,7 +16,7 @@ export interface ChatRequest {
   abortSignal?: AbortSignal;
   attachmentUrls?: string[];
   context?: {
-    type: 'chain' | 'service' | 'operation';
+    type: "chain" | "service" | "operation";
     chainId?: string;
     serviceId?: string;
     operationId?: string;
@@ -66,9 +66,3 @@ export interface StreamingChunk {
   toolName?: string;
   toolArgs?: Record<string, unknown>;
 }
-
-
-
-
-
-

@@ -2,7 +2,7 @@ import { ChatMessage } from "../modelProviders/types.ts";
 
 export type ChatMode = "ask" | "agent";
 
-export type ElementCreationStatus = 
+export type ElementCreationStatus =
   | "planned"
   | "creating"
   | "created"
@@ -53,17 +53,3 @@ export interface ChatSession {
   /** Server-side conversation ID for lightweight mode. */
   conversationId?: string;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
