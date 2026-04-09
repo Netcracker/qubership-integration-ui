@@ -25,7 +25,7 @@ const menuItems = [
   },
   {
     key: "mcp",
-    icon: <OverridableIcon name="mcp" />, // FIXME
+    icon: <OverridableIcon name="mcp" />,
     label: "MCP"
   }
 ];
