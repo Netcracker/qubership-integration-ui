@@ -156,7 +156,7 @@ export const INITIAL_UI_SCHEMA: UiSchema = {
     validationSchema: {
       "ui:field": "jsonField",
     },
-    mcpServiceId: {
+    mcpServiceIds: {
       "ui:field": "mcpServiceField",
     },
     roles: {
