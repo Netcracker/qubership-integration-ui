@@ -10,20 +10,18 @@ function useDataTheme(): string | null {
   const [dataTheme, setDataTheme] = useState<string | null>(() =>
     typeof document !== "undefined"
       ? document.documentElement.getAttribute("data-theme")
-      : null
+      : null,
   );
 
   useEffect(() => {
     if (typeof MutationObserver === "undefined") return;
 
     const observer = new MutationObserver(() => {
-      setDataTheme(
-        document.documentElement.getAttribute("data-theme")
-      );
+      setDataTheme(document.documentElement.getAttribute("data-theme"));
     });
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-theme"]
+      attributeFilter: ["data-theme"],
     });
     return () => observer.disconnect();
   }, []);
@@ -86,7 +84,7 @@ export function useSyntaxHighlighterTheme() {
       if (!color) return "";
       if (color.startsWith("#")) return color;
       const match = color.match(
-        /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/
+        /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/,
       );
       if (match) {
         const r = parseInt(match[1]).toString(16).padStart(2, "0");
@@ -118,7 +116,7 @@ export function useSyntaxHighlighterTheme() {
       varName: string,
       monacoClass: string,
       fallbackDark: string,
-      fallbackLight: string
+      fallbackLight: string,
     ): string => {
       const cssColor = rgbaToHex(cssVar(varName));
       if (cssColor && cssColor !== "#cccccc") return cssColor;
@@ -133,43 +131,43 @@ export function useSyntaxHighlighterTheme() {
       "--vscode-symbolIcon-keywordForeground",
       "mtk3",
       "#569CD6",
-      "#0000FF"
+      "#0000FF",
     );
     const stringColor = cssVarOrFallback(
       "--vscode-symbolIcon-stringForeground",
       "mtk9",
       "#CE9178",
-      "#A31515"
+      "#A31515",
     );
     const numberColor = cssVarOrFallback(
       "--vscode-symbolIcon-numberForeground",
       "mtk10",
       "#B5CEA8",
-      "#098658"
+      "#098658",
     );
     const variableColor = cssVarOrFallback(
       "--vscode-symbolIcon-variableForeground",
       "mtk5",
       "#9CDCFE",
-      "#001080"
+      "#001080",
     );
     const functionColor = cssVarOrFallback(
       "--vscode-symbolIcon-functionForeground",
       "mtk12",
       "#DCDCAA",
-      "#795E26"
+      "#795E26",
     );
     const typeColor = cssVarOrFallback(
       "--vscode-symbolIcon-classForeground",
       "mtk8",
       "#4EC9B0",
-      "#267F99"
+      "#267F99",
     );
     const commentColor = cssVarOrFallback(
       "--vscode-editorIndentGuide-activeBackground",
       "mtk4",
       "#6A9955",
-      "#008000"
+      "#008000",
     );
 
     console.log("[useSyntaxHighlighterTheme] Theme:", {
@@ -180,7 +178,7 @@ export function useSyntaxHighlighterTheme() {
           : "N/A",
       darkTheme,
       background,
-      foreground
+      foreground,
     });
     console.log("[useSyntaxHighlighterTheme] Token colors:", {
       keywordColor,
@@ -188,20 +186,20 @@ export function useSyntaxHighlighterTheme() {
       numberColor,
       variableColor,
       typeColor,
-      commentColor
+      commentColor,
     });
 
     return {
-      "code[class*=\"language-\"]": {
+      'code[class*="language-"]': {
         color: foreground,
-        background: background
+        background: background,
       } as CSSProperties,
-      "pre[class*=\"language-\"]": {
+      'pre[class*="language-"]': {
         color: foreground,
         background: background,
         margin: 0,
         padding: 0,
-        overflow: "auto"
+        overflow: "auto",
       } as CSSProperties,
       comment: { color: commentColor, fontStyle: "italic" } as CSSProperties,
       prolog: { color: commentColor } as CSSProperties,
@@ -239,7 +237,7 @@ export function useSyntaxHighlighterTheme() {
       ".token.property": { color: variableColor } as CSSProperties,
       ".token.number": { color: numberColor } as CSSProperties,
       ".token.boolean": { color: keywordColor } as CSSProperties,
-      ".token.null": { color: keywordColor } as CSSProperties
+      ".token.null": { color: keywordColor } as CSSProperties,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dataTheme triggers recalculation when browser theme switches
   }, [isDark, dataTheme]);

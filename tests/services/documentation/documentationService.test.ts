@@ -7,10 +7,9 @@ import { DocumentationService } from "../../../src/services/documentation/docume
 // Mock appConfig to avoid import.meta.env issues in Jest
 jest.mock("../../../src/appConfig", () => ({
   getConfig: jest.fn(() => ({
-    documentationBaseUrl: "/doc"
+    documentationBaseUrl: "/doc",
   })),
-  onConfigChange: jest.fn(() => () => {
-  })
+  onConfigChange: jest.fn(() => () => {}),
 }));
 
 describe("DocumentationService - Resource Loading", () => {
@@ -27,13 +26,13 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(mockPaths)
+      json: () => Promise.resolve(mockPaths),
     });
 
     const result = await service.loadPaths();
     expect(result).toEqual(mockPaths);
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("paths.json")
+      expect.stringContaining("paths.json"),
     );
 
     // Second call uses cache
@@ -46,13 +45,13 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(mockNames)
+      json: () => Promise.resolve(mockNames),
     });
 
     const result = await service.loadNames();
     expect(result).toEqual(mockNames);
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("names.json")
+      expect.stringContaining("names.json"),
     );
   });
 
@@ -61,7 +60,7 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(mockTOC)
+      json: () => Promise.resolve(mockTOC),
     });
 
     const result = await service.loadTOC();
@@ -73,7 +72,7 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: false,
       statusText: "Not Found",
-      headers: new Headers()
+      headers: new Headers(),
     });
 
     await expect(service.loadPaths()).rejects.toThrow("Failed to load");
@@ -83,11 +82,11 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "text/html" }),
-      text: () => Promise.resolve("<!DOCTYPE html><html></html>")
+      text: () => Promise.resolve("<!DOCTYPE html><html></html>"),
     });
 
     await expect(service.loadPaths()).rejects.toThrow(
-      "received HTML instead of JSON"
+      "received HTML instead of JSON",
     );
   });
 
@@ -95,11 +94,11 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "text/plain" }),
-      text: () => Promise.resolve("<!DOCTYPE html><html></html>")
+      text: () => Promise.resolve("<!DOCTYPE html><html></html>"),
     });
 
     await expect(service.loadPaths()).rejects.toThrow(
-      "received HTML instead of JSON"
+      "received HTML instead of JSON",
     );
   });
 
@@ -107,11 +106,11 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "text/plain" }),
-      text: () => Promise.resolve("<html><body>Not found</body></html>")
+      text: () => Promise.resolve("<html><body>Not found</body></html>"),
     });
 
     await expect(service.loadPaths()).rejects.toThrow(
-      "received HTML instead of JSON"
+      "received HTML instead of JSON",
     );
   });
 
@@ -119,11 +118,11 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "text/plain" }),
-      text: () => Promise.resolve("<!doctype html><html></html>")
+      text: () => Promise.resolve("<!doctype html><html></html>"),
     });
 
     await expect(service.loadPaths()).rejects.toThrow(
-      "received HTML instead of JSON"
+      "received HTML instead of JSON",
     );
   });
 
@@ -132,7 +131,7 @@ describe("DocumentationService - Resource Loading", () => {
       ok: true,
       headers: new Headers({ "content-type": "text/plain" }),
       text: () => Promise.resolve("[1,2,3]"),
-      json: () => Promise.resolve([1, 2, 3])
+      json: () => Promise.resolve([1, 2, 3]),
     });
 
     const result = await service.loadPaths();
@@ -141,18 +140,18 @@ describe("DocumentationService - Resource Loading", () => {
 
   test("loadSearchIndex fetches and loads search index", async () => {
     const indexDump = {
-      documents: [{ id: 0, title: "Test", body: "Content" }]
+      documents: [{ id: 0, title: "Test", body: "Content" }],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     const index = await service.loadSearchIndex();
     expect(index).toBeDefined();
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("search-index.json")
+      expect.stringContaining("search-index.json"),
     );
 
     // Cache hit
@@ -164,7 +163,7 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({})
+      json: () => Promise.resolve({}),
     });
 
     const index = await service.loadSearchIndex();
@@ -177,13 +176,13 @@ describe("DocumentationService - Resource Loading", () => {
   test("search returns scored results with terms", async () => {
     const indexDump = {
       documents: [
-        { id: 0, title: "HTTP Trigger", body: "Handles HTTP requests" }
-      ]
+        { id: 0, title: "HTTP Trigger", body: "Handles HTTP requests" },
+      ],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     const results = await service.search("HTTP");
@@ -196,12 +195,12 @@ describe("DocumentationService - Resource Loading", () => {
 
   test("getSearchDetailSegments returns empty for missing doc", async () => {
     const indexDump = {
-      documents: [{ id: 0, title: "Test", body: "Content" }]
+      documents: [{ id: 0, title: "Test", body: "Content" }],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     const segments = await service.getSearchDetailSegments(999, "test");
@@ -214,14 +213,14 @@ describe("DocumentationService - Resource Loading", () => {
         {
           id: 0,
           title: "Test",
-          body: "Some content here.\n\nAnother paragraph."
-        }
-      ]
+          body: "Some content here.\n\nAnother paragraph.",
+        },
+      ],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     const segments = await service.getSearchDetailSegments(0, "");
@@ -234,14 +233,14 @@ describe("DocumentationService - Resource Loading", () => {
         {
           id: 0,
           title: "HTTP Trigger",
-          body: "The HTTP trigger handles requests.\n\nIt supports GET and POST."
-        }
-      ]
+          body: "The HTTP trigger handles requests.\n\nIt supports GET and POST.",
+        },
+      ],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     const segments = await service.getSearchDetailSegments(0, "HTTP");
@@ -255,22 +254,29 @@ describe("DocumentationService - Resource Loading", () => {
         {
           id: 0,
           title: "HTTP Trigger",
-          body: "The HTTP trigger handles requests.\n\nIt supports GET and POST."
-        }
-      ]
+          body: "The HTTP trigger handles requests.\n\nIt supports GET and POST.",
+        },
+      ],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     // Without terms: "HTTp" is not in the text (case is irrelevant, but "http" IS there)
     // With terms=["http"]: paragraph matching uses the corrected token → finds snippets
-    const segmentsWithoutTerms = await service.getSearchDetailSegments(0, "HTTppp");
+    const segmentsWithoutTerms = await service.getSearchDetailSegments(
+      0,
+      "HTTppp",
+    );
     expect(segmentsWithoutTerms).toEqual([]);
 
-    const segmentsWithTerms = await service.getSearchDetailSegments(0, "HTTppp", ["http"]);
+    const segmentsWithTerms = await service.getSearchDetailSegments(
+      0,
+      "HTTppp",
+      ["http"],
+    );
     expect(segmentsWithTerms.length).toBeGreaterThan(0);
     // The hit segment should highlight the corrected word "HTTP", not the typo
     const hitSegments = segmentsWithTerms.flat().filter((s) => s.isHit);
@@ -291,15 +297,15 @@ describe("DocumentationService - Resource Loading", () => {
             "Fourth test paragraph here.",
             "Fifth test paragraph here.",
             "Sixth test paragraph here.",
-            "Seventh test paragraph here."
-          ].join("\n\n")
-        }
-      ]
+            "Seventh test paragraph here.",
+          ].join("\n\n"),
+        },
+      ],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     const segments = await service.getSearchDetailSegments(0, "test");
@@ -312,14 +318,14 @@ describe("DocumentationService - Resource Loading", () => {
         {
           id: 0,
           title: "Test",
-          body: "Some test content.\n\nMore test data."
-        }
-      ]
+          body: "Some test content.\n\nMore test data.",
+        },
+      ],
     };
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(indexDump)
+      json: () => Promise.resolve(indexDump),
     });
 
     const details = await service.getSearchDetail(0, "test");
@@ -331,13 +337,13 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(mockRules)
+      json: () => Promise.resolve(mockRules),
     });
 
     const result = await service.loadContextMapping();
     expect(result).toEqual(mockRules);
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("context-doc-mapping.json")
+      expect.stringContaining("context-doc-mapping.json"),
     );
   });
 
@@ -346,7 +352,7 @@ describe("DocumentationService - Resource Loading", () => {
     mockFetch.mockResolvedValue({
       ok: true,
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve(mockPaths)
+      json: () => Promise.resolve(mockPaths),
     });
 
     await service.loadPaths();
@@ -381,7 +387,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       const mockPaths = [
         "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         "01__Chains/1__Graph/1__QIP_Elements_Library/7__Senders/4__HTTP_Sender/http_sender.md",
-        "01__Chains/1__Graph/1__QIP_Elements_Library/5__Transformation/2__Mapper/mapper.md"
+        "01__Chains/1__Graph/1__QIP_Elements_Library/5__Transformation/2__Mapper/mapper.md",
       ];
 
       jest.spyOn(service, "loadPaths").mockResolvedValue(mockPaths);
@@ -401,7 +407,7 @@ describe("DocumentationService - Element Type Mapping", () => {
     test("extracts element types from folder names", async () => {
       const mockPaths = [
         "01__Chains/1__Graph/1__QIP_Elements_Library/1__Routing/5__Condition/condition.md",
-        "01__Chains/1__Graph/1__QIP_Elements_Library/2__Files/2__File_Read/file_read.md"
+        "01__Chains/1__Graph/1__QIP_Elements_Library/2__Files/2__File_Read/file_read.md",
       ];
 
       jest.spyOn(service, "loadPaths").mockResolvedValue(mockPaths);
@@ -417,7 +423,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       const mockPaths = [
         "00__Overview/overview.md",
         "01__Chains/chains.md",
-        "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+        "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
       ];
 
       jest.spyOn(service, "loadPaths").mockResolvedValue(mockPaths);
@@ -456,7 +462,7 @@ describe("DocumentationService - Element Type Mapping", () => {
         "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/5__Scheduler/scheduler.md",
         // Senders
-        "01__Chains/1__Graph/1__QIP_Elements_Library/7__Senders/4__HTTP_Sender/http_sender.md"
+        "01__Chains/1__Graph/1__QIP_Elements_Library/7__Senders/4__HTTP_Sender/http_sender.md",
       ];
 
       jest.spyOn(service, "loadPaths").mockResolvedValue(mockPaths);
@@ -488,7 +494,7 @@ describe("DocumentationService - Element Type Mapping", () => {
   describe("getElementTypeAliases", () => {
     test("returns aliases for condition element", () => {
       const baseMapping = {
-        condition: "/doc/.../condition"
+        condition: "/doc/.../condition",
       };
 
       const aliases = service.getElementTypeAliases(baseMapping);
@@ -499,7 +505,7 @@ describe("DocumentationService - Element Type Mapping", () => {
 
     test("returns aliases for try-catch-finally element", () => {
       const baseMapping = {
-        "try-catch-finally": "/doc/.../try-catch-finally"
+        "try-catch-finally": "/doc/.../try-catch-finally",
       };
 
       const aliases = service.getElementTypeAliases(baseMapping);
@@ -511,19 +517,19 @@ describe("DocumentationService - Element Type Mapping", () => {
 
     test("returns aliases for headers modification", () => {
       const baseMapping = {
-        "headers-modification": "/doc/.../headers_modification"
+        "headers-modification": "/doc/.../headers_modification",
       };
 
       const aliases = service.getElementTypeAliases(baseMapping);
 
       expect(aliases["header-modification"]).toBe(
-        "/doc/.../headers_modification"
+        "/doc/.../headers_modification",
       );
     });
 
     test("returns aliases for asyncapi trigger", () => {
       const baseMapping = {
-        "asyncapi-trigger": "/doc/.../asyncapi_trigger"
+        "asyncapi-trigger": "/doc/.../asyncapi_trigger",
       };
 
       const aliases = service.getElementTypeAliases(baseMapping);
@@ -533,7 +539,7 @@ describe("DocumentationService - Element Type Mapping", () => {
 
     test("returns aliases for scheduler", () => {
       const baseMapping = {
-        scheduler: "/doc/.../scheduler"
+        scheduler: "/doc/.../scheduler",
       };
 
       const aliases = service.getElementTypeAliases(baseMapping);
@@ -556,7 +562,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       const path = await service.mapPathByElementType("http-trigger");
@@ -569,7 +575,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/1__Routing/5__Condition/condition.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/1__Routing/5__Condition/condition.md",
         ]);
 
       const pathElse = await service.mapPathByElementType("else");
@@ -583,7 +589,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/1__Routing/9__Try-Catch-Finally/try-catch-finally.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/1__Routing/9__Try-Catch-Finally/try-catch-finally.md",
         ]);
 
       const pathTry = await service.mapPathByElementType("try");
@@ -599,7 +605,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/5__Scheduler/scheduler.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/5__Scheduler/scheduler.md",
         ]);
 
       const pathQuartz = await service.mapPathByElementType("quartz");
@@ -619,7 +625,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       const loadPathsSpy = jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       await service.mapPathByElementType("http-trigger");
@@ -635,7 +641,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       const rules = await service.loadElementMapping();
@@ -650,7 +656,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       const rules = await service.loadElementMapping();
@@ -666,7 +672,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       const loadPathsSpy = jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       // Populate caches
@@ -683,7 +689,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       await service.buildElementTypeMapping();
@@ -699,14 +705,14 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       await service.openChainElementDocumentation("http-trigger");
 
       expect(mockWindowOpen).toHaveBeenCalledWith(
         expect.stringContaining("http_trigger"),
-        "_blank"
+        "_blank",
       );
     });
 
@@ -717,7 +723,7 @@ describe("DocumentationService - Element Type Mapping", () => {
 
       expect(mockWindowOpen).toHaveBeenCalledWith(
         expect.stringContaining("not-found"),
-        "_blank"
+        "_blank",
       );
     });
 
@@ -733,38 +739,38 @@ describe("DocumentationService - Element Type Mapping", () => {
       expect(onErrorMock).toHaveBeenCalledWith(expect.any(Error));
       expect(mockWindowOpen).toHaveBeenCalledWith(
         expect.stringContaining("/doc"),
-        "_blank"
+        "_blank",
       );
     });
 
     test("wraps non-Error thrown values", async () => {
-      jest
-        .spyOn(service, "loadPaths")
-        .mockRejectedValue("string error");
+      jest.spyOn(service, "loadPaths").mockRejectedValue("string error");
 
       const onErrorMock = jest.fn();
 
       await service.openChainElementDocumentation("http-trigger", onErrorMock);
 
       expect(onErrorMock).toHaveBeenCalledWith(expect.any(Error));
-      expect((onErrorMock.mock.calls[0] as [Error])[0].message).toBe("string error");
+      expect((onErrorMock.mock.calls[0] as [Error])[0].message).toBe(
+        "string error",
+      );
     });
   });
 
   describe("openContextDocumentation", () => {
     test("opens mapped documentation based on current path", () => {
       const mockRules = [
-        { pattern: "^/chains", doc: "/doc/01__Chains/chains" }
+        { pattern: "^/chains", doc: "/doc/01__Chains/chains" },
       ];
       mockFetch.mockResolvedValue({
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve(mockRules)
+        json: () => Promise.resolve(mockRules),
       });
 
       Object.defineProperty(window, "location", {
         value: { pathname: "/chains", hash: "" },
-        writable: true
+        writable: true,
       });
 
       service.openContextDocumentation();
@@ -773,7 +779,7 @@ describe("DocumentationService - Element Type Mapping", () => {
         setTimeout(() => {
           expect(mockWindowOpen).toHaveBeenCalledWith(
             expect.stringContaining("01__Chains"),
-            "_blank"
+            "_blank",
           );
           resolve();
         }, 50);
@@ -785,7 +791,7 @@ describe("DocumentationService - Element Type Mapping", () => {
 
       Object.defineProperty(window, "location", {
         value: { pathname: "/test", hash: "" },
-        writable: true
+        writable: true,
       });
 
       const onErrorMock = jest.fn();
@@ -805,7 +811,7 @@ describe("DocumentationService - Element Type Mapping", () => {
 
       Object.defineProperty(window, "location", {
         value: { pathname: "/test", hash: "" },
-        writable: true
+        writable: true,
       });
 
       const onErrorMock = jest.fn();
@@ -814,7 +820,9 @@ describe("DocumentationService - Element Type Mapping", () => {
       return new Promise<void>((resolve) => {
         setTimeout(() => {
           expect(onErrorMock).toHaveBeenCalledWith(expect.any(Error));
-          expect((onErrorMock.mock.calls[0] as [Error])[0].message).toBe("string error");
+          expect((onErrorMock.mock.calls[0] as [Error])[0].message).toBe(
+            "string error",
+          );
           resolve();
         }, 50);
       });
@@ -823,17 +831,17 @@ describe("DocumentationService - Element Type Mapping", () => {
     test("falls back to not-found when no mapping rule matches", () => {
       // Rules that don't match the current path
       const mockRules = [
-        { pattern: "^/chains", doc: "/doc/01__Chains/chains" }
+        { pattern: "^/chains", doc: "/doc/01__Chains/chains" },
       ];
       mockFetch.mockResolvedValue({
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve(mockRules)
+        json: () => Promise.resolve(mockRules),
       });
 
       Object.defineProperty(window, "location", {
         value: { pathname: "/unknown-page", hash: "" },
-        writable: true
+        writable: true,
       });
 
       service.openContextDocumentation();
@@ -842,7 +850,7 @@ describe("DocumentationService - Element Type Mapping", () => {
         setTimeout(() => {
           expect(mockWindowOpen).toHaveBeenCalledWith(
             expect.stringContaining("not-found"),
-            "_blank"
+            "_blank",
           );
           resolve();
         }, 50);
@@ -850,18 +858,16 @@ describe("DocumentationService - Element Type Mapping", () => {
     });
 
     test("falls back to not-found when rule has no doc field", () => {
-      const mockRules = [
-        { pattern: "^/test", doc: "" }
-      ];
+      const mockRules = [{ pattern: "^/test", doc: "" }];
       mockFetch.mockResolvedValue({
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve(mockRules)
+        json: () => Promise.resolve(mockRules),
       });
 
       Object.defineProperty(window, "location", {
         value: { pathname: "/test", hash: "" },
-        writable: true
+        writable: true,
       });
 
       service.openContextDocumentation();
@@ -870,7 +876,7 @@ describe("DocumentationService - Element Type Mapping", () => {
         setTimeout(() => {
           expect(mockWindowOpen).toHaveBeenCalledWith(
             expect.stringContaining("not-found"),
-            "_blank"
+            "_blank",
           );
           resolve();
         }, 50);
@@ -883,7 +889,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       jest
         .spyOn(service, "loadPaths")
         .mockResolvedValue([
-          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md"
+          "01__Chains/1__Graph/1__QIP_Elements_Library/6__Triggers/1__HTTP_Trigger/http_trigger.md",
         ]);
 
       const result = await service.mapElementToDoc("http-trigger");
@@ -901,12 +907,12 @@ describe("DocumentationService - Element Type Mapping", () => {
   describe("mapContextToDoc", () => {
     test("returns doc path for matching context", async () => {
       const mockRules = [
-        { pattern: "^/chains", doc: "/doc/01__Chains/chains" }
+        { pattern: "^/chains", doc: "/doc/01__Chains/chains" },
       ];
       mockFetch.mockResolvedValue({
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve(mockRules)
+        json: () => Promise.resolve(mockRules),
       });
 
       const result = await service.mapContextToDoc("/chains");
@@ -917,7 +923,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       mockFetch.mockResolvedValue({
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve([])
+        json: () => Promise.resolve([]),
       });
 
       const result = await service.mapContextToDoc("/unknown");
@@ -931,7 +937,7 @@ describe("DocumentationService - Element Type Mapping", () => {
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
         json: () =>
-          Promise.resolve(["00__Overview/overview.md", "01__Chains/chains.md"])
+          Promise.resolve(["00__Overview/overview.md", "01__Chains/chains.md"]),
       });
 
       const result = await service.getDefaultDocumentPath();
@@ -942,7 +948,7 @@ describe("DocumentationService - Element Type Mapping", () => {
       mockFetch.mockResolvedValue({
         ok: true,
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve([])
+        json: () => Promise.resolve([]),
       });
 
       const result = await service.getDefaultDocumentPath();
@@ -964,7 +970,9 @@ describe("DocumentationService - Module-level", () => {
     // factory runs again producing a fresh jest.fn() with clean call history
     // (unaffected by clearMocks:true which runs before each test).
     let onConfigChangeMock: jest.Mock | null = null;
-    let isolatedService: { elementTypeMappingCache: Record<string, string> | null } | null = null;
+    let isolatedService: {
+      elementTypeMappingCache: Record<string, string> | null;
+    } | null = null;
 
     jest.isolateModules(() => {
       /* eslint-disable @typescript-eslint/no-require-imports -- require is needed inside jest.isolateModules */
@@ -973,13 +981,12 @@ describe("DocumentationService - Module-level", () => {
       };
       onConfigChangeMock = appConfig.onConfigChange;
 
-      const mod = require(
-        "../../../src/services/documentation/documentationService"
-      ) as {
-        documentationService: {
-          elementTypeMappingCache: Record<string, string> | null;
+      const mod =
+        require("../../../src/services/documentation/documentationService") as {
+          documentationService: {
+            elementTypeMappingCache: Record<string, string> | null;
+          };
         };
-      };
       isolatedService = mod.documentationService;
       /* eslint-enable @typescript-eslint/no-require-imports */
     });
