@@ -164,11 +164,11 @@ export class RestApi implements Api {
     );
   }
 
-  private v1 = (): string => `/api/v1/${getAppName()}`;
-  private v2 = (): string => `/api/${getAppName()}/v2`;
-  private v3 = (): string => `/api/${getAppName()}/v3`;
+  private readonly v1 = (): string => `/api/v1/${getAppName()}`;
+  private readonly v2 = (): string => `/api/${getAppName()}/v2`;
+  private readonly v3 = (): string => `/api/${getAppName()}/v3`;
 
-  private toApiError = (
+  private readonly toApiError = (
     serviceName: string,
     message: string,
     errorDate: string,
@@ -184,7 +184,7 @@ export class RestApi implements Api {
     };
   };
 
-  private wrapApiResponse = async <T>(
+  private readonly wrapApiResponse = async <T>(
     serviceName: string,
     fallbackMessage: string,
     fn: () => Promise<T>,
@@ -236,7 +236,7 @@ export class RestApi implements Api {
     }
   };
 
-  private wrapBoolean = async (
+  private readonly wrapBoolean = async (
     fallbackMessage: string,
     fn: () => Promise<void>,
   ): Promise<boolean> => {
@@ -289,7 +289,7 @@ export class RestApi implements Api {
     return this.createCommonVariables({ [variable.key]: variable.value });
   };
 
-  private createCommonVariables = async (
+  private readonly createCommonVariables = async (
     variables: Record<string, string>,
   ): Promise<ApiResponse<string[]>> => {
     const serviceName = "Common Variables API";
@@ -1962,7 +1962,7 @@ export class RestApi implements Api {
   createMaasKafkaEntity = async (
     request: CreateMaasKafkaRequest,
   ): Promise<void> => {
-    await this.instance.post(`/api/cip/v1/maas-actions/kafka`, undefined, {
+    await this.instance.post(`${this.v1()}/maas-actions/kafka`, undefined, {
       params: {
         namespace: request.namespace,
         topicClassifierName: request.topicClassifierName,
@@ -1973,7 +1973,7 @@ export class RestApi implements Api {
   createMaasRabbitMQEntity = async (
     request: CreateMaasRabbitMQRequest,
   ): Promise<void> => {
-    await this.instance.post(`/api/cip/v1/maas-actions/rabbitmq`, undefined, {
+    await this.instance.post(`${this.v1()}/maas-actions/rabbitmq`, undefined, {
       params: {
         namespace: request.namespace,
         vhost: request.vhost,
@@ -1988,7 +1988,7 @@ export class RestApi implements Api {
     request: GetMaasKafkaDeclarativeRequest,
   ): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `/api/cip/v1/maas-actions/kafka/declarative`,
+      `${this.v1()}/maas-actions/kafka/declarative`,
       undefined,
       {
         params: { topicClassifierName: request.topicClassifierName },
@@ -2002,7 +2002,7 @@ export class RestApi implements Api {
     request: GetMaasRabbitMQDeclarativeRequest,
   ): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `/api/cip/v1/maas-actions/rabbitmq/declarative`,
+      `${this.v1()}/maas-actions/rabbitmq/declarative`,
       undefined,
       {
         params: {

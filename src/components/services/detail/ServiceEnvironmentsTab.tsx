@@ -410,7 +410,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         render: (_: unknown, record: Environment) => (
           <ProtectedButton
             require={{ environment: ["delete"] }}
-            tooltipProps={{ title: "Delete" }}
+            tooltipProps={{ title: "Delete", placement: "bottom" }}
             buttonProps={{
               type: "text",
               iconName: "delete",
@@ -535,7 +535,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
         {system?.type === IntegrationSystemType.EXTERNAL && (
           <ProtectedButton
             require={{ environment: ["create"] }}
-            tooltipProps={{}}
+            tooltipProps={{ title: "Add Environment", placement: "bottom" }}
             buttonProps={{
               type: "primary",
               onClick: () => setAddModalOpen(true),
@@ -632,6 +632,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
               getErrorMessage(e, "Update failed"),
               e,
             );
+            throw e;
           } finally {
             setSaving(false);
           }
@@ -654,6 +655,7 @@ export const ServiceEnvironmentsTab: React.FC<ServiceEnvironmentsTabProps> = ({
               getErrorMessage(e, "Create failed"),
               e,
             );
+            throw e;
           } finally {
             setSaving(false);
           }
