@@ -99,7 +99,10 @@
   border-radius: 6px;
   padding: 12px 16px !important;
   overflow: auto;
-  background: var(--vscode-textCodeBlock-background, rgb(0 0 0 / 6%)) !important;
+  background: var(
+    --vscode-textCodeBlock-background,
+    rgb(0 0 0 / 6%)
+  ) !important;
 }
 
 .viewer pre {

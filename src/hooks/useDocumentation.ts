@@ -30,7 +30,11 @@ export const useDocumentation = () => {
   );
 
   const getSearchDetailSegments = useCallback(
-    async (ref: number, query: string, terms?: string[]): Promise<HighlightSegment[][]> => {
+    async (
+      ref: number,
+      query: string,
+      terms?: string[],
+    ): Promise<HighlightSegment[][]> => {
       return documentationService.getSearchDetailSegments(ref, query, terms);
     },
     [],

@@ -84,10 +84,8 @@
   margin: auto;
 }
 
-.sidebar
-  :global(.ant-tree-show-line .ant-tree-indent-unit::before) {
-  inset-inline-start: 8px;
-  inset-inline-end: auto;
+.sidebar :global(.ant-tree-show-line .ant-tree-indent-unit::before) {
+  inset-inline: 8px auto;
 }
 
 /* Non-navigable group nodes (folders without a document) —
