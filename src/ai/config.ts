@@ -9,9 +9,7 @@ export function getDefaultAiProvider(): AiModelProvider {
     const serviceUrl = getAiServiceUrl();
 
     if (!serviceUrl) {
-      throw new Error(
-        "AI service is not configured."
-      );
+      throw new Error("AI service is not configured.");
     }
 
     cachedProvider = new HttpAiModelProvider(serviceUrl);
