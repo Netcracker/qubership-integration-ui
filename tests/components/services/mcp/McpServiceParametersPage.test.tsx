@@ -2,9 +2,14 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MCPSystem } from "../../../../src/api/apiTypes";
+// ---------------------------------------------------------------------------
+// Component under test (imported after mocks due to jest hoisting)
+// ---------------------------------------------------------------------------
+import { McpServiceParametersPage } from "../../../../src/components/services/mcp/McpServiceParametersPage";
+import { useNotificationService } from "../../../../src/hooks/useNotificationService";
 
 // ---------------------------------------------------------------------------
 // Browser API stubs required by Ant Design
@@ -59,12 +64,6 @@ jest.mock("react-router", () => ({
 jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));
-
-// ---------------------------------------------------------------------------
-// Component under test (imported after mocks due to jest hoisting)
-// ---------------------------------------------------------------------------
-import { McpServiceParametersPage } from "../../../../src/components/services/mcp/McpServiceParametersPage";
-import { useNotificationService } from "../../../../src/hooks/useNotificationService";
 
 // ---------------------------------------------------------------------------
 // Fixture factory
@@ -166,7 +165,7 @@ describe("McpServiceParametersPage", () => {
 
     await waitFor(() =>
       expect(mockRequestFailed).toHaveBeenCalledWith(
-        "Failed to load MCP services",
+        "Failed to load MCP service",
         expect.any(Error),
       ),
     );

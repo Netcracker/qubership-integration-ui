@@ -23,35 +23,32 @@ globalThis.ResizeObserver = class ResizeObserver {
 };
 
 import React from "react";
-import { describe, it, expect, beforeEach } from "@jest/globals";
-import { render, act, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "@jest/globals";
+import { act, render, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import type { FieldProps } from "@rjsf/utils";
 import type { JSONSchema7 } from "json-schema";
 import type { MCPSystem } from "../../../../../../src/api/apiTypes";
 import type { FormContext } from "../../../../../../src/components/modal/chain_element/ChainElementModificationContext";
+import { MCPServiceField } from "../../../../../../src/components/modal/chain_element/field/select/MCPServiceField";
 
 // ---------------------------------------------------------------------------
-// Captured props store — updated on every re-render of the stub
+// Captured props store — updated on every re-render of the Select stub
 // ---------------------------------------------------------------------------
 
 type CapturedSelectProps = {
-  id?: string;
-  title: string;
-  required?: boolean;
-  selectValue: string | undefined;
-  selectOptions:
+  mode?: string;
+  value: string[] | undefined;
+  options:
     | Array<{ labelString: string; label: string; value: string }>
     | undefined;
-  selectOnChange: (value: string) => void;
-  selectDisabled: boolean;
-  buttonTitle: string;
-  buttonDisabled: boolean;
-  buttonOnClick: string;
-  selectOptionFilterProp?: string;
+  onChange: (value: string[]) => void;
+  loading: boolean;
+  showSearch?: boolean;
+  optionFilterProp?: string;
 };
 
-let capturedProps: CapturedSelectProps | null = null;
+let capturedSelectProps: CapturedSelectProps | null = null;
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -80,19 +77,18 @@ jest.mock("../../../../../../src/hooks/useNotificationService", () => ({
   useNotificationService: () => mockNotificationService,
 }));
 
-jest.mock("../../../../../../src/icons/IconProvider", () => ({
-  OverridableIcon: ({ name }: { name: string }) => (
-    <span data-testid={`icon-${name}`} />
-  ),
+jest.mock("antd", () => ({
+  Select: (props: CapturedSelectProps) => {
+    capturedSelectProps = props;
+    return <div data-testid="antd-select" />;
+  },
 }));
 
 jest.mock(
-  "../../../../../../src/components/modal/chain_element/field/select/SelectAndNavigateField",
+  "../../../../../../src/components/modal/chain_element/ChainElementModification.module.css",
   () => ({
-    SelectAndNavigateField: (props: CapturedSelectProps) => {
-      capturedProps = props;
-      return <div data-testid="select-and-navigate-field" />;
-    },
+    "field-label": "field-label",
+    "field-required": "field-required",
   }),
 );
 
@@ -110,14 +106,14 @@ const makeMcpSystem = (id: string, name: string): MCPSystem =>
     labels: [],
   }) as MCPSystem;
 
-type RegistryProp = FieldProps<string, JSONSchema7, FormContext>["registry"];
+type RegistryProp = FieldProps<string[], JSONSchema7, FormContext>["registry"];
 
 function makeProps(
-  overrides: Partial<FieldProps<string, JSONSchema7, FormContext>> = {},
-): FieldProps<string, JSONSchema7, FormContext> {
+  overrides: Partial<FieldProps<string[], JSONSchema7, FormContext>> = {},
+): FieldProps<string[], JSONSchema7, FormContext> {
   return {
     id: "test-field",
-    formData: "",
+    formData: [],
     schema: {},
     required: false,
     uiSchema: {},
@@ -131,14 +127,12 @@ function makeProps(
     onBlur: jest.fn(),
     onFocus: jest.fn(),
     ...overrides,
-  } as FieldProps<string, JSONSchema7, FormContext>;
+  } as FieldProps<string[], JSONSchema7, FormContext>;
 }
 
 // ---------------------------------------------------------------------------
 // Component under test (imported after mocks)
 // ---------------------------------------------------------------------------
-
-import { MCPServiceField } from "../../../../../../src/components/modal/chain_element/field/select/MCPServiceField";
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -147,7 +141,7 @@ import { MCPServiceField } from "../../../../../../src/components/modal/chain_el
 describe("MCPServiceField", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    capturedProps = null;
+    capturedSelectProps = null;
     mockGetMcpSystems.mockResolvedValue([]);
   });
 
@@ -158,21 +152,23 @@ describe("MCPServiceField", () => {
   describe("initial render", () => {
     it("should render without crashing when given minimal valid props", async () => {
       const { getByTestId } = render(<MCPServiceField {...makeProps()} />);
-      expect(getByTestId("select-and-navigate-field")).toBeInTheDocument();
+      expect(getByTestId("antd-select")).toBeInTheDocument();
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
 
-    it("should pass selectDisabled as true to SelectAndNavigateField when data is loading", async () => {
+    it("should pass loading as true to Select when data is loading", async () => {
       mockGetMcpSystems.mockReturnValue(new Promise<MCPSystem[]>(() => {}));
       render(<MCPServiceField {...makeProps()} />);
-      await waitFor(() => expect(capturedProps?.selectDisabled).toBe(true));
+      await waitFor(() => expect(capturedSelectProps?.loading).toBe(true));
     });
 
-    it("should pass buttonDisabled as true to SelectAndNavigateField when no system has been selected", async () => {
-      render(<MCPServiceField {...makeProps()} />);
-      // buttonDisabled derives from !systemId; systemId starts as "" so it is
-      // true on every render until the user makes a selection.
-      expect(capturedProps?.buttonDisabled).toBe(true);
+    it("should render a label element with htmlFor matching the id prop", async () => {
+      const { container } = render(
+        <MCPServiceField {...makeProps({ id: "my-field" })} />,
+      );
+      const label = container.querySelector("label");
+      expect(label).toBeInTheDocument();
+      expect(label).toHaveAttribute("for", "my-field");
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
   });
@@ -184,25 +180,24 @@ describe("MCPServiceField", () => {
   describe("successful data load", () => {
     it("should call getMcpSystems with true when component mounts", async () => {
       render(<MCPServiceField {...makeProps()} />);
-      await waitFor(() =>
-        expect(mockGetMcpSystems).toHaveBeenCalledWith(true),
-      );
+      await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalledWith(true));
     });
 
-    it("should pass selectDisabled as false to SelectAndNavigateField when data has loaded", async () => {
+    it("should pass loading as false to Select when data has loaded", async () => {
       render(<MCPServiceField {...makeProps()} />);
-      // Wait until the API has been called *and* loading has finished.
       await waitFor(() => {
         expect(mockGetMcpSystems).toHaveBeenCalledWith(true);
-        expect(capturedProps?.selectDisabled).toBe(false);
+        expect(capturedSelectProps?.loading).toBe(false);
       });
     });
 
-    it("should pass correctly shaped options to SelectAndNavigateField when systems are returned by API", async () => {
-      mockGetMcpSystems.mockResolvedValue([makeMcpSystem("sys-1", "System One")]);
+    it("should pass correctly shaped options to Select when systems are returned by API", async () => {
+      mockGetMcpSystems.mockResolvedValue([
+        makeMcpSystem("sys-1", "System One"),
+      ]);
       render(<MCPServiceField {...makeProps()} />);
       await waitFor(() =>
-        expect(capturedProps?.selectOptions).toEqual([
+        expect(capturedSelectProps?.options).toEqual([
           { labelString: "System One", label: "System One", value: "sys-1" },
         ]),
       );
@@ -216,7 +211,7 @@ describe("MCPServiceField", () => {
       ]);
       render(<MCPServiceField {...makeProps()} />);
       await waitFor(() => {
-        const values = capturedProps?.selectOptions?.map((o) => o.value);
+        const values = capturedSelectProps?.options?.map((o) => o.value);
         expect(values).toEqual(["sys-1", "sys-2", "sys-3"]);
       });
     });
@@ -241,20 +236,20 @@ describe("MCPServiceField", () => {
       );
     });
 
-    it("should pass empty options to SelectAndNavigateField when API call fails", async () => {
+    it("should pass empty options to Select when API call fails", async () => {
       render(<MCPServiceField {...makeProps()} />);
       await waitFor(() => {
         expect(mockRequestFailed).toHaveBeenCalled();
-        expect(capturedProps?.selectOptions).toEqual([]);
+        expect(capturedSelectProps?.options).toEqual([]);
       });
     });
 
-    it("should pass selectDisabled as false to SelectAndNavigateField when API call fails", async () => {
+    it("should pass loading as false to Select when API call fails", async () => {
       render(<MCPServiceField {...makeProps()} />);
       // isLoading is reset to false in the finally block even after an error.
       await waitFor(() => {
         expect(mockRequestFailed).toHaveBeenCalled();
-        expect(capturedProps?.selectDisabled).toBe(false);
+        expect(capturedSelectProps?.loading).toBe(false);
       });
     });
   });
@@ -264,8 +259,8 @@ describe("MCPServiceField", () => {
   // -------------------------------------------------------------------------
 
   describe("title resolution", () => {
-    it("should use uiSchema ui:title as title when it is provided", async () => {
-      render(
+    it("should use uiSchema ui:title as label text when it is provided", async () => {
+      const { container } = render(
         <MCPServiceField
           {...makeProps({
             uiSchema: { "ui:title": "UI Schema Title" },
@@ -273,13 +268,13 @@ describe("MCPServiceField", () => {
           })}
         />,
       );
-      // title is derived synchronously from props on every render.
-      expect(capturedProps?.title).toBe("UI Schema Title");
+      const label = container.querySelector("label");
+      expect(label?.textContent).toContain("UI Schema Title");
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
 
-    it("should fall back to schema title when uiSchema ui:title is absent", async () => {
-      render(
+    it("should fall back to schema title as label text when uiSchema ui:title is absent", async () => {
+      const { container } = render(
         <MCPServiceField
           {...makeProps({
             uiSchema: {},
@@ -287,12 +282,13 @@ describe("MCPServiceField", () => {
           })}
         />,
       );
-      expect(capturedProps?.title).toBe("Schema Title");
+      const label = container.querySelector("label");
+      expect(label?.textContent).toContain("Schema Title");
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
 
-    it("should pass empty string as title when neither uiSchema nor schema title is provided", async () => {
-      render(
+    it("should render an empty label when neither uiSchema nor schema title is provided", async () => {
+      const { container } = render(
         <MCPServiceField
           {...makeProps({
             uiSchema: {},
@@ -300,7 +296,8 @@ describe("MCPServiceField", () => {
           })}
         />,
       );
-      expect(capturedProps?.title).toBe("");
+      const label = container.querySelector("label");
+      expect(label?.textContent).toBe("");
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
   });
@@ -310,48 +307,47 @@ describe("MCPServiceField", () => {
   // -------------------------------------------------------------------------
 
   describe("selection handling", () => {
-    it("should call updateContext with mcpServiceId when a system is selected", async () => {
+    it("should call updateContext with mcpServiceIds when systems are selected", async () => {
       render(<MCPServiceField {...makeProps()} />);
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
       act(() => {
-        capturedProps?.selectOnChange("sys-1");
+        capturedSelectProps?.onChange(["sys-1", "sys-2"]);
       });
-      expect(mockUpdateContext).toHaveBeenCalledWith({ mcpServiceId: "sys-1" });
+      expect(mockUpdateContext).toHaveBeenCalledWith({
+        mcpServiceIds: ["sys-1", "sys-2"],
+      });
     });
 
-    it("should pass buttonDisabled as false to SelectAndNavigateField when a system has been selected", async () => {
-      render(<MCPServiceField {...makeProps()} />);
+    it("should call updateContext with empty array when all systems are deselected", async () => {
+      render(<MCPServiceField {...makeProps({ formData: ["sys-1"] })} />);
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
       act(() => {
-        capturedProps?.selectOnChange("sys-1");
+        capturedSelectProps?.onChange([]);
       });
-      await waitFor(() => expect(capturedProps?.buttonDisabled).toBe(false));
-    });
-
-    it("should pass navigation path with selected system id to SelectAndNavigateField when a system is selected", async () => {
-      render(<MCPServiceField {...makeProps()} />);
-      await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
-      act(() => {
-        capturedProps?.selectOnChange("sys-1");
-      });
-      // navigationPath is set by a useEffect reacting to systemId, so we wait.
-      await waitFor(() =>
-        expect(capturedProps?.buttonOnClick).toBe(
-          "/services/mcp/sys-1/parameters",
-        ),
-      );
+      expect(mockUpdateContext).toHaveBeenCalledWith({ mcpServiceIds: [] });
     });
   });
 
   // -------------------------------------------------------------------------
-  // Group 6 — formData as selectValue
+  // Group 6 — formData as value
   // -------------------------------------------------------------------------
 
-  describe("formData as selectValue", () => {
-    it("should pass formData prop as selectValue to SelectAndNavigateField when formData is set", async () => {
-      render(<MCPServiceField {...makeProps({ formData: "pre-existing-id" })} />);
-      // selectValue is passed directly from the formData prop on every render.
-      expect(capturedProps?.selectValue).toBe("pre-existing-id");
+  describe("formData as value", () => {
+    it("should pass formData prop as value to Select when formData is set", async () => {
+      render(
+        <MCPServiceField {...makeProps({ formData: ["pre-existing-id"] })} />,
+      );
+      expect(capturedSelectProps?.value).toEqual(["pre-existing-id"]);
+      await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
+    });
+
+    it("should pass multiple pre-selected values to Select when formData contains multiple ids", async () => {
+      render(
+        <MCPServiceField
+          {...makeProps({ formData: ["id-1", "id-2", "id-3"] })}
+        />,
+      );
+      expect(capturedSelectProps?.value).toEqual(["id-1", "id-2", "id-3"]);
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
   });
@@ -373,9 +369,8 @@ describe("MCPServiceField", () => {
       );
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
       // Optional chaining on formContext/updateContext must not throw.
-      // If selectOnChange throws, act propagates it and the test fails.
       await act(async () => {
-        capturedProps?.selectOnChange("sys-1");
+        capturedSelectProps?.onChange(["sys-1"]);
         await Promise.resolve();
       });
     });
@@ -392,9 +387,8 @@ describe("MCPServiceField", () => {
       );
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
       // Optional chaining on formContext/updateContext must not throw.
-      // If selectOnChange throws, act propagates it and the test fails.
       await act(async () => {
-        capturedProps?.selectOnChange("sys-1");
+        capturedSelectProps?.onChange(["sys-1"]);
         await Promise.resolve();
       });
     });
@@ -405,15 +399,45 @@ describe("MCPServiceField", () => {
   // -------------------------------------------------------------------------
 
   describe("required prop", () => {
-    it("should pass required as true to SelectAndNavigateField when required prop is true", async () => {
-      render(<MCPServiceField {...makeProps({ required: true })} />);
-      expect(capturedProps?.required).toBe(true);
+    it("should render required asterisk indicator when required prop is true", async () => {
+      const { container } = render(
+        <MCPServiceField {...makeProps({ required: true })} />,
+      );
+      const requiredIndicator = container.querySelector(".field-required");
+      expect(requiredIndicator).toBeInTheDocument();
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
 
-    it("should pass required as false to SelectAndNavigateField when required prop is false", async () => {
-      render(<MCPServiceField {...makeProps({ required: false })} />);
-      expect(capturedProps?.required).toBe(false);
+    it("should not render required asterisk indicator when required prop is false", async () => {
+      const { container } = render(
+        <MCPServiceField {...makeProps({ required: false })} />,
+      );
+      const requiredIndicator = container.querySelector(".field-required");
+      expect(requiredIndicator).not.toBeInTheDocument();
+      await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Group 9 — Multiple selection mode
+  // -------------------------------------------------------------------------
+
+  describe("multiple selection mode", () => {
+    it("should render Select with multiple mode", async () => {
+      render(<MCPServiceField {...makeProps()} />);
+      expect(capturedSelectProps?.mode).toBe("multiple");
+      await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
+    });
+
+    it("should render Select with showSearch enabled", async () => {
+      render(<MCPServiceField {...makeProps()} />);
+      expect(capturedSelectProps?.showSearch).toBe(true);
+      await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
+    });
+
+    it("should render Select with optionFilterProp set to labelString", async () => {
+      render(<MCPServiceField {...makeProps()} />);
+      expect(capturedSelectProps?.optionFilterProp).toBe("labelString");
       await waitFor(() => expect(mockGetMcpSystems).toHaveBeenCalled());
     });
   });
