@@ -145,7 +145,17 @@ export const ContextServiceList: React.FC = () => {
     onSelectedRowKeysChange: (keys) => {
       setSelectedRowKeys(keys);
     },
-    onRowClick: (record) => {
+    onRowClick: (record, event) => {
+      const target = event.target as HTMLElement;
+      if (
+        target.closest("button") ||
+        target.closest(".ant-dropdown") ||
+        target.closest("input") ||
+        target.closest("a") ||
+        target.closest(".inline-edit-labels")
+      ) {
+        return;
+      }
       void navigate(`/services/context/${record.id}/parameters`);
     },
   });
