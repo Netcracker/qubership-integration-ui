@@ -78,6 +78,8 @@ import {
 } from "./ElementNameInlineEdit.tsx";
 import { usePermissions } from "../../../permissions/usePermissions.tsx";
 import { hasPermissions } from "../../../permissions/funcs.ts";
+import { JsonAsStringField } from "./field/JsonAsStringField.tsx";
+import { MCPServiceField } from "./field/select/MCPServiceField.tsx";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -833,7 +835,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
                 customArrayField: CustomArrayField,
                 scriptField: ScriptField,
                 jsonField: JsonField,
-                serviceField: ServiceField,
+                jsonAsStringField: JsonAsStringField,
+              serviceField: ServiceField,
+              mcpServiceField: MCPServiceField,
                 specificationField: SpecificationField,
                 systemOperationField: SystemOperationField,
                 bodyMimeTypeField: BodyMimeTypeField,

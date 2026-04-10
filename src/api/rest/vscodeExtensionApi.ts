@@ -6,6 +6,8 @@ import type {
   ImportInstruction,
   ImportInstructionRequest,
   ImportInstructionResult,
+  MCPSystem,
+  MCPSystemUpdateRequest,
   SecretWithVariables,
   Variable,
 } from "../apiTypes.ts";
@@ -18,6 +20,7 @@ import {
   Chain,
   ChainDeployment,
   ChainDetailedDesign,
+  ChainElementCodeResponse,
   ChainItem,
   ChainLoggingSettings,
   CheckpointSession,
@@ -25,6 +28,8 @@ import {
   ConnectionRequest,
   ContextSystem,
   CreateElementRequest,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
   Deployment,
   DetailedDesignTemplate,
   DiagnosticValidation,
@@ -38,6 +43,8 @@ import {
   EnvironmentRequest,
   EventsUpdate,
   FolderItem,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
   ImportCommitResponse,
   ImportPreview,
   ImportSpecificationGroupRequest,
@@ -64,16 +71,11 @@ import {
   Specification,
   SpecificationGroup,
   SystemOperation,
-  CreateMaasKafkaRequest,
-  CreateMaasRabbitMQRequest,
-  GetMaasKafkaDeclarativeRequest,
-  GetMaasRabbitMQDeclarativeRequest,
   SystemRequest,
   TransferElementRequest,
   UsedProperty,
   UsedService,
   VariableImportPreview,
-  ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -1161,6 +1163,44 @@ export class VSCodeExtensionApi implements Api {
 
   getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
     throw new Error("Method getElementsAsCode not implemented.");
+  }
+
+  getMcpSystems = async (): Promise<MCPSystem[]> => {
+    return <MCPSystem[]>(
+      (await this.sendMessageToExtension("getMcpServices")).payload
+    );
+  };
+
+  getMcpSystem = async (id: string): Promise<MCPSystem> => {
+    return <MCPSystem>(
+      (await this.sendMessageToExtension("getMcpService", { id })).payload
+    );
+  };
+
+  createMcpSystem(): Promise<MCPSystem> {
+    throw new Error("Method createMcpSystem not implemented.");
+  }
+
+  updateMcpSystem = async (
+    id: string,
+    request: MCPSystemUpdateRequest,
+  ): Promise<MCPSystem> => {
+    return <MCPSystem>(
+      (await this.sendMessageToExtension("updateMcpService", { id, request }))
+        .payload
+    );
+  };
+
+  deleteMcpSystem(): Promise<void> {
+    throw new Error("Method deleteMcpSystem not implemented.");
+  }
+
+  filterMcpSystems(): Promise<MCPSystem[]> {
+    throw new Error("Method filterMcpSystems not implemented.");
+  }
+
+  exportMcpSystems(): Promise<File> {
+    throw new Error("Method exportMcpSystems not implemented.");
   }
 }
 
