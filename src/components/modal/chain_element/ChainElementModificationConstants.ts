@@ -541,7 +541,7 @@ const pathToTabExceptions: Path2TabMapping[] = [
     mapping: {
       "mcp-trigger": "Output schema",
     },
-  }
+  },
 ];
 
 export const pathToTabMap: Record<string, string> = {
