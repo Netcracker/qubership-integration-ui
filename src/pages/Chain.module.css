@@ -58,7 +58,7 @@
 }
 
 .breadcrumbItem:hover {
-  background: var(--vscode-list-hoverBackground, rgba(0, 0, 0, 0.04));
+  background: var(--vscode-list-hoverBackground, rgb(0 0 0 / 4%));
 }
 
 .breadcrumbHome {
