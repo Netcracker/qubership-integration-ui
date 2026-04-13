@@ -379,6 +379,10 @@ export interface Api {
 
   getContextService(id: string): Promise<ContextSystem>;
 
+  filterContextServices(filters: EntityFilterModel[]): Promise<ContextSystem[]>;
+
+  searchContextServices(searchCondition: string): Promise<ContextSystem[]>;
+
   createContextService(
     system: Pick<ContextSystem, "name" | "description">,
   ): Promise<ContextSystem>;
