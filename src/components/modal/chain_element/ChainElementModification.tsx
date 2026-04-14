@@ -14,7 +14,9 @@ import { Element, PatchElementRequest } from "../../../api/apiTypes.ts";
 import { useLibraryElement } from "../../../hooks/useLibraryElement.tsx";
 import Form from "@rjsf/antd";
 import yaml from "js-yaml";
+import { api } from "../../../api/api.ts";
 import { useElement } from "../../../hooks/useElement.tsx";
+import { isHttpProtocol } from "../../../misc/protocol-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import {
   ObjectFieldTemplateProps,
@@ -326,7 +328,17 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         },
       );
 
-      setFormContext({ ...initialContext, reportMissingRequiredParams });
+      // Functional update so that operation schemas already loaded by the
+      // centralized loader (see useEffect below) are preserved across
+      // re-runs of this mount effect — otherwise a stale node reference
+      // change would wipe out schemas and break auto-apply in MappingField.
+      setFormContext((prev) => ({
+        ...initialContext,
+        reportMissingRequiredParams,
+        operationSpecification: prev.operationSpecification,
+        operationRequestSchema: prev.operationRequestSchema,
+        operationResponseSchemas: prev.operationResponseSchemas,
+      }));
     } catch (err) {
       console.error("Failed to parse schema:", err);
       notificationService.errorWithDetails(
@@ -381,7 +393,114 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     // Programmatic validateForm() after mount; errors are shown in the form UI.
   }, []);
 
-  // Sync formContext → formData.properties whenever context changes
+  /**
+   * Centralized OperationInfo loader.
+   *
+   * Rationale: `SystemOperationField` is only mounted on the "Endpoint" tab
+   * (in non-Endpoint tabs `ui:field: "hidden"` is applied by `uiSchemaForTab`),
+   * so we can't rely on it to fetch schemas — otherwise custom fields on
+   * "Prepare Request" / "Handle Response" would see empty request/response
+   * schemas when the user opens those tabs first. This effect lives in the
+   * parent, which is always mounted, and publishes schemas through `setFormContext`
+   * on every real change of `integrationOperationId`.
+   *
+   * Query parameters are auto-filled (HTTP only) only when the form doesn't
+   * have them yet — we don't want to overwrite values the user previously saved.
+   */
+  const loadedOperationIdRef = useRef<string | null>(null);
+  // Snapshotted via refs (not deps) so protocol / query-param updates don't
+  // re-trigger the loader — that would create a feedback loop via the
+  // auto-fill for integrationOperationQueryParameters below.
+  const protocolTypeRef = useRef<string | undefined>(undefined);
+  const queryParamsRef = useRef<Record<string, string> | undefined>(undefined);
+  protocolTypeRef.current = formContext.integrationOperationProtocolType;
+  queryParamsRef.current = formContext.integrationOperationQueryParameters;
+
+  useEffect(() => {
+    const operationId = formContext.integrationOperationId;
+    if (!operationId) {
+      // Operation cleared — drop stale schemas so MappingField doesn't
+      // auto-apply them to a freshly-selected different operation later.
+      if (loadedOperationIdRef.current !== null) {
+        loadedOperationIdRef.current = null;
+        setFormContext((prev) => ({
+          ...prev,
+          operationSpecification: {},
+          operationRequestSchema: {},
+          operationResponseSchemas: {},
+        }));
+      }
+      return;
+    }
+    if (loadedOperationIdRef.current === operationId) return;
+
+    const controller = new AbortController();
+    loadedOperationIdRef.current = operationId;
+
+    void (async () => {
+      try {
+        const info = await api.getOperationInfo(operationId);
+        if (controller.signal.aborted) return;
+
+        const protocolType = normalizeProtocol(
+          protocolTypeRef.current ?? "",
+        );
+        const shouldAutoFillQueryParams =
+          isHttpProtocol(protocolType) &&
+          (!queryParamsRef.current ||
+            Object.keys(queryParamsRef.current).length === 0);
+
+        let queryParamsUpdate: Record<string, string> | undefined;
+        if (shouldAutoFillQueryParams) {
+          const parameters = (info.specification as { parameters?: unknown })
+            ?.parameters;
+          if (Array.isArray(parameters)) {
+            const extracted: Record<string, string> = {};
+            for (const p of parameters as Array<{
+              in?: string;
+              name?: string;
+            }>) {
+              if (p.in === "query" && typeof p.name === "string") {
+                extracted[p.name] = "";
+              }
+            }
+            if (Object.keys(extracted).length > 0) {
+              queryParamsUpdate = extracted;
+            }
+          }
+        }
+
+        setFormContext((prev) => ({
+          ...prev,
+          operationSpecification: info.specification ?? {},
+          operationRequestSchema: info.requestSchema ?? {},
+          operationResponseSchemas: info.responseSchemas ?? {},
+          ...(queryParamsUpdate
+            ? { integrationOperationQueryParameters: queryParamsUpdate }
+            : {}),
+        }));
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        notificationService.requestFailed(
+          "Failed to load operation info",
+          error,
+        );
+        setFormContext((prev) => ({
+          ...prev,
+          operationSpecification: {},
+          operationRequestSchema: {},
+          operationResponseSchemas: {},
+        }));
+      }
+    })();
+
+    return () => controller.abort();
+  }, [formContext.integrationOperationId, notificationService]);
+
+  // Sync formContext → formData.properties whenever context changes.
+  // `enrichPropertiesUtil` also filters out metadata-only keys (see
+  // METADATA_ONLY_CONTEXT_KEYS in Context.ts); we additionally null them here
+  // so that the serialized-comparison below doesn't see stale references.
   useEffect(() => {
     setFormData((prevFormData) => {
       const contextProperties = {
@@ -393,6 +512,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         elementType: undefined,
         chainId: undefined,
         reportMissingRequiredParams: undefined,
+        operationSpecification: undefined,
+        operationRequestSchema: undefined,
+        operationResponseSchemas: undefined,
       };
       const enrichedProps = enrichPropertiesUtil(
         prevFormData.properties as Record<string, unknown>,
