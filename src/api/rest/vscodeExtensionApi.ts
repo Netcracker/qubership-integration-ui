@@ -512,6 +512,14 @@ export class VSCodeExtensionApi implements Api {
     return <ContextSystem>response.payload;
   };
 
+  filterContextServices(): Promise<ContextSystem[]> {
+    throw new Error("Method filterContextServices not implemented.");
+  }
+
+  searchContextServices(): Promise<ContextSystem[]> {
+    throw new Error("Method searchContextServices not implemented.");
+  }
+
   createContextService = async (
     system: Pick<ContextSystem, "name" | "description">,
   ): Promise<ContextSystem> => {

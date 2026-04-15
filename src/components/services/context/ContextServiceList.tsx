@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../../api/api";
 import { IntegrationSystemType } from "../../../api/apiTypes";
 import { useNotificationService } from "../../../hooks/useNotificationService";
-import { useServiceFilters } from "../../../hooks/useServiceFilter";
 import {
   useServicesTreeTable,
   allServicesTreeTableColumns,
@@ -12,17 +11,15 @@ import {
   getServiceActions,
   ServiceEntity,
   ServicesTableColumn,
-  isIntegrationSystem,
 } from "./../ServicesTreeTable";
 import type { ContextSystem } from "../../../api/apiTypes";
 import { downloadFile } from "../../../misc/download-utils";
-import { invalidateServiceCache, prepareFile } from "./../utils.tsx";
-import { ImportSpecificationsModal } from "./../modals/ImportSpecificationsModal";
-import { useModalsContext } from "../../../Modals";
+import { prepareFile } from "./../utils.tsx";
 import { getErrorMessage } from "../../../misc/error-utils";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 import { GenericServiceListPage } from "./../GenericServiceListPage.tsx";
-import { EntityFilterModel } from "../../table/filter/filter.ts";
+import { useAsyncRequest } from "../useAsyncRequest.ts";
+import { useContextServiceFilters } from "../../../hooks/useContextServiceFilter.ts";
 
 const STORAGE_KEY = "servicesListTable";
 
@@ -36,64 +33,47 @@ const visibleColumns: string[] = [
 ];
 
 export const ContextServiceList: React.FC = () => {
-  const [loading, setLoading] = useState<boolean>(false);
   const [services, setServices] = useState<ContextSystem[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [searchString, setSearchString] = useState("");
   const notificationService = useNotificationService();
   const navigate = useNavigate();
-  const { showModal } = useModalsContext();
-  const { filters, filterButton } = useServiceFilters();
+  const { filters, filterButton } = useContextServiceFilters();
 
-  const loadServices = useCallback(
-    async (_searchString: string, _filters: EntityFilterModel[]) => {
-      try {
-        setLoading(true);
-        const contextServices = await api.getContextServices();
-        if (!Array.isArray(contextServices)) {
-          setServices([]);
-        } else {
-          setServices(contextServices);
-        }
-      } catch (e) {
-        notificationService.requestFailed("Failed to get context services", e);
-        setServices([]);
-      } finally {
-        setLoading(false);
+  const { loading, execute: loadServices } = useAsyncRequest(
+    async () => {
+      const hasSearch = searchString.trim().length > 0;
+      const hasFilters = filters.length > 0;
+
+      let servicesArray: ContextSystem[];
+      if (hasSearch && hasFilters) {
+        const [searched, filtered] = await Promise.all([
+          api.searchContextServices(searchString.trim()),
+          api.filterContextServices(filters),
+        ]);
+        const filteredIds = new Set(filtered.map((s) => s.id));
+        servicesArray = searched.filter((s) => filteredIds.has(s.id));
+      } else if (hasFilters) {
+        servicesArray = await api.filterContextServices(filters);
+      } else if (hasSearch) {
+        servicesArray = await api.searchContextServices(searchString.trim());
+      } else {
+        const all = await api.getContextServices();
+        servicesArray = Array.isArray(all) ? all : [];
       }
+
+      setServices(servicesArray);
     },
-    [notificationService],
+    { initialValue: undefined },
   );
 
   useEffect(() => {
-    void loadServices(searchString, filters);
-  }, [filters, loadServices, searchString]);
+    void loadServices();
+  }, [filters, searchString]);
 
   const handleEdit = (record: ServiceEntity) => {
     void navigate(`/services/context/${record.id}/parameters`);
   };
-
-  const handleAddSpecificationGroup = useCallback(
-    (record: ServiceEntity) => {
-      if (!isIntegrationSystem(record)) return;
-      showModal({
-        component: (
-          <ImportSpecificationsModal
-            systemId={record.id}
-            groupMode={true}
-            isImplementedService={
-              record.type === IntegrationSystemType.IMPLEMENTED
-            }
-            onSuccess={() => {
-              void loadServices(searchString, filters);
-              invalidateServiceCache(record.id);
-            }}
-          />
-        ),
-      });
-    },
-    [showModal, loadServices, searchString, filters],
-  );
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -119,7 +99,7 @@ export const ContextServiceList: React.FC = () => {
       onExportSelected: (selected) => {
         void handleExportSelected(selected);
       },
-      onAddSpecificationGroup: handleAddSpecificationGroup,
+      onAddSpecificationGroup: () => {},
     }),
   );
 
@@ -211,7 +191,7 @@ export const ContextServiceList: React.FC = () => {
           await handleExportSelected(selected);
         })();
       }}
-      onImport={() => void loadServices(searchString, filters)}
+      onImport={() => void loadServices()}
     >
       {servicesTable.tableElement}
     </GenericServiceListPage>

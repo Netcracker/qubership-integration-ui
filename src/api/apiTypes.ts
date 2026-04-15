@@ -1013,6 +1013,7 @@ export type IntegrationSystem = BaseEntity & {
 
 export type ContextSystem = BaseEntity & {
   type: IntegrationSystemType;
+  labels?: EntityLabel[];
 };
 
 export type MCPSystem = BaseEntity & {

@@ -1447,6 +1447,31 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  filterContextServices = async (
+    filters: EntityFilterModel[],
+  ): Promise<ContextSystem[]> => {
+    const body = filters.map((f) => ({
+      column: f.column,
+      condition: f.condition,
+      value: f.value,
+    }));
+    const response = await this.instance.post<ContextSystem[]>(
+      `${this.v1()}/catalog/context-system/filter`,
+      body,
+    );
+    return response.data;
+  };
+
+  searchContextServices = async (
+    searchCondition: string,
+  ): Promise<ContextSystem[]> => {
+    const response = await this.instance.post<ContextSystem[]>(
+      `${this.v1()}/catalog/context-system/search`,
+      { searchCondition },
+    );
+    return response.data;
+  };
+
   createContextService = async (
     system: Pick<ContextSystem, "name" | "description">,
   ): Promise<ContextSystem> => {
