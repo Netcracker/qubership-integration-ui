@@ -405,7 +405,7 @@ describe("Sessions", () => {
       }),
     ]);
 
-    const statuses = screen.getAllByTestId("session-status");
+    const statuses = await screen.findAllByTestId("session-status");
     expect(statuses).toHaveLength(2);
     expect(statuses[0]).toHaveTextContent("COMPLETED_NORMALLY");
     expect(statuses[1]).toHaveTextContent("COMPLETED_WITH_ERRORS");
