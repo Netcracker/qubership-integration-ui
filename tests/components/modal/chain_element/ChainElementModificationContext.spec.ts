@@ -30,10 +30,7 @@ describe("ChainElementModificationContext", () => {
 
   describe("enrichProperties", () => {
     it("merges simple properties into target", () => {
-      const result = enrichProperties(
-        { a: "1" },
-        { b: "2", c: "3" },
-      );
+      const result = enrichProperties({ a: "1" }, { b: "2", c: "3" });
       expect(result).toEqual({ a: "1", b: "2", c: "3" });
     });
 

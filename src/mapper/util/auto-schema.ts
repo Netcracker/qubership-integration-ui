@@ -213,9 +213,7 @@ function bridgeDefinitionsAndComponents(
   root: Record<string, unknown>,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = { ...root };
-  const definitions = result.definitions as
-    | Record<string, unknown>
-    | undefined;
+  const definitions = result.definitions as Record<string, unknown> | undefined;
   const components = result.components as
     | { schemas?: Record<string, unknown> }
     | undefined;
@@ -284,10 +282,7 @@ function sanitizeUnresolvedRefs(
   return result;
 }
 
-function isRefResolvable(
-  ref: string,
-  root: Record<string, unknown>,
-): boolean {
+function isRefResolvable(ref: string, root: Record<string, unknown>): boolean {
   if (!ref.startsWith("#/")) return true; // external refs — let the importer decide
   const segments = ref.substring(2).split("/");
   let current: unknown = root;
@@ -319,9 +314,7 @@ function isRefResolvable(
  *      replaced with `{type: "object"}` — the rest of the schema still
  *      imports cleanly and the user gets at least a partial structure.
  */
-export function tryBuildDataTypeFromSchema(
-  schema: unknown,
-): DataType | null {
+export function tryBuildDataTypeFromSchema(schema: unknown): DataType | null {
   if (!isUsableSchema(schema)) return null;
   try {
     let normalized = normalizeJsonSchemaTypes(schema);

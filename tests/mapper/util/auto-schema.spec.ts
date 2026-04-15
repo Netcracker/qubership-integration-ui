@@ -88,8 +88,14 @@ describe("auto-schema", () => {
   });
 
   describe("pickPrimaryRequestSchema", () => {
-    const jsonSchema = { type: "object", properties: { name: { type: "string" } } };
-    const xmlSchema = { type: "object", properties: { Name: { type: "string" } } };
+    const jsonSchema = {
+      type: "object",
+      properties: { name: { type: "string" } },
+    };
+    const xmlSchema = {
+      type: "object",
+      properties: { Name: { type: "string" } },
+    };
 
     it("returns null for undefined / null / empty inputs", () => {
       expect(pickPrimaryRequestSchema(undefined)).toBeNull();
@@ -129,7 +135,9 @@ describe("auto-schema", () => {
     });
 
     it("returns null when only 'parameters' is present", () => {
-      expect(pickPrimaryRequestSchema({ parameters: { type: "object" } })).toBeNull();
+      expect(
+        pickPrimaryRequestSchema({ parameters: { type: "object" } }),
+      ).toBeNull();
     });
 
     it("ignores entries with empty schema objects", () => {
@@ -143,7 +151,10 @@ describe("auto-schema", () => {
 
   describe("pickPrimaryResponseSchema", () => {
     const ok = { type: "object", properties: { id: { type: "string" } } };
-    const created = { type: "object", properties: { created: { type: "boolean" } } };
+    const created = {
+      type: "object",
+      properties: { created: { type: "boolean" } },
+    };
     const err = { type: "object", properties: { error: { type: "string" } } };
 
     it("returns null for empty / missing input", () => {
@@ -399,16 +410,12 @@ describe("auto-schema", () => {
         actions: [
           {
             id: "a1",
-            sources: [
-              { type: "attribute", kind: "body", path: ["foo"] },
-            ],
+            sources: [{ type: "attribute", kind: "body", path: ["foo"] }],
             target: { type: "attribute", kind: "property", path: ["x"] },
           } as unknown as MappingAction,
           {
             id: "a2",
-            sources: [
-              { type: "attribute", kind: "header", path: ["bar"] },
-            ],
+            sources: [{ type: "attribute", kind: "header", path: ["bar"] }],
             target: { type: "attribute", kind: "property", path: ["y"] },
           } as unknown as MappingAction,
         ],
