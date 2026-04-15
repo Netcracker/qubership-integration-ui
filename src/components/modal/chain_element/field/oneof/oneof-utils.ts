@@ -62,7 +62,7 @@ export const BEFORE_OPTIONS: ReadonlyArray<{
 
 export function findBeforeIndexByType(type: string | undefined): number {
   const idx = BEFORE_OPTIONS.findIndex((opt) => opt.type === type);
-  return idx >= 0 ? idx : 0;
+  return Math.max(idx, 0);
 }
 
 export function protocolMatchesOption(

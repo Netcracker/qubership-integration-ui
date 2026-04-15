@@ -30,9 +30,9 @@ export function getMappingDirectionFromPath(
   const tail = path[path.length - 1];
   if (tail !== "mappingDescription") return "none";
 
-  const segments = path.map((segment) => String(segment));
-  if (segments.includes("before")) return "request";
-  if (segments.includes("after")) return "response";
+  const segments = new Set(path.map(String));
+  if (segments.has("before")) return "request";
+  if (segments.has("after")) return "response";
   return "none";
 }
 
@@ -118,54 +118,58 @@ export function pickPrimaryResponseSchema(
  * body in the mapper — so we pre-normalize the schema tree before handing it
  * off. Returns a *new* object; does not mutate the input.
  */
+const OBJECT_OF_SCHEMAS_KEYS = new Set([
+  "properties",
+  "patternProperties",
+  "definitions",
+  "$defs",
+  "dependencies",
+]);
+const SINGLE_SCHEMA_KEYS = new Set([
+  "items",
+  "additionalItems",
+  "additionalProperties",
+  "propertyNames",
+  "contains",
+  "not",
+  "if",
+  "then",
+  "else",
+]);
+const SCHEMA_ARRAY_KEYS = new Set(["allOf", "anyOf", "oneOf"]);
+
+function normalizeSchemaProperty(key: string, value: unknown): unknown {
+  if (
+    OBJECT_OF_SCHEMAS_KEYS.has(key) &&
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    const walked: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      walked[k] = normalizeJsonSchemaTypes(v);
+    }
+    return walked;
+  }
+  if (SINGLE_SCHEMA_KEYS.has(key)) {
+    return normalizeJsonSchemaTypes(value);
+  }
+  if (SCHEMA_ARRAY_KEYS.has(key)) {
+    return Array.isArray(value) ? value.map(normalizeJsonSchemaTypes) : value;
+  }
+  return value;
+}
+
 function normalizeJsonSchemaTypes(schema: unknown): unknown {
   if (schema === null || typeof schema !== "object") return schema;
   if (Array.isArray(schema)) return schema.map(normalizeJsonSchemaTypes);
 
   const obj = schema as Record<string, unknown>;
-  const inferredType = inferImplicitType(obj);
-
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (
-      key === "properties" ||
-      key === "patternProperties" ||
-      key === "definitions" ||
-      key === "$defs" ||
-      key === "dependencies"
-    ) {
-      // Nested object-of-schemas
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        const walked: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-          walked[k] = normalizeJsonSchemaTypes(v);
-        }
-        result[key] = walked;
-        continue;
-      }
-    }
-    if (
-      key === "items" ||
-      key === "additionalItems" ||
-      key === "additionalProperties" ||
-      key === "propertyNames" ||
-      key === "contains" ||
-      key === "not" ||
-      key === "if" ||
-      key === "then" ||
-      key === "else"
-    ) {
-      result[key] = normalizeJsonSchemaTypes(value);
-      continue;
-    }
-    if (key === "allOf" || key === "anyOf" || key === "oneOf") {
-      result[key] = Array.isArray(value)
-        ? value.map(normalizeJsonSchemaTypes)
-        : value;
-      continue;
-    }
-    result[key] = value;
+    result[key] = normalizeSchemaProperty(key, value);
   }
+  const inferredType = inferImplicitType(obj);
   if (inferredType && !("type" in result)) {
     result.type = inferredType;
   }

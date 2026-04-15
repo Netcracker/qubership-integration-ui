@@ -10,13 +10,20 @@ import { Button, Modal, Tabs, Flex } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
-import { Element, PatchElementRequest } from "../../../api/apiTypes.ts";
+import {
+  Element,
+  OperationInfo,
+  PatchElementRequest,
+} from "../../../api/apiTypes.ts";
 import { useLibraryElement } from "../../../hooks/useLibraryElement.tsx";
 import Form from "@rjsf/antd";
 import yaml from "js-yaml";
 import { api } from "../../../api/api.ts";
 import { useElement } from "../../../hooks/useElement.tsx";
-import { isHttpProtocol } from "../../../misc/protocol-utils.ts";
+import {
+  isHttpProtocol,
+  normalizeProtocol,
+} from "../../../misc/protocol-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import {
   ObjectFieldTemplateProps,
@@ -51,7 +58,6 @@ import EnhancedPatternPropertiesField from "./field/EnhancedPatternPropertiesFie
 import BodyMimeTypeField from "./field/BodyMimeTypeField.tsx";
 import { useModalsContext } from "../../../Modals.tsx";
 import { UnsavedChangesModal } from "../UnsavedChangesModal.tsx";
-import { normalizeProtocol } from "../../../misc/protocol-utils.ts";
 import CustomOneOfField from "./field/CustomOneOfField.tsx";
 import SingleSelectField from "./field/select/SingleSelectField.tsx";
 import ContextServiceField from "./field/select/ContextServiceField.tsx";
@@ -167,6 +173,30 @@ function collectFromConditional(
 // WA to hide array properties
 function CustomObjectFieldTemplate({ properties }: ObjectFieldTemplateProps) {
   return <div>{properties.filter((p) => !p.hidden).map((p) => p.content)}</div>;
+}
+
+function extractAutoFillQueryParams(
+  info: OperationInfo,
+  protocolType: string | undefined,
+  currentQueryParams: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  const normalized = normalizeProtocol(protocolType ?? "");
+  const shouldFill =
+    isHttpProtocol(normalized) &&
+    (!currentQueryParams || Object.keys(currentQueryParams).length === 0);
+  if (!shouldFill) return undefined;
+
+  const parameters = (info.specification as { parameters?: unknown })
+    ?.parameters;
+  if (!Array.isArray(parameters)) return undefined;
+
+  const extracted: Record<string, string> = {};
+  for (const p of parameters as Array<{ in?: string; name?: string }>) {
+    if (p.in === "query" && typeof p.name === "string") {
+      extracted[p.name] = "";
+    }
+  }
+  return Object.keys(extracted).length > 0 ? extracted : undefined;
 }
 
 // Static RJSF registries — defined outside the component so references are stable
@@ -478,33 +508,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         const info = await api.getOperationInfo(operationId);
         if (controller.signal.aborted) return;
 
-        const protocolType = normalizeProtocol(
-          protocolTypeRef.current ?? "",
+        const queryParamsUpdate = extractAutoFillQueryParams(
+          info,
+          protocolTypeRef.current,
+          queryParamsRef.current,
         );
-        const shouldAutoFillQueryParams =
-          isHttpProtocol(protocolType) &&
-          (!queryParamsRef.current ||
-            Object.keys(queryParamsRef.current).length === 0);
-
-        let queryParamsUpdate: Record<string, string> | undefined;
-        if (shouldAutoFillQueryParams) {
-          const parameters = (info.specification as { parameters?: unknown })
-            ?.parameters;
-          if (Array.isArray(parameters)) {
-            const extracted: Record<string, string> = {};
-            for (const p of parameters as Array<{
-              in?: string;
-              name?: string;
-            }>) {
-              if (p.in === "query" && typeof p.name === "string") {
-                extracted[p.name] = "";
-              }
-            }
-            if (Object.keys(extracted).length > 0) {
-              queryParamsUpdate = extracted;
-            }
-          }
-        }
 
         setFormContext((prev) => ({
           ...prev,

@@ -36,7 +36,7 @@ function toPathSegments(
   fallbackId: string | undefined,
 ): string[] {
   if (Array.isArray(path)) {
-    return path.map((segment) => String(segment));
+    return path.map(String);
   }
   if (typeof path === "string" && path.length > 0) {
     return path.split(/[._]/).filter((segment) => segment !== "root");
