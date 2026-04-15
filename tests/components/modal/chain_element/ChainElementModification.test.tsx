@@ -222,11 +222,14 @@ jest.mock("@rjsf/antd", () => {
       ref,
     ) => {
       React.useImperativeHandle(ref, () => ({ validateForm: () => {} }));
+      const firedRef = React.useRef(false);
       React.useEffect(() => {
-        if (formMockOnMountChangeMode === "same" && onChange) {
+        if (firedRef.current || !onChange) return;
+        if (formMockOnMountChangeMode === "same") {
+          firedRef.current = true;
           onChange({ formData });
-        }
-        if (formMockOnMountChangeMode === "dirty" && onChange) {
+        } else if (formMockOnMountChangeMode === "dirty") {
+          firedRef.current = true;
           onChange({
             formData: { ...(formData as object), __testDirty: true },
           });
