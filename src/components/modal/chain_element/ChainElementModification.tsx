@@ -169,6 +169,42 @@ function CustomObjectFieldTemplate({ properties }: ObjectFieldTemplateProps) {
   return <div>{properties.filter((p) => !p.hidden).map((p) => p.content)}</div>;
 }
 
+// Static RJSF registries — defined outside the component so references are stable
+// across renders and RJSF doesn't rebuild its internal registry on every re-render.
+const WIDGETS: RegistryWidgetsType = {
+  stringAsMultipleSelectWidget: StringAsMultipleSelectWidget,
+  multipleSelectWidget: MultipleSelectWidget,
+  singleColumnTableWidget: SingleColumnTableWidget,
+  debouncedTextareaWidget: DebouncedTextareaWidget,
+  textarea: DebouncedTextareaWidget,
+};
+
+const FIELDS = {
+  OneOfField: CustomOneOfField,
+  oneOfAsSingleInputField: OneOfAsSingleInputField,
+  patternPropertiesField: PatternPropertiesField,
+  enhancedPatternPropertiesField: EnhancedPatternPropertiesField,
+  mappingField: MappingField,
+  customArrayField: CustomArrayField,
+  scriptField: ScriptField,
+  jsonField: JsonField,
+  serviceField: ServiceField,
+  specificationField: SpecificationField,
+  systemOperationField: SystemOperationField,
+  bodyMimeTypeField: BodyMimeTypeField,
+  singleSelectField: SingleSelectField,
+  contextServiceField: ContextServiceField,
+  chainTriggerElementIdField: ChainTriggerElementIdField,
+  basePathField: BasePathField,
+  externalRouteCheckbox: ExternalRouteCheckbox,
+  contextPathWithPrefixField: ContextPathWithPrefixField,
+};
+
+const TEMPLATES = {
+  ObjectFieldTemplate: CustomObjectFieldTemplate,
+  FieldTemplate: DescriptionTooltipFieldTemplate,
+};
+
 export const ChainElementModification: React.FC<ElementModificationProps> = ({
   node,
   chainId,
@@ -535,11 +571,22 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     });
   }, [formContext]);
 
+  // Memoized error transformer — only re-created when the protocol type changes,
+  // not on every formContext update, to avoid triggering unnecessary AJV validation.
+  const transformErrors = useMemo(
+    () =>
+      transformValidationErrors({
+        integrationOperationProtocolType:
+          formContext.integrationOperationProtocolType,
+      }),
+    [formContext.integrationOperationProtocolType],
+  );
+
   const validationErrors = useMemo(() => {
     if (!schema || !formData || Object.keys(schema).length === 0) return [];
     const result = validator.validateFormData(formData, schema);
-    return transformValidationErrors(formContext)(result.errors);
-  }, [formData, schema, formContext]);
+    return transformErrors(result.errors);
+  }, [formData, schema, transformErrors]);
 
   const kafkaError = useMemo(
     () =>
@@ -684,11 +731,17 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
   const uniqueTabs = useMemo(() => {
     const rawTabs = new Set(tabFields.map((f) => f.tab));
+    // Pass only the protocol type that conditionalTabs.isVisible actually reads,
+    // so tabs don't recalculate on unrelated formContext property changes.
+    const ctx: Record<string, unknown> = {
+      integrationOperationProtocolType:
+        formContext.integrationOperationProtocolType,
+    };
     return desiredTabOrder.filter(rawTabs.has.bind(rawTabs)).filter((tab) => {
       const condition = conditionalTabs.find((ct) => ct.tab === tab);
-      return !condition || condition.isVisible(formContext);
+      return !condition || condition.isVisible(ctx);
     });
-  }, [tabFields, formContext]);
+  }, [tabFields, formContext.integrationOperationProtocolType]);
 
   useEffect(() => {
     if (
@@ -755,14 +808,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     },
     [],
   );
-
-  const widgets: RegistryWidgetsType = {
-    stringAsMultipleSelectWidget: StringAsMultipleSelectWidget,
-    multipleSelectWidget: MultipleSelectWidget,
-    singleColumnTableWidget: SingleColumnTableWidget,
-    debouncedTextareaWidget: DebouncedTextareaWidget,
-    textarea: DebouncedTextareaWidget,
-  };
 
   const uiSchemaForTab = useCallback(
     (initialUiSchema: UiSchema, activeKey?: string) => {
@@ -931,7 +976,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               formData={formData}
               validator={validator}
               uiSchema={uiSchema}
-              transformErrors={transformValidationErrors(formContext)}
+              transformErrors={transformErrors}
               onError={handleRjsfFormErrors}
               liveValidate={"onChange"}
               showErrorList={false}
@@ -942,37 +987,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
                 },
               }}
               formContext={formContext}
-              templates={{
-                ObjectFieldTemplate: CustomObjectFieldTemplate,
-                FieldTemplate: DescriptionTooltipFieldTemplate,
-              }}
-              fields={{
-                OneOfField: CustomOneOfField, //Rewrite default oneOfField
-                oneOfAsSingleInputField: OneOfAsSingleInputField,
-                patternPropertiesField: PatternPropertiesField,
-                enhancedPatternPropertiesField: EnhancedPatternPropertiesField,
-                mappingField: MappingField,
-                customArrayField: CustomArrayField,
-                scriptField: ScriptField,
-                jsonField: JsonField,
-                serviceField: ServiceField,
-                specificationField: SpecificationField,
-                systemOperationField: SystemOperationField,
-                bodyMimeTypeField: BodyMimeTypeField,
-                singleSelectField: SingleSelectField,
-                contextServiceField: ContextServiceField,
-                chainTriggerElementIdField: ChainTriggerElementIdField,
-                basePathField: BasePathField,
-                externalRouteCheckbox: ExternalRouteCheckbox,
-                contextPathWithPrefixField: ContextPathWithPrefixField,
-              }}
-              widgets={widgets}
+              templates={TEMPLATES}
+              fields={FIELDS}
+              widgets={WIDGETS}
               onChange={(e) => {
                 const nextFormData = e.formData as Record<string, unknown>;
-                if (JSON.stringify(nextFormData) === JSON.stringify(formData)) {
-                  return;
-                }
-
                 setFormData(nextFormData);
                 if (
                   !isInitializingRef.current &&

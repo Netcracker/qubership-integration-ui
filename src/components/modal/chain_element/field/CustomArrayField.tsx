@@ -397,6 +397,12 @@ const CustomArrayField: FC<
               style={{ marginBottom: 8 }}
               value={handlerItem.type}
               onChange={(value) => {
+                // Clear auto-fill guard so re-selecting Mapper re-populates body.
+                if (handlerItem.id) {
+                  autoFilledHandlerIdsRef.current.delete(
+                    `${handlerItem.id}::${handlerItem.code}`,
+                  );
+                }
                 onChange(
                   formData.map((item, i) =>
                     i === selectedIndex
