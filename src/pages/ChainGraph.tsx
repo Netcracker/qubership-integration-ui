@@ -669,11 +669,7 @@ const ChainGraphInner: React.FC = () => {
                       : (event, draggedNode) =>
                           void onNodeDragStop(event, draggedNode)
                   }
-                  onNodesChange={
-                    readOnly
-                      ? undefined
-                      : (changes) => void onNodesChange(changes)
-                  }
+                  onNodesChange={readOnly ? undefined : onNodesChange}
                   onEdgesChange={
                     readOnly ? undefined : (changes) => onEdgesChange(changes)
                   }

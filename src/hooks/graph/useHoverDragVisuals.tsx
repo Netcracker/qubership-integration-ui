@@ -23,7 +23,9 @@ export const useHoverDragVisuals = (
   setNodes: SetNodesUpdater,
 ) => {
   const { getIntersectingNodes } = useReactFlow();
-  const hoverExpandTimerRef = useRef<number | null>(null);
+  const hoverExpandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const lastHoverContainerIdRef = useRef<string | null>(null);
   const nodesRef = useRef(nodes);
 
@@ -33,7 +35,7 @@ export const useHoverDragVisuals = (
 
   const clearHoverTimer = useCallback(() => {
     if (hoverExpandTimerRef.current !== null) {
-      window.clearTimeout(hoverExpandTimerRef.current);
+      globalThis.clearTimeout(hoverExpandTimerRef.current);
       hoverExpandTimerRef.current = null;
     }
     lastHoverContainerIdRef.current = null;
@@ -76,7 +78,7 @@ export const useHoverDragVisuals = (
 
       if (!possibleGraphIntersect?.data?.collapsed) return;
 
-      hoverExpandTimerRef.current = window.setTimeout(() => {
+      hoverExpandTimerRef.current = globalThis.setTimeout(() => {
         if (lastHoverContainerIdRef.current !== candidateId) return;
         const current = nodesRef.current.find((n) => n.id === candidateId);
         if (current?.type === "container" && current.data?.collapsed) {

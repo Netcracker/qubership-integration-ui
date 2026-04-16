@@ -62,6 +62,52 @@ import {
 } from "./useDecorativeEdges.tsx";
 import { useHoverDragVisuals } from "./useHoverDragVisuals.tsx";
 
+const getAbsolutePosition = (
+  node: ChainGraphNode,
+  allNodes: ChainGraphNode[],
+) => {
+  let x = node.position?.x ?? 0;
+  let y = node.position?.y ?? 0;
+  let parentId = node.parentId;
+  while (parentId) {
+    const parent = allNodes.find((n) => n.id === parentId);
+    if (!parent) break;
+    x += parent.position?.x ?? 0;
+    y += parent.position?.y ?? 0;
+    parentId = parent.parentId;
+  }
+  return { x, y };
+};
+
+const getParentAbsolutePosition = (
+  parentId: string | undefined,
+  allNodes: ChainGraphNode[],
+) => {
+  if (!parentId) return { x: 0, y: 0 };
+  const parent = allNodes.find((n) => n.id === parentId);
+  if (!parent) return { x: 0, y: 0 };
+  return getAbsolutePosition(parent, allNodes);
+};
+
+const computeAffectedParents = (
+  originalParentId: string | undefined,
+  finalParentId: string | undefined,
+  allNodes: ChainGraphNode[],
+): string[] => {
+  const affected = new Set<string>();
+  if (originalParentId) affected.add(originalParentId);
+  if (finalParentId && finalParentId !== originalParentId) {
+    affected.add(finalParentId);
+  }
+  const leastCommonParent = getLeastCommonParent(
+    originalParentId,
+    finalParentId,
+    allNodes,
+  );
+  if (leastCommonParent) affected.add(leastCommonParent);
+  return Array.from(affected);
+};
+
 export const useChainGraph = (
   chainId?: string,
   onChainUpdate?: () => void | Promise<void>,
@@ -661,75 +707,39 @@ export const useChainGraph = (
         finalParentId = originalParentId;
       }
 
-      const getAbs = (node: ChainGraphNode, allNodes: ChainGraphNode[]) => {
-        let x = node.position?.x ?? 0;
-        let y = node.position?.y ?? 0;
-        let parentId = node.parentId;
-        while (parentId) {
-          const parent = allNodes.find((n) => n.id === parentId);
-          if (!parent) break;
-          x += parent.position?.x ?? 0;
-          y += parent.position?.y ?? 0;
-          parentId = parent.parentId;
-        }
-        return { x, y };
-      };
-
-      const getParentAbs = (
-        parentId: string | undefined,
-        all: ChainGraphNode[],
-      ) => {
-        if (!parentId) return { x: 0, y: 0 };
-        const parent = all.find((n) => n.id === parentId);
-        if (!parent) return { x: 0, y: 0 };
-        return getAbs(parent, all);
-      };
-
       setNodes((prev) => {
         const snapshot = nodesRef.current as ChainGraphNode[];
-        const parentAbs = getParentAbs(finalParentId, snapshot);
+        const parentAbs = getParentAbsolutePosition(finalParentId, snapshot);
 
         const next = (prev as ChainGraphNode[]).map((node) => {
           if (!selectedIds.includes(node.id)) return node;
 
-          const nowAbs = getAbs(
+          const nowAbs = getAbsolutePosition(
             snapshot.find((z) => z.id === node.id)!,
             snapshot,
           );
 
-          const newLocal = {
-            x: nowAbs.x - parentAbs.x,
-            y: nowAbs.y - parentAbs.y,
-          };
-
           return {
             ...node,
             parentId: finalParentId ?? undefined,
-            position: newLocal,
+            position: {
+              x: nowAbs.x - parentAbs.x,
+              y: nowAbs.y - parentAbs.y,
+            },
           };
         });
 
         return sortParentsBeforeChildren(next);
       });
 
-      const affectedParents = new Set<string>();
-      if (originalParentId) affectedParents.add(originalParentId);
-      if (finalParentId && finalParentId !== originalParentId)
-        affectedParents.add(finalParentId);
-
-      const leastCommonParent = getLeastCommonParent(
+      const affectedParentIds = computeAffectedParents(
         originalParentId,
         finalParentId,
         nodesRef.current as ChainGraphNode[],
       );
-      if (leastCommonParent) affectedParents.add(leastCommonParent);
-
-      const affectedParentIds = Array.from(affectedParents);
-      if (affectedParentIds.length) {
-        structureChanged(affectedParentIds);
-      } else {
-        structureChanged();
-      }
+      structureChanged(
+        affectedParentIds.length ? affectedParentIds : undefined,
+      );
     },
     [
       chainId,
