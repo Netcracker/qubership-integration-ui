@@ -347,23 +347,22 @@ const ChainGraphInner: React.FC = () => {
     async (domain: string) => {
       if (!chainId) return;
       try {
-        await api.createSnapshot(chainId).then(async (snapshot) => {
-          notificationService.info(
-            "Created snapshot",
-            `Created snapshot ${snapshot.name}`,
-          );
-          const request: CreateDeploymentRequest = {
-            domain,
-            snapshotId: snapshot.id,
-            suspended: false,
-          };
-          await api.createDeployment(chainId, request);
-          notificationService.info(
-            "Deployed snapshot",
-            `Deployed snapshot ${snapshot.name}`,
-          );
-        });
+        const snapshot = await api.createSnapshot(chainId);
+        notificationService.info(
+          "Created snapshot",
+          `Created snapshot ${snapshot.name}`,
+        );
         await chainContext?.refresh?.();
+        const request: CreateDeploymentRequest = {
+          domain,
+          snapshotId: snapshot.id,
+          suspended: false,
+        };
+        await api.createDeployment(chainId, request);
+        notificationService.info(
+          "Deployed snapshot",
+          `Deployed snapshot ${snapshot.name}`,
+        );
       } catch (error) {
         notificationService.requestFailed(
           "Failed to create snapshot and deploy it",
