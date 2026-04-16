@@ -2,6 +2,18 @@ import React from "react";
 import { Modal, List, Typography, Tag } from "antd";
 import type { Chain } from "../../api/apiTypes.ts";
 
+export const NEW_CHAIN_ID = "__new__";
+
+export interface ChainMetadata {
+  name: string;
+  description?: string;
+  folderId?: string;
+  businessDescription?: string;
+  assumptions?: string;
+  outOfScope?: string;
+  labels?: { name: string; technical?: boolean }[];
+}
+
 export type ChainModificationAction =
   | {
       action: "updateChain";
@@ -17,6 +29,10 @@ export type ChainModificationAction =
       > & {
         labels?: { name: string; technical?: boolean }[];
       };
+    }
+  | {
+      action: "createChain";
+      chain: ChainMetadata;
     }
   | {
       action: "createElement";
@@ -58,6 +74,7 @@ export interface ChainModificationProposal {
   chainId: string;
   changes: ChainModificationAction[];
   summary?: string;
+  chainMeta?: ChainMetadata;
 }
 
 interface Props {
@@ -71,6 +88,8 @@ function renderActionTitle(change: ChainModificationAction): string {
   switch (change.action) {
     case "updateChain":
       return "Update chain metadata";
+    case "createChain":
+      return `Create chain "${change.chain.name}"`;
     case "createElement":
       return `Create element of type "${change.request.type}"`;
     case "updateElement":
@@ -81,8 +100,10 @@ function renderActionTitle(change: ChainModificationAction): string {
       return `Create connection ${change.connection.from} → ${change.connection.to}`;
     case "deleteConnections":
       return `Delete ${change.connectionIds.length} connection(s)`;
-    default:
-      return change.action;
+    default: {
+      const _exhaustive: never = change;
+      return (_exhaustive as { action: string }).action;
+    }
   }
 }
 
@@ -93,11 +114,25 @@ export const ChainModificationConfirmation: React.FC<Props> = ({
   onApply,
 }) => {
   const changes = proposal?.changes ?? [];
+  const isNewChain = proposal?.chainId === NEW_CHAIN_ID;
 
   return (
     <Modal
       open={open}
-      title="Apply changes to chain"
+      title={
+        <>
+          Apply changes to chain
+          {isNewChain && (
+            <Tag
+              color="green"
+              data-testid="new-chain-badge"
+              style={{ marginLeft: 8 }}
+            >
+              New chain
+            </Tag>
+          )}
+        </>
+      }
       onCancel={onCancel}
       onOk={() => {
         if (proposal) {
@@ -122,8 +157,25 @@ export const ChainModificationConfirmation: React.FC<Props> = ({
             </Typography.Paragraph>
           )}
           <Typography.Paragraph>
-            The assistant suggests applying the following changes to chain{" "}
-            <Typography.Text code>{proposal.chainId}</Typography.Text>:
+            {isNewChain ? (
+              <>
+                The assistant suggests creating a new chain
+                {proposal.chainMeta?.name && (
+                  <>
+                    {" "}
+                    <Typography.Text code>
+                      {proposal.chainMeta.name}
+                    </Typography.Text>
+                  </>
+                )}{" "}
+                and applying the following changes:
+              </>
+            ) : (
+              <>
+                The assistant suggests applying the following changes to chain{" "}
+                <Typography.Text code>{proposal.chainId}</Typography.Text>:
+              </>
+            )}
           </Typography.Paragraph>
           <List
             size="small"
@@ -141,6 +193,12 @@ export const ChainModificationConfirmation: React.FC<Props> = ({
                     <Typography.Text type="secondary">
                       {change.action === "updateChain" &&
                         "Chain metadata (name/description/labels/assumptions/outOfScope)"}
+                      {change.action === "createChain" &&
+                        `Name: ${change.chain.name}${
+                          change.chain.folderId
+                            ? `, folder: ${change.chain.folderId}`
+                            : ""
+                        }`}
                       {change.action === "createElement" &&
                         `Parent: ${change.request.parentElementId ?? "root"}`}
                       {change.action === "updateElement" &&
