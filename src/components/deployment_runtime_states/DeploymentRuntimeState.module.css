@@ -71,10 +71,12 @@
     transform: scale(0.8);
     opacity: 0.55;
   }
+
   70% {
     transform: scale(2.2);
     opacity: 0;
   }
+
   100% {
     transform: scale(2.2);
     opacity: 0;
@@ -139,7 +141,7 @@
   font-size: 12px;
   line-height: 1.55;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
   max-height: 140px;
   overflow-y: auto;
   padding-right: 4px;

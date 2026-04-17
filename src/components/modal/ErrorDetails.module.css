@@ -32,10 +32,12 @@
     transform: scale(0.8);
     opacity: 0.55;
   }
+
   70% {
     transform: scale(2);
     opacity: 0;
   }
+
   100% {
     transform: scale(2);
     opacity: 0;
@@ -58,8 +60,7 @@
 .metaGrid {
   display: grid;
   grid-template-columns: auto 1fr;
-  column-gap: 16px;
-  row-gap: 6px;
+  gap: 6px 16px;
   padding: 10px 12px;
   border: 1px solid var(--meta-border, transparent);
   border-radius: 6px;
@@ -77,7 +78,7 @@
 
 .metaValue {
   font-size: 13px;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .chip {
@@ -127,7 +128,7 @@
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .console {

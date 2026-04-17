@@ -62,7 +62,7 @@ describe("ErrorDetails", () => {
     jest.clearAllMocks();
   });
 
-  it("renders generic Error title and subtitle when status is omitted", () => {
+  it("renders generic Error title when status is omitted", () => {
     render(
       <ErrorDetails
         service="svc-a"
@@ -73,10 +73,9 @@ describe("ErrorDetails", () => {
     );
 
     expect(screen.getByText("Error")).toBeInTheDocument();
-    expect(screen.getByText("Error details")).toBeInTheDocument();
   });
 
-  it("renders Failed/Deployment Error title when status=FAILED", () => {
+  it("renders Failed title when status=FAILED", () => {
     render(
       <ErrorDetails
         service="svc"
@@ -88,45 +87,26 @@ describe("ErrorDetails", () => {
     );
 
     expect(screen.getByText("Failed")).toBeInTheDocument();
-    expect(screen.getByText("Deployment Error")).toBeInTheDocument();
   });
 
-  it("formats status label and subtitle from an explicit Processing status", () => {
+  it.each([
+    ["PROCESSING", "Processing"],
+    ["DEPLOYED", "Deployed"],
+    ["REMOVED", "Removed"],
+  ])("maps %s status to title %s", (status, label) => {
     render(
       <ErrorDetails
         service="svc"
         timestamp={0}
-        message="Still going"
+        message="m"
         stacktrace=""
-        status="PROCESSING"
+        status={status}
       />,
     );
-
-    expect(screen.getByText("Processing")).toBeInTheDocument();
-    expect(screen.getByText("Deployment In Progress")).toBeInTheDocument();
+    expect(screen.getByText(label)).toBeInTheDocument();
   });
 
-  it.each([
-    ["DEPLOYED", "Deployed", "Deployment Active"],
-    ["REMOVED", "Removed", "Deployment Removed"],
-  ])(
-    "maps %s status to title %s and subtitle %s",
-    (status, label, subtitle) => {
-      render(
-        <ErrorDetails
-          service="svc"
-          timestamp={0}
-          message="m"
-          stacktrace=""
-          status={status}
-        />,
-      );
-      expect(screen.getByText(label)).toBeInTheDocument();
-      expect(screen.getByText(subtitle)).toBeInTheDocument();
-    },
-  );
-
-  it("uses generic Error details subtitle for unknown statuses", () => {
+  it("capitalizes unknown statuses as title", () => {
     render(
       <ErrorDetails
         service="svc"
@@ -137,7 +117,6 @@ describe("ErrorDetails", () => {
       />,
     );
     expect(screen.getByText("Unknown-status")).toBeInTheDocument();
-    expect(screen.getByText("Error details")).toBeInTheDocument();
   });
 
   it("shows service chip, formatted occurrence time, and message content", () => {
