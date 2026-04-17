@@ -12,7 +12,6 @@ import {
   isTokenDark,
 } from "../../theme/semanticColors";
 import { CloudServerOutlined } from "@ant-design/icons";
-
 type ErrorDetailsProps = {
   service: string;
   timestamp: number | string;
@@ -22,31 +21,16 @@ type ErrorDetailsProps = {
   status?: string;
 };
 
-type TitleParts = { label: string; subtitle: string };
-
-const STATUS_TITLES: Record<DeploymentStatus, TitleParts> = {
-  [DeploymentStatus.FAILED]: { label: "Failed", subtitle: "Deployment Error" },
-  [DeploymentStatus.PROCESSING]: {
-    label: "Processing",
-    subtitle: "Deployment In Progress",
-  },
-  [DeploymentStatus.DEPLOYED]: {
-    label: "Deployed",
-    subtitle: "Deployment Active",
-  },
-  [DeploymentStatus.REMOVED]: {
-    label: "Removed",
-    subtitle: "Deployment Removed",
-  },
+const STATUS_LABELS: Record<DeploymentStatus, string> = {
+  [DeploymentStatus.FAILED]: "Failed",
+  [DeploymentStatus.PROCESSING]: "Processing",
+  [DeploymentStatus.DEPLOYED]: "Deployed",
+  [DeploymentStatus.REMOVED]: "Removed",
 };
 
-function getStatusTitle(status: string | undefined): TitleParts {
-  const known = status ? STATUS_TITLES[status as DeploymentStatus] : undefined;
-  if (known) return known;
-  return {
-    label: capitalize(status ?? "") || "Error",
-    subtitle: "Error details",
-  };
+function getStatusLabel(status: string | undefined): string {
+  const known = status ? STATUS_LABELS[status as DeploymentStatus] : undefined;
+  return known ?? (capitalize(status ?? "") || "Error");
 }
 
 export const ErrorDetails: React.FC<ErrorDetailsProps> = ({
@@ -59,10 +43,8 @@ export const ErrorDetails: React.FC<ErrorDetailsProps> = ({
   const { closeContainingModal } = useModalContext();
   const { token } = theme.useToken();
 
-  const accentStatus = status ?? DeploymentStatus.FAILED;
-  const tone = getDeploymentStatusTone(accentStatus, token);
-  const { label: statusLabel, subtitle: statusSubtitle } =
-    getStatusTitle(status);
+  const tone = getDeploymentStatusTone(status ?? DeploymentStatus.FAILED, token);
+  const statusLabel = getStatusLabel(status);
 
   const isDark = isTokenDark(token);
   const rootVars: React.CSSProperties & Record<string, string> = {
@@ -109,7 +91,6 @@ export const ErrorDetails: React.FC<ErrorDetailsProps> = ({
     <div className={styles.titleRow} style={rootVars}>
       <span className={styles.titleDot} aria-hidden />
       <span className={styles.titleMain}>{statusLabel}</span>
-      <span className={styles.titleMuted}>{statusSubtitle}</span>
     </div>
   );
 

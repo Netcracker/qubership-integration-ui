@@ -1,7 +1,3 @@
-.label {
-  font-weight: 600;
-}
-
 .titleRow {
   display: flex;
   align-items: baseline;
@@ -57,14 +53,6 @@
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.2px;
-}
-
-.titleMuted {
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0.55;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
 }
 
 .metaGrid {
