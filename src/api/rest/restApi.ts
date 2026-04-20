@@ -1432,6 +1432,11 @@ export class RestApi implements Api {
   getContextServices = async (): Promise<ContextSystem[]> => {
     const response = await this.instance.get<ContextSystem[]>(
       `${this.v1()}/catalog/context-system`,
+      {
+        params: {
+          includeChainUsage: true,
+        },
+      },
     );
     const result = response.data;
     response.data.map(
