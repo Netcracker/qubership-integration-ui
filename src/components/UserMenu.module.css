@@ -47,12 +47,10 @@
 }
 
 .infoRow {
-  display: grid;
-  grid-template-columns: 88px 1fr auto;
-  align-items: center;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 12px;
-  min-height: 22px;
 }
 
 .infoLabel {
@@ -71,17 +69,10 @@
   font-family:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 11px;
-}
-
-.card .copyBtn {
-  padding: 0 4px;
-  height: 20px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.card .copyBtn:hover {
-  color: var(--vscode-textLink-foreground);
-  background: transparent;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-all;
 }
 
 .actions {

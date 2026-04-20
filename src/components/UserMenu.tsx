@@ -1,6 +1,5 @@
-import { Button, Dropdown, Tooltip, Typography } from "antd";
+import { Button, Dropdown, Typography } from "antd";
 import {
-  CopyOutlined,
   LogoutOutlined,
   ReloadOutlined,
   UserOutlined,
@@ -8,8 +7,6 @@ import {
 import React, { useEffect, useState } from "react";
 import styles from "./UserMenu.module.css";
 import { getConfig, onConfigChange, UserInfo } from "../appConfig.ts";
-import { useNotificationService } from "../hooks/useNotificationService.tsx";
-import { copyToClipboard } from "../misc/clipboard-util.ts";
 
 const { Text } = Typography;
 
@@ -36,7 +33,6 @@ function isSameState(a: UserMenuState, b: UserMenuState): boolean {
 export const UserMenu: React.FC = () => {
   const [state, setState] = useState<UserMenuState>(readState);
   const [open, setOpen] = useState(false);
-  const notificationService = useNotificationService();
 
   useEffect(() => {
     return onConfigChange(() => {
@@ -51,15 +47,6 @@ export const UserMenu: React.FC = () => {
   const displayName = userInfo.userName?.trim() || "Unknown user";
   const tenantName = userInfo.tenantName?.trim();
   const tenantId = userInfo.tenantId?.trim();
-
-  const handleCopyTenantId = async () => {
-    try {
-      await copyToClipboard(tenantId!);
-      notificationService.info("Tenant ID was copied to the clipboard");
-    } catch {
-      notificationService.warning("Failed to copy Tenant ID");
-    }
-  };
 
   const handleResetPreferences = () => {
     setOpen(false);
@@ -101,22 +88,10 @@ export const UserMenu: React.FC = () => {
                 <Text
                   className={`${styles.infoValue} ${styles.infoValueMono}`}
                   title={tenantId}
+                  copyable
                 >
                   {tenantId}
                 </Text>
-                <Tooltip title="Copy Tenant ID" placement="top">
-                  <Button
-                    type="text"
-                    size="small"
-                    className={styles.copyBtn}
-                    icon={<CopyOutlined />}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleCopyTenantId();
-                    }}
-                    aria-label="Copy Tenant ID"
-                  />
-                </Tooltip>
               </div>
             )}
           </div>
