@@ -11,24 +11,6 @@ import {
   waitFor,
 } from "@testing-library/react";
 
-const mockCopyToClipboard = jest
-  .fn<(text: string) => Promise<void>>()
-  .mockResolvedValue(undefined);
-jest.mock("../../src/misc/clipboard-util.ts", () => ({
-  copyToClipboard: (text: string) => mockCopyToClipboard(text),
-}));
-
-const mockInfo = jest.fn();
-const mockWarning = jest.fn();
-jest.mock("../../src/hooks/useNotificationService.tsx", () => ({
-  useNotificationService: () => ({
-    requestFailed: jest.fn(),
-    errorWithDetails: jest.fn(),
-    info: mockInfo,
-    warning: mockWarning,
-  }),
-}));
-
 import { UserMenu } from "../../src/components/UserMenu";
 import { configure } from "../../src/appConfig";
 
@@ -108,31 +90,7 @@ describe("UserMenu", () => {
     expect(screen.queryByText("Tenant ID")).toBeNull();
   });
 
-  it("copies Tenant ID to clipboard and notifies", async () => {
-    configure({
-      userInfo: {
-        userName: "Alice",
-        tenantName: "acme",
-        tenantId: "tid-42",
-      },
-    });
-
-    const { container } = render(<UserMenu />);
-    fireEvent.click(container.querySelector('button[aria-label="User menu"]')!);
-
-    const copyButton = await screen.findByLabelText("Copy Tenant ID");
-    fireEvent.click(copyButton);
-
-    await waitFor(() => {
-      expect(mockCopyToClipboard).toHaveBeenCalledWith("tid-42");
-      expect(mockInfo).toHaveBeenCalledWith(
-        "Tenant ID was copied to the clipboard",
-      );
-    });
-  });
-
-  it("warns when clipboard copy fails", async () => {
-    mockCopyToClipboard.mockRejectedValueOnce(new Error("no permission"));
+  it("renders a copy control next to Tenant ID", async () => {
     configure({
       userInfo: { userName: "Alice", tenantId: "tid-42" },
     });
@@ -140,11 +98,11 @@ describe("UserMenu", () => {
     const { container } = render(<UserMenu />);
     fireEvent.click(container.querySelector('button[aria-label="User menu"]')!);
 
-    const copyButton = await screen.findByLabelText("Copy Tenant ID");
-    fireEvent.click(copyButton);
-
+    await screen.findByText("tid-42");
     await waitFor(() => {
-      expect(mockWarning).toHaveBeenCalledWith("Failed to copy Tenant ID");
+      expect(
+        document.body.querySelector(".ant-typography-copy"),
+      ).toBeTruthy();
     });
   });
 
