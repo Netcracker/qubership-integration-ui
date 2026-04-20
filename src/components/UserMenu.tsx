@@ -1,4 +1,4 @@
-import { Button, Dropdown, Typography } from "antd";
+import { Button, Divider, Dropdown, Flex, Typography } from "antd";
 import {
   LogoutOutlined,
   ReloadOutlined,
@@ -58,48 +58,46 @@ export const UserMenu: React.FC = () => {
   };
 
   const card = (
-    <div className={styles.card} role="menu">
-      <div className={styles.header}>
-        <span className={styles.userName} title={displayName}>
+    <Flex vertical className={styles.card} role="menu">
+      <Flex vertical gap={2} className={styles.header}>
+        <Text strong ellipsis={{ tooltip: displayName }}>
           {displayName}
-        </span>
+        </Text>
         {userInfo.email && (
-          <span className={styles.userEmail} title={userInfo.email}>
+          <Text type="secondary" ellipsis={{ tooltip: userInfo.email }}>
             {userInfo.email}
-          </span>
+          </Text>
         )}
-      </div>
+      </Flex>
 
       {(tenantName || tenantId) && (
         <>
-          <div className={styles.divider} />
-          <div className={styles.info}>
+          <Divider className={styles.divider} />
+          <Flex vertical gap={10} className={styles.info}>
             {tenantName && (
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Tenant name</span>
-                <span className={styles.infoValue} title={tenantName}>
-                  {tenantName}
-                </span>
-              </div>
+              <Flex vertical gap={2}>
+                <Text type="secondary" className={styles.label}>
+                  Tenant name
+                </Text>
+                <Text ellipsis={{ tooltip: tenantName }}>{tenantName}</Text>
+              </Flex>
             )}
             {tenantId && (
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Tenant ID</span>
-                <Text
-                  className={`${styles.infoValue} ${styles.infoValueMono}`}
-                  title={tenantId}
-                  copyable
-                >
+              <Flex vertical gap={2}>
+                <Text type="secondary" className={styles.label}>
+                  Tenant ID
+                </Text>
+                <Text copyable className={styles.mono}>
                   {tenantId}
                 </Text>
-              </div>
+              </Flex>
             )}
-          </div>
+          </Flex>
         </>
       )}
 
-      <div className={styles.divider} />
-      <div className={styles.actions}>
+      <Divider className={styles.divider} />
+      <Flex vertical className={styles.actions}>
         <Button
           type="text"
           block
@@ -112,16 +110,17 @@ export const UserMenu: React.FC = () => {
         {onLogout && (
           <Button
             type="text"
+            danger
             block
-            className={`${styles.actionButton} ${styles.actionDanger}`}
+            className={styles.actionButton}
             icon={<LogoutOutlined />}
             onClick={handleLogout}
           >
             Log out
           </Button>
         )}
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 
   return (
