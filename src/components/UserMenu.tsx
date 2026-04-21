@@ -1,12 +1,9 @@
 import { Button, Divider, Dropdown, Flex, Typography } from "antd";
-import {
-  LogoutOutlined,
-  ReloadOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
 import React, { useEffect, useState } from "react";
 import styles from "./UserMenu.module.css";
 import { getConfig, onConfigChange, UserInfo } from "../appConfig.ts";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
+import { confirmAndRun } from "../misc/confirm-utils.ts";
 
 const { Text } = Typography;
 
@@ -44,12 +41,21 @@ export const UserMenu: React.FC = () => {
   }, []);
 
   const { userInfo, onLogout } = state;
-  const displayName = userInfo.userName?.trim() || "Unknown user";
+  const displayName = userInfo.userName?.trim() || "Dev user";
   const tenantName = userInfo.tenantName?.trim();
   const tenantId = userInfo.tenantId?.trim();
 
   const handleResetPreferences = () => {
     setOpen(false);
+    confirmAndRun({
+      title: "Reset UI preferences?",
+      content:
+        "This will clear all locally stored UI preferences for this host and reload the page.",
+      onOk: () => {
+        localStorage.clear();
+        window.location.reload();
+      },
+    });
   };
 
   const handleLogout = () => {
@@ -102,7 +108,7 @@ export const UserMenu: React.FC = () => {
           type="text"
           block
           className={styles.actionButton}
-          icon={<ReloadOutlined />}
+          icon={<OverridableIcon name="resetPreferences" />}
           onClick={handleResetPreferences}
         >
           Reset UI preferences
@@ -113,7 +119,7 @@ export const UserMenu: React.FC = () => {
             danger
             block
             className={styles.actionButton}
-            icon={<LogoutOutlined />}
+            icon={<OverridableIcon name="logout" />}
             onClick={handleLogout}
           >
             Log out
@@ -135,7 +141,7 @@ export const UserMenu: React.FC = () => {
         type="text"
         aria-label="User menu"
         title={displayName}
-        icon={<UserOutlined />}
+        icon={<OverridableIcon name="user" />}
       />
     </Dropdown>
   );

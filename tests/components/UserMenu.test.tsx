@@ -14,6 +14,14 @@ import {
 import { UserMenu } from "../../src/components/UserMenu";
 import { configure } from "../../src/appConfig";
 
+let capturedConfirmOnOk: (() => void | Promise<void>) | undefined;
+
+jest.mock("../../src/misc/confirm-utils.ts", () => ({
+  confirmAndRun: (opts: { onOk: () => void | Promise<void> }) => {
+    capturedConfirmOnOk = opts.onOk;
+  },
+}));
+
 function resetUserConfig(): void {
   configure({
     userInfo: {
@@ -30,6 +38,8 @@ describe("UserMenu", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetUserConfig();
+    capturedConfirmOnOk = undefined;
+    localStorage.clear();
   });
 
   it("renders fallback user icon when no userName is set", () => {
@@ -72,11 +82,11 @@ describe("UserMenu", () => {
     expect(screen.getByText("tid-123")).toBeTruthy();
   });
 
-  it("uses 'Unknown user' label when userName is absent", async () => {
+  it("uses 'Dev user' label when userName is absent", async () => {
     const { container } = render(<UserMenu />);
     fireEvent.click(container.querySelector('button[aria-label="User menu"]')!);
 
-    expect(await screen.findByText("Unknown user")).toBeTruthy();
+    expect(await screen.findByText("Dev user")).toBeTruthy();
   });
 
   it("hides the tenant section when no tenant info is set", async () => {
@@ -129,14 +139,60 @@ describe("UserMenu", () => {
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
 
-  it("renders Reset UI preferences as a no-op (does not throw)", async () => {
+  it("opens a confirmation when Reset UI preferences is clicked", async () => {
     configure({ userInfo: { userName: "Alice" } });
 
     const { container } = render(<UserMenu />);
     fireEvent.click(container.querySelector('button[aria-label="User menu"]')!);
 
     const reset = await screen.findByText("Reset UI preferences");
-    expect(() => fireEvent.click(reset)).not.toThrow();
+    fireEvent.click(reset);
+
+    expect(capturedConfirmOnOk).toBeDefined();
+  });
+
+  it("clears localStorage and reloads when reset confirmation is accepted", async () => {
+    const reloadSpy = jest.fn();
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, reload: reloadSpy },
+    });
+
+    localStorage.setItem("foo", "bar");
+    localStorage.setItem("baz", "qux");
+    configure({ userInfo: { userName: "Alice" } });
+
+    const { container } = render(<UserMenu />);
+    fireEvent.click(container.querySelector('button[aria-label="User menu"]')!);
+
+    const reset = await screen.findByText("Reset UI preferences");
+    fireEvent.click(reset);
+
+    await act(async () => {
+      await capturedConfirmOnOk!();
+    });
+
+    expect(localStorage.length).toBe(0);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: originalLocation,
+    });
+  });
+
+  it("does not clear localStorage if reset confirmation is not accepted", async () => {
+    localStorage.setItem("keep-me", "1");
+    configure({ userInfo: { userName: "Alice" } });
+
+    const { container } = render(<UserMenu />);
+    fireEvent.click(container.querySelector('button[aria-label="User menu"]')!);
+
+    const reset = await screen.findByText("Reset UI preferences");
+    fireEvent.click(reset);
+
+    expect(localStorage.getItem("keep-me")).toBe("1");
   });
 
   it("does not re-render when unrelated config fields change", () => {
@@ -162,7 +218,7 @@ describe("UserMenu", () => {
     const trigger = container.querySelector(
       'button[aria-label="User menu"]',
     ) as HTMLButtonElement;
-    expect(trigger.getAttribute("title")).toBe("Unknown user");
+    expect(trigger.getAttribute("title")).toBe("Dev user");
 
     act(() => {
       configure({ userInfo: { userName: "Bob" } });
