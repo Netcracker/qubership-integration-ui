@@ -3,18 +3,12 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   ReactElement
 } from "react";
 import Sider from "antd/lib/layout/Sider";
 import styles from "../components/elements_library/ElementsLibrarySidebar.module.css";
 import { Flex, Menu, Tabs } from "antd";
-import { Editor, Monaco } from "@monaco-editor/react";
-import {
-  useMonacoTheme,
-  applyVSCodeThemeToMonaco,
-} from "../hooks/useMonacoTheme.ts";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
 import { Element } from "../api/apiTypes.ts";
 import { useModalsContext } from "../Modals.tsx";
@@ -24,6 +18,7 @@ import {
   getLibraryElement,
   getNodeFromElement,
 } from "../misc/chain-graph-utils.ts";
+import type { MenuProps } from "antd";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { ChainContext } from "./ChainPage.tsx";
@@ -36,6 +31,7 @@ import { AnalyzableElement } from "../misc/used-properties-analyzer.ts";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { useElementsAsCode } from "../hooks/useElementsAsCode.tsx";
 import { SidebarSearch } from "../components/elements_library/SidebarSearch.tsx";
+import { ChainTextViewPanel } from "../components/chains/ChainTextViewPanel.tsx";
 
 const DEFAULT_WIDTH = 240;
 
@@ -58,14 +54,10 @@ export const PageWithRightPanel = ({
 
   const { showModal } = useModalsContext();
   const [activeTab, setActiveTab] = useState<string>("listElements");
-  const [textViewContent, setTextViewContent] = useState<string>("");
 
   const params = useParams<{ chainId?: string }>();
   const chainId = params.chainId;
-  const { elementAsCode } = useElementsAsCode(chainId ?? "");
   const { libraryElements } = useLibraryContext();
-  const monacoTheme = useMonacoTheme();
-  const monacoRef = useRef<Monaco | null>(null); // eslint-disable-line @typescript-eslint/no-redundant-type-constituents -- Monaco from @monaco-editor/react may include any in union
   const notificationService = useNotificationService();
   const navigate = useNavigate();
   const [elements, setElements] = useState<Element[]>(
@@ -322,27 +314,7 @@ export const PageWithRightPanel = ({
           </div>
         )}
         {activeTab === "textView" && (
-          <div className={`${styles.rightPanelCodeBlock} qip-editor`}>
-            <Editor
-              height="100%"
-              language="yaml"
-              value={textViewContent}
-              theme={monacoTheme}
-              options={{
-                readOnly: true,
-                folding: true,
-                fixedOverflowWidgets: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-              }}
-              onMount={(_, monaco) => {
-                monacoRef.current = monaco ?? null;
-                if (monaco) {
-                  applyVSCodeThemeToMonaco(monaco);
-                }
-              }}
-            />
-          </div>
+          <ChainTextViewPanel chainId={chainId ?? ""} elements={elements}/>
         )}
       </Flex>
     </Sider>

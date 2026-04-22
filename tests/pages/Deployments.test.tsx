@@ -109,23 +109,12 @@ jest.mock("../../src/Modals.tsx", () => {
     closeModal: jest.fn(),
   };
   return {
-    Modals: ({
-      children,
-    }: {
-      children: import("react").ReactNode;
-    }) => <R.Fragment>{children}</R.Fragment>,
+    Modals: ({ children }: { children: import("react").ReactNode }) => (
+      <R.Fragment>{children}</R.Fragment>
+    ),
     useModalsContext: () => modalsApi,
   };
 });
-
-jest.mock(
-  "../../src/components/deployment_runtime_states/DeploymentRuntimeStates.tsx",
-  () => ({
-    DeploymentRuntimeStates: () => (
-      <div data-testid="deployment-runtime-stub" />
-    ),
-  }),
-);
 
 jest.mock("../../src/components/modal/DeploymentCreate.tsx", () => ({
   DeploymentCreate: () => <div data-testid="deployment-create-stub" />,
@@ -180,8 +169,9 @@ describe("Deployments chain header toolbar", () => {
     type ModalsTest = {
       useModalsContext: () => { showModal: jest.Mock; closeModal: jest.Mock };
     };
-    const { useModalsContext } =
-      jest.requireMock<ModalsTest>("../../src/Modals.tsx");
+    const { useModalsContext } = jest.requireMock<ModalsTest>(
+      "../../src/Modals.tsx",
+    );
     const { showModal } = useModalsContext();
 
     renderDeployments();

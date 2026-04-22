@@ -19,6 +19,7 @@ interface LightColumn {
     | ((props: Record<string, unknown>) => React.ReactNode);
   render?: (value: unknown, record: unknown, index: number) => React.ReactNode;
   onHeaderCell?: (col: unknown) => Record<string, unknown>;
+  onCell?: (record: unknown) => React.TdHTMLAttributes<HTMLTableCellElement>;
 }
 
 interface RowSelection {
@@ -66,6 +67,7 @@ interface LightTableProps {
   sticky?: boolean;
   components?: unknown;
   onChange?: (...args: unknown[]) => void;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
   onRow?: (
     record: unknown,
     index: number,
@@ -187,8 +189,9 @@ function RenderRows({
               )}
               {columns.map((col, colIdx) => {
                 const val = col.dataIndex ? rec[col.dataIndex] : undefined;
+                const cellProps = col.onCell?.(record) ?? {};
                 return (
-                  <td key={col.key ?? col.dataIndex ?? colIdx}>
+                  <td key={col.key ?? col.dataIndex ?? colIdx} {...cellProps}>
                     {expandable && colIdx === 0 && (
                       <>
                         {expandable.expandIcon
@@ -245,6 +248,15 @@ function RenderRows({
   );
 }
 
+/**
+ * Module-level ref so tests can trigger the Table's onChange callback
+ * (e.g. to simulate column filter changes).
+ */
+let _lastOnChange: ((...args: unknown[]) => void) | undefined;
+export function getLastTableOnChange() {
+  return _lastOnChange;
+}
+
 export function LightweightTable({
   dataSource,
   columns,
@@ -255,8 +267,11 @@ export function LightweightTable({
   className,
   loading,
   components,
+  onChange,
+  onScroll,
   onRow,
 }: LightTableProps) {
+  _lastOnChange = onChange;
   const HeaderCell =
     (components as { header?: { cell?: React.ElementType } })?.header?.cell ??
     "th";
@@ -264,7 +279,7 @@ export function LightweightTable({
   const rows = dataSource ?? [];
 
   return (
-    <div className={className}>
+    <div className={className} onScroll={onScroll}>
       {loading && <div className="ant-spin" data-testid="table-loading" />}
       <table>
         <thead>

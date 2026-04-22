@@ -2,6 +2,7 @@ import {
   Background,
   BackgroundVariant,
   Edge,
+  type KeyCode,
   MiniMap,
   Node,
   OnSelectionChangeFunc,
@@ -78,6 +79,7 @@ import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
 import { usePermissions } from "../permissions/usePermissions.tsx";
 import { hasPermissions } from "../permissions/funcs.ts";
 import { getSwimlaneBorderColor } from "../components/graph/nodes/SwimlaneNode.tsx";
+import { useContextMenu } from "../hooks/graph/useContextMenu.tsx";
 
 const readTheme = () => {
   if (typeof document === "undefined") return "light";
@@ -129,11 +131,14 @@ const ChainGraphInner: React.FC = () => {
   const navigate = useNavigate();
   const notificationService = useNotificationService();
   const { isLibraryLoading, libraryElements } = useLibraryContext();
-  const [selectedNodes, setSelectedNodes] = useState<
-    Node<ChainGraphNodeData>[]
-  >([]);
   const permissions = usePermissions();
   const [readOnly, setReadOnly] = useState<boolean>(false);
+  const deleteKeyCode = useMemo<KeyCode | null>(
+    () => (readOnly || elementId ? null : ["Backspace", "Delete"]),
+    [elementId, readOnly],
+  );
+  const [selectedByRightClick, setSelectedByRightClick] =
+    useState<boolean>(false);
 
   useEffect(() => {
     setReadOnly(!hasPermissions(permissions, { chain: ["update"] }));
@@ -150,7 +155,9 @@ const ChainGraphInner: React.FC = () => {
 
   const {
     nodes,
+    setNodes,
     edges,
+    setEdges,
     decorativeEdges,
     onConnect,
     onDragOver,
@@ -164,12 +171,10 @@ const ChainGraphInner: React.FC = () => {
     direction,
     toggleDirection,
     updateNodeData,
-    menu,
-    closeMenu,
-    onContextMenuCall,
     isLoading,
     expandAllContainers,
     collapseAllContainers,
+    structureChanged,
   } = useChainGraph(chainId, refreshChain);
 
   const renderEdges = useMemo(
@@ -189,57 +194,9 @@ const ChainGraphInner: React.FC = () => {
     [updateNodeData, refreshChain],
   );
 
-  const onNodeDoubleClick = (
-    _event: MouseEvent,
-    node: Node<ChainGraphNodeData>,
-  ) => {
-    openElementModal(node);
-  };
-
-  const handleSelectionChange = useCallback<
-    OnSelectionChangeFunc<Node<ChainGraphNodeData>, Edge>
-  >(
-    ({ nodes }) => {
-      closeMenu();
-      setSelectedNodes(nodes);
-    },
-    [closeMenu],
-  );
-
-  useOnSelectionChange<Node<ChainGraphNodeData>, Edge>({
-    onChange: handleSelectionChange,
-  });
-
-  const onContextMenu = (event: MouseEvent) => {
-    const elements: Node<ChainGraphNodeData>[] = [];
-    if (selectedNodes?.length > 0) {
-      elements.push(...selectedNodes);
-    }
-    (
-      onContextMenuCall as (
-        event: MouseEvent,
-        elements: Node<ChainGraphNodeData>[],
-      ) => void
-    )(event, elements);
-  };
-
-  const onNodeContextMenu = (
-    event: MouseEvent,
-    node: Node<ChainGraphNodeData>,
-  ) => {
-    const elements: Node<ChainGraphNodeData>[] = [];
-    if (selectedNodes?.length > 0) {
-      elements.push(...selectedNodes);
-    } else if (node) {
-      elements.push(node);
-    }
-    (
-      onContextMenuCall as (
-        event: MouseEvent,
-        elements: Node<ChainGraphNodeData>[],
-      ) => void
-    )(event, elements);
-  };
+  const clearElementPath = useCallback(() => {
+    void navigate(`/chains/${chainId}/graph`);
+  }, [chainId, navigate]);
 
   const setElementPath = useCallback(
     (newElementId: string) => {
@@ -247,10 +204,6 @@ const ChainGraphInner: React.FC = () => {
     },
     [chainId, navigate],
   );
-
-  const clearElementPath = useCallback(() => {
-    void navigate(`/chains/${chainId}/graph`);
-  }, [chainId, navigate]);
 
   const openElementModal = useCallback(
     (node?: Node<ChainGraphNodeData>) => {
@@ -285,26 +238,131 @@ const ChainGraphInner: React.FC = () => {
     ],
   );
 
+  const handleDelete = useCallback(
+    async (changes: OnDeleteEvent) => {
+      if (
+        changes.nodes.length > 0 &&
+        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[])) &&
+        !isSwimlanesOnly(changes.nodes as ChainGraphNode[])
+      ) {
+        Modal.confirm({
+          title: "Delete Container",
+          content:
+            "This container element is not empty. Are you sure you want to delete it? All its content will be also deleted.",
+          onOk: () => void onDelete(changes),
+        });
+      } else {
+        void onDelete(changes);
+      }
+    },
+    [onDelete],
+  );
+
+  const { menu, closeMenu, onContextMenuCall } = useContextMenu(
+    handleDelete,
+    openElementModal,
+    nodes,
+    setNodes,
+    edges,
+    setEdges,
+    structureChanged,
+    chainId,
+    refreshChain,
+  );
+
+  const onNodeDoubleClick = (
+    _event: MouseEvent,
+    node: Node<ChainGraphNodeData>,
+  ) => {
+    openElementModal(node);
+  };
+
+  const handleSelectionChange = useCallback<
+    OnSelectionChangeFunc<Node<ChainGraphNodeData>, Edge>
+  >(() => {
+    if (selectedByRightClick) {
+      setSelectedByRightClick(false);
+    } else {
+      closeMenu();
+    }
+  }, [closeMenu, selectedByRightClick]);
+
+  useOnSelectionChange<Node<ChainGraphNodeData>, Edge>({
+    onChange: handleSelectionChange,
+  });
+
+  const onContextMenu = (event: MouseEvent) => {
+    const elements: Node<ChainGraphNodeData>[] = [];
+
+    setSelectedByRightClick(true);
+    setNodes((prev) =>
+      prev.map((prevNode) => ({
+        ...prevNode,
+        selected: false,
+      })),
+    );
+
+    (
+      onContextMenuCall as (
+        event: MouseEvent,
+        elements: Node<ChainGraphNodeData>[],
+      ) => void
+    )(event, elements);
+  };
+
+  const onNodeContextMenu = (
+    event: MouseEvent,
+    node: Node<ChainGraphNodeData>,
+  ) => {
+    event.stopPropagation();
+    const elements: Node<ChainGraphNodeData>[] = [];
+
+    const selectedBeforeRightClick = nodes.filter((n) => n.selected);
+
+    if (
+      selectedBeforeRightClick.some(
+        (selectedNode) => selectedNode.id === node.id,
+      )
+    ) {
+      elements.push(...selectedBeforeRightClick);
+    } else {
+      setSelectedByRightClick(true);
+      setNodes((prev) =>
+        prev.map((prevNode) => ({
+          ...prevNode,
+          selected: prevNode.id === node.id,
+        })),
+      );
+      elements.push(node);
+    }
+    (
+      onContextMenuCall as (
+        event: MouseEvent,
+        elements: Node<ChainGraphNodeData>[],
+      ) => void
+    )(event, elements);
+  };
+
   const saveAndDeploy = useCallback(
     async (domain: string) => {
       if (!chainId) return;
       try {
-        await api.createSnapshot(chainId).then(async (snapshot) => {
-          notificationService.info(
-            "Created snapshot",
-            `Created snapshot ${snapshot.name}`,
-          );
-          const request: CreateDeploymentRequest = {
-            domain,
-            snapshotId: snapshot.id,
-            suspended: false,
-          };
-          await api.createDeployment(chainId, request);
-          notificationService.info(
-            "Deployed snapshot",
-            `Deployed snapshot ${snapshot.name}`,
-          );
-        });
+        const snapshot = await api.createSnapshot(chainId);
+        notificationService.info(
+          "Created snapshot",
+          `Created snapshot ${snapshot.name}`,
+        );
+        await chainContext?.refresh?.();
+        const request: CreateDeploymentRequest = {
+          domain,
+          snapshotId: snapshot.id,
+          suspended: false,
+        };
+        await api.createDeployment(chainId, request);
+        notificationService.info(
+          "Deployed snapshot",
+          `Deployed snapshot ${snapshot.name}`,
+        );
       } catch (error) {
         notificationService.requestFailed(
           "Failed to create snapshot and deploy it",
@@ -312,7 +370,7 @@ const ChainGraphInner: React.FC = () => {
         );
       }
     },
-    [chainId, notificationService],
+    [chainId, chainContext, notificationService],
   );
 
   const openSaveAndDeployDialog = useCallback(() => {
@@ -559,26 +617,6 @@ const ChainGraphInner: React.FC = () => {
     [currentTheme, getCssVariableValue],
   );
 
-  const handleDelete = useCallback(
-    async (changes: OnDeleteEvent) => {
-      if (
-        changes.nodes.length > 0 &&
-        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[])) &&
-        !isSwimlanesOnly(changes.nodes as ChainGraphNode[])
-      ) {
-        Modal.confirm({
-          title: "Delete Container",
-          content:
-            "This container element is not empty. Are you sure you want to delete it? All its content will be also deleted.",
-          onOk: () => void onDelete(changes),
-        });
-      } else {
-        void onDelete(changes);
-      }
-    },
-    [onDelete],
-  );
-
   return (
     <Flex className={styles["graph-wrapper"]}>
       <Require permissions={{ chain: ["update"] }}>
@@ -631,11 +669,7 @@ const ChainGraphInner: React.FC = () => {
                       : (event, draggedNode) =>
                           void onNodeDragStop(event, draggedNode)
                   }
-                  onNodesChange={
-                    readOnly
-                      ? undefined
-                      : (changes) => void onNodesChange(changes)
-                  }
+                  onNodesChange={readOnly ? undefined : onNodesChange}
                   onEdgesChange={
                     readOnly ? undefined : (changes) => onEdgesChange(changes)
                   }
@@ -655,7 +689,7 @@ const ChainGraphInner: React.FC = () => {
                   onDragOver={readOnly ? undefined : onDragOver}
                   onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
                   zoomOnDoubleClick={false}
-                  deleteKeyCode={readOnly ? undefined : ["Backspace", "Delete"]}
+                  deleteKeyCode={deleteKeyCode}
                   proOptions={{ hideAttribution: true }}
                   onContextMenu={readOnly ? undefined : onContextMenu}
                   onNodeContextMenu={readOnly ? undefined : onNodeContextMenu}

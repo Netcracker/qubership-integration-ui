@@ -1,4 +1,3 @@
-import "./lunr-init";
 import "./vscode-entry";
 import { initExternalMonaco } from "./monaco-init-runtime";
 
@@ -26,6 +25,7 @@ export type {
 export {
   installRequestHeaders,
   installBearerAuth,
+  getHeadersForContext,
   getRestAxiosInstance,
 } from "./api/rest/requestHeadersInterceptor";
 export {

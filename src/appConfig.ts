@@ -1,10 +1,22 @@
+import { resetAiProvider } from "./ai/config.ts";
+import { setAiServiceUrl } from "./ai/appConfig.ts";
+import { setAiServiceUrlOverride } from "./config/aiServiceUrlOverride.ts";
 import { IconOverrides } from "./icons/IconProvider";
 import type { ThemeConfig } from "antd";
 import { UserPermissions } from "./permissions/types.ts";
 
+export type UserInfo = {
+  userName?: string;
+  email?: string;
+  tenantName?: string;
+  tenantId?: string;
+};
+
 export type AppConfig = {
   apiGateway?: string;
   appName?: string;
+  aiServiceUrl?: string;
+  aiAssistantName?: string;
   icons?: IconOverrides;
   cssVariables?: Record<string, string>;
   additionalCss?: string[];
@@ -12,11 +24,15 @@ export type AppConfig = {
   documentationBaseUrl?: string;
   dev?: boolean;
   permissions?: UserPermissions;
+  userInfo?: UserInfo;
+  onLogout?: () => void;
 };
 
 const appConfigValue: AppConfig = {
   appName: import.meta.env.VITE_API_APP,
   apiGateway: import.meta.env.VITE_GATEWAY,
+  aiServiceUrl: import.meta.env.VITE_AI_SERVICE_URL as string | undefined,
+  aiAssistantName: import.meta.env.VITE_AI_ASSISTANT_NAME as string | undefined,
   icons: {},
   dev: import.meta.env.DEV,
 };
@@ -88,6 +104,21 @@ export function configure(config: Partial<AppConfig>): void {
     appConfigValue.apiGateway = config.apiGateway;
     overrides.push(`apiGateway: "${oldValue}" -> "${config.apiGateway}"`);
   }
+  if (config.aiServiceUrl !== undefined) {
+    const oldValue = appConfigValue.aiServiceUrl;
+    appConfigValue.aiServiceUrl = config.aiServiceUrl;
+    setAiServiceUrlOverride(config.aiServiceUrl);
+    setAiServiceUrl(config.aiServiceUrl);
+    resetAiProvider();
+    overrides.push(`aiServiceUrl: "${oldValue}" -> "${config.aiServiceUrl}"`);
+  }
+  if (config.aiAssistantName !== undefined) {
+    const oldValue = appConfigValue.aiAssistantName;
+    appConfigValue.aiAssistantName = config.aiAssistantName;
+    overrides.push(
+      `aiAssistantName: "${oldValue}" -> "${config.aiAssistantName}"`,
+    );
+  }
   if (config.icons !== undefined) {
     const previousIcons = appConfigValue.icons || {};
     const mergedIcons: IconOverrides = {
@@ -136,6 +167,23 @@ export function configure(config: Partial<AppConfig>): void {
     );
   }
 
+  if (config.userInfo !== undefined) {
+    const previous = appConfigValue.userInfo || {};
+    const next = { ...previous, ...config.userInfo };
+    const changedKeys = Object.keys(config.userInfo).filter(
+      (key) => next[key as keyof UserInfo] !== previous[key as keyof UserInfo],
+    );
+    if (changedKeys.length > 0) {
+      appConfigValue.userInfo = next;
+      overrides.push(`userInfo: ${changedKeys.length} field(s) updated`);
+    }
+  }
+
+  if ("onLogout" in config && appConfigValue.onLogout !== config.onLogout) {
+    appConfigValue.onLogout = config.onLogout;
+    overrides.push(`onLogout: handler ${config.onLogout ? "set" : "cleared"}`);
+  }
+
   if (overrides.length > 0) {
     console.log("[QIP UI Config] Configuration overrides applied:", overrides);
   }
@@ -146,17 +194,15 @@ export function configure(config: Partial<AppConfig>): void {
 }
 
 export async function loadConfigFromJson(url: string): Promise<AppConfig> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to load config: ${response.statusText}`);
-    }
-    const config = (await response.json()) as AppConfig;
-    return config;
-  } catch (error) {
-    console.error("Error loading config from JSON:", error);
-    throw error;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to load config: ${response.statusText}`);
   }
+  const contentType = response.headers.get("content-type");
+  if (!contentType?.includes("application/json")) {
+    throw new Error(`Config file ${url} is not JSON`);
+  }
+  return (await response.json()) as AppConfig;
 }
 
 export function loadConfigFromEnv(): Partial<AppConfig> {
@@ -174,6 +220,20 @@ export function loadConfigFromEnv(): Partial<AppConfig> {
     (import.meta.env.VITE_API_APP as string | undefined);
   if (appName) {
     config.appName = appName;
+  }
+
+  const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL as
+    | string
+    | undefined;
+  if (aiServiceUrl) {
+    config.aiServiceUrl = aiServiceUrl;
+  }
+
+  const aiAssistantName = import.meta.env.VITE_AI_ASSISTANT_NAME as
+    | string
+    | undefined;
+  if (aiAssistantName) {
+    config.aiAssistantName = aiAssistantName;
   }
 
   const cssVars = import.meta.env.VITE_CSS_VARIABLES as string | undefined;
@@ -215,6 +275,8 @@ export type AppExtensionProps = {
   appName?: string;
   icons?: IconOverrides;
   apiGateway?: string;
+  aiServiceUrl?: string;
+  aiAssistantName?: string;
   cssVariables?: Record<string, string>;
   additionalCss?: string[];
   themeOverrides?: Partial<ThemeConfig>;

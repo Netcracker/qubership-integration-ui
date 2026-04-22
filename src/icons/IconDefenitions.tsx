@@ -118,6 +118,12 @@ import {
   WarningOutlined,
   InsertRowRightOutlined,
   InsertRowLeftOutlined,
+  CommentOutlined,
+  PaperClipOutlined,
+  SearchOutlined,
+  ClockCircleOutlined,
+  MinusCircleOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
 
 /**
@@ -247,6 +253,19 @@ export const commonIcons = {
   importInstructions: ImportOutlined,
   warning: WarningOutlined,
   checkSquare: CheckSquareOutlined,
+  comment: CommentOutlined,
+  paperClip: PaperClipOutlined,
+  user: UserOutlined,
+  logout: LogoutOutlined,
+  resetPreferences: ReloadOutlined,
+  search: SearchOutlined,
+  deploymentStatusDeployed: CheckCircleOutlined,
+  deploymentStatusProcessing: SyncOutlined,
+  deploymentStatusFailed: CloseCircleOutlined,
+  deploymentStatusWarning: ExclamationCircleOutlined,
+  deploymentStatusRemoved: MinusCircleOutlined,
+  deploymentStatusDraft: ClockCircleOutlined,
+  documentationSearchResult: FileTextOutlined,
 };
 
 export const elementIcons = {

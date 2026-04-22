@@ -160,11 +160,12 @@ export class RestApi implements Api {
     );
   }
 
-  private v1 = (): string => `/api/v1/${getAppName()}`;
-  private v2 = (): string => `/api/${getAppName()}/v2`;
-  private v3 = (): string => `/api/${getAppName()}/v3`;
+  private readonly newV1 = (): string => `/api/${getAppName()}/v1`;
+  private readonly v1 = (): string => `/api/v1/${getAppName()}`;
+  private readonly v2 = (): string => `/api/${getAppName()}/v2`;
+  private readonly v3 = (): string => `/api/${getAppName()}/v3`;
 
-  private toApiError = (
+  private readonly toApiError = (
     serviceName: string,
     message: string,
     errorDate: string,
@@ -180,7 +181,7 @@ export class RestApi implements Api {
     };
   };
 
-  private wrapApiResponse = async <T>(
+  private readonly wrapApiResponse = async <T>(
     serviceName: string,
     fallbackMessage: string,
     fn: () => Promise<T>,
@@ -232,7 +233,7 @@ export class RestApi implements Api {
     }
   };
 
-  private wrapBoolean = async (
+  private readonly wrapBoolean = async (
     fallbackMessage: string,
     fn: () => Promise<void>,
   ): Promise<boolean> => {
@@ -285,7 +286,7 @@ export class RestApi implements Api {
     return this.createCommonVariables({ [variable.key]: variable.value });
   };
 
-  private createCommonVariables = async (
+  private readonly createCommonVariables = async (
     variables: Record<string, string>,
   ): Promise<ApiResponse<string[]>> => {
     const serviceName = "Common Variables API";
@@ -1859,6 +1860,18 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  cloneElements = async (
+    chainId: string,
+    ids: string[],
+    containerId?: string,
+  ): Promise<Element[]> => {
+    const response = await this.instance.post<Element[]>(
+      `${this.v1()}/catalog/chains/${chainId}/elements/clone`,
+      ids.map((id) => ({ id, parent: containerId ?? null })),
+    );
+    return response.data;
+  };
+
   getExchanges = async (limit: number): Promise<LiveExchange[]> => {
     const response = await this.instance.get<LiveExchange[]>(
       `${this.v1()}/catalog/live-exchanges`,
@@ -1944,7 +1957,7 @@ export class RestApi implements Api {
   createMaasKafkaEntity = async (
     request: CreateMaasKafkaRequest,
   ): Promise<void> => {
-    await this.instance.post(`/api/cip/v1/maas-actions/kafka`, undefined, {
+    await this.instance.post(`${this.newV1()}/maas-actions/kafka`, undefined, {
       params: {
         namespace: request.namespace,
         topicClassifierName: request.topicClassifierName,
@@ -1955,22 +1968,26 @@ export class RestApi implements Api {
   createMaasRabbitMQEntity = async (
     request: CreateMaasRabbitMQRequest,
   ): Promise<void> => {
-    await this.instance.post(`/api/cip/v1/maas-actions/rabbitmq`, undefined, {
-      params: {
-        namespace: request.namespace,
-        vhost: request.vhost,
-        exchange: request.exchange,
-        queue: request.queue,
-        routingKey: request.routingKey,
+    await this.instance.post(
+      `${this.newV1()}/maas-actions/rabbitmq`,
+      undefined,
+      {
+        params: {
+          namespace: request.namespace,
+          vhost: request.vhost,
+          exchange: request.exchange,
+          queue: request.queue,
+          routingKey: request.routingKey,
+        },
       },
-    });
+    );
   };
 
   getMaasKafkaDeclarativeFile = async (
     request: GetMaasKafkaDeclarativeRequest,
   ): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `/api/cip/v1/maas-actions/kafka/declarative`,
+      `${this.newV1()}/maas-actions/kafka/declarative`,
       undefined,
       {
         params: { topicClassifierName: request.topicClassifierName },
@@ -1984,7 +2001,7 @@ export class RestApi implements Api {
     request: GetMaasRabbitMQDeclarativeRequest,
   ): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `/api/cip/v1/maas-actions/rabbitmq/declarative`,
+      `${this.newV1()}/maas-actions/rabbitmq/declarative`,
       undefined,
       {
         params: {
