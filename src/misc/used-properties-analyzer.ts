@@ -32,7 +32,7 @@ const MAPPING_DESCRIPTION = "mappingDescription";
 
 // GET
 const GROOVY_GET_HEADERS_PATTERN =
-  /exchange\.(message|getMessage\(\))\.(headers|getHeader\(|getHeaders\(\))((\[(['"]))|(\\.?((get\((["']))|(["'])?)))([a-zA-Z0-9_.-]+)(?!([^\n\r]*[=(]))/gi;
+  /exchange\.(message|getMessage\(\))\.(headers|getHeader\(|getHeaders\(\))((\[(['"]))|(\\.?((get\((["']))|(["'])?)))([a-zA-Z0-9_.-]+)(?![^\n\r]{0,10000}[=(])/gi;
 const GROOVY_GET_HEADER_GROUPS = [11];
 
 // SET
@@ -42,7 +42,7 @@ const GROOVY_SET_HEADER_GROUPS = [5, 8, 14];
 
 // GET
 const GROOVY_GET_PROPERTIES_PATTERN =
-  /exchange\.((properties|getProperty)((([[(])|(\.))['"]?)([a-zA-Z0-9_.-]+)(?!([^\n\r]*[=(])))/gi;
+  /exchange\.((properties|getProperty)((([[(])|(\.))['"]?)([a-zA-Z0-9_.-]+)(?![^\n\r]{0,10000}[=(]))/gi;
 const GROOVY_GET_PROPERTIES_GROUPS = [7];
 
 // SET
@@ -51,11 +51,11 @@ const GROOVY_SET_PROPERTIES_PATTERN =
 const GROOVY_SET_PROPERTIES_GROUPS = [3, 6, 9];
 
 const PROPS_SIMPLE_PATTERN =
-  /\$\{exchangeProperty((\.([a-zA-Z0-9_-]+))|([.[]'?([a-zA-Z0-9_.-]+)))[^}]*}/gi;
+  /\$\{exchangeProperty((\.([a-zA-Z0-9_-]+))|([.[]'?([a-zA-Z0-9_.-]+)))[^}]{0,10000}}/gi;
 const EX_PROP_GROUPS = [3, 5];
 
 const HEADERS_SIMPLE_PATTERN =
-  /\$\{headera?s?((\.([a-zA-Z0-9_-]+))|([.[(]'?([a-zA-Z0-9_.-]+)))[^}]*}/gi;
+  /\$\{headera?s?((\.([a-zA-Z0-9_-]+))|([.[(]'?([a-zA-Z0-9_.-]+)))[^}]{0,10000}}/gi;
 const EX_HEADER_GROUPS = [3, 5];
 
 const TYPE_STRING_MAP: Record<string, UsedPropertyType> = {
@@ -239,43 +239,74 @@ function parsePropertyValue(
   }
 }
 
-function findInScript(
-  element: AnalyzableElement,
-  map: Map<string, PropertyBuilder>,
+function pushStringIfString(scripts: string[], value: unknown): void {
+  if (typeof value === "string") {
+    scripts.push(value);
+  }
+}
+
+function appendScriptsFromAfterArray(scripts: string[], after: unknown): void {
+  if (!Array.isArray(after)) {
+    return;
+  }
+  for (const item of after) {
+    if (isRecord(item) && typeof item.script === "string") {
+      scripts.push(item.script);
+    }
+  }
+}
+
+function appendServiceCallScripts(
+  scripts: string[],
+  props: Record<string, unknown>,
 ): void {
-  if (!ELEMENTS_WITH_SCRIPT.has(element.type)) return;
+  appendScriptsFromAfterArray(scripts, props.after);
+  const before = props.before;
+  if (isRecord(before) && typeof before.script === "string") {
+    scripts.push(before.script);
+  }
+}
+
+function appendHttpTriggerHandlerScript(
+  scripts: string[],
+  props: Record<string, unknown>,
+): void {
+  const handler = props.handlerContainer;
+  if (isRecord(handler) && typeof handler.script === "string") {
+    scripts.push(handler.script);
+  }
+}
+
+function collectElementScripts(element: AnalyzableElement): string[] {
+  if (!ELEMENTS_WITH_SCRIPT.has(element.type)) {
+    return [];
+  }
   const props = element.properties ?? {};
   const scripts: string[] = [];
 
   switch (element.type) {
     case SCRIPT:
-      if (typeof props.script === "string") scripts.push(props.script);
+      pushStringIfString(scripts, props.script);
       break;
-    case SERVICE_CALL: {
-      const after = props.after;
-      if (Array.isArray(after)) {
-        for (const item of after) {
-          if (isRecord(item) && typeof item.script === "string") {
-            scripts.push(item.script);
-          }
-        }
-      }
-      const before = props.before;
-      if (isRecord(before) && typeof before.script === "string") {
-        scripts.push(before.script);
-      }
+    case SERVICE_CALL:
+      appendServiceCallScripts(scripts, props);
       break;
-    }
-    case HTTP_TRIGGER: {
-      const handler = props.handlerContainer;
-      if (isRecord(handler) && typeof handler.script === "string") {
-        scripts.push(handler.script);
-      }
+    case HTTP_TRIGGER:
+      appendHttpTriggerHandlerScript(scripts, props);
       break;
-    }
   }
 
-  if (scripts.length === 0) return;
+  return scripts;
+}
+
+function findInScript(
+  element: AnalyzableElement,
+  map: Map<string, PropertyBuilder>,
+): void {
+  const scripts = collectElementScripts(element);
+  if (scripts.length === 0) {
+    return;
+  }
   const combined = scripts.join("\n");
 
   matchAndAdd(

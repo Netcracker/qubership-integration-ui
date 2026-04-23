@@ -261,6 +261,16 @@ describe("PageWithRightPanel", () => {
     expect(list).toHaveAttribute("data-chain-id", "test-chain-id");
   });
 
+  it("shows no chain message on element properties tab when route has no chainId", () => {
+    mockUseParams.mockReturnValue({});
+    renderWithContext(<PageWithRightPanel />);
+    const propsTab = screen
+      .getAllByRole("tab")
+      .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
+    fireEvent.click(propsTab!);
+    expect(screen.getByText("No chain selected")).toBeInTheDocument();
+  });
+
   it("calls api.getElements on mount when chainId is present", () => {
     renderWithChain();
     expect(api.getElements).toHaveBeenCalledWith("test-chain-id");
