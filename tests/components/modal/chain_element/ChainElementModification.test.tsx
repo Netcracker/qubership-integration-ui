@@ -515,7 +515,7 @@ describe("ChainElementModification", () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it("unsaved dialog Save persists changes and closes parent modal", async () => {
+  it("unsaved dialog Yes closes parent modal without saving", async () => {
     renderWithPermissions({ chain: ["update"] });
 
     await waitFor(() => {
@@ -528,26 +528,7 @@ describe("ChainElementModification", () => {
     const unsavedModal = mockShowModal.mock.calls[0][0].component;
     render(unsavedModal);
 
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-
-    await waitFor(() => expect(mockUpdateElement).toHaveBeenCalled());
-    expect(defaultProps.onSubmit).toHaveBeenCalled();
-  });
-
-  it("unsaved dialog Discard closes parent modal without saving", async () => {
-    renderWithPermissions({ chain: ["update"] });
-
-    await waitFor(() => {
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByTestId("rjsf-user-change"));
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-
-    const unsavedModal = mockShowModal.mock.calls[0][0].component;
-    render(unsavedModal);
-
-    fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
 
     expect(defaultProps.onClose).toHaveBeenCalled();
     expect(mockUpdateElement).not.toHaveBeenCalled();
