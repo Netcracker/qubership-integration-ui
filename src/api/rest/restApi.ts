@@ -91,7 +91,6 @@ import {
   ImportInstructionRequest,
   ImportInstructionResult,
   DeleteImportInstructionsRequest,
-  ImportEntityType,
   ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
@@ -2196,9 +2195,7 @@ export class RestApi implements Api {
   };
 
   deleteMicroDomain = async (name: string): Promise<void> => {
-    await this.instance.delete<void>(
-      `${this.v1()}/catalog/cr/${name}`,
-    );
+    await this.instance.delete<void>(`${this.v1()}/catalog/cr/${name}`);
   };
 
   deleteSnapshotFromMicroDomain = async (
