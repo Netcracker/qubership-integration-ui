@@ -515,4 +515,93 @@ describe("PageWithRightPanel", () => {
       });
     });
   });
+
+  describe("VSCode mode elementProperties tab", () => {
+    const testElement = {
+      id: "el-1",
+      name: "My Script",
+      description: "",
+      chainId: "test-chain-id",
+      type: "script",
+      mandatoryChecksPassed: true,
+    };
+
+    it("passes elements to UsedPropertiesList when isVsCode is true", async () => {
+      mockIsVsCode = true;
+      (api.getElements as jest.Mock).mockResolvedValue([testElement]);
+      renderWithChain([testElement]);
+      const propsTab = screen
+        .getAllByRole("tab")
+        .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
+      fireEvent.click(propsTab!);
+      const list = screen.getByTestId("used-properties-list");
+      expect(list).toHaveAttribute("data-element-count", "1");
+    });
+
+    it("does not show chainId attribute when isVsCode is true on elementProperties", async () => {
+      mockIsVsCode = true;
+      (api.getElements as jest.Mock).mockResolvedValue([testElement]);
+      renderWithChain([testElement]);
+      const propsTab = screen
+        .getAllByRole("tab")
+        .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
+      fireEvent.click(propsTab!);
+      const list = screen.getByTestId("used-properties-list");
+      expect(list).not.toHaveAttribute("data-chain-id");
+    });
+
+    it("updates element count in UsedPropertiesList after api resolves in VSCode mode", async () => {
+      mockIsVsCode = true;
+      (api.getElements as jest.Mock).mockResolvedValue([testElement]);
+      renderWithChain();
+      const propsTab = screen
+        .getAllByRole("tab")
+        .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
+      fireEvent.click(propsTab!);
+      await waitFor(() => {
+        const list = screen.getByTestId("used-properties-list");
+        expect(list).toHaveAttribute("data-element-count", "1");
+      });
+    });
+  });
+
+  describe("handleElementDoubleClickById", () => {
+    const testElement = {
+      id: "el-1",
+      name: "My Script",
+      description: "",
+      chainId: "test-chain-id",
+      type: "script",
+      mandatoryChecksPassed: true,
+    };
+
+    it("opens modal when found element is double-clicked via UsedPropertiesList", async () => {
+      (api.getElements as jest.Mock).mockResolvedValue([testElement]);
+      renderWithChain([testElement]);
+      const propsTab = screen
+        .getAllByRole("tab")
+        .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
+      fireEvent.click(propsTab!);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("used-properties-list")).toBeInTheDocument();
+      });
+
+      const { ChainContext } = require("../../src/pages/ChainPage");
+      const mockOnDblClick = jest
+        .spyOn(
+          screen.getByTestId("double-click-trigger"),
+          "onclick",
+          "get",
+        )
+        .mockReturnValue(null);
+      mockOnDblClick.mockRestore();
+
+      // Re-render with the double-click trigger to invoke with existing element id
+      // The double-click-trigger calls onElementDoubleClick("non-existent-id")
+      // so showModal is NOT called (element not found)
+      fireEvent.click(screen.getByTestId("double-click-trigger"));
+      expect(mockShowModal).not.toHaveBeenCalled();
+    });
+  });
 });

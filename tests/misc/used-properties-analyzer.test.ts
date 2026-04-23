@@ -325,4 +325,182 @@ describe("analyzeUsedProperties", () => {
       ].sort(),
     );
   });
+
+  it("ignores non-array source.headers in mappingDescription", () => {
+    const el: AnalyzableElement = {
+      id: "m-na",
+      name: "Mapper",
+      type: "mapper-2",
+      properties: {
+        mappingDescription: {
+          source: {
+            headers: "not-an-array",
+            properties: [],
+          },
+          target: { headers: [], properties: [] },
+        },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    expect(r.filter((p) => p.source === UsedPropertySource.HEADER)).toHaveLength(0);
+  });
+
+  it("skips non-record entries in mappingDescription headers array", () => {
+    const el: AnalyzableElement = {
+      id: "m-nr",
+      name: "Mapper",
+      type: "mapper-2",
+      properties: {
+        mappingDescription: {
+          source: {
+            headers: [null, "string-entry", 42, { name: "valid", type: { name: "string" } }],
+          },
+          target: { headers: [], properties: [] },
+        },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    const headers = r.filter((p) => p.source === UsedPropertySource.HEADER);
+    expect(headers.map((p) => p.name)).toEqual(["valid"]);
+  });
+
+  it("skips entries with non-string name in mappingDescription", () => {
+    const el: AnalyzableElement = {
+      id: "m-ns",
+      name: "Mapper",
+      type: "mapper-2",
+      properties: {
+        mappingDescription: {
+          source: {
+            headers: [
+              { name: 123, type: { name: "string" } },
+              { name: "good", type: { name: "string" } },
+            ],
+          },
+          target: { headers: [], properties: [] },
+        },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    const headers = r.filter((p) => p.source === UsedPropertySource.HEADER);
+    expect(headers.map((p) => p.name)).toEqual(["good"]);
+  });
+
+  it("skips entries with missing type object in mappingDescription", () => {
+    const el: AnalyzableElement = {
+      id: "m-mt",
+      name: "Mapper",
+      type: "mapper-2",
+      properties: {
+        mappingDescription: {
+          source: {
+            headers: [
+              { name: "noType" },
+              { name: "goodOne", type: { name: "string" } },
+            ],
+          },
+          target: { headers: [], properties: [] },
+        },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    const headers = r.filter((p) => p.source === UsedPropertySource.HEADER);
+    expect(headers.map((p) => p.name)).toEqual(["goodOne"]);
+  });
+
+  it("skips entries with empty typeName in mappingDescription", () => {
+    const el: AnalyzableElement = {
+      id: "m-et",
+      name: "Mapper",
+      type: "mapper-2",
+      properties: {
+        mappingDescription: {
+          source: {
+            headers: [
+              { name: "emptyTypeName", type: { name: "" } },
+              { name: "validOne", type: { name: "string" } },
+            ],
+          },
+          target: { headers: [], properties: [] },
+        },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    const headers = r.filter((p) => p.source === UsedPropertySource.HEADER);
+    expect(headers.map((p) => p.name)).toEqual(["validOne"]);
+  });
+
+  it("ignores service-call before property that is a Record but has no script", () => {
+    const el: AnalyzableElement = {
+      id: "sc-nb",
+      name: "SC",
+      type: "service-call",
+      properties: {
+        before: { notScript: "some value" },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    expect(r.filter((p) => p.source === UsedPropertySource.HEADER)).toHaveLength(0);
+  });
+
+  it("handles element with no properties", () => {
+    const el: AnalyzableElement = {
+      id: "e-np",
+      name: "E",
+      type: "script",
+    };
+    expect(analyzeUsedProperties([el])).toEqual([]);
+  });
+
+  it("ignores mapper type (not mapper-2) for mappingDescription processing", () => {
+    const el: AnalyzableElement = {
+      id: "map-plain",
+      name: "M",
+      type: "mapper",
+      properties: {
+        mappingDescription: {
+          source: {
+            headers: [{ name: "shouldBeIgnored", type: { name: "string" } }],
+          },
+        },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    expect(r.filter((p) => p.name === "shouldBeIgnored")).toHaveLength(0);
+  });
+
+  it("handles non-array after property on service-call (no scripts collected)", () => {
+    const el: AnalyzableElement = {
+      id: "sc-na",
+      name: "SC",
+      type: "service-call",
+      properties: {
+        after: "not-an-array",
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    expect(r.filter((p) => p.source === UsedPropertySource.HEADER)).toHaveLength(0);
+  });
+
+  it("skips entries with non-string typeName (non-string type.name) in mappingDescription", () => {
+    const el: AnalyzableElement = {
+      id: "m-nts",
+      name: "Mapper",
+      type: "mapper-2",
+      properties: {
+        mappingDescription: {
+          source: {
+            headers: [
+              { name: "badType", type: { name: 999 } },
+              { name: "goodType", type: { name: "string" } },
+            ],
+          },
+          target: { headers: [], properties: [] },
+        },
+      },
+    };
+    const r = analyzeUsedProperties([el]);
+    const headers = r.filter((p) => p.source === UsedPropertySource.HEADER);
+    expect(headers.map((p) => p.name)).toEqual(["goodType"]);
+  });
 });
