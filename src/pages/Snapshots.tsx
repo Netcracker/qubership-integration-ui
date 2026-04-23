@@ -439,7 +439,7 @@ export const Snapshots: React.FC = () => {
             require={{ snapshot: ["read"] }}
             tooltipProps={{ title: "Compare selected snapshots" }}
             buttonProps={{
-              icon: <>⇄</>,
+              iconName: "compare",
               onClick: onCompareBtnClick,
               disabled: selectedRowKeys.length !== 2,
             }}

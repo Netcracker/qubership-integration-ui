@@ -268,6 +268,7 @@ export const commonIcons = {
   deploymentStatusRemoved: MinusCircleOutlined,
   deploymentStatusDraft: ClockCircleOutlined,
   documentationSearchResult: FileTextOutlined,
+  compare: DiffOutlined,
 };
 
 export const elementIcons = {
