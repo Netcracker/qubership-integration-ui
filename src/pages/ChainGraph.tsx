@@ -2,6 +2,7 @@ import {
   Background,
   BackgroundVariant,
   Edge,
+  type KeyCode,
   MiniMap,
   Node,
   OnSelectionChangeFunc,
@@ -23,16 +24,16 @@ import React, {
 } from "react";
 import { ElementsLibrarySidebar } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { DnDProvider } from "../components/DndContext.tsx";
-import { Flex, FloatButton, Modal } from "antd";
+import { Flex, Modal } from "antd";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router-dom";
+import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
 import { CustomControls } from "../components/graph/CustomControls.tsx";
 import {
   ElementFocus,
   ElementFocusContext,
   type FitViewToElementIdFn,
 } from "../components/graph/ElementFocus.tsx";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import { useModalsContext } from "../Modals.tsx";
 import { ChainElementModification } from "../components/modal/chain_element/ChainElementModification.tsx";
 import styles from "./ChainGraph.module.css";
@@ -62,11 +63,12 @@ import {
   nodeTypes,
   OnDeleteEvent,
 } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
-import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import ContextMenu from "../components/graph/ContextMenu.tsx";
+import { PanelResizeHandle } from "../components/PanelResizeHandle.tsx";
 import {
   getElementColor,
+  isSwimlanesOnly,
   nonEmptyContainerExists,
   sanitizeEdge,
 } from "../misc/chain-graph-utils.ts";
@@ -78,6 +80,12 @@ import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { exportAdditionsForChains } from "../misc/export-additions.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
 import { Domain } from "../components/SelectDomains.tsx";
+import { Require } from "../permissions/Require.tsx";
+import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+import { usePermissions } from "../permissions/usePermissions.tsx";
+import { hasPermissions } from "../permissions/funcs.ts";
+import { getSwimlaneBorderColor } from "../components/graph/nodes/SwimlaneNode.tsx";
+import { useContextMenu } from "../hooks/graph/useContextMenu.tsx";
 
 const readTheme = () => {
   if (typeof document === "undefined") return "light";
@@ -104,6 +112,14 @@ const readTheme = () => {
   return "light";
 };
 
+const MIN_PANEL_WIDTH = 230;
+const MAX_PANEL_WIDTH = 500;
+const DEFAULT_LEFT_PANEL_WIDTH = 230;
+const DEFAULT_RIGHT_PANEL_WIDTH = 240;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
 const ChainGraphInner: React.FC = () => {
   const { chainId, elementId } = useParams<string>();
   const chainContext = useContext(ChainContext);
@@ -111,13 +127,28 @@ const ChainGraphInner: React.FC = () => {
   const reactFlowWrapper = useRef(null);
   const [isPageLoaded, setIsPageLoaded] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>(() => readTheme());
+  const [leftPanelWidth, setLeftPanelWidth] = useState(
+    DEFAULT_LEFT_PANEL_WIDTH,
+  );
+  const [rightPanelWidth, setRightPanelWidth] = useState(
+    DEFAULT_RIGHT_PANEL_WIDTH,
+  );
   const currentThemeRef = useRef(currentTheme);
   const navigate = useNavigate();
   const notificationService = useNotificationService();
   const { isLibraryLoading, libraryElements } = useLibraryContext();
-  const [selectedNodes, setSelectedNodes] = useState<
-    Node<ChainGraphNodeData>[]
-  >([]);
+  const permissions = usePermissions();
+  const [readOnly, setReadOnly] = useState<boolean>(false);
+  const deleteKeyCode = useMemo<KeyCode | null>(
+    () => (readOnly || elementId ? null : ["Backspace", "Delete"]),
+    [elementId, readOnly],
+  );
+  const [selectedByRightClick, setSelectedByRightClick] =
+    useState<boolean>(false);
+
+  useEffect(() => {
+    setReadOnly(!hasPermissions(permissions, { chain: ["update"] }));
+  }, [permissions]);
 
   const refreshChain = useCallback(async () => {
     if (!chainContext?.refresh) return;
@@ -130,7 +161,9 @@ const ChainGraphInner: React.FC = () => {
 
   const {
     nodes,
+    setNodes,
     edges,
+    setEdges,
     decorativeEdges,
     onConnect,
     onDragOver,
@@ -144,10 +177,10 @@ const ChainGraphInner: React.FC = () => {
     direction,
     toggleDirection,
     updateNodeData,
-    menu,
-    closeMenu,
-    onContextMenuCall,
     isLoading,
+    expandAllContainers,
+    collapseAllContainers,
+    structureChanged,
   } = useChainGraph(chainId, refreshChain);
 
   const renderEdges = useMemo(
@@ -155,7 +188,8 @@ const ChainGraphInner: React.FC = () => {
     [edges, decorativeEdges],
   );
 
-  const { rightPanel, toggleRightPanel } = useElkDirection();
+  const { leftPanel, toggleLeftPanel, rightPanel, toggleRightPanel } =
+    useElkDirection();
   const fitViewToElementIdRef = useRef<FitViewToElementIdFn | null>(null);
 
   const handleElementUpdated = useCallback(
@@ -166,57 +200,9 @@ const ChainGraphInner: React.FC = () => {
     [updateNodeData, refreshChain],
   );
 
-  const onNodeDoubleClick = (
-    _event: MouseEvent,
-    node: Node<ChainGraphNodeData>,
-  ) => {
-    openElementModal(node);
-  };
-
-  const handleSelectionChange = useCallback<
-    OnSelectionChangeFunc<Node<ChainGraphNodeData>, Edge>
-  >(
-    ({ nodes }) => {
-      closeMenu();
-      setSelectedNodes(nodes);
-    },
-    [closeMenu],
-  );
-
-  useOnSelectionChange<Node<ChainGraphNodeData>, Edge>({
-    onChange: handleSelectionChange,
-  });
-
-  const onContextMenu = (event: MouseEvent) => {
-    const elements: Node<ChainGraphNodeData>[] = [];
-    if (selectedNodes?.length > 0) {
-      elements.push(...selectedNodes);
-    }
-    (
-      onContextMenuCall as (
-        event: MouseEvent,
-        elements: Node<ChainGraphNodeData>[],
-      ) => void
-    )(event, elements);
-  };
-
-  const onNodeContextMenu = (
-    event: MouseEvent,
-    node: Node<ChainGraphNodeData>,
-  ) => {
-    const elements: Node<ChainGraphNodeData>[] = [];
-    if (selectedNodes?.length > 0) {
-      elements.push(...selectedNodes);
-    } else if (node) {
-      elements.push(node);
-    }
-    (
-      onContextMenuCall as (
-        event: MouseEvent,
-        elements: Node<ChainGraphNodeData>[],
-      ) => void
-    )(event, elements);
-  };
+  const clearElementPath = useCallback(() => {
+    void navigate(`/chains/${chainId}/graph`);
+  }, [chainId, navigate]);
 
   const setElementPath = useCallback(
     (newElementId: string) => {
@@ -224,10 +210,6 @@ const ChainGraphInner: React.FC = () => {
     },
     [chainId, navigate],
   );
-
-  const clearElementPath = useCallback(() => {
-    void navigate(`/chains/${chainId}/graph`);
-  }, [chainId, navigate]);
 
   const openElementModal = useCallback(
     (node?: Node<ChainGraphNodeData>) => {
@@ -262,10 +244,116 @@ const ChainGraphInner: React.FC = () => {
     ],
   );
 
-  const saveAndDeploy = async (domains: Domain[]) => {
-    if (!chainId || domains.length === 0) return;
-    try {
-      await api.createSnapshot(chainId).then(async (snapshot) => {
+  const handleDelete = useCallback(
+    async (changes: OnDeleteEvent) => {
+      if (
+        changes.nodes.length > 0 &&
+        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[])) &&
+        !isSwimlanesOnly(changes.nodes as ChainGraphNode[])
+      ) {
+        Modal.confirm({
+          title: "Delete Container",
+          content:
+            "This container element is not empty. Are you sure you want to delete it? All its content will be also deleted.",
+          onOk: () => void onDelete(changes),
+        });
+      } else {
+        void onDelete(changes);
+      }
+    },
+    [onDelete],
+  );
+
+  const { menu, closeMenu, onContextMenuCall } = useContextMenu(
+    handleDelete,
+    openElementModal,
+    nodes,
+    setNodes,
+    edges,
+    setEdges,
+    structureChanged,
+    chainId,
+    refreshChain,
+  );
+
+  const onNodeDoubleClick = (
+    _event: MouseEvent,
+    node: Node<ChainGraphNodeData>,
+  ) => {
+    openElementModal(node);
+  };
+
+  const handleSelectionChange = useCallback<
+    OnSelectionChangeFunc<Node<ChainGraphNodeData>, Edge>
+  >(() => {
+    if (selectedByRightClick) {
+      setSelectedByRightClick(false);
+    } else {
+      closeMenu();
+    }
+  }, [closeMenu, selectedByRightClick]);
+
+  useOnSelectionChange<Node<ChainGraphNodeData>, Edge>({
+    onChange: handleSelectionChange,
+  });
+
+  const onContextMenu = (event: MouseEvent) => {
+    const elements: Node<ChainGraphNodeData>[] = [];
+
+    setSelectedByRightClick(true);
+    setNodes((prev) =>
+      prev.map((prevNode) => ({
+        ...prevNode,
+        selected: false,
+      })),
+    );
+
+    (
+      onContextMenuCall as (
+        event: MouseEvent,
+        elements: Node<ChainGraphNodeData>[],
+      ) => void
+    )(event, elements);
+  };
+
+  const onNodeContextMenu = (
+    event: MouseEvent,
+    node: Node<ChainGraphNodeData>,
+  ) => {
+    event.stopPropagation();
+    const elements: Node<ChainGraphNodeData>[] = [];
+
+    const selectedBeforeRightClick = nodes.filter((n) => n.selected);
+
+    if (
+      selectedBeforeRightClick.some(
+        (selectedNode) => selectedNode.id === node.id,
+      )
+    ) {
+      elements.push(...selectedBeforeRightClick);
+    } else {
+      setSelectedByRightClick(true);
+      setNodes((prev) =>
+        prev.map((prevNode) => ({
+          ...prevNode,
+          selected: prevNode.id === node.id,
+        })),
+      );
+      elements.push(node);
+    }
+    (
+      onContextMenuCall as (
+        event: MouseEvent,
+        elements: Node<ChainGraphNodeData>[],
+      ) => void
+    )(event, elements);
+  };
+
+  const saveAndDeploy = useCallback(
+    async (domains: Domain[]) => {
+      if (!chainId || domains.length === 0) return;
+      try {
+        const snapshot = await api.createSnapshot(chainId);
         notificationService.info(
           "Created snapshot",
           `Created snapshot ${snapshot.name}`,
@@ -292,58 +380,59 @@ const ChainGraphInner: React.FC = () => {
             );
           }),
         );
-      });
-    } catch (error) {
-      notificationService.requestFailed(
-        "Failed to create snapshot and deploy it",
-        error,
-      );
-    }
-  };
+      } catch (error) {
+        notificationService.requestFailed(
+          "Failed to create snapshot and deploy it",
+          error,
+        );
+      }
+    },
+    [chainId, chainContext, notificationService],
+  );
 
-  const openSaveAndDeployDialog = () => {
+  const openSaveAndDeployDialog = useCallback(() => {
     showModal({
       component: <SaveAndDeploy chainId={chainId} onSubmit={saveAndDeploy} />,
     });
-  };
+  }, [showModal, chainId, saveAndDeploy]);
 
-  const exportChain = async (
-    chainId: string | undefined,
-    options: ExportChainOptions,
-  ) => {
-    try {
-      if (!chainId) {
-        return;
+  const exportChain = useCallback(
+    async (chainIdParam: string | undefined, options: ExportChainOptions) => {
+      try {
+        if (!chainIdParam) {
+          return;
+        }
+        const chainsFile = await api.exportChains(
+          [chainIdParam],
+          options.exportSubchains,
+        );
+        const data = [chainsFile];
+
+        data.push(
+          ...(await exportAdditionsForChains({
+            api,
+            chainIdsForUsedSystems: [chainIdParam],
+            options: {
+              exportServices: options.exportServices,
+              exportVariables: options.exportVariables,
+            },
+          })),
+        );
+
+        const nonEmptyData = data.filter((d) => d.size !== 0);
+        const archiveData = await mergeZipArchives(nonEmptyData);
+        const file = new File([archiveData], chainsFile.name, {
+          type: "application/zip",
+        });
+        downloadFile(file);
+      } catch (error) {
+        notificationService.requestFailed("Failed to export chains", error);
       }
-      const chainsFile = await api.exportChains(
-        [chainId],
-        options.exportSubchains,
-      );
-      const data = [chainsFile];
+    },
+    [notificationService],
+  );
 
-      data.push(
-        ...(await exportAdditionsForChains({
-          api,
-          chainIdsForUsedSystems: [chainId],
-          options: {
-            exportServices: options.exportServices,
-            exportVariables: options.exportVariables,
-          },
-        })),
-      );
-
-      const nonEmptyData = data.filter((d) => d.size !== 0);
-      const archiveData = await mergeZipArchives(nonEmptyData);
-      const file = new File([archiveData], chainsFile.name, {
-        type: "application/zip",
-      });
-      downloadFile(file);
-    } catch (error) {
-      notificationService.requestFailed("Failed to export chains", error);
-    }
-  };
-
-  const openExportDialog = () => {
+  const openExportDialog = useCallback(() => {
     showModal({
       component: (
         <ExportChains
@@ -354,9 +443,9 @@ const ChainGraphInner: React.FC = () => {
         />
       ),
     });
-  };
+  }, [showModal, chainId, exportChain]);
 
-  const openSequenceDiagram = () => {
+  const openSequenceDiagram = useCallback(() => {
     showModal({
       component: (
         <SequenceDiagram
@@ -373,7 +462,54 @@ const ChainGraphInner: React.FC = () => {
         />
       ),
     });
-  };
+  }, [showModal, chainId, chainContext?.chain]);
+
+  const headerActions = useMemo(
+    () => (
+      <Flex align="center" gap={4}>
+        <ProtectedButton
+          require={{ chain: ["read"] }}
+          tooltipProps={{ title: "Show sequence diagram" }}
+          buttonProps={{
+            icon: (
+              <span
+                className={String(styles.sequenceDiagramIcon ?? "")}
+                data-icon="sequence-diagram"
+                role="img"
+              >
+                ⇄
+              </span>
+            ),
+            onClick: openSequenceDiagram,
+          }}
+        />
+        {!isVsCode && (
+          <>
+            <ProtectedButton
+              require={{ chain: ["export"] }}
+              tooltipProps={{ title: "Export chain" }}
+              buttonProps={{
+                iconName: "cloudDownload",
+                onClick: openExportDialog,
+              }}
+            />
+            <ProtectedButton
+              require={{ snapshot: ["create"], deployment: ["create"] }}
+              tooltipProps={{}}
+              buttonProps={{
+                type: "primary",
+                iconName: "send",
+                onClick: openSaveAndDeployDialog,
+                children: "Save and Deploy",
+              }}
+            />
+          </>
+        )}
+      </Flex>
+    ),
+    [openSequenceDiagram, openExportDialog, openSaveAndDeployDialog],
+  );
+  useRegisterChainHeaderActions(headerActions, [chainId]);
 
   useEffect(() => {
     if (!isPageLoaded && !isLoading && !isLibraryLoading && nodes?.length) {
@@ -403,7 +539,7 @@ const ChainGraphInner: React.FC = () => {
 
     const updateTheme = () => {
       const theme = readTheme();
-      if (!theme || typeof theme !== "string") return;
+      if (!theme) return;
       if (currentThemeRef.current === theme) {
         if (document.body.dataset.theme !== theme) {
           document.body.dataset.theme = theme;
@@ -454,6 +590,12 @@ const ChainGraphInner: React.FC = () => {
 
   const getMinimapNodeColor = useCallback(
     (node: Node<ChainGraphNodeData>) => {
+      if (node.type === "swimlane") {
+        return getSwimlaneBorderColor(
+          (node.data.properties as Record<string, unknown>)["color"] as string,
+        );
+      }
+
       if (node.type === "container") {
         return getCssVariableValue("--container-header-background", "#fff9e6");
       }
@@ -492,112 +634,131 @@ const ChainGraphInner: React.FC = () => {
     [currentTheme, getCssVariableValue],
   );
 
-  const handleDelete = useCallback(
-    async (changes: OnDeleteEvent) => {
-      if (
-        changes.nodes.length > 0 &&
-        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[]))
-      ) {
-        Modal.confirm({
-          title: "Delete Container",
-          content:
-            "This container element is not empty. Are you sure you want to delete it? All its content will be also deleted.",
-          onOk: () => void onDelete(changes),
-        });
-      } else {
-        void onDelete(changes);
-      }
-    },
-    [onDelete],
-  );
-
   return (
     <Flex className={styles["graph-wrapper"]}>
-      <ElementsLibrarySidebar />
+      <Require permissions={{ chain: ["update"] }}>
+        {leftPanel && (
+          <>
+            <ElementsLibrarySidebar width={leftPanelWidth} />
+            <PanelResizeHandle
+              direction="left"
+              onResize={(delta) =>
+                setLeftPanelWidth((w) =>
+                  clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
+                )
+              }
+            />
+          </>
+        )}
+      </Require>
       <div className="react-flow-container" ref={reactFlowWrapper}>
         <ElkDirectionContextProvider
           elkDirectionControl={{
             direction,
             toggleDirection,
+            leftPanel,
+            toggleLeftPanel,
             rightPanel,
             toggleRightPanel,
           }}
         >
           <ElementFocusContext.Provider value={fitViewToElementIdRef}>
-            <ReactFlow
-            nodes={nodes}
-            nodeTypes={nodeTypes}
-            defaultEdgeOptions={{ zIndex: 1001 }}
-            edges={renderEdges}
-            onNodeDragStart={onNodeDragStart}
-            onNodeDrag={onNodeDrag}
-            onNodeDragStop={(event, draggedNode) =>
-              void onNodeDragStop(event, draggedNode)
-            }
-            onNodesChange={(changes) => void onNodesChange(changes)}
-            onEdgesChange={(changes) => void onEdgesChange(changes)}
-            onConnect={(connection) => void onConnect(connection)}
-            onDelete={(changes) => {
-              void handleDelete(changes);
-            }}
-            onDrop={(event) => void onDrop(event)}
-            onDragOver={onDragOver}
-            onNodeDoubleClick={onNodeDoubleClick}
-            zoomOnDoubleClick={false}
-            deleteKeyCode={["Backspace", "Delete"]}
-            proOptions={{ hideAttribution: true }}
-            onContextMenu={onContextMenu}
-            onNodeContextMenu={onNodeContextMenu}
-            onPaneClick={closeMenu}
-            fitView
-          >
-            <ElementFocus />
-            <Background variant={BackgroundVariant.Dots} />
-            <MiniMap
-              zoomable
-              pannable
-              position="top-right"
-              nodeColor={getMinimapNodeColor}
-              nodeStrokeColor={getMinimapNodeStrokeColor}
-              nodeStrokeWidth={2}
-            />
-            <CustomControls />
-            {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
-          </ReactFlow>
-          {rightPanel && <PageWithRightPanel />}
-        </ElementFocusContext.Provider>
+            <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <ReactFlow
+                  nodes={
+                    readOnly
+                      ? nodes.map((node) => ({
+                          ...node,
+                          draggable: false,
+                          connectable: false,
+                        }))
+                      : nodes
+                  }
+                  nodeTypes={nodeTypes}
+                  defaultEdgeOptions={{ zIndex: 1001 }}
+                  edges={renderEdges}
+                  onNodeDragStart={readOnly ? undefined : onNodeDragStart}
+                  onNodeDrag={readOnly ? undefined : onNodeDrag}
+                  onNodeDragStop={
+                    readOnly
+                      ? undefined
+                      : (event, draggedNode) =>
+                          void onNodeDragStop(event, draggedNode)
+                  }
+                  onNodesChange={readOnly ? undefined : onNodesChange}
+                  onEdgesChange={
+                    readOnly ? undefined : (changes) => onEdgesChange(changes)
+                  }
+                  onConnect={
+                    readOnly
+                      ? undefined
+                      : (connection) => void onConnect(connection)
+                  }
+                  onDelete={
+                    readOnly
+                      ? undefined
+                      : (changes) => {
+                          void handleDelete(changes);
+                        }
+                  }
+                  onDrop={readOnly ? undefined : (event) => void onDrop(event)}
+                  onDragOver={readOnly ? undefined : onDragOver}
+                  onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+                  zoomOnDoubleClick={false}
+                  deleteKeyCode={deleteKeyCode}
+                  proOptions={{ hideAttribution: true }}
+                  onContextMenu={readOnly ? undefined : onContextMenu}
+                  onNodeContextMenu={readOnly ? undefined : onNodeContextMenu}
+                  onPaneClick={closeMenu}
+                  fitView
+                >
+                  <ElementFocus />
+                  <Background variant={BackgroundVariant.Dots} />
+                  <MiniMap
+                    zoomable
+                    pannable
+                    position="top-right"
+                    nodeColor={getMinimapNodeColor}
+                    nodeStrokeColor={getMinimapNodeStrokeColor}
+                    nodeStrokeWidth={2}
+                  />
+                  <CustomControls
+                    showLeftPanelToggle={!readOnly}
+                    onExpandAllContainers={expandAllContainers}
+                    onCollapseAllContainers={collapseAllContainers}
+                  />
+                  {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
+                </ReactFlow>
+              </div>
+              {rightPanel && (
+                <>
+                  <PanelResizeHandle
+                    direction="right"
+                    onResize={(delta) =>
+                      setRightPanelWidth((w) =>
+                        clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
+                      )
+                    }
+                  />
+                  <div
+                    style={{
+                      width: rightPanelWidth,
+                      minWidth: MIN_PANEL_WIDTH,
+                      flexShrink: 0,
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <PageWithRightPanel width={rightPanelWidth} />
+                  </div>
+                </>
+              )}
+            </div>
+          </ElementFocusContext.Provider>
         </ElkDirectionContextProvider>
       </div>
-      <FloatButtonGroup trigger="hover" icon={<OverridableIcon name="more" />}>
-        <FloatButton
-          icon={<>⭾</>}
-          tooltip={{
-            title: "Show sequence diagram",
-            placement: "left",
-          }}
-          onClick={openSequenceDiagram}
-        />
-        {!isVsCode && (
-          <>
-            <FloatButton
-              icon={<OverridableIcon name="send" />}
-              tooltip={{
-                title: "Save and deploy",
-                placement: "left",
-              }}
-              onClick={openSaveAndDeployDialog}
-            />
-            <FloatButton
-              icon={<OverridableIcon name="cloudDownload" />}
-              tooltip={{
-                title: "Export chain",
-                placement: "left",
-              }}
-              onClick={openExportDialog}
-            />
-          </>
-        )}
-      </FloatButtonGroup>
     </Flex>
   );
 };

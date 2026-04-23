@@ -67,6 +67,10 @@ import type {
   DiagnosticValidation,
   BulkDeploymentRequest,
   BulkDeploymentResult,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
   ApiResponse,
   ImportVariablesResult,
   VariableImportPreview,
@@ -79,6 +83,13 @@ import type {
   CustomResourceBuildRequest,
   MicroDomainDeployRequest,
   BulkMicroDomainDeployResult,
+  DiscoveryResponse,
+  GeneralImportInstructions,
+  ImportInstruction,
+  ImportInstructionRequest,
+  ImportInstructionResult,
+  DeleteImportInstructionsRequest,
+  ChainElementCodeResponse,
 } from "./apiTypes.ts";
 import { RestApi } from "./rest/restApi.ts";
 import { isVsCode, VSCodeExtensionApi } from "./rest/vscodeExtensionApi.ts";
@@ -465,6 +476,12 @@ export interface Api {
 
   ungroupElements(chainId: string, groupId: string): Promise<Element[]>;
 
+  cloneElements(
+    chainId: string,
+    ids: string[],
+    containerId?: string,
+  ): Promise<Element[]>;
+
   getExchanges(limit: number): Promise<LiveExchange[]>;
 
   getAndFilterExchanges(
@@ -488,6 +505,18 @@ export interface Api {
   runValidations(ids: string[]): Promise<void>;
 
   bulkDeploy(request: BulkDeploymentRequest): Promise<BulkDeploymentResult[]>;
+
+  createMaasKafkaEntity(request: CreateMaasKafkaRequest): Promise<void>;
+
+  createMaasRabbitMQEntity(request: CreateMaasRabbitMQRequest): Promise<void>;
+
+  getMaasKafkaDeclarativeFile(
+    request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File>;
+
+  getMaasRabbitMQDeclarativeFile(
+    request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File>;
 
   // Admin Tools: Variables Management
   getCommonVariables(): Promise<ApiResponse<Variable[]>>;
@@ -546,6 +575,33 @@ export interface Api {
   bulkDeployChainsAccessControl(
     searchRequest: AccessControlBulkDeployRequest[],
   ): Promise<AccessControlResponse>;
+
+  runServiceDiscovery(): Promise<unknown>;
+
+  isAutodiscoveryInProgress(): Promise<number>;
+
+  getAutodiscoveryResult(): Promise<DiscoveryResponse>;
+
+  // Admin Tools: Import Instructions
+  getImportInstructions(): Promise<GeneralImportInstructions>;
+
+  addImportInstruction(
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction>;
+
+  updateImportInstruction(
+    request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction>;
+
+  deleteImportInstructions(
+    payload: DeleteImportInstructionsRequest,
+  ): Promise<void>;
+
+  uploadImportInstructions(file: File): Promise<ImportInstructionResult[]>;
+
+  exportImportInstructions(): Promise<File>;
+
+  getElementsAsCode(chainId: string): Promise<ChainElementCodeResponse>;
 
   deployToMicroDomain(
     request: BulkMicroDomainDeployResult,

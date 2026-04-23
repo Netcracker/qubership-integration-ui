@@ -39,7 +39,7 @@
 
 .actions {
   display: flex;
-  gap: 12px;
+  gap: 4px;
 }
 
 .actions .ant-btn {
@@ -66,6 +66,15 @@
   background-color: var(--vscode-errorForeground, #ff7875);
   border-color: var(--vscode-errorForeground, #ff7875);
   transform: translateY(-1px);
+}
+
+.iconInline {
+  margin-right: 8px;
+}
+
+.searchField {
+  width: 500px;
+  margin-left: auto;
 }
 
 .table-wrapper {

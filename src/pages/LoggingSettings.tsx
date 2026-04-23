@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Form, Select, SelectProps, Spin } from "antd";
+import { Form, Select, SelectProps, Spin } from "antd";
 import { useParams } from "react-router";
 import { useForm } from "antd/lib/form/Form";
 import Checkbox from "antd/lib/checkbox";
@@ -14,8 +14,14 @@ import { capitalize } from "../misc/format-utils.ts";
 
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
+import { pickLoggingProperties } from "../misc/logging-utils.ts";
 import styles from "./Chain.module.css";
 import { LoggingSettingsSourceTag } from "../components/logging/LoggingSettingsSourceTag.tsx";
+import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
+import { ApplyFormButton } from "../components/ApplyFormButton.tsx";
+import { hasPermissions } from "../permissions/funcs.ts";
+import { usePermissions } from "../permissions/usePermissions.tsx";
+import { Require } from "../permissions/Require.tsx";
 
 type LogSettingsFormState = ChainLoggingProperties & { custom: boolean };
 
@@ -28,6 +34,12 @@ export const LoggingSettings: React.FC = () => {
   const [isCustom, setIsCustom] = useState(false);
   const [form] = useForm();
   const notificationService = useNotificationService();
+  const permissions = usePermissions();
+  const [disabled, setDisabled] = useState<boolean>(false);
+
+  useEffect(() => {
+    setDisabled(!hasPermissions(permissions, { loggingSettings: ["update"] }));
+  }, [permissions]);
 
   const getLoggingSettings =
     useCallback(async (): Promise<ChainLoggingSettings | null> => {
@@ -54,11 +66,8 @@ export const LoggingSettings: React.FC = () => {
 
   useEffect(() => {
     if (loggingSettings) {
-      const properties: ChainLoggingProperties =
-        loggingSettings?.custom ??
-        loggingSettings?.consulDefault ??
-        loggingSettings?.fallbackDefault;
-      const custom = !!loggingSettings?.custom;
+      const properties = pickLoggingProperties(loggingSettings);
+      const custom = !!loggingSettings.custom;
       setIsCustom(custom);
       form.setFieldsValue({ custom, ...properties });
     }
@@ -139,9 +148,9 @@ export const LoggingSettings: React.FC = () => {
     });
 
   const logLoggingLevelOptions: SelectProps<LogLoggingLevel>["options"] =
-    Object.values(LogLoggingLevel).map((value) => ({
+    Object.entries(LogLoggingLevel).map(([key, value]) => ({
       value: value,
-      label: capitalize(value),
+      label: capitalize(key),
     }));
 
   const logPayloadOptions: SelectProps<LogPayload>["options"] = Object.values(
@@ -151,12 +160,19 @@ export const LoggingSettings: React.FC = () => {
     label: capitalize(value),
   }));
 
+  useRegisterChainHeaderActions(
+    <Require permissions={{ loggingSettings: ["update"] }}>
+      <ApplyFormButton
+        formId="logging-settings-form"
+        loading={isLoggingSettingsLoading}
+      />
+    </Require>,
+    [isLoggingSettingsLoading],
+  );
+
   return (
-    <div className={styles.pageContainer as string}>
-      <div
-        className={styles.formContent as string}
-        style={{ position: "relative" }}
-      >
+    <div className={styles.pageContainer}>
+      <div className={styles.formContent} style={{ position: "relative" }}>
         {isLoggingSettingsLoading ? (
           <Spin
             size="large"
@@ -168,7 +184,8 @@ export const LoggingSettings: React.FC = () => {
           />
         ) : null}
         <Form<LogSettingsFormState>
-          disabled={isLoggingSettingsLoading}
+          id="logging-settings-form"
+          disabled={isLoggingSettingsLoading || disabled}
           labelWrap
           form={form}
           {...formItemLayout}
@@ -185,7 +202,7 @@ export const LoggingSettings: React.FC = () => {
             valuePropName="checked"
             {...formItemStyle}
           >
-            <Checkbox>Override default properties</Checkbox>
+            <Checkbox disabled={disabled}>Override default properties</Checkbox>
           </Form.Item>
           <Form.Item
             label="Logging settings source"
@@ -222,7 +239,9 @@ export const LoggingSettings: React.FC = () => {
             valuePropName="checked"
             {...formItemStyle}
           >
-            <Checkbox disabled={!isCustom}>Produce DPT Events</Checkbox>
+            <Checkbox disabled={!isCustom || disabled}>
+              Produce DPT Events
+            </Checkbox>
           </Form.Item>
           <Form.Item
             label={null}
@@ -230,16 +249,9 @@ export const LoggingSettings: React.FC = () => {
             valuePropName="checked"
             {...formItemStyle}
           >
-            <Checkbox disabled={!isCustom}>Enable logging masking</Checkbox>
-          </Form.Item>
-          <Form.Item label={null} {...formItemStyle}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isLoggingSettingsLoading}
-            >
-              Apply
-            </Button>
+            <Checkbox disabled={!isCustom || disabled}>
+              Enable logging masking
+            </Checkbox>
           </Form.Item>
         </Form>
       </div>

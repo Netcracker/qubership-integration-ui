@@ -1,7 +1,13 @@
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import { Flex, Switch, Table } from "antd";
 import { TableProps } from "antd/lib/table";
 import { PLACEHOLDER } from "../../misc/format-utils.ts";
+import {
+  attachResizeToColumns,
+  sumScrollXForColumns,
+  useTableColumnResize,
+} from "../table/useTableColumnResize.tsx";
+import styles from "./SessionElementKVChanges.module.css";
 
 type ValueRenderer<ValueType = unknown> = (value: ValueType) => ReactNode;
 
@@ -71,6 +77,81 @@ function getCellContent<ValueType = unknown>(
     : PLACEHOLDER;
 }
 
+function isItemModified<ValueType>(
+  item: KVChangesTableItem<ValueType>,
+  comparator?: Comparator<ValueType>,
+): boolean {
+  if (comparator) {
+    return comparator(item.before, item.after) !== 0;
+  }
+  return item.before !== item.after;
+}
+
+/** Compare rendered type strings (uses PLACEHOLDER for missing side). */
+function typeDisplayString<ValueType>(
+  value: ValueType | undefined,
+  typeRenderer: ValueRenderer<ValueType> | undefined,
+): string {
+  if (value === undefined) {
+    return PLACEHOLDER;
+  }
+  if (typeRenderer) {
+    const rendered = typeRenderer(value);
+    if (
+      typeof rendered === "string" ||
+      typeof rendered === "number" ||
+      typeof rendered === "boolean"
+    ) {
+      return String(rendered);
+    }
+  }
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
+  return PLACEHOLDER;
+}
+
+function sessionElementTypesDiffer<ValueType>(
+  item: KVChangesTableItem<ValueType>,
+  typeRenderer: ValueRenderer<ValueType> | undefined,
+): boolean {
+  return (
+    typeDisplayString(item.before, typeRenderer) !==
+    typeDisplayString(item.after, typeRenderer)
+  );
+}
+
+function renderTypeColumnCell<ValueType>(
+  item: KVChangesTableItem<ValueType>,
+  side: "before" | "after",
+  typeRenderer: ValueRenderer<ValueType> | undefined,
+): ReactNode {
+  const value = side === "before" ? item.before : item.after;
+  const inner = getCellContent(value, typeRenderer);
+  if (!sessionElementTypesDiffer(item, typeRenderer)) {
+    return inner;
+  }
+  return <span className={styles.valueChanged}>{inner}</span>;
+}
+
+function renderValueColumnCell<ValueType>(
+  item: KVChangesTableItem<ValueType>,
+  side: "before" | "after",
+  valueRenderer: ValueRenderer<ValueType> | undefined,
+  comparator: Comparator<ValueType> | undefined,
+): ReactNode {
+  const value = side === "before" ? item.before : item.after;
+  const inner = getCellContent(value, valueRenderer);
+  if (!isItemModified(item, comparator)) {
+    return inner;
+  }
+  return <span className={styles.valueChanged}>{inner}</span>;
+}
+
 export const SessionElementKVChanges = <ValueType = unknown,>({
   before,
   after,
@@ -89,64 +170,101 @@ export const SessionElementKVChanges = <ValueType = unknown,>({
     setItems(buildItems(before, after, onlyModified, comparator));
   }, [before, after, comparator, onlyModified]);
 
-  const columns: TableProps<KVChangesTableItem<ValueType>>["columns"] = [
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      onCell: (item) => ({
-        onClick: () => onColumnClick?.(item, "name"),
-      }),
-    },
-    ...(addTypeColumns
-      ? [
-          {
-            title: "Type Before",
-            key: "typeBefore",
-            ellipsis: true,
-            onCell: (item: KVChangesTableItem<ValueType>) => ({
-              onClick: () => onColumnClick?.(item, "typeBefore"),
-            }),
-            render: (_: unknown, item: KVChangesTableItem<ValueType>) =>
-              getCellContent(item.before, typeRenderer),
-          },
-        ]
-      : []),
-    {
-      title: "Value Before",
-      dataIndex: "before",
-      key: "before",
-      ellipsis: true,
-      onCell: (item) => ({
-        onClick: () => onColumnClick?.(item, "valueBefore"),
-      }),
-      render: (_, item) => getCellContent(item.before, valueRenderer),
-    },
-    ...(addTypeColumns
-      ? [
-          {
-            title: "Type After",
-            key: "typeAfter",
-            ellipsis: true,
-            onCell: (item: KVChangesTableItem<ValueType>) => ({
-              onClick: () => onColumnClick?.(item, "typeAfter"),
-            }),
-            render: (_: unknown, item: KVChangesTableItem<ValueType>) =>
-              getCellContent(item.after, typeRenderer),
-          },
-        ]
-      : []),
-    {
-      title: "Value After",
-      dataIndex: "after",
-      key: "after",
-      ellipsis: true,
-      onCell: (item) => ({
-        onClick: () => onColumnClick?.(item, "valueAfter"),
-      }),
-      render: (_, item) => getCellContent(item.after, valueRenderer),
-    },
-  ];
+  const columns: TableProps<KVChangesTableItem<ValueType>>["columns"] = useMemo(
+    () => [
+      {
+        title: "Name",
+        dataIndex: "name",
+        key: "name",
+        onCell: (item) => ({
+          onClick: () => onColumnClick?.(item, "name"),
+        }),
+      },
+      ...(addTypeColumns
+        ? [
+            {
+              title: "Type Before",
+              key: "typeBefore",
+              ellipsis: true,
+              onCell: (item: KVChangesTableItem<ValueType>) => ({
+                onClick: () => onColumnClick?.(item, "typeBefore"),
+              }),
+              render: (_: unknown, item: KVChangesTableItem<ValueType>) =>
+                renderTypeColumnCell(item, "before", typeRenderer),
+            },
+          ]
+        : []),
+      {
+        title: "Value Before",
+        dataIndex: "before",
+        key: "before",
+        ellipsis: true,
+        onCell: (item) => ({
+          onClick: () => onColumnClick?.(item, "valueBefore"),
+        }),
+        render: (_, item) =>
+          renderValueColumnCell(item, "before", valueRenderer, comparator),
+      },
+      ...(addTypeColumns
+        ? [
+            {
+              title: "Type After",
+              key: "typeAfter",
+              ellipsis: true,
+              onCell: (item: KVChangesTableItem<ValueType>) => ({
+                onClick: () => onColumnClick?.(item, "typeAfter"),
+              }),
+              render: (_: unknown, item: KVChangesTableItem<ValueType>) =>
+                renderTypeColumnCell(item, "after", typeRenderer),
+            },
+          ]
+        : []),
+      {
+        title: "Value After",
+        dataIndex: "after",
+        key: "after",
+        ellipsis: true,
+        onCell: (item) => ({
+          onClick: () => onColumnClick?.(item, "valueAfter"),
+        }),
+        render: (_, item) =>
+          renderValueColumnCell(item, "after", valueRenderer, comparator),
+      },
+    ],
+    [addTypeColumns, comparator, onColumnClick, typeRenderer, valueRenderer],
+  );
+
+  const kvChangesColumnResize = useTableColumnResize({
+    name: 180,
+    typeBefore: 140,
+    before: 220,
+    typeAfter: 140,
+    after: 220,
+  });
+
+  const columnsWithResize = useMemo(
+    () =>
+      attachResizeToColumns(
+        columns,
+        kvChangesColumnResize.columnWidths,
+        kvChangesColumnResize.createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [
+      columns,
+      kvChangesColumnResize.columnWidths,
+      kvChangesColumnResize.createResizeHandlers,
+    ],
+  );
+
+  const scrollX = useMemo(
+    () =>
+      sumScrollXForColumns(
+        columnsWithResize,
+        kvChangesColumnResize.columnWidths,
+      ),
+    [columnsWithResize, kvChangesColumnResize.columnWidths],
+  );
 
   return (
     <Flex {...rest} vertical gap={16}>
@@ -161,10 +279,11 @@ export const SessionElementKVChanges = <ValueType = unknown,>({
         size="small"
         pagination={false}
         rowKey="name"
-        columns={columns}
+        columns={columnsWithResize}
         dataSource={items}
         className="flex-table"
-        scroll={{ y: "" }}
+        scroll={items.length > 0 ? { x: scrollX, y: "" } : { x: scrollX }}
+        components={kvChangesColumnResize.resizableHeaderComponents}
       ></Table>
     </Flex>
   );

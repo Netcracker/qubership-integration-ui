@@ -1,22 +1,22 @@
 import "@xyflow/react/dist/style.css";
-import {
-  Breadcrumb,
-  Col,
-  Flex,
-  Radio,
-  RadioChangeEvent,
-  Row,
-  Result,
-  Button,
-} from "antd";
+import { Breadcrumb, Col, Flex, Row, Result, Button, Tabs, Tag } from "antd";
+import { ChainHeaderActionsContextProvider } from "./ChainHeaderActionsContext.tsx";
 import { Outlet, useLocation, useNavigate, useParams } from "react-router";
 import { useChain } from "../hooks/useChain.tsx";
 import styles from "./Chain.module.css";
-import { createContext, useCallback, useEffect, useState } from "react";
+import {
+  type FC,
+  type ReactNode,
+  createContext,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Chain } from "../api/apiTypes.ts";
 import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
+import { useChainFullscreenContext } from "./ChainFullscreenContext.tsx";
 
 export type ChainContextData = {
   chain: Chain | undefined;
@@ -31,6 +31,7 @@ export const ChainContext = createContext<ChainContextData | undefined>(
 const ChainPage = () => {
   const { chainId, sessionId } = useParams();
   const [pathItems, setPathItems] = useState<BreadcrumbProps["items"]>([]);
+  const [headerActions, setHeaderActions] = useState<ReactNode>(null);
 
   const location = useLocation();
   const { pathname } = location;
@@ -50,28 +51,83 @@ const ChainPage = () => {
   }, [chainId, getChain, setChain]);
 
   useEffect(() => {
+    const link = (href: string, content: React.ReactNode) => (
+      <a
+        href={href}
+        onClick={(e) => {
+          e.preventDefault();
+          void navigate(href);
+        }}
+      >
+        {content}
+      </a>
+    );
+
     const navigationItems = Object.entries(chain?.navigationPath ?? [])
       .reverse()
       .map(([key, value], index, arr) => ({
-        title: value,
-        href: index < arr.length - 1 ? `/chains?folder=${key}` : undefined,
+        title:
+          index < arr.length - 1 ? (
+            <span className={styles.breadcrumbItem as string}>
+              {link(`/chains?folder=${key}`, value)}
+            </span>
+          ) : (
+            <span className={styles.breadcrumbItem as string}>{value}</span>
+          ),
       }));
 
     setPathItems([
-      { href: "/chains", title: <OverridableIcon name="home" /> },
+      {
+        title: (
+          <span
+            className={`${styles.breadcrumbItem as string} ${styles.breadcrumbHome as string}`}
+          >
+            {link("/chains", <OverridableIcon name="home" />)}
+          </span>
+        ),
+      },
       ...navigationItems,
       ...(sessionId
         ? [
-            { title: "Sessions", href: `/chains/${chainId}/sessions` },
-            { title: sessionId },
+            {
+              title: (
+                <span className={styles.breadcrumbItem as string}>
+                  {link(`/chains/${chainId}/sessions`, "Sessions")}
+                </span>
+              ),
+            },
+            {
+              title: (
+                <span className={styles.breadcrumbItem as string}>
+                  {sessionId}
+                </span>
+              ),
+            },
           ]
         : []),
     ]);
-  }, [chain, chainId, sessionId]);
+  }, [chain, chainId, sessionId, navigate]);
 
-  const handlePageChange = (event: RadioChangeEvent) => {
-    void navigate(`${event.target.value}`); // Update the URL with the selected tab key
+  const handleTabChange = (key: string) => {
+    void navigate(`/chains/${chainId}/${key}`);
   };
+
+  const tabItems = [
+    { key: "graph", label: "Graph" },
+    ...(isVsCode
+      ? []
+      : [
+          { key: "snapshots", label: "Snapshots" },
+          { key: "deployments", label: "Deployments" },
+          { key: "sessions", label: "Sessions" },
+          {
+            key: "logging-settings",
+            label: "Logging",
+          },
+        ]),
+    { key: "masking", label: "Masking" },
+    { key: "properties", label: "Properties" },
+  ];
 
   if (isLoading && !chain) {
     return (
@@ -113,45 +169,106 @@ const ChainPage = () => {
   }
 
   return (
-    <Flex className={styles.stretched} gap={"middle"} vertical>
-      <Row justify="space-between" align="middle">
-        <Col>{!isVsCode && <Breadcrumb items={pathItems} />}</Col>
-        <Col>
-          <Radio.Group
-            value={activeKey}
-            onChange={handlePageChange}
-            defaultValue="graph"
-            optionType="button"
-            buttonStyle="solid"
-          >
-            <Radio.Button value="graph">Graph</Radio.Button>
-            {!isVsCode && (
-              <>
-                <Radio.Button value="snapshots">Snapshots</Radio.Button>
-                <Radio.Button value="deployments">Deployments</Radio.Button>
-                <Radio.Button value="sessions">Sessions</Radio.Button>
-                <Radio.Button value="logging-settings">Logging</Radio.Button>
-              </>
-            )}
-            <Radio.Button value="masking">Masking</Radio.Button>
-            <Radio.Button value="properties">Properties</Radio.Button>
-          </Radio.Group>
-        </Col>
-      </Row>
-      <Row className={styles.stretched}>
-        <Col span={24} className={styles.stretched}>
-          <ChainContext.Provider
-            value={{
-              chain,
-              update: async (changes) => updateChain(changes).then(setChain),
-              refresh: refreshChain,
-            }}
-          >
+    <ChainHeaderActionsContextProvider value={{ setActions: setHeaderActions }}>
+      <ChainContext.Provider
+        value={{
+          chain,
+          update: async (changes) => updateChain(changes).then(setChain),
+          refresh: refreshChain,
+        }}
+      >
+        <Flex className={styles.stretched} gap={4} vertical>
+          <ChainPageHeader
+            activeKey={activeKey}
+            tabItems={tabItems}
+            headerActions={headerActions}
+            pathItems={pathItems}
+            onTabChange={handleTabChange}
+            showUnsavedChanges={!isVsCode && chain.unsavedChanges}
+          />
+          <Flex className={styles.stretched}>
             <Outlet />
-          </ChainContext.Provider>
+          </Flex>
+        </Flex>
+      </ChainContext.Provider>
+    </ChainHeaderActionsContextProvider>
+  );
+};
+
+type ChainPageHeaderProps = {
+  activeKey: string;
+  tabItems: { key: string; label: string }[];
+  headerActions: ReactNode;
+  pathItems: BreadcrumbProps["items"];
+  onTabChange: (key: string) => void;
+  showUnsavedChanges: boolean;
+};
+
+const ChainPageHeader: FC<ChainPageHeaderProps> = ({
+  activeKey,
+  tabItems,
+  headerActions,
+  pathItems,
+  onTabChange,
+  showUnsavedChanges,
+}) => {
+  const fullscreenCtx = useChainFullscreenContext();
+  if (fullscreenCtx?.fullscreen) return null;
+
+  if (isVsCode) {
+    return (
+      <Tabs
+        className={styles.chainPageTabs as string}
+        activeKey={activeKey}
+        onChange={onTabChange}
+        items={tabItems}
+        style={{ marginBottom: 0 }}
+        tabBarExtraContent={
+          <div className={styles.chainTabBarExtra as string}>
+            {headerActions}
+          </div>
+        }
+      />
+    );
+  }
+
+  const tabsBarExtra = (
+    <div className={styles.chainTabBarExtra as string}>{headerActions}</div>
+  );
+
+  return (
+    <div className={styles.chainPageHeader as string}>
+      <Row
+        className={styles.chainPageHeaderRow as string}
+        justify="space-between"
+        align="middle"
+      >
+        <Col flex="auto">
+          <Breadcrumb
+            items={pathItems}
+            className={styles.breadcrumb}
+          />
         </Col>
+        {showUnsavedChanges ? (
+          <Col flex="none">
+            <Tag
+              color="warning"
+              className={styles.unsavedChangesTag as string}
+              data-testid="chain-unsaved-changes"
+            >
+              Unsaved changes
+            </Tag>
+          </Col>
+        ) : null}
       </Row>
-    </Flex>
+      <Tabs
+        className={styles.chainPageTabs as string}
+        activeKey={activeKey}
+        onChange={onTabChange}
+        items={tabItems}
+        tabBarExtraContent={tabsBarExtra}
+      />
+    </div>
   );
 };
 

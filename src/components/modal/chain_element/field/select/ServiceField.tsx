@@ -6,7 +6,7 @@ import {
   IntegrationSystem,
   IntegrationSystemType,
 } from "../../../../../api/apiTypes.ts";
-import { FormContext } from "../../ChainElementModification.tsx";
+import { FormContext } from "../../ChainElementModificationContext.ts";
 import { JSONSchema7 } from "json-schema";
 import { useNotificationService } from "../../../../../hooks/useNotificationService.tsx";
 import { SelectTag } from "./SelectTag.tsx";
@@ -104,15 +104,19 @@ const ServiceField: React.FC<FieldProps<string, JSONSchema7, FormContext>> = ({
         integrationOperationId: "",
         integrationOperationPath: "",
         integrationOperationMethod: "",
-        integrationOperationPathParameters: {},
-        integrationOperationQueryParameters: {},
-        integrationAdditionalParameters: {},
-        integrationOperationAsyncProperties: {},
-        integrationGqlQuery: "",
-        integrationGqlOperationName: "",
-        integrationGqlVariablesJSON: "",
-        integrationGqlQueryHeader: "",
-        integrationGqlVariablesHeader: "",
+        integrationOperationPathParameters: undefined,
+        integrationOperationQueryParameters: undefined,
+        integrationAdditionalParameters: undefined,
+        integrationOperationAsyncProperties: undefined,
+        integrationGqlQuery: undefined,
+        integrationGqlOperationName: undefined,
+        integrationGqlVariablesJSON: undefined,
+        integrationGqlQueryHeader: undefined,
+        integrationGqlVariablesHeader: undefined,
+        bodyMimeType: undefined,
+        bodyFormData: undefined,
+        synchronousGrpcCall: undefined,
+        after: undefined,
       });
     },
     [registry, servicesMap],

@@ -7,6 +7,7 @@ import { useDeployments } from "../../hooks/useDeployments.tsx";
 type DeploymentsCumulativeStateProps = {
   chainId: string;
   isNotificationEnabled?: boolean;
+  deployments?: Deployment[];
 };
 
 function getDeploymentsStatus(deployments: Deployment[]): string {
@@ -15,6 +16,10 @@ function getDeploymentsStatus(deployments: Deployment[]): string {
       ?.flatMap((deployment) => Object.values(deployment.runtime?.states ?? {}))
       .map((runtimeState) => runtimeState.status.toUpperCase()),
   );
+  return getCumulativeStatus(statuses);
+}
+
+export function getCumulativeStatus(statuses: Set<string>): string {
   if (statuses.size === 0) {
     return "DRAFT";
   } else if (statuses.size === 1) {
@@ -48,14 +53,15 @@ function getDeploymentBadgeStatus(status: string): BadgeProps["status"] {
 
 export const DeploymentsCumulativeState: React.FC<
   DeploymentsCumulativeStateProps
-> = ({ chainId, isNotificationEnabled = true }) => {
+> = ({ chainId, isNotificationEnabled = true, deployments: override }) => {
   const [status, setStatus] = useState<string>("DRAFT");
   const [badgeStatus, setBadgeStatus] =
     useState<BadgeProps["status"]>("default");
-  const { isLoading, deployments } = useDeployments(
-    chainId,
-    isNotificationEnabled,
-  );
+  const { isLoading: hookLoading, deployments: hookDeployments } =
+    useDeployments(override ? undefined : chainId, isNotificationEnabled);
+
+  const deployments = override ?? hookDeployments;
+  const isLoading = override ? false : hookLoading;
 
   useEffect(() => {
     setStatus(getDeploymentsStatus(deployments));

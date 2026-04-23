@@ -1,9 +1,16 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import { FieldProps, RJSFSchema } from "@rjsf/utils";
 import { Input, Button, Tag, Tooltip } from "antd";
 import styles from "./EnhancedPatternPropertiesField.module.css";
 import { OverridableIcon } from "../../../../icons/IconProvider.tsx";
-import { FormContext } from "../ChainElementModification";
+import { DescriptionTooltipIcon } from "../DescriptionTooltipFieldTemplate";
+import { FormContext } from "../ChainElementModificationContext";
 import { api } from "../../../../api/api";
 import { QueryParametersCheckbox } from "./QueryParametersCheckbox";
 import {
@@ -27,6 +34,7 @@ interface ParameterMetadata {
   description?: string;
   deprecated?: boolean;
   secured?: boolean;
+  pathMapped?: boolean;
 }
 
 interface EnhancedParameter extends ParameterMetadata {
@@ -82,6 +90,106 @@ function isSecuredParameter(name: string): boolean {
 function isDeprecatedParameter(name: string): boolean {
   return DEPRECATED_PARAMS.includes(name);
 }
+
+type ParamRowProps = {
+  param: EnhancedParameter;
+  displayedValue: string;
+  isDisabled: boolean;
+  onKeyChange: (oldKey: string, newKey: string) => void;
+  onValueChange: (key: string, value: string) => void;
+  onPathMappedValueChange: (key: string, value: string) => void;
+  onDelete: (key: string) => void;
+  onRestoreDefault: (key: string) => void;
+};
+
+const ParamRowImpl: React.FC<ParamRowProps> = ({
+  param,
+  displayedValue,
+  isDisabled,
+  onKeyChange,
+  onValueChange,
+  onPathMappedValueChange,
+  onDelete,
+  onRestoreDefault,
+}) => {
+  const hasValue =
+    displayedValue !== undefined && String(displayedValue).trim().length > 0;
+  const rowClass = param.required && !hasValue ? styles.requiredRow : "";
+
+  return (
+    <tr className={rowClass}>
+      <td className={styles.td}>
+        <div className={styles.nameCell}>
+          {param.canDelete && param.source === "custom" ? (
+            <Input
+              value={param.name}
+              onChange={(e) => onKeyChange(param.name, e.target.value)}
+              disabled={isDisabled}
+              placeholder="Name"
+            />
+          ) : (
+            <span className={styles.paramName}>{param.name}</span>
+          )}
+          {(param.isOverridden || param.deprecated) && (
+            <div className={styles.labels}>
+              {param.isOverridden && (
+                <Tag className={styles.overriddenTag}>Overridden</Tag>
+              )}
+              {param.deprecated && (
+                <Tag className={styles.deprecatedTag}>Deprecated</Tag>
+              )}
+            </div>
+          )}
+        </div>
+      </td>
+      <td className={styles.td}>
+        <Input
+          value={displayedValue}
+          onChange={(e) =>
+            param.pathMapped
+              ? onPathMappedValueChange(param.name, e.target.value)
+              : onValueChange(param.name, e.target.value)
+          }
+          disabled={isDisabled}
+          placeholder="Value"
+        />
+      </td>
+      <td className={styles.td}>
+        <div className={styles.actions}>
+          {param.isOverridden && !isDisabled && (
+            <Tooltip title="Restore default value">
+              <Button
+                size="small"
+                type="text"
+                icon={<OverridableIcon name="rollback" />}
+                onClick={() => onRestoreDefault(param.name)}
+                className={styles.restoreBtn}
+              />
+            </Tooltip>
+          )}
+          {param.canDelete && !isDisabled && (
+            <Button
+              size="small"
+              type="text"
+              icon={<OverridableIcon name="delete" />}
+              onClick={() => onDelete(param.name)}
+              className={styles.deleteBtn}
+            />
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+const ParamRow = React.memo(
+  ParamRowImpl,
+  (prev, next) =>
+    prev.param === next.param &&
+    prev.displayedValue === next.displayedValue &&
+    prev.isDisabled === next.isDisabled,
+);
+ParamRow.displayName = "ParamRow";
 
 function determineParamType(idSchema: string): ParamType {
   if (idSchema.includes("PathParameters")) return "path";
@@ -161,6 +269,7 @@ function parseAsyncAPIParameters(
       name: "topic",
       required: false,
       source: "specification",
+      pathMapped: true,
     });
     params.push({
       name: "groupId",
@@ -174,6 +283,7 @@ function parseAsyncAPIParameters(
       name: "exchange",
       required: false,
       source: "specification",
+      pathMapped: true,
     });
     params.push({
       name: "queues",
@@ -307,7 +417,10 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   const rowCount = Object.entries(formData).length;
   const [collapsed, setCollapsed] = useState(!(rowCount > 0));
 
-  const loadOperationSpecification = useCallback(async () => {
+  // operationSpecification is now published to FormContext centrally by
+  // SystemOperationField (via api.getOperationInfo). We just read it here and
+  // derive spec-driven parameter metadata. No network calls from this field.
+  const resolveSpecification = useCallback(() => {
     const operationId = formContext.integrationOperationId;
     const protocolType = normalizeProtocol(
       formContext.integrationOperationProtocolType as string,
@@ -321,33 +434,32 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       return;
     }
 
-    try {
-      const response = await api.getOperationInfo(operationId);
-      const specFragment = toOperationSpecFragment(
-        extractSpecification(response),
-      );
-      const params = parseParametersFromSpec(
-        specFragment,
-        paramType,
-        protocolType,
-        formContext?.elementType,
-      );
-      setSpecParameters(params);
-      setLoadedSpec(specFragment);
-      setLoadedSpecOperationId(operationId);
-      setAutoFilledOperationId(null);
-    } catch (error: unknown) {
-      const details = error instanceof Error ? error : new Error(String(error));
-      console.error("Failed to load operation specification:", details);
-      setSpecParameters([]);
-      setLoadedSpec(null);
-      setLoadedSpecOperationId(null);
-      setAutoFilledOperationId(null);
+    const specSource = formContext.operationSpecification;
+    // If schemas haven't arrived yet (SystemOperationField is still loading),
+    // keep previous state — the next render with populated context will
+    // re-run this effect and fill things in.
+    if (specSource === undefined) {
+      return;
     }
+
+    const specFragment = toOperationSpecFragment(
+      extractSpecification({ specification: specSource }),
+    );
+    const params = parseParametersFromSpec(
+      specFragment,
+      paramType,
+      protocolType,
+      formContext?.elementType,
+    );
+    setSpecParameters(params);
+    setLoadedSpec(specFragment);
+    setLoadedSpecOperationId(operationId);
+    setAutoFilledOperationId(null);
   }, [
     formContext.integrationOperationId,
     formContext.integrationOperationProtocolType,
     formContext.elementType,
+    formContext.operationSpecification,
     paramType,
   ]);
 
@@ -390,8 +502,8 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
   }, [formContext.integrationSystemId]);
 
   useEffect(() => {
-    void loadOperationSpecification();
-  }, [loadOperationSpecification]);
+    resolveSpecification();
+  }, [resolveSpecification]);
 
   useEffect(() => {
     void loadEnvironmentParameters();
@@ -406,11 +518,6 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     const isAsyncApiTrigger = elementType === "async-api-trigger";
 
     let updatedData: Record<string, string> | null = null;
-
-    if (isMaasEnvironment && formData.topic !== undefined) {
-      updatedData = { ...formData };
-      delete updatedData.topic;
-    }
 
     if (!isMaasEnvironment && formData["maas.classifier.name"] !== undefined) {
       updatedData = { ...(updatedData ?? formData) };
@@ -451,24 +558,25 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       formContext.integrationOperationProtocolType ?? "",
     );
     const updates: Record<string, string> = {};
+    let pathMappedUpdate: string | undefined;
 
     if (
       isKafkaProtocol(protocolType) &&
-      !formData["topic"] &&
+      !formContext.integrationOperationPath &&
       !isMaasEnvironment
     ) {
       const topicValue = loadedSpec.topic ?? loadedSpec.channel;
       if (topicValue) {
-        updates["topic"] = topicValue;
+        pathMappedUpdate = topicValue;
       }
     }
 
     if (
       isAmqpProtocol(protocolType) &&
       loadedSpec.exchange &&
-      !formData["exchange"]
+      !formContext.integrationOperationPath
     ) {
-      updates["exchange"] = loadedSpec.exchange;
+      pathMappedUpdate = loadedSpec.exchange;
     }
 
     if (isAmqpProtocol(protocolType) && !formData["queues"]) {
@@ -502,8 +610,14 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
       updates["groupId"] = loadedSpec.groupId;
     }
 
-    if (Object.keys(updates).length > 0) {
-      emitChange({ ...formData, ...updates });
+    const hasUpdates = Object.keys(updates).length > 0;
+    if (hasUpdates || pathMappedUpdate !== undefined) {
+      if (hasUpdates) {
+        emitChange({ ...formData, ...updates });
+      }
+      if (pathMappedUpdate !== undefined) {
+        updateContext?.({ integrationOperationPath: pathMappedUpdate });
+      }
       setAutoFilledOperationId(operationId);
     }
   }, [
@@ -511,6 +625,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     loadedSpecOperationId,
     formContext.integrationOperationProtocolType,
     formContext.integrationOperationId,
+    formContext.integrationOperationPath,
     formContext?.elementType,
     paramType,
     autoFilledOperationId,
@@ -518,6 +633,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     onChange,
     isMaasEnvironment,
     emitChange,
+    updateContext,
   ]);
 
   const elementType = formContext.elementType;
@@ -558,6 +674,18 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     specParameters
       .filter((p) => !p.required && !isHiddenParameter(p.name))
       .forEach((p) => {
+        if (p.pathMapped) {
+          const value = (formContext.integrationOperationPath as string) || "";
+          result.push({
+            ...p,
+            value,
+            isOverridden: false,
+            canDelete: false,
+          });
+          processed.add(p.name);
+          return;
+        }
+
         const hasFormValue = formData[p.name] !== undefined;
         const isAsyncOrAdditional =
           paramType === "async" || paramType === "additional";
@@ -620,6 +748,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     specParameters,
     envParameters,
     formData,
+    formContext.integrationOperationPath,
     paramType,
     isMaasEnvironment,
     isAsyncApiTrigger,
@@ -646,20 +775,31 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     );
   }
 
-  const handleAdd = () => {
-    const newKey = "";
-    const newData = { ...formData, [newKey]: "" };
-    emitChange(newData);
-  };
+  // Refs keep handlers stable across renders while always reading fresh state.
+  // Without this, debounced setTimeout closures would use stale formData and
+  // ParamRow's React.memo would be invalidated on every parent re-render.
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+  const envParametersRef = useRef(envParameters);
+  envParametersRef.current = envParameters;
+  const emitChangeRef = useRef(emitChange);
+  emitChangeRef.current = emitChange;
+  const updateContextRef = useRef(updateContext);
+  updateContextRef.current = updateContext;
 
-  const handleKeyChange = (oldKey: string, newKey: string) => {
+  const handleAdd = useCallback(() => {
+    const newKey = "";
+    emitChangeRef.current({ ...formDataRef.current, [newKey]: "" });
+  }, []);
+
+  const handleKeyChange = useCallback((oldKey: string, newKey: string) => {
     if (oldKey === newKey) return;
-    const updated = { ...formData };
+    const updated = { ...formDataRef.current };
     const value = updated[oldKey];
     delete updated[oldKey];
     updated[newKey] = value;
-    emitChange(updated);
-  };
+    emitChangeRef.current(updated);
+  }, []);
 
   const [localValues, setLocalValues] = useState<Record<string, string>>({});
   const debounceTimersRef = React.useRef<
@@ -673,7 +813,7 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     };
   }, []);
 
-  const handleValueChange = (key: string, value: string) => {
+  const handleValueChange = useCallback((key: string, value: string) => {
     setLocalValues((prev) => ({ ...prev, [key]: value }));
 
     if (debounceTimersRef.current[key]) {
@@ -681,25 +821,63 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
     }
 
     debounceTimersRef.current[key] = setTimeout(() => {
-      emitChange({ ...formData, [key]: value });
+      emitChangeRef.current({ ...formDataRef.current, [key]: value });
       setLocalValues((prev) => {
         const updated = { ...prev };
         delete updated[key];
         return updated;
       });
     }, 300);
-  };
+  }, []);
 
-  const handleDelete = (key: string) => {
-    const updated = { ...formData };
+  const lastSentPathRef = React.useRef<string>();
+
+  const handlePathMappedValueChange = useCallback(
+    (key: string, value: string) => {
+      setLocalValues((prev) => ({ ...prev, [key]: value }));
+
+      if (debounceTimersRef.current[key]) {
+        clearTimeout(debounceTimersRef.current[key]);
+      }
+
+      debounceTimersRef.current[key] = setTimeout(() => {
+        lastSentPathRef.current = value;
+        updateContextRef.current?.({ integrationOperationPath: value });
+      }, 300);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const currentPath = formContext.integrationOperationPath as string;
+    if (currentPath === lastSentPathRef.current) return;
+
+    setLocalValues((prev) => {
+      const pathMappedNames = specParameters
+        .filter((p) => p.pathMapped)
+        .map((p) => p.name);
+      let changed = false;
+      const updated = { ...prev };
+      for (const name of pathMappedNames) {
+        if (name in updated) {
+          delete updated[name];
+          changed = true;
+        }
+      }
+      return changed ? updated : prev;
+    });
+  }, [formContext.integrationOperationPath, specParameters]);
+
+  const handleDelete = useCallback((key: string) => {
+    const updated = { ...formDataRef.current };
     delete updated[key];
-    emitChange(updated);
-  };
+    emitChangeRef.current(updated);
+  }, []);
 
-  const restoreDefaultValue = (key: string) => {
-    const defaultValue = envParameters.get(key) || "";
-    emitChange({ ...formData, [key]: defaultValue });
-  };
+  const restoreDefaultValue = useCallback((key: string) => {
+    const defaultValue = envParametersRef.current.get(key) || "";
+    emitChangeRef.current({ ...formDataRef.current, [key]: defaultValue });
+  }, []);
 
   return (
     <div>
@@ -716,6 +894,9 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
             )}
           </span>
           <span>{title}</span>
+          {schema?.description && (
+            <DescriptionTooltipIcon description={schema.description} />
+          )}
           <span className={styles.badge}>{mergedParameters.length}</span>
         </div>
 
@@ -746,85 +927,19 @@ const EnhancedPatternPropertiesField: React.FC<EnhancedFieldProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {mergedParameters.map((param, idx) => {
-                  const displayedValue = localValues[param.name] ?? param.value;
-                  const hasValue =
-                    displayedValue !== undefined &&
-                    String(displayedValue).trim().length > 0;
-                  const rowClass =
-                    param.required && !hasValue ? styles.requiredRow : "";
-
-                  return (
-                    <tr key={idx} className={rowClass}>
-                      <td className={styles.td}>
-                        <div className={styles.nameCell}>
-                          {param.canDelete && param.source === "custom" ? (
-                            <Input
-                              value={param.name}
-                              onChange={(e) =>
-                                handleKeyChange(param.name, e.target.value)
-                              }
-                              disabled={disabled || readonly}
-                              placeholder="Name"
-                            />
-                          ) : (
-                            <span className={styles.paramName}>
-                              {param.name}
-                            </span>
-                          )}
-                          {(param.isOverridden || param.deprecated) && (
-                            <div className={styles.labels}>
-                              {param.isOverridden && (
-                                <Tag className={styles.overriddenTag}>
-                                  Overridden
-                                </Tag>
-                              )}
-                              {param.deprecated && (
-                                <Tag className={styles.deprecatedTag}>
-                                  Deprecated
-                                </Tag>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className={styles.td}>
-                        <Input
-                          value={localValues[param.name] ?? param.value}
-                          onChange={(e) =>
-                            handleValueChange(param.name, e.target.value)
-                          }
-                          disabled={disabled || readonly}
-                          placeholder="Value"
-                        />
-                      </td>
-                      <td className={styles.td}>
-                        <div className={styles.actions}>
-                          {param.isOverridden && !disabled && !readonly && (
-                            <Tooltip title="Restore default value">
-                              <Button
-                                size="small"
-                                type="text"
-                                icon={<OverridableIcon name="rollback" />}
-                                onClick={() => restoreDefaultValue(param.name)}
-                                className={styles.restoreBtn}
-                              />
-                            </Tooltip>
-                          )}
-                          {param.canDelete && !disabled && !readonly && (
-                            <Button
-                              size="small"
-                              type="text"
-                              icon={<OverridableIcon name="delete" />}
-                              onClick={() => handleDelete(param.name)}
-                              className={styles.deleteBtn}
-                            />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {mergedParameters.map((param, idx) => (
+                  <ParamRow
+                    key={idx}
+                    param={param}
+                    displayedValue={localValues[param.name] ?? param.value}
+                    isDisabled={!!(disabled || readonly)}
+                    onKeyChange={handleKeyChange}
+                    onValueChange={handleValueChange}
+                    onPathMappedValueChange={handlePathMappedValueChange}
+                    onDelete={handleDelete}
+                    onRestoreDefault={restoreDefaultValue}
+                  />
+                ))}
               </tbody>
             </table>
             {paramType === "query" &&

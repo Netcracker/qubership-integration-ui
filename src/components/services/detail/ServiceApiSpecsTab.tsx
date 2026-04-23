@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { Flex, Spin, Button, FloatButton, Tooltip } from "antd";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import { Flex, Spin, Button } from "antd";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../../api/api";
 import { SpecificationGroup, Specification } from "../../../api/apiTypes";
 import {
@@ -10,6 +9,7 @@ import {
   isSystemOperation,
   isSpecification,
   isSpecificationGroup,
+  ActionConfig,
 } from "../ServicesTreeTable";
 import { getActionsColumn } from "../ServicesTreeTable";
 import { message } from "antd";
@@ -21,13 +21,30 @@ import { useModalsContext } from "../../../Modals";
 import { useAsyncRequest } from "../useAsyncRequest";
 import styles from "../Services.module.css";
 import { useNotificationService } from "../../../hooks/useNotificationService";
-import { useServiceContext } from "./ServiceParametersPage";
+import {
+  useServiceContext,
+  useServiceParametersToolbar,
+} from "./ServiceParametersPage";
 import { IntegrationSystemType } from "../../../api/apiTypes";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import { ProtectedButton } from "../../../permissions/ProtectedButton.tsx";
+import { endpointColumnTitleForProtocol } from "../endpointColumnTitle.ts";
 
 const STORAGE_KEY = "systemParameters";
 
-const SpecificationGroupColumnsKeys = () => [
+const specificationGroupAllColumnKeys = () => [
+  "name",
+  "usedBy",
+  "status",
+  "source",
+  "labels",
+  "createdWhen",
+  "createdBy",
+  "modifiedWhen",
+  "modifiedBy",
+];
+
+const specificationGroupDefaultVisibleKeys = () => [
   "name",
   "usedBy",
   "status",
@@ -35,7 +52,21 @@ const SpecificationGroupColumnsKeys = () => [
   "labels",
 ];
 
-const SpecificationColumnsKeys = () => [
+const specificationModelAllColumnKeys = () => [
+  "name",
+  "usedBy",
+  "status",
+  "source",
+  "labels",
+  "method",
+  "url",
+  "createdWhen",
+  "createdBy",
+  "modifiedWhen",
+  "modifiedBy",
+];
+
+const specificationModelDefaultVisibleKeys = () => [
   "name",
   "usedBy",
   "status",
@@ -45,7 +76,23 @@ const SpecificationColumnsKeys = () => [
   "url",
 ];
 
-const OperationColumnKeys = () => ["name", "method", "url", "usedBy"];
+const operationAllColumnKeys = () => [
+  "name",
+  "method",
+  "url",
+  "usedBy",
+  "createdWhen",
+  "createdBy",
+  "modifiedWhen",
+  "modifiedBy",
+];
+
+const buildOperationDefaultVisibleKeys = () => [
+  "name",
+  "method",
+  "url",
+  "usedBy",
+];
 
 const getGroupActions =
   (
@@ -59,7 +106,7 @@ const getGroupActions =
     loadModels: (systemId: string, groupId: string) => Promise<void>,
     loadGroups: (systemId: string) => Promise<void>,
   ) =>
-  (record: ServiceEntity) => {
+  (record: ServiceEntity): ActionConfig<ServiceEntity>[] => {
     if (isSpecification(record)) return [];
     const group = record as SpecificationGroup;
     return [
@@ -83,6 +130,7 @@ const getGroupActions =
         key: "add",
         label: "Add Specification",
         icon: <OverridableIcon name="plus" />,
+        require: { specificationGroup: ["create"] },
         onClick: () => {
           showModal({
             component: (
@@ -104,15 +152,17 @@ const getGroupActions =
         key: "delete",
         label: "Delete",
         icon: <OverridableIcon name="delete" />,
-        onClick: async () => {
-          try {
-            await api.deleteSpecificationGroup(group.id);
-            message.success("Specification group deleted");
-            await refreshGroups();
-          } catch (e) {
-            notify.requestFailed("Delete failed", e);
-          }
-        },
+        require: { specificationGroup: ["delete"] },
+        onClick: () =>
+          void (async () => {
+            try {
+              await api.deleteSpecificationGroup(group.id);
+              message.success("Specification group deleted");
+              await refreshGroups();
+            } catch (e) {
+              notify.requestFailed("Delete failed", e);
+            }
+          })(),
         confirm: {
           title:
             "Are you sure you want to permanently delete this specification group?",
@@ -130,7 +180,7 @@ const getSpecActions =
     refreshModels: () => Promise<void>,
     notify: ReturnType<typeof useNotificationService>,
   ) =>
-  (record: ServiceEntity) => {
+  (record: ServiceEntity): ActionConfig<ServiceEntity>[] => {
     if (isSystemOperation(record)) {
       return [];
     }
@@ -158,6 +208,7 @@ const getSpecActions =
               key: "delete",
               label: "Delete",
               icon: <OverridableIcon name="delete" />,
+              require: { specification: ["delete" as const] },
               onClick: async () => {
                 try {
                   await api.deleteSpecificationModel(spec.id);
@@ -181,6 +232,7 @@ const getSpecActions =
               key: "deprecate",
               label: "Deprecate",
               icon: <OverridableIcon name="stop" />,
+              require: { specification: ["execute" as const] },
               onClick: async () => {
                 try {
                   await api.deprecateModel(spec.id);
@@ -202,7 +254,8 @@ const getSpecActions =
         key: "export",
         label: "Export",
         icon: <OverridableIcon name="export" />,
-        onClick: () => handleExportSpecifications([spec], notify),
+        require: { specification: ["export" as const] },
+        onClick: () => void handleExportSpecifications([spec], notify),
       },
     ];
   };
@@ -233,6 +286,7 @@ type TableType = "groups" | "specs" | "operations";
 
 export const ServiceApiSpecsTab: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { systemId, groupId, specId } = useParams<{
     systemId: string;
     groupId?: string;
@@ -248,12 +302,19 @@ export const ServiceApiSpecsTab: React.FC = () => {
   const { showModal } = useModalsContext();
   const notify = useNotificationService();
   const system = useServiceContext();
+  const { setToolbar } = useServiceParametersToolbar() ?? {};
+  const isApiSpecsActive = location.pathname.includes("/specificationGroups");
   const isImplementedService =
     system?.type === IntegrationSystemType.IMPLEMENTED;
+  const toolbarSignatureRef = useRef<string>("");
 
-  const serviceSpecColumnsKeys = SpecificationGroupColumnsKeys();
-  const specificationColumnsKeys = SpecificationColumnsKeys();
-  const operationColumnKeys = OperationColumnKeys();
+  const serviceSpecColumnsKeys = specificationGroupAllColumnKeys();
+  const serviceSpecDefaultVisibleKeys = specificationGroupDefaultVisibleKeys();
+  const specificationColumnsKeys = specificationModelAllColumnKeys();
+  const specificationDefaultVisibleKeys =
+    specificationModelDefaultVisibleKeys();
+  const operationColumnKeys = operationAllColumnKeys();
+  const operationVisibleKeys = buildOperationDefaultVisibleKeys();
 
   const {
     loading: loadingGroups,
@@ -305,7 +366,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
     rowKey: "id",
     columns: serviceSpecColumnsKeys,
     storageKey: STORAGE_KEY + "_groups",
-    defaultVisibleKeys: serviceSpecColumnsKeys,
+    defaultVisibleKeys: serviceSpecDefaultVisibleKeys,
     loading: loadingGroups,
     expandable: {
       expandedRowKeys: expandedGroups,
@@ -356,7 +417,7 @@ export const ServiceApiSpecsTab: React.FC = () => {
     rowKey: "id",
     columns: specificationColumnsKeys,
     storageKey: STORAGE_KEY + "_models",
-    defaultVisibleKeys: specificationColumnsKeys,
+    defaultVisibleKeys: specificationDefaultVisibleKeys,
     expandable: {
       expandedRowKeys: expandedSpecs,
       onExpand: (expanded, record) => {
@@ -403,7 +464,8 @@ export const ServiceApiSpecsTab: React.FC = () => {
     columns: operationColumnKeys,
     allColumns: operationColumnKeys,
     storageKey: STORAGE_KEY + "_operations",
-    defaultVisibleKeys: operationColumnKeys,
+    defaultVisibleKeys: operationVisibleKeys,
+    urlColumnTitle: endpointColumnTitleForProtocol(system?.protocol),
   });
 
   const currentTable = useMemo<TableType>(() => {
@@ -479,9 +541,9 @@ export const ServiceApiSpecsTab: React.FC = () => {
     });
   };
 
-  return (
-    <Flex vertical>
-      <div className={css.serviceApiSpecsTabHeader}>
+  const toolbarContent = useMemo(
+    () => (
+      <>
         <div className={css.serviceApiSpecsTabHeaderLeft}>
           {currentTable === "operations" && (
             <Button
@@ -502,24 +564,52 @@ export const ServiceApiSpecsTab: React.FC = () => {
             </Button>
           )}
         </div>
-        <div className={css.serviceApiSpecsTabHeaderRight}>
+        <div
+          className={css.serviceApiSpecsTabHeaderRight}
+          style={{ marginLeft: "auto" }}
+        >
           <span
+            data-testid="api-specs-groups-toolbar"
             className={
               currentTable === "groups"
                 ? css.serviceApiSpecsTabFilterGroup
                 : css.serviceApiSpecsTabFilterNone
             }
           >
-            <Flex vertical={false} gap={8}>
-              {isVsCode && (
-                <Tooltip title="Import Specifications">
-                  <Button
-                    icon={<OverridableIcon name="cloudUpload" />}
-                    onClick={onImportSpecGroupClick}
-                  />
-                </Tooltip>
-              )}
+            <Flex vertical={false} gap={4}>
               {serviceGroupsTable.FilterButton()}
+              {!isVsCode && (
+                <ProtectedButton
+                  require={{ service: ["export"] }}
+                  tooltipProps={{
+                    title: "Export service",
+                    placement: "bottom",
+                  }}
+                  buttonProps={{
+                    iconName: "cloudDownload",
+                    onClick: () => {
+                      void (async () => {
+                        if (!systemId) return;
+                        try {
+                          const file = await api.exportServices([systemId], []);
+                          downloadFile(prepareFile(file));
+                        } catch (e) {
+                          notify.requestFailed("Export error", e);
+                        }
+                      })();
+                    },
+                  }}
+                />
+              )}
+              <ProtectedButton
+                require={{ specificationGroup: ["import"] }}
+                tooltipProps={{ title: "Add Specification Group" }}
+                buttonProps={{
+                  type: "primary",
+                  iconName: "plus",
+                  onClick: onImportSpecGroupClick,
+                }}
+              />
             </Flex>
           </span>
           <span
@@ -529,14 +619,40 @@ export const ServiceApiSpecsTab: React.FC = () => {
                 : css.serviceApiSpecsTabFilterNone
             }
           >
-            <Flex vertical={false} gap={8}>
-              {isVsCode && (
-                <Tooltip title="Import Specifications">
-                  <Button
-                    icon={<OverridableIcon name="cloudUpload" />}
-                    onClick={onImportSpecClick}
-                  />
-                </Tooltip>
+            <Flex vertical={false} gap={4}>
+              <ProtectedButton
+                require={{ specification: ["import"] }}
+                tooltipProps={{ title: "Import Specification" }}
+                buttonProps={{
+                  iconName: "cloudUpload",
+                  onClick: onImportSpecClick,
+                }}
+              />
+              {!isVsCode && (
+                <ProtectedButton
+                  require={{ specification: ["export"] }}
+                  tooltipProps={{
+                    title: "Export selected specifications",
+                    placement: "bottom",
+                  }}
+                  buttonProps={{
+                    iconName: "cloudDownload",
+                    onClick: () => {
+                      void (async () => {
+                        if (selectedSpecRowKeys.length === 0) {
+                          message.info(
+                            "There are no selected specifications yet",
+                          );
+                          return;
+                        }
+                        const selected = (models ?? []).filter((m) =>
+                          selectedSpecRowKeys.includes(m.id),
+                        );
+                        await handleExportSpecifications(selected, notify);
+                      })();
+                    },
+                  }}
+                />
               )}
               {modelsTable.FilterButton()}
             </Flex>
@@ -548,119 +664,126 @@ export const ServiceApiSpecsTab: React.FC = () => {
                 : css.serviceApiSpecsTabFilterNone
             }
           >
-            {operationsTable.FilterButton()}
+            <Flex vertical={false} gap={4}>
+              {!isVsCode && (
+                <ProtectedButton
+                  require={{ specification: ["export"] }}
+                  tooltipProps={{
+                    title: "Export specification",
+                    placement: "bottom",
+                  }}
+                  buttonProps={{
+                    iconName: "cloudDownload",
+                    onClick: () => {
+                      void (async () => {
+                        try {
+                          if (!specId) {
+                            message.info("No model to export");
+                            return;
+                          }
+                          const model = (models ?? []).find(
+                            (m) => m.id === specId,
+                          );
+                          if (!model) {
+                            message.info("No model to export");
+                            return;
+                          }
+                          const file = await api.exportSpecifications(
+                            [specId],
+                            [],
+                          );
+                          downloadFile(file.name ? file : prepareFile(file));
+                        } catch (e) {
+                          notify.requestFailed("Export error", e);
+                        }
+                      })();
+                    },
+                  }}
+                />
+              )}
+              {operationsTable.FilterButton()}
+            </Flex>
           </span>
         </div>
-      </div>
+      </>
+    ),
+    [
+      currentTable,
+      groupId,
+      systemId,
+      specId,
+      models,
+      selectedSpecRowKeys,
+      goToTable,
+      onImportSpecGroupClick,
+      onImportSpecClick,
+      serviceGroupsTable,
+      modelsTable,
+      operationsTable,
+      notify,
+      css,
+    ],
+  );
+
+  useEffect(() => {
+    if (!setToolbar) return;
+    if (!isApiSpecsActive) {
+      toolbarSignatureRef.current = "";
+      setToolbar(null);
+      return;
+    }
+
+    const signature = [
+      currentTable,
+      groupId ?? "",
+      specId ?? "",
+      systemId ?? "",
+      String(selectedSpecRowKeys.length),
+      String(models?.length ?? 0),
+    ].join("|");
+
+    if (toolbarSignatureRef.current === signature) {
+      return;
+    }
+
+    toolbarSignatureRef.current = signature;
+    setToolbar(
+      <Flex align="center" gap={8} style={{ flexWrap: "wrap" }}>
+        {toolbarContent}
+      </Flex>,
+    );
+  }, [
+    setToolbar,
+    isApiSpecsActive,
+    currentTable,
+    groupId,
+    specId,
+    systemId,
+    selectedSpecRowKeys.length,
+    models?.length,
+    toolbarContent,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (!setToolbar) return;
+      toolbarSignatureRef.current = "";
+      setToolbar(null);
+    };
+  }, [setToolbar]);
+
+  return (
+    <Flex vertical>
       {loadingGroups && <Spin className={css.serviceApiSpecsTabSpin} />}
       {errorGroups && (
         <div className={css.serviceApiSpecsTabError}>Error: {errorGroups}</div>
       )}
-      {!loadingGroups && !errorGroups && currentTable === "groups" && (
-        <>
-          <serviceGroupsTable.Table />
-          {!isVsCode && (
-            <FloatButtonGroup
-              trigger="hover"
-              icon={<OverridableIcon name="more" />}
-            >
-              <FloatButton
-                tooltip={{ title: "Import Specifications", placement: "left" }}
-                icon={<OverridableIcon name="cloudUpload" />}
-                onClick={onImportSpecGroupClick}
-              />
-              <FloatButton
-                tooltip={{ title: "Export service", placement: "left" }}
-                icon={<OverridableIcon name="cloudDownload" />}
-                onClick={() => {
-                  void (async () => {
-                    if (!systemId) {
-                      return;
-                    }
-                    try {
-                      const file = await api.exportServices([systemId], []);
-                      downloadFile(prepareFile(file));
-                    } catch (e) {
-                      notify.requestFailed("Export error", e);
-                    }
-                  })();
-                }}
-              />
-            </FloatButtonGroup>
-          )}
-        </>
-      )}
-      {currentTable === "specs" && (
-        <>
-          <modelsTable.Table />
-          {!isVsCode && (
-            <FloatButtonGroup
-              trigger="hover"
-              icon={<OverridableIcon name="more" />}
-            >
-              <FloatButton
-                tooltip={{ title: "Import Specification", placement: "left" }}
-                icon={<OverridableIcon name="cloudUpload" />}
-                onClick={onImportSpecClick}
-              />
-              <FloatButton
-                tooltip={{
-                  title: "Export selected specifications",
-                  placement: "left",
-                }}
-                icon={<OverridableIcon name="cloudDownload" />}
-                onClick={() => {
-                  void (async () => {
-                    if (selectedSpecRowKeys.length === 0) {
-                      message.info("There are no selected specifications yet");
-                      return;
-                    }
-                    const selected = (models ?? []).filter((m) =>
-                      selectedSpecRowKeys.includes(m.id),
-                    );
-                    await handleExportSpecifications(selected, notify);
-                  })();
-                }}
-              />
-            </FloatButtonGroup>
-          )}
-        </>
-      )}
-      {currentTable === "operations" && (
-        <>
-          <operationsTable.Table />
-          {!isVsCode && (
-            <FloatButtonGroup
-              trigger="hover"
-              icon={<OverridableIcon name="more" />}
-            >
-              <FloatButton
-                tooltip={{ title: "Export specification", placement: "left" }}
-                icon={<OverridableIcon name="cloudDownload" />}
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      if (!specId) {
-                        message.info("No model to export");
-                        return;
-                      }
-                      const model = (models ?? []).find((m) => m.id === specId);
-                      if (!model) {
-                        message.info("No model to export");
-                        return;
-                      }
-                      const file = await api.exportSpecifications([specId], []);
-                      downloadFile(file.name ? file : prepareFile(file));
-                    } catch (e) {
-                      notify.requestFailed("Export error", e);
-                    }
-                  })();
-                }}
-              />
-            </FloatButtonGroup>
-          )}
-        </>
-      )}
+      {!loadingGroups &&
+        !errorGroups &&
+        currentTable === "groups" &&
+        serviceGroupsTable.tableElement}
+      {currentTable === "specs" && modelsTable.tableElement}
+      {currentTable === "operations" && operationsTable.tableElement}
       {errorModels && (
         <div className={css.serviceApiSpecsTabError}>Error: {errorModels}</div>
       )}

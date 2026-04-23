@@ -1,8 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { Table, Input, Button, Popconfirm, TableProps } from "antd";
 import type { InputRef } from "antd";
-import { ResizableProps } from "react-resizable";
-import "react-resizable/css/styles.css";
 import "./Resizable.css";
 import { NEW_VARIABLE_KEY } from "./useVariablesState";
 import styles from "./VariablesTable.module.css";
@@ -11,9 +9,16 @@ import {
   getTextColumnFilterFn,
 } from "../../table/TextColumnFilterDropdown";
 import type { FilterDropdownProps } from "antd/lib/table/interface";
-import { Variable } from "../../../api/admin-tools/variables/types";
-import { ResizableTitle } from "../../ResizableTitle.tsx";
+import type { Variable } from "../../../api/apiTypes.ts";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import {
+  attachResizeToColumns,
+  useTableColumnResize,
+} from "../../table/useTableColumnResize.tsx";
+import {
+  createActionsSizing,
+  DEFAULT_ACTIONS_COLUMN_WIDTH,
+} from "../../table/actionsColumn.ts";
 
 interface VariablesTableProps {
   variables: Variable[];
@@ -29,14 +34,14 @@ interface VariablesTableProps {
   editingValue: string;
   onChangeEditingValue: (value: string) => void;
   onConfirmEdit: (key: string, newValue: string) => void;
-  columnsWidth: { [key: string]: number };
-  onResize: (dataIndex: string) => ResizableProps["onResize"];
   enableKeySort?: boolean;
   enableValueSort?: boolean;
   enableKeyFilter?: boolean;
   enableValueFilter?: boolean;
   calculateScrollHeight?: () => number;
   flex?: boolean;
+  enableEdit?: boolean;
+  enableDelete?: boolean;
 }
 
 const VariablesTable: React.FC<VariablesTableProps> = ({
@@ -53,13 +58,13 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
   editingValue,
   onChangeEditingValue,
   onConfirmEdit,
-  columnsWidth,
-  onResize,
   enableKeySort,
   enableValueSort,
   enableKeyFilter,
   enableValueFilter,
   flex,
+  enableEdit = true,
+  enableDelete = true,
 }) => {
   const newKeyInputRef = useRef<InputRef>(null);
   const newValueInputRef = useRef<HTMLTextAreaElement>(null);
@@ -68,12 +73,22 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
     key: "",
     value: "",
   });
+  const variablesColumnResize = useTableColumnResize({
+    key: 300,
+    value: 400,
+  });
 
   useEffect(() => {
     if (isAddingNew && newKeyInputRef.current) {
       newKeyInputRef.current.focus();
     }
   }, [isAddingNew]);
+
+  const addVariable = () => {
+    if (newRecord.current.key && newRecord.current.key !== NEW_VARIABLE_KEY) {
+      onAdd(newRecord.current.key, newRecord.current.value);
+    }
+  };
 
   const handleAddKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     newRecord.current.key = e.target.value;
@@ -82,33 +97,20 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
   const handleAddKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (
-        newRecord.current.key &&
-        newRecord.current.value &&
-        newRecord.current.key !== NEW_VARIABLE_KEY
-      ) {
-        onAdd(newRecord.current.key, newRecord.current.value);
-      }
+      addVariable();
     }
   };
 
-  const totalColumnsWidth = Object.values(columnsWidth).reduce(
-    (acc, width) => acc + width,
-    0,
-  );
+  const totalColumnsWidth =
+    variablesColumnResize.totalColumnsWidth + DEFAULT_ACTIONS_COLUMN_WIDTH;
 
   /* Ant Design Table column/row types infer as error/any in strict mode; types are safe for Variable. */
-  /* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
   const columns: TableProps<Variable>["columns"] = [
     {
       title: "Key",
       dataIndex: "key",
       key: "key",
-      width: columnsWidth.key,
-      onHeaderCell: () => ({
-        width: columnsWidth.key,
-        onResize: onResize("key"),
-      }),
+      width: variablesColumnResize.columnWidths.key,
       sorter: enableKeySort
         ? (a: Variable, b: Variable) => a.key.localeCompare(b.key)
         : undefined,
@@ -137,11 +139,7 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
       title: "Value",
       dataIndex: "value",
       key: "value",
-      width: columnsWidth.value,
-      onHeaderCell: () => ({
-        width: columnsWidth.value,
-        onResize: onResize("value"),
-      }),
+      width: variablesColumnResize.columnWidths.value,
       sorter: enableValueSort
         ? (a: Variable, b: Variable) => a.value.localeCompare(b.value)
         : undefined,
@@ -154,7 +152,7 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
         ? getTextColumnFilterFn<Variable>((record) => record.value)
         : undefined,
       render: (_: string, record: Variable) => {
-        const isEditing = editingKey === record.key;
+        const isEditing = enableEdit && editingKey === record.key;
 
         if (isEditing) {
           const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -196,13 +194,7 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
           const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              if (
-                newRecord.current.key &&
-                newRecord.current.value &&
-                newRecord.current.key !== NEW_VARIABLE_KEY
-              ) {
-                onAdd(newRecord.current.key, newRecord.current.value);
-              }
+              addVariable();
             } else if (e.key === "Escape") {
               e.preventDefault();
               onCancelEditing();
@@ -224,15 +216,7 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
                 <Button
                   icon={<OverridableIcon name="check" />}
                   type="text"
-                  onClick={() => {
-                    if (
-                      newRecord.current.key &&
-                      newRecord.current.value &&
-                      newRecord.current.key !== NEW_VARIABLE_KEY
-                    ) {
-                      onAdd(newRecord.current.key, newRecord.current.value);
-                    }
-                  }}
+                  onClick={addVariable}
                 />
                 <Button
                   icon={<OverridableIcon name="close" />}
@@ -247,7 +231,9 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
         return (
           <div
             className={styles["editable-cell-wrapper"]}
-            onClick={() => onStartEditing(record.key, record.value)}
+            onClick={() =>
+              enableEdit && onStartEditing(record.key, record.value)
+            }
           >
             <div className={styles["value-text"]}>
               {isValueHidden
@@ -260,7 +246,9 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
                 className={`${styles["inline-icon"]} ${styles["multiline-icon"]}`}
               />
             )}
-            <OverridableIcon name="edit" className={styles["inline-icon"]} />
+            {enableEdit && (
+              <OverridableIcon name="edit" className={styles["inline-icon"]} />
+            )}
           </div>
         );
       },
@@ -268,10 +256,11 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
     {
       title: "",
       key: "actions",
-      width: 40,
       align: "right" as const,
+      ...createActionsSizing<Variable>(),
       render: (_: unknown, record: Variable) =>
-        record.key !== NEW_VARIABLE_KEY && (
+        record.key !== NEW_VARIABLE_KEY &&
+        enableDelete && (
           <Popconfirm
             title="Delete variable?"
             placement="topLeft"
@@ -287,23 +276,33 @@ const VariablesTable: React.FC<VariablesTableProps> = ({
         ),
     },
   ];
+  const columnsWithResize = attachResizeToColumns(
+    columns,
+    variablesColumnResize.columnWidths,
+    variablesColumnResize.createResizeHandlers,
+    { minWidth: 80 },
+  );
+  const columnsWithResizeNoRightActionsHandle = columnsWithResize.map(
+    (column) =>
+      column.key === "value"
+        ? {
+            ...column,
+            onHeaderCell: undefined,
+          }
+        : column,
+  );
 
   const dataWithNewRow: Variable[] = [
     ...(isAddingNew ? [{ key: NEW_VARIABLE_KEY, value: "" }] : []),
     ...variables,
   ];
-  /* eslint-enable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
 
   return (
     <Table<Variable>
       className={flex ? "flex-table" : undefined}
       dataSource={dataWithNewRow}
-      columns={columns}
-      components={{
-        header: {
-          cell: ResizableTitle,
-        },
-      }}
+      columns={columnsWithResizeNoRightActionsHandle}
+      components={variablesColumnResize.resizableHeaderComponents}
       rowKey="key"
       pagination={false}
       size="small"

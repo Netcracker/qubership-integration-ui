@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { FieldProps } from "@rjsf/utils";
 import { SelectProps } from "antd";
-import { FormContext } from "../../ChainElementModification.tsx";
+import { FormContext } from "../../ChainElementModificationContext.ts";
 import { api } from "../../../../../api/api.ts";
 import { useNotificationService } from "../../../../../hooks/useNotificationService.tsx";
 import {
@@ -73,8 +73,9 @@ const SpecificationField: React.FC<
         integrationOperationId: "",
         integrationOperationPath: "",
         integrationOperationMethod: "",
-        integrationOperationPathParameters: {},
-        integrationOperationQueryParameters: {},
+        integrationOperationPathParameters: undefined,
+        integrationOperationQueryParameters: undefined,
+        after: undefined,
       };
 
       updateContext?.(context);

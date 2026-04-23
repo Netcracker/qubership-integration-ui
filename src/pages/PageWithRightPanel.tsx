@@ -1,14 +1,14 @@
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Sider from "antd/lib/layout/Sider";
 import styles from "../components/elements_library/ElementsLibrarySidebar.module.css";
-import { SidebarSearch } from "../components/elements_library/SidebarSearch.tsx";
-import { useCallback, useRef, useState, useMemo, useEffect } from "react";
-import { MenuItem } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { Flex, Menu, Tabs } from "antd";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
-import { FilterButton } from "../components/table/filter/FilterButton.tsx";
-import { useChainFilters } from "../hooks/useChainFilter.ts";
-import { Filter } from "../components/table/filter/Filter.tsx";
-import { FilterItemState } from "../components/table/filter/FilterItem.tsx";
 import { Element } from "../api/apiTypes.ts";
 import { useModalsContext } from "../Modals.tsx";
 import { useParams, useNavigate } from "react-router-dom";
@@ -21,71 +21,73 @@ import type { MenuProps } from "antd";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { ChainContext } from "./ChainPage.tsx";
-import { useContext } from "react";
 import { ChainElementModification } from "../components/modal/chain_element/ChainElementModification.tsx";
 import { ChainGraphNode } from "../components/graph/nodes/ChainGraphNodeTypes.ts";
 import { useElkDirectionContext } from "./ElkDirectionContext.tsx";
 import { useFocusToElementId } from "../components/graph/ElementFocus.tsx";
 import { UsedPropertiesList } from "../components/UsedPropertiesList.tsx";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { EntityFilterModel } from "../components/table/filter/filter.ts";
+import { ChainTextViewPanel } from "../components/chains/ChainTextViewPanel.tsx";
 
-export const PageWithRightPanel = () => {
-  const allItems = useRef<MenuItem[]>([]);
-  const [isSearch, setIsSearch] = useState(false);
-  const { filterColumns, filterItemStates, setFilterItemStates } =
-    useChainFilters();
-  const [openKeysState, setOpenKeysState] = useState<string[]>();
-  const openKeysBeforeSearch = useRef<string[]>();
-  const [items, setItems] = useState<MenuItem[]>([]);
+const DEFAULT_WIDTH = 240;
+
+export type PageWithRightPanelProps = {
+  width?: number;
+};
+
+export const PageWithRightPanel = ({
+  width = DEFAULT_WIDTH,
+}: PageWithRightPanelProps = {}) => {
+  const chainContext = useContext(ChainContext);
+
   const { showModal } = useModalsContext();
-  const [filters, setFilters] = useState<EntityFilterModel[]>([]);
   const [activeTab, setActiveTab] = useState<string>("listElements");
 
-  const { chainId } = useParams<string>();
+  const params = useParams<{ chainId?: string }>();
+  const chainId = params.chainId;
   const { libraryElements } = useLibraryContext();
   const notificationService = useNotificationService();
   const navigate = useNavigate();
-  const chainContext = useContext(ChainContext);
-  const [elements, setElements] = useState<Element[]>([]);
+  const [elements, setElements] = useState<Element[]>(
+    chainContext?.chain?.elements ?? [],
+  );
 
   let direction: "RIGHT" | "DOWN" = "RIGHT";
   try {
     const elkContext = useElkDirectionContext();
     direction = elkContext.direction;
-  } catch {}
+  } catch {
+    // useElkDirectionContext throws when used outside ElkDirectionProvider
+  }
 
   useEffect(() => {
-    if (!chainId) {
-      setElements([]);
-      return;
-    }
+    setElements(chainContext?.chain?.elements ?? []);
+  }, [chainContext?.chain?.elements]);
 
-    const fetchElements = async () => {
+  useEffect(() => {
+    const chainId = chainContext?.chain?.id;
+    if (!chainId) return;
+
+    let cancelled = false;
+    const load = async () => {
       try {
-        const fetchedElements = await api.getElements(chainId);
-        setElements(fetchedElements);
+        const elementsResponse = await api.getElements(chainId);
+        if (cancelled) return;
+        setElements(elementsResponse);
       } catch (error) {
+        console.error(
+          "Failed to refresh chain structure before loading schema",
+          error,
+        );
         notificationService.requestFailed("Failed to load elements", error);
       }
     };
 
-    void fetchElements();
-
-    const handleFocus = () => {
-      void fetchElements();
-    };
-    window.addEventListener("focus", handleFocus);
-
-    const intervalId = setInterval(() => {
-      void fetchElements();
-    }, 3000);
-
+    void load();
     return () => {
-      clearInterval(intervalId);
-      window.removeEventListener("focus", handleFocus);
+      cancelled = true;
     };
-  }, [chainId, notificationService]);
+  }, [chainContext?.chain?.id]);
 
   const handleElementDoubleClick = useCallback(
     (element: Element) => {
@@ -108,11 +110,14 @@ export const PageWithRightPanel = () => {
               chainId={chainId}
               elementId={element.id}
               onSubmit={() => {
-                void api.getElements(chainId).then(setElements);
+                void api
+                  .getElements(chainId)
+                  .then(setElements)
+                  .catch(() => {});
               }}
               onClose={() => {
                 if (chainId) {
-                  navigate(`/chains/${chainId}/graph`);
+                  void navigate(`/chains/${chainId}/graph`);
                 }
               }}
             />
@@ -153,7 +158,8 @@ export const PageWithRightPanel = () => {
       return {
         key: element.id,
         label: (
-          <div
+          <button
+            type="button"
             className={styles.elementListItemLabel}
             onDoubleClick={(e) => {
               e.stopPropagation();
@@ -169,55 +175,21 @@ export const PageWithRightPanel = () => {
                 {elementTypeLabel}
               </span>
             </div>
-          </div>
+          </button>
         ),
         title: `${elementName} (${elementTypeLabel})`,
       };
     });
   }, [elements, libraryElements, handleElementDoubleClick]);
 
-  const handleSearch = useCallback(
-    (filtered: MenuItem[], openKeys: string[]) => {
-      if (!isSearch) {
-        setIsSearch(true);
-        openKeysBeforeSearch.current = openKeysState;
-      }
-      setOpenKeysState(openKeys);
-      setItems(filtered);
-    },
-    [isSearch, openKeysState],
-  );
-
-  const applyFilters = (filterItems: FilterItemState[]) => {
-    setFilterItemStates?.(filterItems);
-
-    const f = (filterItems ?? []).map(
-      (filterItem): EntityFilterModel => ({
-        column: filterItem.columnValue!,
-        condition: filterItem.conditionValue!,
-        value: filterItem.value,
-      }),
-    );
-    setFilters(f);
-  };
-
-  const addFilter = () => {
-    showModal({
-      component: (
-        <Filter
-          filterColumns={filterColumns ?? []}
-          filterItemStates={filterItemStates ?? []}
-          onApplyFilters={applyFilters}
-        />
-      ),
-    });
-  };
-
   return (
-    <Sider width={240} className={styles.sideMenu}>
+    <Sider
+      width={width}
+      className={`${styles.sideMenu} ${styles.rightPanelBorder}`}
+    >
       <Flex vertical={false} justify="left" style={{ width: "100%" }}>
         <Tabs
-          className={styles["spacedTabs"]}
+          className={`${styles.spacedTabs} ${activeTab === "textView" ? styles.rightPanelTabs : ""}`}
           activeKey={activeTab}
           onChange={setActiveTab}
           items={[
@@ -225,33 +197,31 @@ export const PageWithRightPanel = () => {
               key: "listElements",
               label: <OverridableIcon name="unorderedList" />,
             },
-            ...(!isVsCode
-              ? [
+            ...(isVsCode
+              ? []
+              : [
                   {
                     key: "elementProperties",
                     label: <OverridableIcon name="menuUnfold" />,
                   },
-                ]
-              : []),
+                  {
+                    key: "textView",
+                    label: <OverridableIcon name="file" />,
+                  },
+                ]),
           ]}
         ></Tabs>
       </Flex>
-      <Flex vertical gap={8} style={{ paddingLeft: "12px" }}>
-        <Flex gap={8} align="center">
-          <SidebarSearch
-            items={allItems.current}
-            onSearch={handleSearch}
-            onClear={() => {
-              setItems(allItems.current);
-              setIsSearch(false);
-              setOpenKeysState(openKeysBeforeSearch.current);
-            }}
-          />
-          <FilterButton
-            count={filterItemStates?.length ?? 0}
-            onClick={addFilter}
-          />
-        </Flex>
+      <Flex
+        vertical
+        gap={activeTab === "textView" ? 0 : 8}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: activeTab === "textView" ? "hidden" : "auto",
+          paddingLeft: activeTab === "textView" ? 0 : "12px",
+        }}
+      >
         {activeTab === "listElements" && (
           <Menu
             className={styles.libraryElements}
@@ -274,6 +244,9 @@ export const PageWithRightPanel = () => {
           <div style={{ padding: "16px", textAlign: "center", color: "#999" }}>
             No chain selected
           </div>
+        )}
+        {activeTab === "textView" && (
+          <ChainTextViewPanel chainId={chainId ?? ""} elements={elements}/>
         )}
       </Flex>
     </Sider>

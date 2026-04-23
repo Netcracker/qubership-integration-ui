@@ -316,7 +316,7 @@ export enum SessionsLoggingLevel {
 
 export enum LogLoggingLevel {
   ERROR = "ERROR",
-  WARN = "WARN",
+  WARNING = "WARN",
   INFO = "INFO",
 }
 
@@ -524,12 +524,25 @@ export type ImportInstructions = {
 
 export type ImportInstruction = {
   id: string;
-  name: string;
-  overriddenById: string;
-  overriddenByName: string;
-  labels: string[];
-  modifiedWhen: number;
-  preview: boolean;
+  name?: string;
+  overriddenById?: string;
+  overriddenByName?: string;
+  labels?: string[];
+  modifiedWhen?: number;
+  preview?: boolean;
+};
+
+export type ImportInstructionRequest = {
+  id: string;
+  entityType: ImportEntityType;
+  action: ImportInstructionAction;
+  overriddenBy?: string | null;
+};
+
+export type DeleteImportInstructionsRequest = {
+  chains?: string[];
+  services?: string[];
+  commonVariables?: string[];
 };
 
 export enum SystemImportStatus {
@@ -976,6 +989,7 @@ export type ChainDeployment = {
 };
 
 export type DetailedDesignTemplate = BaseEntity & {
+  builtIn: boolean;
   content?: string;
 };
 
@@ -1112,6 +1126,8 @@ export interface SystemOperation {
   path: string;
   modelId: string;
   chains: BaseEntity[];
+  channel?: string;
+  topic?: string;
 }
 
 export interface OperationInfo {
@@ -1377,6 +1393,7 @@ export type BulkDeploymentResult = {
   chainId: string;
   chainName: string;
   status: BulkDeploymentStatus;
+  domain?: EngineDomain;
   errorMessage: string;
 };
 
@@ -1386,6 +1403,30 @@ export enum BulkDeploymentStatus {
   CREATED = "CREATED",
   IGNORED = "IGNORED",
 }
+
+export type CreateMaasKafkaRequest = {
+  namespace: string;
+  topicClassifierName: string;
+};
+
+export type CreateMaasRabbitMQRequest = {
+  namespace: string;
+  vhost: string;
+  exchange: string;
+  queue: string;
+  routingKey?: string;
+};
+
+export type GetMaasKafkaDeclarativeRequest = {
+  topicClassifierName: string;
+};
+
+export type GetMaasRabbitMQDeclarativeRequest = {
+  vhost: string;
+  exchange: string;
+  queue: string;
+  routingKey?: string;
+};
 
 export enum UsedPropertySource {
   HEADER = "HEADER",
@@ -1418,4 +1459,21 @@ export interface UsedPropertyElement {
   name: string;
   type: string;
   operations: UsedPropertyElementOperation[];
+}
+
+export interface DiscoveryError {
+  serviceName: string;
+  message: string;
+}
+
+export interface DiscoveryResponse {
+  discoveredSystemIds: string[];
+  discoveredGroupIds: string[];
+  discoveredSpecificationIds: string[];
+  updatedSystemsIds: string[];
+  errorMessages: DiscoveryError[];
+}
+
+export interface ChainElementCodeResponse {
+  code: string;
 }

@@ -1,5 +1,11 @@
-import React, { UIEvent, useCallback, useEffect, useState } from "react";
-import { Button, Flex, FloatButton, message, Modal, Table } from "antd";
+import React, {
+  UIEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { Flex, message, Table } from "antd";
 import { useNavigate, useParams } from "react-router";
 import { TableProps } from "antd/lib/table";
 import {
@@ -18,7 +24,6 @@ import {
   formatSnakeCased,
   formatUTCSessionDate,
 } from "../misc/format-utils.ts";
-import FloatButtonGroup from "antd/lib/float-button/FloatButtonGroup";
 import {
   FilterDropdownProps,
   TableRowSelection,
@@ -28,7 +33,7 @@ import { SessionStatus } from "../components/sessions/SessionStatus.tsx";
 import { useModalsContext } from "../Modals.tsx";
 import { downloadFile } from "../misc/download-utils.ts";
 import { ImportSessions } from "../components/modal/ImportSessions.tsx";
-import Search from "antd/lib/input/Search";
+import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import {
   isTimestampFilter,
   TimestampColumnFilterDropdown,
@@ -44,7 +49,19 @@ import {
 } from "../components/table/TextColumnFilterDropdown.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { parseJson } from "../misc/json-helper.ts";
-import { OverridableIcon } from "../icons/IconProvider.tsx";
+import { TablePageLayout } from "../components/TablePageLayout.tsx";
+import { filterOutByIds, toStringIds } from "../misc/selection-utils.ts";
+import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
+import chainPageStyles from "./Chain.module.css";
+import { confirmAndRun } from "../misc/confirm-utils.ts";
+import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
+import { useColumnSettingsBasedOnColumnsType } from "../components/table/useColumnSettingsButton.tsx";
+import {
+  attachResizeToColumns,
+  sumScrollXForColumns,
+  useTableColumnResize,
+} from "../components/table/useTableColumnResize.tsx";
+import commonStyles from "../components/admin_tools/CommonStyle.module.css";
 
 type SessionTableItem = Session & {
   children?: SessionTableItem[];
@@ -110,6 +127,10 @@ function compareTimestamps(s1: string, s2: string): number {
   return Date.parse(s2) - Date.parse(s1);
 }
 
+/** rc-table expand column when rows have nested `children`. */
+const SESSIONS_EXPAND_COLUMN_WIDTH = 48;
+const SESSIONS_SELECTION_COLUMN_WIDTH = 48;
+
 export const Sessions: React.FC = () => {
   const { chainId } = useParams<{ chainId: string }>();
   const { showModal } = useModalsContext();
@@ -123,9 +144,6 @@ export const Sessions: React.FC = () => {
     filterRequestList: [],
     searchString: "",
   });
-  const [columns, setColumns] = useState<
-    TableProps<SessionTableItem>["columns"]
-  >([]);
   const [tableData, setTableData] = useState<SessionTableItem[]>([]);
   const [checkpointMap, setCheckpointMap] = useState<Map<string, Checkpoint[]>>(
     new Map(),
@@ -249,7 +267,7 @@ export const Sessions: React.FC = () => {
         value: tableFilters.executionStatus.join(","),
       });
     }
-    setFilters({ ...filters, filterRequestList });
+    setFilters((prevFilters) => ({ ...prevFilters, filterRequestList }));
   };
 
   const fetchSessions = useCallback(
@@ -306,7 +324,7 @@ export const Sessions: React.FC = () => {
           isCorrelationItem(item) ? (
             <span style={{ fontWeight: 600 }}>{item.id}</span>
           ) : (
-            <Flex gap={8}>
+            <Flex gap={4}>
               <a
                 onClick={() =>
                   void navigate(`/chains/${item.chainId}/sessions/${item.id}`)
@@ -315,13 +333,16 @@ export const Sessions: React.FC = () => {
                 {item.id}
               </a>
               {item.checkpoints && item.checkpoints?.length > 0 ? (
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<OverridableIcon name="redo" />}
-                  onClick={() =>
-                    void retryFromLastCheckpoint(item.chainId, item.id)
-                  }
+                <ProtectedButton
+                  require={{ session: ["execute"] }}
+                  tooltipProps={{}}
+                  buttonProps={{
+                    size: "small",
+                    type: "text",
+                    iconName: "redo",
+                    onClick: () =>
+                      void retryFromLastCheckpoint(item.chainId, item.id),
+                  }}
                 />
               ) : null}
             </Flex>
@@ -413,94 +434,132 @@ export const Sessions: React.FC = () => {
     [chainId, navigate, retryFromLastCheckpoint],
   );
 
-  const onScroll = async (event: UIEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLDivElement;
-    const isScrolledToTheEnd =
-      target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
-    if (!allSessionsLoaded && isScrolledToTheEnd) {
-      await fetchSessions(offset);
-    }
-  };
+  const tableColumnDefinitions = useMemo(
+    () => buildColumns() ?? [],
+    [buildColumns],
+  );
+
+  const sessionsColumnSettingsKey = chainId
+    ? "sessionsTableChain"
+    : "sessionsTableAdmin";
+
+  const { orderedColumns, columnSettingsButton } =
+    useColumnSettingsBasedOnColumnsType<SessionTableItem>(
+      sessionsColumnSettingsKey,
+      tableColumnDefinitions,
+    );
+
+  const sessionsColumnResize = useTableColumnResize({
+    id: 220,
+    chainName: 160,
+    executionStatus: 140,
+    started: 168,
+    finished: 168,
+    loggingLevel: 120,
+    duration: 100,
+    snapshotName: 160,
+    engineAddress: 200,
+  });
+
+  const columnsWithResize = useMemo(
+    () =>
+      attachResizeToColumns(
+        orderedColumns,
+        sessionsColumnResize.columnWidths,
+        sessionsColumnResize.createResizeHandlers,
+        { minWidth: 80 },
+      ),
+    [
+      orderedColumns,
+      sessionsColumnResize.columnWidths,
+      sessionsColumnResize.createResizeHandlers,
+    ],
+  );
+
+  const scrollX = useMemo(
+    () =>
+      sumScrollXForColumns(
+        columnsWithResize,
+        sessionsColumnResize.columnWidths,
+        {
+          expandColumnWidth: SESSIONS_EXPAND_COLUMN_WIDTH,
+          selectionColumnWidth: SESSIONS_SELECTION_COLUMN_WIDTH,
+        },
+      ),
+    [columnsWithResize, sessionsColumnResize.columnWidths],
+  );
+
+  const onScroll = useCallback(
+    async (event: UIEvent<HTMLDivElement>) => {
+      if (isLoading || allSessionsLoaded) return;
+      const target = event.target as HTMLDivElement;
+      const isScrolledToTheEnd =
+        target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
+      if (isScrolledToTheEnd) {
+        await fetchSessions(offset);
+      }
+    },
+    [isLoading, allSessionsLoaded, offset, fetchSessions],
+  );
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  const onDeleteBtnClick = () => {
-    if (selectedRowKeys.length === 0) return;
-    Modal.confirm({
-      title: "Delete Sessions",
-      content: `Are you sure you want to delete ${selectedRowKeys.length} session(s)?`,
-      onOk: async () => deleteSelectedSessions(),
-    });
-  };
-
-  const deleteSelectedSessions = async () => {
+  const deleteSelectedSessions = useCallback(async () => {
     try {
-      const ids = selectedRowKeys.map((key) => key.toString());
-      if (isAllSessionsSelected()) {
+      const ids = toStringIds(selectedRowKeys);
+      if (selectedRowKeys.length === sessions.length) {
         await api.deleteSessionsByChainId(chainId);
         setSessions([]);
       } else {
         await api.deleteSessions(ids);
-        setSessions(
-          sessions?.filter((session) => !ids.some((id) => session.id === id)) ??
-            [],
-        );
+        setSessions((prevSessions) => filterOutByIds(prevSessions, ids));
       }
     } catch (error) {
       notificationService.requestFailed("Failed to delete sessions", error);
     }
-  };
+  }, [selectedRowKeys, sessions.length, chainId, notificationService]);
 
-  const isAllSessionsSelected = (): boolean => {
-    return selectedRowKeys.length === sessions.length;
-  };
+  const onDeleteBtnClick = useCallback(() => {
+    if (selectedRowKeys.length === 0) return;
+    confirmAndRun({
+      title: "Delete Sessions",
+      content: `Are you sure you want to delete ${selectedRowKeys.length} session(s)?`,
+      onOk: deleteSelectedSessions,
+    });
+  }, [selectedRowKeys, deleteSelectedSessions]);
 
-  const onExportBtnClick = async () => {
+  const onExportBtnClick = useCallback(async () => {
     if (selectedRowKeys.length === 0) return;
     try {
-      const ids = selectedRowKeys.map((key) => key.toString());
+      const ids = toStringIds(selectedRowKeys);
       const file = await api.exportSessions(ids);
       downloadFile(file);
     } catch (error) {
       notificationService.requestFailed("Failed to export sessions", error);
     }
-  };
+  }, [selectedRowKeys, notificationService]);
 
-  const onImportBtnClick = () => {
+  const onImportBtnClick = useCallback(() => {
     showModal({
       component: (
         <ImportSessions
           onSuccess={(importedSessions) =>
-            setSessions([...importedSessions, ...sessions])
+            setSessions((prevSessions) => [
+              ...importedSessions,
+              ...prevSessions,
+            ])
           }
         />
       ),
     });
-  };
+  }, [showModal]);
 
-  const onRetryBtnClick = async () => {
-    const promises = selectedRowKeys
-      .map((key) => key.toString())
-      .map((id) => sessions.find((session) => session.id === id))
-      .filter((session) => !!session)
-      .map(async (session) => {
-        try {
-          await api.retrySessionFromCheckpoint(session.chainId, session.id);
-          notificationService.info(
-            "Session retried",
-            `Session ${session.id} was retried successfully`,
-          );
-        } catch (error) {
-          notificationService.requestFailed(
-            `Failed to retry session ${session.id}`,
-            error,
-          );
-        }
-      });
-    await Promise.all(promises);
-  };
+  const onRefreshSessions = useCallback(() => {
+    setSelectedRowKeys([]);
+    void fetchSessions(0);
+  }, [fetchSessions]);
 
   const rowSelection: TableRowSelection<SessionTableItem> = {
     type: "checkbox",
@@ -514,64 +573,106 @@ export const Sessions: React.FC = () => {
   }, [fetchSessions]);
 
   useEffect(() => {
-    setColumns(buildColumns());
-  }, [buildColumns]);
-
-  useEffect(() => {
     void updateTableData();
   }, [updateTableData]);
+
+  const chainTabToolbar = useMemo(
+    () => (
+      <Flex
+        className={chainPageStyles.chainTabToolbarRow}
+        align="center"
+        gap={8}
+        wrap="wrap"
+      >
+        <CompactSearch
+          value={filters.searchString}
+          onChange={(value) =>
+            setFilters((prev) => ({ ...prev, searchString: value }))
+          }
+          placeholder="Search sessions..."
+          allowClear
+          className={commonStyles.searchField}
+          style={{ minWidth: 160, maxWidth: 360, flex: "0 1 auto" }}
+        />
+        <Flex align="center" gap={8} wrap="wrap" style={{ flexShrink: 0 }}>
+          <ProtectedButton
+            require={{ session: ["read"] }}
+            tooltipProps={{ title: "Refresh", placement: "bottom" }}
+            buttonProps={{
+              "data-testid": "sessions-refresh",
+              iconName: "refresh",
+              onClick: () => onRefreshSessions(),
+            }}
+          />
+          <ProtectedButton
+            require={{ session: ["export"] }}
+            tooltipProps={{ title: "Export selected sessions" }}
+            buttonProps={{
+              iconName: "cloudDownload",
+              onClick: () => void onExportBtnClick(),
+            }}
+          />
+          {chainId ? null : (
+            <ProtectedButton
+              require={{ session: ["import"] }}
+              tooltipProps={{ title: "Import sessions" }}
+              buttonProps={{
+                iconName: "cloudUpload",
+                onClick: onImportBtnClick,
+              }}
+            />
+          )}
+          <ProtectedButton
+            require={{ session: ["delete"] }}
+            tooltipProps={{ title: "Delete selected sessions" }}
+            buttonProps={{
+              iconName: "delete",
+              onClick: onDeleteBtnClick,
+            }}
+          />
+          {columnSettingsButton}
+        </Flex>
+      </Flex>
+    ),
+    [
+      filters.searchString,
+      columnSettingsButton,
+      chainId,
+      onRefreshSessions,
+      onDeleteBtnClick,
+      onExportBtnClick,
+      onImportBtnClick,
+    ],
+  );
+
+  useRegisterChainHeaderActions(chainTabToolbar, [
+    filters.searchString,
+    chainId,
+    selectedRowKeys,
+    onRefreshSessions,
+  ]);
 
   return (
     <>
       {contextHolder}
-      <Flex vertical gap={16} style={{ height: "100%" }}>
-        <Search
-          placeholder="Full text search"
-          allowClear
-          onSearch={(value) => setFilters({ ...filters, searchString: value })}
-        />
+      <TablePageLayout>
         <Table<SessionTableItem>
           size="small"
           className="flex-table"
-          columns={columns}
+          columns={columnsWithResize}
           rowSelection={rowSelection}
           dataSource={tableData}
           pagination={false}
           loading={isLoading}
           rowKey="id"
           sticky
-          scroll={{ y: "" }}
+          style={{ flex: 1, minHeight: 0 }}
+          scroll={tableData.length > 0 ? { x: scrollX, y: "" } : { x: scrollX }}
+          components={sessionsColumnResize.resizableHeaderComponents}
           onScroll={(event) => void onScroll(event)}
           onChange={(_, tableFilters) => setTableFilters(tableFilters)}
         />
-        <FloatButtonGroup
-          trigger="hover"
-          icon={<OverridableIcon name="more" />}
-        >
-          <FloatButton
-            tooltip={{ title: "Retry selected sessions", placement: "left" }}
-            icon={<OverridableIcon name="redo" />}
-            onClick={() => void onRetryBtnClick()}
-          />
-          {chainId ? null : (
-            <FloatButton
-              tooltip={{ title: "Import sessions", placement: "left" }}
-              icon={<OverridableIcon name="cloudUpload" />}
-              onClick={onImportBtnClick}
-            />
-          )}
-          <FloatButton
-            tooltip={{ title: "Export selected sessions", placement: "left" }}
-            icon={<OverridableIcon name="cloudDownload" />}
-            onClick={() => void onExportBtnClick()}
-          />
-          <FloatButton
-            tooltip={{ title: "Delete selected sessions", placement: "left" }}
-            icon={<OverridableIcon name="delete" />}
-            onClick={onDeleteBtnClick}
-          />
-        </FloatButtonGroup>
-      </Flex>
+      </TablePageLayout>
     </>
   );
 };

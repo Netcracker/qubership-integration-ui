@@ -1,5 +1,11 @@
 import type {
   ApiResponse,
+  DeleteImportInstructionsRequest,
+  DiscoveryResponse,
+  GeneralImportInstructions,
+  ImportInstruction,
+  ImportInstructionRequest,
+  ImportInstructionResult,
   SecretWithVariables,
   Variable,
 } from "../apiTypes.ts";
@@ -58,11 +64,16 @@ import {
   Specification,
   SpecificationGroup,
   SystemOperation,
+  CreateMaasKafkaRequest,
+  CreateMaasRabbitMQRequest,
+  GetMaasKafkaDeclarativeRequest,
+  GetMaasRabbitMQDeclarativeRequest,
   SystemRequest,
   TransferElementRequest,
   UsedProperty,
   UsedService,
   VariableImportPreview,
+  ChainElementCodeResponse,
 } from "../apiTypes.ts";
 import { Api } from "../api.ts";
 import { getAppName } from "../../appConfig.ts";
@@ -969,6 +980,20 @@ export class VSCodeExtensionApi implements Api {
     ).payload;
   };
 
+  cloneElements = async (
+    chainId: string,
+    ids: string[],
+    containerId?: string,
+  ): Promise<Element[]> => {
+    return <Element[]>(
+      await this.sendMessageToExtension("cloneElements", {
+        chainId,
+        ids,
+        containerId,
+      })
+    ).payload;
+  };
+
   getExchanges(): Promise<LiveExchange[]> {
     throw new Error("Method getExchanges not implemented.");
   }
@@ -995,6 +1020,25 @@ export class VSCodeExtensionApi implements Api {
 
   bulkDeploy(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method bulkDeploy not implemented.");
+  }
+  createMaasKafkaEntity(_request: CreateMaasKafkaRequest): Promise<void> {
+    throw new Error("Method createMaasKafkaEntity not implemented.");
+  }
+
+  createMaasRabbitMQEntity(_request: CreateMaasRabbitMQRequest): Promise<void> {
+    throw new Error("Method createMaasRabbitMQEntity not implemented.");
+  }
+
+  getMaasKafkaDeclarativeFile(
+    _request: GetMaasKafkaDeclarativeRequest,
+  ): Promise<File> {
+    throw new Error("Method getMaasKafkaDeclarativeFile not implemented.");
+  }
+
+  getMaasRabbitMQDeclarativeFile(
+    _request: GetMaasRabbitMQDeclarativeRequest,
+  ): Promise<File> {
+    throw new Error("Method getMaasRabbitMQDeclarativeFile not implemented.");
   }
 
   loadHttpTriggerAccessControl = async (): Promise<AccessControlResponse> => {
@@ -1081,7 +1125,46 @@ export class VSCodeExtensionApi implements Api {
   }
 
   getUsedProperties(_chainId: string): Promise<UsedProperty[]> {
-    throw new Error("Method loadHttpTriggerAccessControl not implemented.");
+    throw new Error("Method getUsedProperties not implemented.");
+  }
+
+  runServiceDiscovery(): Promise<unknown> {
+    throw new Error("Method runServiceDiscovery not implemented.");
+  }
+  isAutodiscoveryInProgress(): Promise<number> {
+    throw new Error("Method isAutodiscoveryInProgress not implemented.");
+  }
+  getAutodiscoveryResult(): Promise<DiscoveryResponse> {
+    throw new Error("Method getAutodiscoveryResult not implemented.");
+  }
+
+  getImportInstructions(): Promise<GeneralImportInstructions> {
+    throw new Error("Method getImportInstructions not implemented.");
+  }
+  addImportInstruction(
+    _request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction> {
+    throw new Error("Method addImportInstruction not implemented.");
+  }
+  updateImportInstruction(
+    _request: ImportInstructionRequest,
+  ): Promise<void | ImportInstruction> {
+    throw new Error("Method updateImportInstruction not implemented.");
+  }
+  deleteImportInstructions(
+    _payload: DeleteImportInstructionsRequest,
+  ): Promise<void> {
+    throw new Error("Method deleteImportInstructions not implemented.");
+  }
+  uploadImportInstructions(_file: File): Promise<ImportInstructionResult[]> {
+    throw new Error("Method uploadImportInstructions not implemented.");
+  }
+  exportImportInstructions(): Promise<File> {
+    throw new Error("Method exportImportInstructions not implemented.");
+  }
+
+  getElementsAsCode(_chainId: string): Promise<ChainElementCodeResponse> {
+    throw new Error("Method getElementsAsCode not implemented.");
   }
   deployToMicroDomain(): Promise<BulkDeploymentResult[]> {
     throw new Error("Method deployToMicroDomain not implemented.");

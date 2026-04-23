@@ -26,7 +26,15 @@ export type MenuItem = {
   children?: MenuItem[];
 };
 
-export const ElementsLibrarySidebar = () => {
+const DEFAULT_WIDTH = 230;
+
+export type ElementsLibrarySidebarProps = {
+  width?: number;
+};
+
+export const ElementsLibrarySidebar = ({
+  width = DEFAULT_WIDTH,
+}: ElementsLibrarySidebarProps = {}) => {
   const [, setElementsList] = useState<LibraryData | null>(null);
   const allItems = useRef<MenuItem[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -139,28 +147,35 @@ export const ElementsLibrarySidebar = () => {
   };
 
   return (
-    <Sider width={230} className={styles.sideMenu}>
+    <Sider width={width} className={styles.sideMenu}>
       {isLibraryLoading && loading ? (
         <Spin />
       ) : (
-        <Flex vertical>
-          <SidebarSearch
-            items={allItems.current}
-            onSearch={handleSearch}
-            onClear={() => {
-              setItems(allItems.current);
-              setIsSearch(false);
-              setOpenKeysState(openKeysBeforeSearch.current);
-            }}
-          />
-          <Menu
-            className={styles.libraryElements}
-            mode="inline"
-            items={items}
-            inlineIndent={8}
-            openKeys={openKeysState}
-            onOpenChange={(keys) => setOpenKeysState(keys)}
-          />
+        <Flex
+          vertical
+          style={{ flex: 1, minHeight: 0, width: "100%" }}
+        >
+          <div className={styles.sidebarSearchArea}>
+            <SidebarSearch
+              items={allItems.current}
+              onSearch={handleSearch}
+              onClear={() => {
+                setItems(allItems.current);
+                setIsSearch(false);
+                setOpenKeysState(openKeysBeforeSearch.current);
+              }}
+            />
+          </div>
+          <div className={styles.sidebarMenuArea}>
+            <Menu
+              className={styles.libraryElements}
+              mode="inline"
+              items={items}
+              inlineIndent={0}
+              openKeys={openKeysState}
+              onOpenChange={(keys) => setOpenKeysState(keys)}
+            />
+          </div>
         </Flex>
       )}
     </Sider>
