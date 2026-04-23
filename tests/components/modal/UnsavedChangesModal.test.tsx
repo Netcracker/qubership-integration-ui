@@ -32,47 +32,31 @@ describe("UnsavedChangesModal", () => {
     jest.clearAllMocks();
   });
 
-  it("renders updated unsaved changes copy", () => {
+  it("renders unsaved changes copy", () => {
     render(<UnsavedChangesModal onYes={jest.fn()} onNo={jest.fn()} />);
 
     expect(screen.getByText("Unsaved Changes")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "You have unsaved changes. Save them, discard them, or keep editing?",
+        "You have made changes, that haven't been saved. Are you sure you want to leave the window and discard the changes?",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Save changes" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Keep editing" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Yes" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No" })).toBeInTheDocument();
   });
 
-  it("closes modal and calls onYes when Save is clicked", () => {
-    const onYes = jest.fn();
-
-    render(<UnsavedChangesModal onYes={onYes} onNo={jest.fn()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-
-    expect(mockCloseContainingModal).toHaveBeenCalled();
-    expect(onYes).toHaveBeenCalled();
-  });
-
-  it("closes modal and calls onNo when Discard is clicked", () => {
+  it("closes modal and calls onNo when Yes is clicked", () => {
     const onNo = jest.fn();
 
     render(<UnsavedChangesModal onYes={jest.fn()} onNo={onNo} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
 
     expect(mockCloseContainingModal).toHaveBeenCalled();
     expect(onNo).toHaveBeenCalled();
   });
 
-  it("dismisses only the question dialog when Keep editing is clicked", () => {
+  it("dismisses only the question dialog when No is clicked", () => {
     const onNo = jest.fn();
     const onCancelQuestion = jest.fn();
 
@@ -84,7 +68,7 @@ describe("UnsavedChangesModal", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    fireEvent.click(screen.getByRole("button", { name: "No" }));
 
     expect(mockCloseContainingModal).toHaveBeenCalled();
     expect(onCancelQuestion).toHaveBeenCalled();
