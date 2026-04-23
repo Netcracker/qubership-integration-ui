@@ -2,7 +2,10 @@
  * @jest-environment node
  */
 import { describe, it, expect } from "@jest/globals";
-import { analyzeUsedProperties, AnalyzableElement } from "../../src/misc/used-properties-analyzer.ts";
+import {
+  analyzeUsedProperties,
+  AnalyzableElement,
+} from "../../src/misc/used-properties-analyzer.ts";
 import {
   UsedPropertyElementOperation,
   UsedPropertySource,
@@ -100,7 +103,8 @@ describe("analyzeUsedProperties", () => {
     expect(headerGet.length).toBeGreaterThan(0);
     const propGet = r.filter(
       (p) =>
-        p.name === "svcBefore" && p.source === UsedPropertySource.EXCHANGE_PROPERTY,
+        p.name === "svcBefore" &&
+        p.source === UsedPropertySource.EXCHANGE_PROPERTY,
     );
     expect(propGet.length).toBeGreaterThan(0);
   });
@@ -182,7 +186,8 @@ describe("analyzeUsedProperties", () => {
     };
     const r = analyzeUsedProperties([el]);
     const arrP = r.find(
-      (p) => p.name === "arrP" && p.source === UsedPropertySource.EXCHANGE_PROPERTY,
+      (p) =>
+        p.name === "arrP" && p.source === UsedPropertySource.EXCHANGE_PROPERTY,
     );
     expect(arrP).toBeDefined();
     expect(arrP?.isArray).toBe(true);
@@ -207,7 +212,9 @@ describe("analyzeUsedProperties", () => {
       },
     };
     const r = analyzeUsedProperties([el]);
-    const hh = r.filter((p) => p.name === "HH" && p.source === UsedPropertySource.HEADER);
+    const hh = r.filter(
+      (p) => p.name === "HH" && p.source === UsedPropertySource.HEADER,
+    );
     expect(hh.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -227,9 +234,7 @@ describe("analyzeUsedProperties", () => {
     };
     const r = analyzeUsedProperties([el]);
     expect(
-      r.some(
-        (p) => p.name === "HTH" && p.source === UsedPropertySource.HEADER,
-      ),
+      r.some((p) => p.name === "HTH" && p.source === UsedPropertySource.HEADER),
     ).toBe(true);
   });
 
@@ -248,7 +253,9 @@ describe("analyzeUsedProperties", () => {
       .filter(
         (p) =>
           p.source === UsedPropertySource.HEADER &&
-          p.relatedElements.hm?.operations?.includes(UsedPropertyElementOperation.SET),
+          p.relatedElements.hm?.operations?.includes(
+            UsedPropertyElementOperation.SET,
+          ),
       )
       .map((p) => p.name);
     expect(headerNames).toEqual(expect.arrayContaining(["a", "b", "x", "y"]));
@@ -311,10 +318,11 @@ describe("analyzeUsedProperties", () => {
     const hg = r.find(
       (p) => p.name === "hg" && p.source === UsedPropertySource.HEADER,
     );
-    expect(
-      hg?.relatedElements.e3?.operations?.sort(),
-    ).toEqual(
-      [UsedPropertyElementOperation.GET, UsedPropertyElementOperation.SET].sort(),
+    expect(hg?.relatedElements.e3?.operations?.sort()).toEqual(
+      [
+        UsedPropertyElementOperation.GET,
+        UsedPropertyElementOperation.SET,
+      ].sort(),
     );
   });
 });

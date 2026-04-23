@@ -3,8 +3,10 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
-  ReactElement
+  ReactElement,
+  ReactNode,
 } from "react";
 import Sider from "antd/lib/layout/Sider";
 import styles from "../components/elements_library/ElementsLibrarySidebar.module.css";
@@ -29,7 +31,6 @@ import { useFocusToElementId } from "../components/graph/ElementFocus.tsx";
 import { UsedPropertiesList } from "../components/UsedPropertiesList.tsx";
 import { AnalyzableElement } from "../misc/used-properties-analyzer.ts";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { useElementsAsCode } from "../hooks/useElementsAsCode.tsx";
 import { SidebarSearch } from "../components/elements_library/SidebarSearch.tsx";
 import { ChainTextViewPanel } from "../components/chains/ChainTextViewPanel.tsx";
 
@@ -41,7 +42,7 @@ export type PageWithRightPanelProps = {
 
 export type MenuItem = {
   key: string;
-  label: React.ReactNode;
+  label: ReactNode;
   name: string;
   icon?: ReactElement;
   children?: MenuItem[];
@@ -102,18 +103,6 @@ export const PageWithRightPanel = ({
       cancelled = true;
     };
   }, [chainContext?.chain?.id]);
-
-  useEffect(() => {
-    if (elementAsCode?.code != null && typeof elementAsCode.code === "string") {
-      setTextViewContent(elementAsCode.code);
-    }
-  }, [elementAsCode]);
-
-  useEffect(() => {
-    if (monacoRef.current) {
-      applyVSCodeThemeToMonaco(monacoRef.current);
-    }
-  }, [monacoTheme]);
 
   const handleSearch = useCallback(
     (filtered: MenuItem[], openKeys: string[]) => {
