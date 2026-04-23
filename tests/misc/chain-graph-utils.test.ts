@@ -47,7 +47,6 @@ import {
   sortParentsBeforeChildren,
 } from "../../src/misc/chain-graph-utils";
 
-
 function makeElement(overrides: Partial<Element> = {}): Element {
   return {
     id: "e1",
@@ -140,10 +139,9 @@ describe("getLibraryElement", () => {
   });
 
   test("returns default when not found", () => {
-    const result = getLibraryElement(
-      makeElement({ type: "unknown" }),
-      [makeLibraryElement({ name: "other" })],
-    );
+    const result = getLibraryElement(makeElement({ type: "unknown" }), [
+      makeLibraryElement({ name: "other" }),
+    ]);
     expect(result.name).toBe("default");
   });
 
@@ -185,9 +183,7 @@ describe("getElementColor", () => {
     [ElementColorType.COMPOSITE_TRIGGER, "#c9e1a5"],
     [ElementColorType.UNSUPPORTED, "#b8b8b8"],
   ])("returns color for %s", (colorType, expected) => {
-    expect(
-      getElementColor(makeLibraryElement({ colorType })),
-    ).toBe(expected);
+    expect(getElementColor(makeLibraryElement({ colorType }))).toBe(expected);
   });
 
   test("returns default yellow for unknown colorType", () => {
@@ -202,12 +198,10 @@ describe("getElementColor", () => {
 describe("getNodeFromElement", () => {
   test("builds unit node with position when no parent", () => {
     const element = makeElement({ id: "e1" });
-    const node = getNodeFromElement(
-      element,
-      makeLibraryElement(),
-      "DOWN",
-      { x: 10, y: 20 },
-    );
+    const node = getNodeFromElement(element, makeLibraryElement(), "DOWN", {
+      x: 10,
+      y: 20,
+    });
     expect(node.id).toBe("e1");
     expect(node.type).toBe("unit");
     expect(node.position).toEqual({ x: 10, y: 20 });
@@ -216,12 +210,10 @@ describe("getNodeFromElement", () => {
 
   test("forces position to origin when element has parent", () => {
     const element = makeElement({ parentElementId: "p1" });
-    const node = getNodeFromElement(
-      element,
-      makeLibraryElement(),
-      "DOWN",
-      { x: 10, y: 20 },
-    );
+    const node = getNodeFromElement(element, makeLibraryElement(), "DOWN", {
+      x: 10,
+      y: 20,
+    });
     expect(node.position).toEqual({ x: 0, y: 0 });
     expect(node.parentId).toBe("p1");
   });
@@ -314,7 +306,12 @@ describe("collectChildren", () => {
 
 describe("getPossibleGraphIntersection", () => {
   test("picks smallest container/swimlane intersection, filtering dragged children", () => {
-    const big = { id: "big", type: "container", width: 300, height: 300 } as Node;
+    const big = {
+      id: "big",
+      type: "container",
+      width: 300,
+      height: 300,
+    } as Node;
     const small = {
       id: "small",
       type: "swimlane",
@@ -346,7 +343,10 @@ describe("getPossibleGraphIntersection", () => {
 });
 
 describe("getIntersectionParent", () => {
-  const dragged = { id: "d", data: { elementType: "script" } } as unknown as Node;
+  const dragged = {
+    id: "d",
+    data: { elementType: "script" },
+  } as unknown as Node;
 
   test("returns parent when library element allows any children", () => {
     const parent = {
@@ -504,11 +504,7 @@ describe("sortParentsBeforeChildren", () => {
   });
 
   test("preserves relative order at same depth", () => {
-    const input = [
-      { id: "a" },
-      { id: "b" },
-      { id: "c" },
-    ];
+    const input = [{ id: "a" }, { id: "b" }, { id: "c" }];
     expect(sortParentsBeforeChildren(input).map((n) => n.id)).toEqual([
       "a",
       "b",
@@ -652,11 +648,7 @@ describe("expandWithParent", () => {
       makeNode({ id: "a", parentId: "root" }),
       makeNode({ id: "a1", parentId: "a" }),
     ];
-    expect(expandWithParent(["a1"], nodes).sort()).toEqual([
-      "a",
-      "a1",
-      "root",
-    ]);
+    expect(expandWithParent(["a1"], nodes).sort()).toEqual(["a", "a1", "root"]);
   });
 
   test("returns the input when nodes have no parents", () => {
