@@ -342,7 +342,9 @@ describe("analyzeUsedProperties", () => {
       },
     };
     const r = analyzeUsedProperties([el]);
-    expect(r.filter((p) => p.source === UsedPropertySource.HEADER)).toHaveLength(0);
+    expect(
+      r.filter((p) => p.source === UsedPropertySource.HEADER),
+    ).toHaveLength(0);
   });
 
   it("skips non-record entries in mappingDescription headers array", () => {
@@ -353,7 +355,12 @@ describe("analyzeUsedProperties", () => {
       properties: {
         mappingDescription: {
           source: {
-            headers: [null, "string-entry", 42, { name: "valid", type: { name: "string" } }],
+            headers: [
+              null,
+              "string-entry",
+              42,
+              { name: "valid", type: { name: "string" } },
+            ],
           },
           target: { headers: [], properties: [] },
         },
@@ -440,7 +447,9 @@ describe("analyzeUsedProperties", () => {
       },
     };
     const r = analyzeUsedProperties([el]);
-    expect(r.filter((p) => p.source === UsedPropertySource.HEADER)).toHaveLength(0);
+    expect(
+      r.filter((p) => p.source === UsedPropertySource.HEADER),
+    ).toHaveLength(0);
   });
 
   it("handles element with no properties", () => {
@@ -479,7 +488,9 @@ describe("analyzeUsedProperties", () => {
       },
     };
     const r = analyzeUsedProperties([el]);
-    expect(r.filter((p) => p.source === UsedPropertySource.HEADER)).toHaveLength(0);
+    expect(
+      r.filter((p) => p.source === UsedPropertySource.HEADER),
+    ).toHaveLength(0);
   });
 
   it("skips entries with non-string typeName (non-string type.name) in mappingDescription", () => {
