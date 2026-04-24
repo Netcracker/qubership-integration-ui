@@ -60,11 +60,8 @@ jest.mock("../../src/hooks/useNotificationService", () => ({
   useNotificationService: () => ({ requestFailed: mockRequestFailed }),
 }));
 
-let mockIsVsCode = false;
 jest.mock("../../src/api/rest/vscodeExtensionApi", () => ({
-  get isVsCode() {
-    return mockIsVsCode;
-  },
+  isVsCode: false,
 }));
 
 jest.mock("../../src/api/api", () => ({
@@ -85,17 +82,14 @@ jest.mock("../../src/icons/IconProvider", () => ({
 
 jest.mock("../../src/components/UsedPropertiesList", () => ({
   UsedPropertiesList: ({
-    chainId,
     elements,
     onElementDoubleClick,
   }: {
-    chainId?: string;
     elements?: unknown[];
     onElementDoubleClick?: (id: string) => void;
   }) => (
     <div
       data-testid="used-properties-list"
-      data-chain-id={chainId}
       data-element-count={elements?.length}
     >
       {onElementDoubleClick && (
@@ -174,7 +168,6 @@ describe("PageWithRightPanel", () => {
     mockUseParams.mockReturnValue({ chainId: "test-chain-id" });
     (api.getElements as jest.Mock).mockResolvedValue([]);
     mockElementAsCode = { code: "element code" };
-    mockIsVsCode = false;
     mockElkDirectionThrows = false;
   });
 
@@ -251,14 +244,36 @@ describe("PageWithRightPanel", () => {
     }
   });
 
-  it("passes chainId to UsedPropertiesList when not in VSCode", () => {
-    renderWithContext(<PageWithRightPanel />);
+  it("passes `elements` to UsedPropertiesList (analyzer path; no chainId prop on list)", () => {
+    (api.getElements as jest.Mock).mockResolvedValue([]);
+    renderWithChain();
     const propsTab = screen
       .getAllByRole("tab")
       .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
     fireEvent.click(propsTab!);
     const list = screen.getByTestId("used-properties-list");
-    expect(list).toHaveAttribute("data-chain-id", "test-chain-id");
+    expect(list).toHaveAttribute("data-element-count", "0");
+  });
+
+  it("updates element count in UsedPropertiesList after api.getElements resolves", async () => {
+    const el = {
+      id: "el-1",
+      name: "My Script",
+      description: "",
+      chainId: "test-chain-id",
+      type: "script",
+      mandatoryChecksPassed: true,
+    };
+    (api.getElements as jest.Mock).mockResolvedValue([el]);
+    renderWithChain();
+    const propsTab = screen
+      .getAllByRole("tab")
+      .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
+    fireEvent.click(propsTab!);
+    await waitFor(() => {
+      const list = screen.getByTestId("used-properties-list");
+      expect(list).toHaveAttribute("data-element-count", "1");
+    });
   });
 
   it("shows no chain message on element properties tab when route has no chainId", () => {
@@ -274,22 +289,6 @@ describe("PageWithRightPanel", () => {
   it("calls api.getElements on mount when chainId is present", () => {
     renderWithChain();
     expect(api.getElements).toHaveBeenCalledWith("test-chain-id");
-  });
-
-  it("shows only listElements and elementProperties tabs when isVsCode is true", () => {
-    mockIsVsCode = true;
-    renderWithContext(<PageWithRightPanel />);
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(2);
-    expect(
-      tabs.some((tab) => tab.querySelector('[data-icon="unorderedList"]')),
-    ).toBe(true);
-    expect(
-      tabs.some((tab) => tab.querySelector('[data-icon="menuUnfold"]')),
-    ).toBe(true);
-    expect(tabs.some((tab) => tab.querySelector('[data-icon="file"]'))).toBe(
-      false,
-    );
   });
 
   it("renders textViewContent from elementAsCode in text view tab", () => {
@@ -516,55 +515,6 @@ describe("PageWithRightPanel", () => {
     });
   });
 
-  describe("VSCode mode elementProperties tab", () => {
-    const testElement = {
-      id: "el-1",
-      name: "My Script",
-      description: "",
-      chainId: "test-chain-id",
-      type: "script",
-      mandatoryChecksPassed: true,
-    };
-
-    it("passes elements to UsedPropertiesList when isVsCode is true", async () => {
-      mockIsVsCode = true;
-      (api.getElements as jest.Mock).mockResolvedValue([testElement]);
-      renderWithChain([testElement]);
-      const propsTab = screen
-        .getAllByRole("tab")
-        .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
-      fireEvent.click(propsTab!);
-      const list = screen.getByTestId("used-properties-list");
-      expect(list).toHaveAttribute("data-element-count", "1");
-    });
-
-    it("does not show chainId attribute when isVsCode is true on elementProperties", async () => {
-      mockIsVsCode = true;
-      (api.getElements as jest.Mock).mockResolvedValue([testElement]);
-      renderWithChain([testElement]);
-      const propsTab = screen
-        .getAllByRole("tab")
-        .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
-      fireEvent.click(propsTab!);
-      const list = screen.getByTestId("used-properties-list");
-      expect(list).not.toHaveAttribute("data-chain-id");
-    });
-
-    it("updates element count in UsedPropertiesList after api resolves in VSCode mode", async () => {
-      mockIsVsCode = true;
-      (api.getElements as jest.Mock).mockResolvedValue([testElement]);
-      renderWithChain();
-      const propsTab = screen
-        .getAllByRole("tab")
-        .find((tab) => tab.querySelector('[data-icon="menuUnfold"]'));
-      fireEvent.click(propsTab!);
-      await waitFor(() => {
-        const list = screen.getByTestId("used-properties-list");
-        expect(list).toHaveAttribute("data-element-count", "1");
-      });
-    });
-  });
-
   describe("handleElementDoubleClickById", () => {
     const testElement = {
       id: "el-1",
@@ -589,11 +539,7 @@ describe("PageWithRightPanel", () => {
 
       const { ChainContext } = require("../../src/pages/ChainPage");
       const mockOnDblClick = jest
-        .spyOn(
-          screen.getByTestId("double-click-trigger"),
-          "onclick",
-          "get",
-        )
+        .spyOn(screen.getByTestId("double-click-trigger"), "onclick", "get")
         .mockReturnValue(null);
       mockOnDblClick.mockRestore();
 
