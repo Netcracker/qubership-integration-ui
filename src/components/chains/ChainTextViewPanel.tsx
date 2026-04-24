@@ -42,7 +42,7 @@ export const ChainTextViewPanel: React.FC<ChainTextViewPanelProps> = ({
     state.nodeLookup.forEach((node) => {
       if (node.selected) ids.push(node.id);
     });
-    ids.sort();
+    ids.sort((a, b) => a.localeCompare(b));
     return ids;
   }, shallowStringArrayEqual);
 
