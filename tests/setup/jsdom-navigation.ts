@@ -7,16 +7,26 @@ if (typeof CSS === "undefined" || typeof CSS.escape !== "function") {
     let result = "";
     for (let i = 0; i < str.length; i++) {
       const code = str.charCodeAt(i);
-      if (code === 0) { result += "�"; continue; }
-      if ((code >= 0x01 && code <= 0x1f) || code === 0x7f ||
-          (i === 0 && code >= 0x30 && code <= 0x39)) {
+      if (code === 0) {
+        result += "�";
+        continue;
+      }
+      if (
+        (code >= 0x01 && code <= 0x1f) ||
+        code === 0x7f ||
+        (i === 0 && code >= 0x30 && code <= 0x39)
+      ) {
         result += "\\" + code.toString(16) + " ";
         continue;
       }
-      if (code >= 0x80 || code === 0x2d || code === 0x5f ||
-          (code >= 0x30 && code <= 0x39) ||
-          (code >= 0x41 && code <= 0x5a) ||
-          (code >= 0x61 && code <= 0x7a)) {
+      if (
+        code >= 0x80 ||
+        code === 0x2d ||
+        code === 0x5f ||
+        (code >= 0x30 && code <= 0x39) ||
+        (code >= 0x41 && code <= 0x5a) ||
+        (code >= 0x61 && code <= 0x7a)
+      ) {
         result += str[i];
         continue;
       }
@@ -24,8 +34,9 @@ if (typeof CSS === "undefined" || typeof CSS.escape !== "function") {
     }
     return result;
   };
-  (globalThis as unknown as { CSS: { escape: (s: string) => string } }).CSS =
-    { escape: cssEscape };
+  (globalThis as unknown as { CSS: { escape: (s: string) => string } }).CSS = {
+    escape: cssEscape,
+  };
 }
 
 const globalForEncoders = globalThis as unknown as {
@@ -81,11 +92,7 @@ const originalConsoleError = console.error;
 console.error = (...args: unknown[]) => {
   const fullMsg = args
     .map((a) =>
-      typeof a === "string"
-        ? a
-        : a instanceof Error
-          ? a.message
-          : String(a),
+      typeof a === "string" ? a : a instanceof Error ? a.message : String(a),
     )
     .join(" ");
   if (
