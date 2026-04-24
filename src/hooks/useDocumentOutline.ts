@@ -53,7 +53,7 @@ export function useDocumentOutline(
           extracted.push({
             id: el.id,
             text,
-            level: parseInt(el.tagName[1], 10),
+            level: Number.parseInt(el.tagName[1], 10),
           });
           elementRefs.push(el);
         }

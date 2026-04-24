@@ -244,7 +244,7 @@ export const DocumentationViewer = React.forwardRef<
   return (
     <div
       ref={setRef}
-      className={`${styles.viewer}${isDark ? ` ${styles.dark}` : ""}`}
+      className={isDark ? `${styles.viewer} ${styles.dark}` : styles.viewer}
     >
       <Markdown
         rehypePlugins={rehypePlugins}
