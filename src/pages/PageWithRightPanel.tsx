@@ -233,8 +233,8 @@ export const PageWithRightPanel = ({
               label: <OverridableIcon name="unorderedList" />,
             },
             {
-                key: "elementProperties",
-                label: <OverridableIcon name="menuUnfold" />,
+              key: "elementProperties",
+              label: <OverridableIcon name="menuUnfold" />,
             },
             ...(isVsCode
               ? []
@@ -260,50 +260,48 @@ export const PageWithRightPanel = ({
         {activeTab === "listElements" && (
           <Flex
             vertical
-            style={{ flex: 1, minHeight: 0, overflow: "auto", width: "100%"}}
+            style={{ flex: 1, minHeight: 0, overflow: "auto", width: "100%" }}
           >
-          <SidebarSearch
-            items={elementMenuItems}
-            onSearch={handleSearch}
-            onClear={() => {
-              setItems(allItems.current);
-              setIsSearch(false);
-              setOpenKeysState(openKeysBeforeSearch.current);
-            }}
-          />
-          <Menu
-            className={styles.libraryElements}
-            mode="vertical"
-            items={elementMenuItems}
-            selectable={false}
-            selectedKeys={[]}
-            onClick={({ key }) => handleElementSingleClick(String(key))}
-            style={{ borderRight: "none", width: "100%" }}
-          />
+            <SidebarSearch
+              items={elementMenuItems}
+              onSearch={handleSearch}
+              onClear={() => {
+                setItems(allItems.current);
+                setIsSearch(false);
+                setOpenKeysState(openKeysBeforeSearch.current);
+              }}
+            />
+            <Menu
+              className={styles.libraryElements}
+              mode="vertical"
+              items={elementMenuItems}
+              selectable={false}
+              selectedKeys={[]}
+              onClick={({ key }) => handleElementSingleClick(String(key))}
+              style={{ borderRight: "none", width: "100%" }}
+            />
           </Flex>
         )}
         {activeTab === "elementProperties" && chainId && (
-          isVsCode ? (
-            <UsedPropertiesList
-              elements={elements as unknown as AnalyzableElement[]}
-              onElementSingleClick={handleElementSingleClick}
-              onElementDoubleClick={handleElementDoubleClickById}
-            />
-          ) : (
-            <UsedPropertiesList
-              chainId={chainId}
-              onElementSingleClick={handleElementSingleClick}
-              onElementDoubleClick={handleElementDoubleClickById}
-            />
-          )
+          <UsedPropertiesList
+            elements={elements as unknown as AnalyzableElement[]}
+            onElementSingleClick={handleElementSingleClick}
+            onElementDoubleClick={handleElementDoubleClickById}
+          />
         )}
         {activeTab === "elementProperties" && !chainId && (
-          <div style={{ padding: "16px", textAlign: "center", color: "var(--vscode-descriptionForeground)" }}>
+          <div
+            style={{
+              padding: "16px",
+              textAlign: "center",
+              color: "var(--vscode-descriptionForeground)",
+            }}
+          >
             No chain selected
           </div>
         )}
         {activeTab === "textView" && (
-          <ChainTextViewPanel chainId={chainId ?? ""} elements={elements}/>
+          <ChainTextViewPanel chainId={chainId ?? ""} elements={elements} />
         )}
       </Flex>
     </Sider>
