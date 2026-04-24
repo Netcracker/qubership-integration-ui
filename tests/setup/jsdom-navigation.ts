@@ -1,6 +1,34 @@
 import { TextDecoder, TextEncoder } from "node:util";
 
-const globalForEncoders = globalThis as typeof globalThis & {
+// CSS.escape is not implemented in jsdom. Provide a standards-compliant polyfill.
+if (typeof CSS === "undefined" || typeof CSS.escape !== "function") {
+  const cssEscape = (value: string): string => {
+    const str = String(value);
+    let result = "";
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      if (code === 0) { result += "�"; continue; }
+      if ((code >= 0x01 && code <= 0x1f) || code === 0x7f ||
+          (i === 0 && code >= 0x30 && code <= 0x39)) {
+        result += "\\" + code.toString(16) + " ";
+        continue;
+      }
+      if (code >= 0x80 || code === 0x2d || code === 0x5f ||
+          (code >= 0x30 && code <= 0x39) ||
+          (code >= 0x41 && code <= 0x5a) ||
+          (code >= 0x61 && code <= 0x7a)) {
+        result += str[i];
+        continue;
+      }
+      result += "\\" + str[i];
+    }
+    return result;
+  };
+  (globalThis as unknown as { CSS: { escape: (s: string) => string } }).CSS =
+    { escape: cssEscape };
+}
+
+const globalForEncoders = globalThis as unknown as {
   TextEncoder?: typeof TextEncoder;
   TextDecoder?: typeof TextDecoder;
 };
@@ -37,7 +65,7 @@ if (
 ) {
   (globalThis as { structuredClone: <T>(val: T) => T }).structuredClone = <T>(
     val: T,
-  ): T => JSON.parse(JSON.stringify(val));
+  ): T => JSON.parse(JSON.stringify(val)) as T;
 }
 
 if (typeof globalThis.HTMLFormElement !== "undefined") {
@@ -56,7 +84,7 @@ console.error = (...args: unknown[]) => {
       typeof a === "string"
         ? a
         : a instanceof Error
-          ? (a as Error).message
+          ? a.message
           : String(a),
     )
     .join(" ");
@@ -81,6 +109,14 @@ console.error = (...args: unknown[]) => {
   }
   originalConsoleError.apply(console, args);
 };
+
+// jsdom does not implement scrollIntoView; stub it so components calling it don't throw.
+if (
+  typeof Element !== "undefined" &&
+  typeof Element.prototype.scrollIntoView !== "function"
+) {
+  Element.prototype.scrollIntoView = () => {};
+}
 
 if (
   typeof document !== "undefined" &&
