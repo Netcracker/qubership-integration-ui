@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { Button, Modal, Tabs, Flex } from "antd";
+import { Button, Tabs, Flex } from "antd";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
 import {
@@ -60,7 +60,6 @@ import { UnsavedChangesModal } from "../UnsavedChangesModal.tsx";
 import CustomOneOfField from "./field/CustomOneOfField.tsx";
 import SingleSelectField from "./field/select/SingleSelectField.tsx";
 import ContextServiceField from "./field/select/ContextServiceField.tsx";
-import { FullscreenButton } from "../FullscreenButton.tsx";
 import { useDocumentation } from "../../../hooks/useDocumentation.ts";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 import ChainTriggerElementIdField from "./field/ChainTriggerElementIdField.tsx";
@@ -86,6 +85,7 @@ import {
 import { usePermissions } from "../../../permissions/usePermissions.tsx";
 import { hasPermissions } from "../../../permissions/funcs.ts";
 import { isVsCode } from "../../../api/rest/vscodeExtensionApi.ts";
+import { ModalWithFullscreenToggle } from "../ModalWithFullscreenToggle.tsx";
 
 type ElementModificationProps = {
   node: ChainGraphNode;
@@ -262,7 +262,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const [activeKey, setActiveKey] = useState<string>();
   const { showModal } = useModalsContext();
   const [hasChanges, setHasChanges] = useState<boolean>(false);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [elementDescription, setElementDescription] = useState<string>("");
   const [missingRequiredParamsMap, setMissingRequiredParamsMap] = useState<
     Record<string, string[]>
@@ -292,10 +291,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     },
     [],
   );
-
-  const handleFullscreen = useCallback(() => {
-    setIsFullscreen((prevValue) => !prevValue);
-  }, []);
 
   const schemaModules = useMemo(() => getSchemaModules(), []);
 
@@ -891,19 +886,18 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   };
 
   return (
-    <Modal
+    <ModalWithFullscreenToggle
       open
       title={
         <Flex
           align="center"
-          gap={4}
+          gap={0}
           wrap={false}
           justify="space-between"
           style={{ width: "100%" }}
         >
           <div
             className={styles["modal-title"]}
-            style={{ minWidth: 0, flex: 1 }}
           >
             <ElementNameInlineEdit
               ref={elementNameRef}
@@ -927,22 +921,12 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               <Button
                 icon={<OverridableIcon name="questionCircle" />}
                 onClick={() => openElementDoc(node.data.elementType)}
+                style={{ marginRight: 4 }}
                 type="text"
                 title="Help"
                 size="small"
               />
             )}
-            <FullscreenButton
-              isFullscreen={isFullscreen}
-              onClick={handleFullscreen}
-            />
-            <Button
-              icon={<OverridableIcon name="close" />}
-              onClick={handleCheckUnsavedAndClose}
-              type="text"
-              title="Close"
-              size="small"
-            />
           </Flex>
         </Flex>
       }
@@ -950,9 +934,8 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
       closable={false}
       maskClosable={false}
       loading={libraryElementIsLoading}
-      style={isFullscreen ? { top: 0, margin: 0, padding: 0 } : {}}
       footer={
-        <Flex justify="space-between" align="center">
+        <Flex justify="space-between" align="center" gap={24}>
           <span>{elementDescription}</span>
           <Flex gap={8}>
             <Button
@@ -972,16 +955,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           </Flex>
         </Flex>
       }
-      classNames={{
-        footer: styles["modal-footer"],
-        content: isFullscreen
-          ? [styles["modal"], styles["modal-fullscreen"]].join(" ")
-          : styles["modal"],
-        body: isFullscreen
-          ? [styles["modal-body"], styles["modal-body-fullscreen"]].join(" ")
-          : styles["modal-body"],
-        header: styles["modal-header"],
-      }}
     >
       {schema && activeKey && (
         <>
@@ -991,6 +964,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
           />
           <div
+            className={styles["form-wrapper"]}
             onClickCapture={markUserInteracted}
             onKeyDownCapture={markUserInteracted}
             onMouseDownCapture={markUserInteracted}
@@ -1018,6 +992,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           </div>
         </>
       )}
-    </Modal>
+    </ModalWithFullscreenToggle>
   );
 };
