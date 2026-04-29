@@ -12,8 +12,10 @@ const capabilities: ProviderCapabilities = {
 interface CipChatRequestBody {
   message: string;
   conversationId?: string;
-  /** Optional inline context: chain schema, attachment URLs, etc. */
+  /** Optional inline context: e.g. chain JSON schema. */
   attachment?: string;
+  /** S3/MinIO object keys; backend loads document bodies. */
+  attachmentObjectKeys?: string[];
   scenarioHint: null;
 }
 
@@ -53,6 +55,7 @@ export class HttpAiModelProvider implements AiModelProvider {
         message: this.extractLastUserMessage(request.messages),
         conversationId: request.conversationId,
         attachment: this.buildAttachment(request) || undefined,
+        attachmentObjectKeys: this.mergeObjectKeys(request.attachmentObjectKeys),
         scenarioHint: null,
       };
       const response = await axios.post<ChatResponse>(url, requestBody, {
@@ -88,6 +91,7 @@ export class HttpAiModelProvider implements AiModelProvider {
         message: this.extractLastUserMessage(request.messages),
         conversationId: request.conversationId,
         attachment: this.buildAttachment(request) || undefined,
+        attachmentObjectKeys: this.mergeObjectKeys(request.attachmentObjectKeys),
         scenarioHint: null,
       };
 
@@ -176,10 +180,26 @@ export class HttpAiModelProvider implements AiModelProvider {
   }
 
   // ── uploadFile ────────────────────────────────────────────────────────────
-  // The Quarkus backend does not expose a file-upload endpoint.
-  // AiAssistant handles the failure gracefully and proceeds without attachment.
-  async uploadFile(_file: File, _sessionId?: string): Promise<{ url: string }> {
-    throw new Error("File upload is not supported by this AI service.");
+  async uploadFile(file: File, sessionId?: string): Promise<{ url: string; objectKey: string }> {
+    const base = this.serviceUrl.replace(/\/$/, "");
+    const formData = new FormData();
+    formData.append("file", file);
+    if (sessionId) {
+      formData.append("prefix", sessionId);
+    }
+    const response = await axios.post<{ objectKey: string }>(
+      `${base}/api/v1/storage/objects`,
+      formData,
+      {
+        headers: {
+          ...getBearerHeader(this.serviceUrl, "/api/v1/storage/objects"),
+        },
+        timeout: 600000,
+      },
+    );
+    const objectKey = response.data.objectKey;
+    const url = `${base}/api/v1/storage/objects?key=${encodeURIComponent(objectKey)}`;
+    return { url, objectKey };
   }
 
 
@@ -258,6 +278,13 @@ export class HttpAiModelProvider implements AiModelProvider {
     return messages[messages.length - 1]?.content ?? "";
   }
 
+  private mergeObjectKeys(keys: string[] | undefined): string[] | undefined {
+    if (!keys?.length) {
+      return undefined;
+    }
+    return [...new Set(keys)];
+  }
+
   private buildAttachment(request: ChatRequest): string {
     const parts: string[] = [];
 
@@ -268,13 +295,6 @@ export class HttpAiModelProvider implements AiModelProvider {
         "```json\n" +
         JSON.stringify(schema, null, 2) +
         "\n```"
-      );
-    }
-
-    if (request.attachmentUrls?.length) {
-      parts.push(
-        "## Attached Documents\n" +
-        request.attachmentUrls.map((url) => `- ${url}`).join("\n")
       );
     }
 

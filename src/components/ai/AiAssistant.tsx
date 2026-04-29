@@ -879,7 +879,13 @@ export const AiAssistant: React.FC = () => {
   // ---------------------------------------------------------------------------
 
   const sendToProvider = useCallback(
-    async (sessionId: string, messages: ChatMessage[], attachmentUrls?: string[], newMessages?: ChatMessage[]) => {
+    async (
+      sessionId: string,
+      messages: ChatMessage[],
+      attachmentUrls?: string[],
+      newMessages?: ChatMessage[],
+      attachmentObjectKeys?: string[],
+    ) => {
       if (sendInProgressRef.current) {
         console.warn("[AiAssistant] sendToProvider skipped – already in progress");
         return;
@@ -918,11 +924,32 @@ export const AiAssistant: React.FC = () => {
         // otherwise generate a client-side UUID that the server will adopt.
         const conversationId = serverConversationId ?? crypto.randomUUID();
 
+        const prevUrls = currentSessionData?.lastAttachmentUrls ?? [];
+        const incoming = attachmentUrls ?? [];
+        const mergedAttachmentUrls =
+          prevUrls.length || incoming.length
+            ? [...new Set([...prevUrls, ...incoming])]
+            : undefined;
+
+        const prevKeys = currentSessionData?.lastAttachmentObjectKeys ?? [];
+        const incomingKeys = attachmentObjectKeys ?? [];
+        const mergedAttachmentObjectKeys =
+          prevKeys.length || incomingKeys.length
+            ? [...new Set([...prevKeys, ...incomingKeys])]
+            : undefined;
+        if (mergedAttachmentObjectKeys?.length) {
+          sessionStore.updateSessionLastAttachmentObjectKeys(sessionId, mergedAttachmentObjectKeys);
+        }
+        if (mergedAttachmentUrls?.length) {
+          sessionStore.updateSessionLastAttachmentUrls(sessionId, mergedAttachmentUrls);
+        }
+
         const requestPayload: ChatRequest = {
           messages: messagesToApi,
           conversationId,
           abortSignal: abortControllerRef.current.signal,
-          attachmentUrls,
+          attachmentUrls: mergedAttachmentUrls,
+          attachmentObjectKeys: mergedAttachmentObjectKeys,
           temperature: 1,
         };
 
@@ -1037,13 +1064,16 @@ export const AiAssistant: React.FC = () => {
     if (!session) return;
 
     let attachmentUrls: string[] | undefined;
+    let attachmentObjectKeys: string[] | undefined;
     if (attachedFiles.length > 0) {
       try {
         const aiProvider = getDefaultAiProvider();
         if (aiProvider.uploadFile) {
-          attachmentUrls = (
-            await Promise.all(attachedFiles.map((file) => aiProvider.uploadFile!(file, sessionId)))
-          ).map((r) => r.url);
+          const results = await Promise.all(
+            attachedFiles.map((file) => aiProvider.uploadFile!(file, sessionId)),
+          );
+          attachmentUrls = results.map((r) => r.url);
+          attachmentObjectKeys = results.map((r) => r.objectKey);
         }
       } catch (e) {
         console.warn("[AiAssistant] Upload failed, sending without attachments", e);
@@ -1051,16 +1081,14 @@ export const AiAssistant: React.FC = () => {
       setAttachedFiles([]);
     }
 
-    const userContent = messageText || (attachmentUrls?.length ? "See attached files." : "");
+    const userContent =
+      messageText || (attachmentObjectKeys?.length || attachmentUrls?.length ? "See attached files." : "");
     const userMessage: ChatMessage = { role: "user", content: userContent };
     const next = [...session.messages, userMessage];
     sessionStore.updateSessionMessages(sessionId, next);
-    if (attachmentUrls?.length) {
-      sessionStore.updateSessionLastAttachmentUrls(sessionId, attachmentUrls);
-    }
     setInputValue("");
     refreshSessions();
-    await sendToProvider(sessionId, next, attachmentUrls, [userMessage]);
+    await sendToProvider(sessionId, next, attachmentUrls, [userMessage], attachmentObjectKeys);
 
     const after = sessionStore.getSession(sessionId);
     if (after && (after.title === "New Chat" || after.title.match(/^Chat \d+$/))) {
@@ -1083,17 +1111,21 @@ export const AiAssistant: React.FC = () => {
 
     const latestSession = sessionStore.getSession(currentSessionId);
     let attachmentUrls = latestSession?.lastAttachmentUrls ?? session.lastAttachmentUrls;
+    let attachmentObjectKeys =
+      latestSession?.lastAttachmentObjectKeys ?? session.lastAttachmentObjectKeys;
     if (!attachmentUrls?.length) {
       const designUrl = extractDesignUrlFromMessages(session.messages);
       if (designUrl) attachmentUrls = [designUrl];
     }
-    await sendToProvider(currentSessionId, next, attachmentUrls, [agreeMessage]);
+    await sendToProvider(currentSessionId, next, attachmentUrls, [agreeMessage], attachmentObjectKeys);
   }, [currentSessionId, isLoading, isStreaming, sessionStore, refreshSessions, sendToProvider]);
 
   const handleClear = useCallback(() => {
     if (isLoading || !currentSessionId) return;
     sessionStore.updateSessionMessages(currentSessionId, []);
     sessionStore.updateConversationId(currentSessionId, undefined);
+    sessionStore.updateSessionLastAttachmentUrls(currentSessionId, undefined);
+    sessionStore.updateSessionLastAttachmentObjectKeys(currentSessionId, undefined);
     refreshSessions();
   }, [isLoading, currentSessionId, sessionStore, refreshSessions]);
 

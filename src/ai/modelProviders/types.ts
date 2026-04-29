@@ -14,7 +14,10 @@ export interface ChatRequest {
   temperature?: number;
   maxTokens?: number;
   abortSignal?: AbortSignal;
+  /** Download URLs (optional display / legacy). Prefer attachmentObjectKeys for cip-ai-service. */
   attachmentUrls?: string[];
+  /** S3/MinIO object keys from upload; preferred for backend MinIO inlining. */
+  attachmentObjectKeys?: string[];
   context?: {
     type: 'chain' | 'service' | 'operation';
     chainId?: string;

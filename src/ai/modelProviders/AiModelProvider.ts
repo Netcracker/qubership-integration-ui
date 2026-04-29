@@ -17,8 +17,8 @@ export interface AiModelProvider {
     request: ChatRequest,
     onChunk: (chunk: StreamingChunk) => void
   ): Promise<ChatResponse>;
-  /** Upload a file for chat attachment; returns object URL. Optional – only HTTP provider supports it. */
-  uploadFile?(file: File, sessionId?: string): Promise<{ url: string }>;
+  /** Upload a file for chat attachment; returns download URL and S3 object key. Optional – only HTTP provider supports it. */
+  uploadFile?(file: File, sessionId?: string): Promise<{ url: string; objectKey: string }>;
 }
 
 

@@ -157,6 +157,16 @@ class ChatSessionStore {
     }
   }
 
+  updateSessionLastAttachmentObjectKeys(sessionId: string, keys: string[] | undefined): void {
+    const sessions = this.getStoredSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (session) {
+      session.lastAttachmentObjectKeys = keys;
+      session.updatedAt = Date.now();
+      this.saveSessions(sessions, true);
+    }
+  }
+
   updateSessionMode(sessionId: string, mode: ChatMode): void {
     const sessions = this.getStoredSessions();
     const session = sessions.find((s) => s.id === sessionId);
