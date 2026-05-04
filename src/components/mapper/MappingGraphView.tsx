@@ -74,6 +74,10 @@ import { EditConstantDialog } from "./EditConstantDialog.tsx";
 import { parseJson } from "../../misc/json-helper.ts";
 import { MappingActions } from "../../mapper/util/actions.ts";
 import {
+  focusSvgEventTarget,
+  handleMiddlePanelConnectionSvgKeyDown,
+} from "./mappingGraphMiddlePanelDomHandlers.ts";
+import {
   TransformationContext,
   TransformationEditDialog,
 } from "./TransformationEditDialog.tsx";
@@ -916,17 +920,15 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                       setContextMenuOpened(true);
                     },
                     onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
-                      if (event.key === "Delete" || event.key === "Backspace") {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        deleteSelectedConnections();
-                        clearSelection();
-                      }
+                      handleMiddlePanelConnectionSvgKeyDown(event, {
+                        deleteSelectedConnections,
+                        clearSelection,
+                      });
                     },
                     onClick: (
                       event: React.MouseEvent<SVGElement, MouseEvent>,
                     ) => {
-                      event.currentTarget.focus();
+                      focusSvgEventTarget(event);
                       setContextMenuOpened(false);
                       if (event.ctrlKey) {
                         connections.map(({ source, target }) =>

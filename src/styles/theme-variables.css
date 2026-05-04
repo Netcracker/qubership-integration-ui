@@ -127,7 +127,6 @@
   /* Container Node Colors */
   --container-border-color: #fff9e6;
   --container-header-background: #fff9e6;
-
   --qip-table-warning-row-background: color-mix(
     in srgb,
     var(--vscode-warningForeground) 6%,
@@ -183,7 +182,6 @@
   /* Container Node Colors */
   --container-border-color: #fff9e6;
   --container-header-background: #fff9e6;
-
   --qip-table-warning-row-background: color-mix(
     in srgb,
     var(--vscode-warningForeground) 16%,
@@ -225,10 +223,7 @@
   --qip-table-warning-row-background-hover: color-mix(
     in srgb,
     var(--vscode-warningForeground, #cca700) 13%,
-    var(
-      --vscode-list-hoverBackground,
-      var(--vscode-editor-background, #f5f5f5)
-    )
+    var(--vscode-list-hoverBackground, var(--vscode-editor-background, #f5f5f5))
   );
 }
 
