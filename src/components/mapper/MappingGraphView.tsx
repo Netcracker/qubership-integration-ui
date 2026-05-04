@@ -903,6 +903,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                       : undefined),
                   },
                   domAttributes: {
+                    tabIndex: 0,
                     onContextMenu: (
                       event: React.MouseEvent<SVGElement, MouseEvent>,
                     ) => {
@@ -915,7 +916,9 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                       setContextMenuOpened(true);
                     },
                     onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
-                      if (event.key === "Delete") {
+                      if (event.key === "Delete" || event.key === "Backspace") {
+                        event.preventDefault();
+                        event.stopPropagation();
                         deleteSelectedConnections();
                         clearSelection();
                       }
@@ -923,6 +926,7 @@ export const MappingGraphView: React.FC<MappingGraphViewProps> = ({
                     onClick: (
                       event: React.MouseEvent<SVGElement, MouseEvent>,
                     ) => {
+                      event.currentTarget.focus();
                       setContextMenuOpened(false);
                       if (event.ctrlKey) {
                         connections.map(({ source, target }) =>
