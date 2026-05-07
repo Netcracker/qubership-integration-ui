@@ -1,4 +1,4 @@
-import { Button, Drawer, Tabs, Space, Input, Typography, Divider, Tooltip, Alert } from "antd";
+import { Button, Drawer, Tabs, Space, Input, Typography, Divider, Tooltip, message } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import React, { useEffect, useMemo, useRef, useState, useCallback, useContext } from "react";
 import "./AiAssistantPanel.css";
@@ -71,6 +71,72 @@ function extractMarkdownText(children: unknown): string {
   return "";
 }
 
+function isAiStorageObjectDownloadHref(href: string | undefined): boolean {
+  if (!href) return false;
+  try {
+    const base = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const parsed = new URL(href, base);
+    return parsed.pathname.endsWith("/api/v1/storage/objects") && parsed.searchParams.has("key");
+  } catch {
+    return false;
+  }
+}
+
+function resolveAiStorageDownloadUrl(href: string): string {
+  const aiBase = getAiServiceUrl();
+  try {
+    const parsed = new URL(href, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    const key = parsed.searchParams.get("key");
+    if (!key || !parsed.pathname.endsWith("/api/v1/storage/objects")) {
+      return href;
+    }
+    const query = `key=${encodeURIComponent(key)}`;
+    if (aiBase) {
+      const normalized = aiBase.replace(/\/$/, "");
+      return `${normalized}/api/v1/storage/objects?${query}`;
+    }
+    return `${parsed.origin}/api/v1/storage/objects?${query}`;
+  } catch {
+    return href;
+  }
+}
+
+function parseFilenameFromContentDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const m = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(header);
+  if (!m?.[1]) return null;
+  try {
+    return decodeURIComponent(m[1].trim());
+  } catch {
+    return m[1].trim();
+  }
+}
+
+async function downloadAiStorageArtifact(href: string): Promise<void> {
+  const url = resolveAiStorageDownloadUrl(href);
+  const res = await fetch(url, { method: "GET", mode: "cors" });
+  if (!res.ok) {
+    throw new Error(`Download failed (${res.status})`);
+  }
+  const cd = res.headers.get("content-disposition");
+  let filename = parseFilenameFromContentDisposition(cd);
+  if (!filename) {
+    const key = new URL(url).searchParams.get("key") || "artifact.md";
+    filename = key.includes("/") ? key.substring(key.lastIndexOf("/") + 1) : key;
+  }
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  a.rel = "noopener";
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 function getResponseTail(
   requestMessages: ChatMessage[],
   responseMessages: ChatMessage[],
@@ -101,6 +167,30 @@ function getResponseTail(
 }
 
 const markdownComponents: Components = {
+  a(props) {
+    const { href, children, ...rest } = props;
+    if (isAiStorageObjectDownloadHref(href)) {
+      return (
+        <a
+          href="#"
+          {...rest}
+          onClick={(e) => {
+            e.preventDefault();
+            void downloadAiStorageArtifact(href!).catch(() => {
+              void message.error("Could not download the file. Check AI service URL (e.g. VITE_AI_SERVICE_URL).");
+            });
+          }}
+        >
+          {children}
+        </a>
+      );
+    }
+    return (
+      <a href={href} {...rest}>
+        {children}
+      </a>
+    );
+  },
   code(props) {
     const { children, className, ...rest } = props;
     const match = /language-(\w+)/.exec(className || "");
@@ -463,7 +553,7 @@ export const AiAssistant: React.FC = () => {
     (HitlCheckpointPayload & { conversationId: string }) | null
   >(null);
 
-  const assistantName = getConfig().aiAssistantName;
+  const assistantName = getConfig().aiAssistantName ?? "Assistant";
   const [workingDots, setWorkingDots] = useState(0);
   const WORKING_DOTS = [".", "..", "..."];
 
