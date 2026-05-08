@@ -11,12 +11,12 @@ export function sortElementsTopologically(
     if (connectionMap.has(c.from)) {
       connectionMap.get(c.from)?.push(c.to);
     } else {
-      connectionMap.set(c.from, []);
+      connectionMap.set(c.from, [c.to]);
     }
     if (revertedConnectionMap.has(c.to)) {
       revertedConnectionMap.get(c.to)?.push(c.from);
     } else {
-      revertedConnectionMap.set(c.to, []);
+      revertedConnectionMap.set(c.to, [c.from]);
     }
   });
 
@@ -24,7 +24,7 @@ export function sortElementsTopologically(
     elements,
     extractValues([
       (e) => (revertedConnectionMap.get(e.id) ?? []).length,
-      "parentElementId",
+      (e) => e.parentElementId ?? "",
     ]),
     compareArraysLexicographically,
   );
@@ -36,7 +36,7 @@ export function sortElementsTopologically(
     visited.add(element.id);
     sorted.push(element);
     (connectionMap.get(element.id) ?? [])
-      .map(idToElement.get)
+      .map((id) => idToElement.get(id))
       .filter((e) => !!e)
       .forEach(visit);
   }

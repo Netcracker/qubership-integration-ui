@@ -43,7 +43,7 @@ export function buildElementMap(
             one.dependencies,
             result,
           ),
-        (a, b) => a - b,
+        (a, b) => b - a,
       )[0];
       result.set(element.id, bestFitElement.id);
       result.set(bestFitElement.id, element.id);
