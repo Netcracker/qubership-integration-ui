@@ -15,7 +15,7 @@ export function compareChains(one: Chain, another: Chain): Change[] {
     ...compareChainProperties(one, another),
     ...compareElements(one.elements, another.elements, elementMap),
     ...compareConnections(one.dependencies, another.dependencies, elementMap),
-  ];
+  ].sort((a, b) => a.kind.localeCompare(b.kind));
 }
 
 export function buildElementMap(
@@ -230,6 +230,15 @@ export function compareChainProperties(
           [...another[key]].sort((a, b) => a.name.localeCompare(b.name)),
         );
         return v1 !== v2;
+      } else if (
+        [
+          "description",
+          "businessDescription",
+          "assumptions",
+          "outOfScope",
+        ].includes(key)
+      ) {
+        return (one[key] ?? "") !== (another[key] ?? "");
       } else {
         return one[key] !== another[key];
       }

@@ -290,6 +290,36 @@ describe("compareChainProperties", () => {
     expect(result).toHaveLength(2);
     expect(result.every((c) => c.kind === "chain-property")).toBe(true);
   });
+
+  test("should return no change when description is undefined in one and empty string in another", () => {
+    const one = makeChain({ description: undefined as unknown as string });
+    const another = makeChain({ description: "" });
+    expect(compareChainProperties(one, another)).toEqual([]);
+  });
+
+  test("should return no change when businessDescription is null in one and empty string in another", () => {
+    const one = makeChain({ businessDescription: null as unknown as string });
+    const another = makeChain({ businessDescription: "" });
+    expect(compareChainProperties(one, another)).toEqual([]);
+  });
+
+  test("should return no change when assumptions is undefined in one and empty string in another", () => {
+    const one = makeChain({ assumptions: undefined as unknown as string });
+    const another = makeChain({ assumptions: "" });
+    expect(compareChainProperties(one, another)).toEqual([]);
+  });
+
+  test("should return no change when outOfScope is null in one and undefined in another", () => {
+    const one = makeChain({ outOfScope: null as unknown as string });
+    const another = makeChain({ outOfScope: undefined as unknown as string });
+    expect(compareChainProperties(one, another)).toEqual([]);
+  });
+
+  test("should return a change when description has content in one and is empty in another", () => {
+    const one = makeChain({ description: "non-empty" });
+    const another = makeChain({ description: "" });
+    expect(compareChainProperties(one, another)).toHaveLength(1);
+  });
 });
 
 describe("compareElementProperties", () => {
@@ -725,5 +755,23 @@ describe("compareChains", () => {
     const result = compareChains(one, another);
     expect(result.length).toBeGreaterThan(0);
     expect(result.every((c) => c.kind === "chain-property")).toBe(true);
+  });
+
+  test("should return changes sorted alphabetically by kind", () => {
+    const one = makeChain({
+      id: "c1",
+      description: "desc-1",
+      elements: [makeElement({ id: "e1", type: "script" })],
+      dependencies: [makeConnection("conn1", "e1", "e1")],
+    });
+    const another = makeChain({
+      id: "c2",
+      description: "desc-2",
+      elements: [makeElement({ id: "e2", type: "trigger" })],
+      dependencies: [],
+    });
+    const result = compareChains(one, another);
+    const kinds = result.map((c) => c.kind);
+    expect(kinds).toEqual([...kinds].sort((a, b) => a.localeCompare(b)));
   });
 });
