@@ -1,8 +1,13 @@
 import { Flex, FlexProps } from "antd";
 import { Chain } from "../../../api/apiTypes.ts";
-import { Change } from "./useChainDiff.tsx";
-import React from "react";
-import { ChainDiffViewControls } from "./ChainDiffViewControls.tsx";
+import React, { useState } from "react";
+import {
+  ChainDiffViewControls,
+  DiffViewType,
+} from "./ChainDiffViewControls.tsx";
+import { Change } from "./compare/types.ts";
+import { ChainDiffTableView } from "./ChainDiffTableView.tsx";
+import { ChainDiffGraphView } from "./ChainDiffGraphView.tsx";
 
 export type ChainDiffViewProps = {
   chain1?: Chain;
@@ -20,11 +25,32 @@ export const ChainDiffView: React.FC<ChainDiffViewProps> = ({
   onSelectChange,
   ...rest
 }): React.ReactNode => {
-  return <Flex {...rest} vertical>
-    <ChainDiffViewControls
-      changes={changes}
-      selectedChangeId={selectedChangeId}
-      onSelectChange={onSelectChange}
-    />
-  </Flex>;
+  const [viewType, setViewType] = useState<DiffViewType>("graph");
+  return (
+    <Flex {...rest} vertical>
+      <ChainDiffViewControls
+        changes={changes}
+        selectedChangeId={selectedChangeId}
+        onSelectChange={onSelectChange}
+        onViewTypeChange={(viewType) => setViewType(viewType)}
+      />
+      {viewType === "graph" ? (
+        <ChainDiffGraphView
+          chain1={chain1}
+          chain2={chain2}
+          changes={changes}
+          selectedChangeId={selectedChangeId}
+          onSelectChange={onSelectChange}
+        />
+      ) : (
+        <ChainDiffTableView
+          chain1={chain1}
+          chain2={chain2}
+          changes={changes}
+          selectedChangeId={selectedChangeId}
+          onSelectChange={onSelectChange}
+        />
+      )}
+    </Flex>
+  );
 };

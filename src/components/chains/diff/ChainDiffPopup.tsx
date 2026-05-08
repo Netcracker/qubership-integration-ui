@@ -37,6 +37,7 @@ export const ChainDiffPopup: React.FC<ChainDiffProps> = ({
         <Spin className={styles.loader} size={"large"}></Spin>
       ) : (
         <ChainDiffView
+          style={{ height: "100%" }}
           chain1={chain1}
           chain2={chain2}
           changes={changes}

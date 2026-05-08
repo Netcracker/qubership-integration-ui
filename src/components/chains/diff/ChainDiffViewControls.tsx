@@ -1,9 +1,9 @@
 import { Button, Flex, Radio, Tooltip } from "antd";
 import React, { useCallback, useEffect, useState } from "react";
-import { Change } from "./useChainDiff.tsx";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
+import { Change } from "./compare/types.ts";
 
-export type DiffViewType = "graph" | "list";
+export type DiffViewType = "graph" | "table";
 
 export type ChainDiffViewControlsProps = {
   changes: Change[];
@@ -16,6 +16,7 @@ export const ChainDiffViewControls: React.FC<ChainDiffViewControlsProps> = ({
   changes,
   selectedChangeId,
   onSelectChange,
+  onViewTypeChange,
 }): React.ReactNode => {
   const [isFirstChange, setIsFirstChange] = useState<boolean>(false);
   const [isLastChange, setIsLastChange] = useState<boolean>(false);
@@ -76,11 +77,14 @@ export const ChainDiffViewControls: React.FC<ChainDiffViewControlsProps> = ({
         block
         options={[
           { label: "Graph", value: "graph" },
-          { label: "List", value: "list" },
+          { label: "Table", value: "table" },
         ]}
         defaultValue="graph"
         optionType="button"
         buttonStyle="solid"
+        onChange={(event) =>
+          onViewTypeChange(event.target.value as DiffViewType)
+        }
       />
     </Flex>
   );
