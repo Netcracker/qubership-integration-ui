@@ -71,9 +71,10 @@ export const ChainProperty: React.FC<{ name: string; value: unknown }> = ({
 
 export const ElementProperty: React.FC<{
   element?: Element;
+  chain: Chain;
   name: string;
   value: unknown;
-}> = ({ element, name, value }): React.ReactNode => {
+}> = ({ chain, element, name, value }): React.ReactNode => {
   return (
     <Descriptions
       size="small"
@@ -101,6 +102,10 @@ export const ElementProperty: React.FC<{
           children:
             name === "labels" ? (
               <EntityLabels labels={(value ?? []) as EntityLabel[]} />
+            ) : name === "parentElementId" || name === "swimlaneId" ? (
+              <LinkToElement
+                element={chain.elements.find((e) => e.id === value)}
+              />
             ) : (
               JSON.stringify(value)
             ),
@@ -150,6 +155,7 @@ export const ChangedEntityView: React.FC<ChangedEntityViewProps> = ({
           element={getElement(change[side].entityId, chain)}
           name={change[side].name}
           value={change[side].value}
+          chain={chain}
         />
       );
     case "connection":
