@@ -54,7 +54,7 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
         </Col>
         <Col span={12}>
           {selectedChange && chain2 ? (
-
+            <ChangedEntityView
               side="another"
               change={selectedChange}
               chain={chain2}
