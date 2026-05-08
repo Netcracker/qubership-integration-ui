@@ -28,6 +28,9 @@ export function buildElementMap(
       const elementsWithSameType = another.elements.filter(
         (anotherElement) =>
           anotherElement.id === element.id ||
+          (anotherElement.originalId &&
+            element.originalId &&
+            anotherElement.originalId === element.originalId) ||
           anotherElement.type === element.type,
       );
       if (elementsWithSameType.length === 0) {
@@ -66,6 +69,9 @@ export function getElementRank(
   ) {
     rank += 1;
   }
+  if (element.originalId === referenceElement.originalId) {
+    rank += 1;
+  }
   if (element.type === referenceElement.type) {
     rank += 1;
   }
@@ -98,6 +104,25 @@ export function getElementRank(
       .map((c) => c.to),
   );
   rank += intersection(toElements, referenceToElements).size;
+
+  if (
+    (!element.parentElementId && !referenceElement.parentElementId) ||
+    (element.parentElementId &&
+      referenceElement.parentElementId &&
+      element.parentElementId === elementMap.get(element.parentElementId))
+  ) {
+    rank += 1;
+  }
+
+  if (
+    (!element.swimlaneId && !referenceElement.swimlaneId) ||
+    (element.swimlaneId &&
+      referenceElement.swimlaneId &&
+      element.swimlaneId === elementMap.get(element.swimlaneId))
+  ) {
+    rank += 1;
+  }
+
   return rank;
 }
 
@@ -113,7 +138,7 @@ export function compareElements(
           const id = elementMap.get(element.id);
           const anotherElement = anotherElements.find((e) => e.id === id);
           return anotherElement
-            ? compareElementProperties(element, anotherElement)
+            ? compareElementProperties(element, anotherElement, elementMap)
             : [{ id: uuidv4(), kind: "element" as const, one: element }];
         } else {
           return [
@@ -234,6 +259,7 @@ export function compareChainProperties(
 export function compareElementProperties(
   one: Element,
   another: Element,
+  elementMap: Map<string, string>,
 ): ElementPropertyChange[] {
   const propertyNames = new Set<string>();
   [one.properties, another.properties]
@@ -242,26 +268,17 @@ export function compareElementProperties(
   return [
     ...(["type", "name", "description"] as (keyof Element)[])
       .filter((key) => one[key] !== another[key])
-      .map((key) => ({
-        id: uuidv4(),
-        kind: "element-property" as const,
-        one:
-          one[key] !== undefined && one[key] !== null
-            ? {
-                entityId: one.id,
-                name: key,
-                value: one[key],
-              }
-            : undefined,
-        another:
-          another[key] !== undefined && another[key] !== null
-            ? {
-                entityId: another.id,
-                name: key,
-                value: another[key],
-              }
-            : undefined,
-      })),
+      .map((key) => getElementPropertyChange(one, another, key)),
+    ...(["parentElementId", "swimlaneId"] as (keyof Element)[])
+      .filter((key) => {
+        return (
+          !!one[key] !== !!another[key] ||
+          (one[key] &&
+            another[key] &&
+            one[key] !== elementMap.get(`${another[key]}`))
+        );
+      })
+      .map((key) => getElementPropertyChange(one, another, key)),
     ...Array.from(propertyNames.keys())
       .filter((name) => {
         const v1 = JSON.stringify(one.properties[name]);
@@ -290,4 +307,31 @@ export function compareElementProperties(
             : undefined,
       })),
   ];
+}
+
+export function getElementPropertyChange(
+  one: Element,
+  another: Element,
+  key: keyof Element,
+): ElementPropertyChange {
+  return {
+    id: uuidv4(),
+    kind: "element-property" as const,
+    one:
+      one[key] !== undefined && one[key] !== null
+        ? {
+            entityId: one.id,
+            name: key,
+            value: one[key],
+          }
+        : undefined,
+    another:
+      another[key] !== undefined && another[key] !== null
+        ? {
+            entityId: another.id,
+            name: key,
+            value: another[key],
+          }
+        : undefined,
+  };
 }
