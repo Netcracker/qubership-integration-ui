@@ -27,7 +27,7 @@ export const useChainDiff = (chainId1: string, chainId2: string) => {
     ): Promise<Chain | undefined> => {
       try {
         setLoading(true);
-        return api.getChain(id);
+        return await api.getChain(id);
       } catch (e) {
         notificationService.requestFailed("Failed to load chain", e);
       } finally {
