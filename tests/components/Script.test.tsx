@@ -302,8 +302,8 @@ describe("Script", () => {
     }
 
     it("defaults to 300px height", () => {
-      render(<Script value="" />);
-      expect(capturedEditorProps?.height).toBe(300);
+      const { container } = render(<Script value="" />);
+      expect((container.firstElementChild as HTMLElement).style.height).toBe("300px");
     });
 
     it("updates height on window resize when available space > 300", () => {
@@ -317,13 +317,13 @@ describe("Script", () => {
       const flexDiv = container.firstElementChild as HTMLElement;
 
       mockRect(modalBody, { top: 0, bottom: 1000 });
-      mockRect(flexDiv, { top: 100, bottom: 200 });
+      mockRect(flexDiv.firstElementChild as HTMLElement, { top: 100, bottom: 200 });
 
       act(() => {
         window.dispatchEvent(new Event("resize"));
       });
 
-      expect(capturedEditorProps?.height).toBe(1000 - 100 - 60);
+      expect(flexDiv.style.height).toBe(`${1000 - 100 - 60}px`);
     });
 
     it("does not update height when available space <= 300", () => {
@@ -337,13 +337,13 @@ describe("Script", () => {
       const flexDiv = container.firstElementChild as HTMLElement;
 
       mockRect(modalBody, { top: 0, bottom: 300 });
-      mockRect(flexDiv, { top: 50, bottom: 100 });
+      mockRect(flexDiv.firstElementChild as HTMLElement, { top: 50, bottom: 100 });
 
       act(() => {
         window.dispatchEvent(new Event("resize"));
       });
 
-      expect(capturedEditorProps?.height).toBe(300);
+      expect(flexDiv.style.height).toBe("300px");
     });
 
     it("uses parentElement when no ant-modal-body ancestor exists", () => {
@@ -354,13 +354,13 @@ describe("Script", () => {
       const flexDiv = container.firstElementChild as HTMLElement;
 
       mockRect(parent, { top: 0, bottom: 900 });
-      mockRect(flexDiv, { top: 0, bottom: 100 });
+      mockRect(flexDiv.firstElementChild as HTMLElement, { top: 0, bottom: 100 });
 
       act(() => {
         window.dispatchEvent(new Event("resize"));
       });
 
-      expect(capturedEditorProps?.height).toBe(900 - 60);
+      expect(flexDiv.style.height).toBe(`${900 - 60}px`);
     });
 
     it("recalculates height on ant-modal-wrap transitionend", () => {
@@ -377,13 +377,13 @@ describe("Script", () => {
       const flexDiv = container.firstElementChild as HTMLElement;
 
       mockRect(modalBody, { top: 0, bottom: 800 });
-      mockRect(flexDiv, { top: 0, bottom: 50 });
+      mockRect(flexDiv.firstElementChild as HTMLElement, { top: 0, bottom: 50 });
 
       act(() => {
         modalWrap.dispatchEvent(new Event("transitionend"));
       });
 
-      expect(capturedEditorProps?.height).toBe(800 - 60);
+      expect(flexDiv.style.height).toBe(`${800 - 60}px`);
     });
 
     it("does not update height when container has no scroll parent", () => {
@@ -403,7 +403,7 @@ describe("Script", () => {
         window.dispatchEvent(new Event("resize"));
       });
 
-      expect(capturedEditorProps?.height).toBe(300);
+      expect(flexDiv.style.height).toBe("300px");
     });
 
     it("removes window resize listener on unmount", () => {
