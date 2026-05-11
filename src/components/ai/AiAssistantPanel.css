@@ -380,8 +380,6 @@
 
 .ai-execution-log__body {
   padding: 6px 0;
-  max-height: 240px;
-  overflow-y: auto;
   font-family: var(
     --vscode-editor-font-family,
     ui-monospace,

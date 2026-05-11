@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -233,7 +234,6 @@ export function useAiAssistantChat(open: boolean) {
           );
           sessionStore.updateSessionMessages(sessionId, currentMessages);
           refreshSessions();
-          scrollToBottom();
 
           if (chunk.progressMessage.includes(" - completed")) {
             handleProgressCompleted(
@@ -301,6 +301,13 @@ export function useAiAssistantChat(open: boolean) {
           conversationId: response.conversationId,
         });
       }
+      // After final merge, layout can shrink/grow; double rAF runs after paint so
+      // scrollHeight is stable (avoids wrong scrollTop / jump to top).
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      });
     },
     [
       sessionStore,
@@ -607,14 +614,11 @@ export function useAiAssistantChat(open: boolean) {
   const msgs = currentSession?.messages ?? [];
   const lastMessageContentLength =
     msgs.length > 0 ? (msgs[msgs.length - 1]?.content?.length ?? 0) : 0;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!shouldAutoScrollRef.current) return;
     const el = scrollContainerRef.current;
     if (!el) return;
-    const id = requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-    });
-    return () => cancelAnimationFrame(id);
+    el.scrollTop = el.scrollHeight;
   }, [currentSession?.messages?.length, lastMessageContentLength, open]);
 
   const handleScroll = useCallback(() => {
