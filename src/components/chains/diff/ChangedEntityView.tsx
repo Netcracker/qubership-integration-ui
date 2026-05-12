@@ -10,6 +10,7 @@ import { Descriptions, Space } from "antd";
 import { EntityLabels } from "../../labels/EntityLabels.tsx";
 import { ElementSchemasContext } from "./ElementSchemasProvider.tsx";
 import { JSONSchema7 } from "json-schema";
+import styles from "./ChangedEntityView.module.css";
 
 export function getElement(
   elementId: string,
@@ -69,6 +70,12 @@ export function resolveChainPropertyTitle(name: string): string {
   }
 }
 
+export const ChangedValue: React.FC<{ value: unknown }> = ({
+  value,
+}): React.ReactNode => {
+  return <div className={styles["changed-value"]}>{JSON.stringify(value)}</div>;
+};
+
 export const ChainProperty: React.FC<{ name: string; value: unknown }> = ({
   name,
   value,
@@ -92,7 +99,7 @@ export const ChainProperty: React.FC<{ name: string; value: unknown }> = ({
             name === "labels" ? (
               <EntityLabels labels={(value ?? []) as EntityLabel[]} />
             ) : (
-              JSON.stringify(value)
+              <ChangedValue value={value} />
             ),
         },
       ]}
@@ -195,7 +202,7 @@ export const ElementProperty: React.FC<{
                 element={chain.elements.find((e) => e.id === value)}
               />
             ) : (
-              JSON.stringify(value)
+              <ChangedValue value={value} />
             ),
         },
       ]}
