@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { OverridableIcon } from "../../../icons/IconProvider.tsx";
 import { Change } from "./compare/types.ts";
 
-export type DiffViewType = "graph" | "table";
+export type DiffViewType = "graph" | "table" | "text";
 
 export type ChainDiffViewControlsProps = {
   changes: Change[];
@@ -78,6 +78,7 @@ export const ChainDiffViewControls: React.FC<ChainDiffViewControlsProps> = ({
         options={[
           { label: "Graph", value: "graph" },
           { label: "Table", value: "table" },
+          { label: "Text", value: "text" },
         ]}
         defaultValue="graph"
         optionType="button"

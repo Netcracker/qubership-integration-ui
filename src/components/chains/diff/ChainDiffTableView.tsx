@@ -5,7 +5,7 @@ import { Table, TableProps } from "antd";
 import { TableRowSelection } from "antd/lib/table/interface";
 import { ChangedEntityView, LinkToChain } from "./ChangedEntityView.tsx";
 
-export type ChainDiffTextViewProps = {
+export type ChainDiffTableViewProps = {
   chain1?: Chain;
   chain2?: Chain;
   changes: Change[];
@@ -13,7 +13,7 @@ export type ChainDiffTextViewProps = {
   onSelectChange: (id: string) => void;
 };
 
-export const ChainDiffTableView: React.FC<ChainDiffTextViewProps> = ({
+export const ChainDiffTableView: React.FC<ChainDiffTableViewProps> = ({
   chain1,
   chain2,
   changes,
