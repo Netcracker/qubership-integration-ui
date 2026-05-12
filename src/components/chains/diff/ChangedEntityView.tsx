@@ -5,9 +5,11 @@ import {
   Element,
   EntityLabel,
 } from "../../../api/apiTypes.ts";
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Descriptions, Space } from "antd";
 import { EntityLabels } from "../../labels/EntityLabels.tsx";
+import { ElementSchemasContext } from "./ElementSchemasProvider.tsx";
+import { JSONSchema7 } from "json-schema";
 
 export function getElement(
   elementId: string,
@@ -38,6 +40,35 @@ export const LinkToElement: React.FC<{ element?: Element }> = ({
   );
 };
 
+export function resolveChainPropertyTitle(name: string): string {
+  switch (name) {
+    case "labels":
+      return "Labels";
+    case "description":
+      return "Description";
+    case "deployAction":
+      return "Deploy action";
+    case "businessDescription":
+      return "Business description";
+    case "assumptions":
+      return "Assumptions";
+    case "outOfScope":
+      return "Out of scope";
+    case "overriddenByChainId":
+      return "Overridden by chain ID";
+    case "overriddenByChainName":
+      return "Overridden by chain name";
+    case "overridesChainId":
+      return "Overrides chain ID";
+    case "overridesChainName":
+      return "Overrides chain name";
+    case "name":
+      return "Name";
+    default:
+      return name;
+  }
+}
+
 export const ChainProperty: React.FC<{ name: string; value: unknown }> = ({
   name,
   value,
@@ -52,7 +83,7 @@ export const ChainProperty: React.FC<{ name: string; value: unknown }> = ({
         {
           key: "name",
           label: "Name",
-          children: name,
+          children: resolveChainPropertyTitle(name),
         },
         {
           key: "value",
@@ -69,12 +100,69 @@ export const ChainProperty: React.FC<{ name: string; value: unknown }> = ({
   );
 };
 
+export function getElementPropertyTitle(
+  schema: JSONSchema7,
+  name: string,
+): string {
+  switch (name) {
+    case "name":
+      return "Name";
+    case "description":
+      return "Description";
+    case "type":
+      return "Type";
+    case "swimlaneId":
+      return "Swimlane";
+    case "parentElementId":
+      return "Parent";
+    default:
+      return getElementPropertyTitleFromSchema(schema, name) ?? name;
+  }
+}
+
+export function getElementPropertyTitleFromSchema(
+  schema: JSONSchema7,
+  name: string,
+): string | undefined {
+  const directPropertySchema = schema.properties?.[name];
+  if (directPropertySchema && typeof directPropertySchema === "object") {
+    return directPropertySchema.title;
+  } else {
+    return [
+      schema.allOf,
+      schema.anyOf,
+      schema.oneOf,
+      [schema.then, schema.else].filter((s) => !!s),
+    ]
+      .filter((s) => !!s)
+      .flatMap((s) => s)
+      .filter((s) => !!s && typeof s === "object")
+      .map((s) => getElementPropertyTitleFromSchema(s, name))
+      .find((n) => !!n);
+  }
+}
+
 export const ElementProperty: React.FC<{
   element?: Element;
   chain: Chain;
   name: string;
   value: unknown;
 }> = ({ chain, element, name, value }): React.ReactNode => {
+  const { getSchema } = useContext(ElementSchemasContext);
+  const [title, setTitle] = useState<string>(name);
+
+  useEffect(() => {
+    setTitle(() => {
+      if (!element) {
+        return name;
+      } else {
+        const schema = getSchema(element.type)?.properties?.properties;
+        return schema && typeof schema === "object"
+          ? getElementPropertyTitle(schema, name)
+          : name;
+      }
+    });
+  }, [element, getSchema]);
   return (
     <Descriptions
       size="small"
@@ -94,7 +182,7 @@ export const ElementProperty: React.FC<{
         {
           key: "name",
           label: "Name",
-          children: name,
+          children: title,
         },
         {
           key: "value",

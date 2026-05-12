@@ -13,17 +13,33 @@ jest.mock("antd", () => ({
   )),
 }));
 
-jest.mock("../../../../src/components/chains/diff/ChainDiffViewControls.tsx", () => ({
-  ChainDiffViewControls: jest.fn(() => <div data-testid="diff-controls" />),
-}));
+jest.mock(
+  "../../../../src/components/chains/diff/ChainDiffViewControls.tsx",
+  () => ({
+    ChainDiffViewControls: jest.fn(() => <div data-testid="diff-controls" />),
+  }),
+);
 
-jest.mock("../../../../src/components/chains/diff/ChainDiffGraphView.tsx", () => ({
-  ChainDiffGraphView: jest.fn(() => <div data-testid="graph-view" />),
-}));
+jest.mock(
+  "../../../../src/components/chains/diff/ChainDiffGraphView.tsx",
+  () => ({
+    ChainDiffGraphView: jest.fn(() => <div data-testid="graph-view" />),
+  }),
+);
 
-jest.mock("../../../../src/components/chains/diff/ChainDiffTableView.tsx", () => ({
-  ChainDiffTableView: jest.fn(() => <div data-testid="table-view" />),
-}));
+jest.mock(
+  "../../../../src/components/chains/diff/ChainDiffTableView.tsx",
+  () => ({
+    ChainDiffTableView: jest.fn(() => <div data-testid="table-view" />),
+  }),
+);
+
+jest.mock(
+  "../../../../src/components/chains/diff/ElementSchemasProvider.tsx",
+  () => ({
+    ElementSchemasProvider: jest.fn(({ children }: any) => <>{children}</>),
+  }),
+);
 
 import { Flex } from "antd";
 import { ChainDiffViewControls } from "../../../../src/components/chains/diff/ChainDiffViewControls";

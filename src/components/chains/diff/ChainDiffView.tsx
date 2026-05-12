@@ -8,6 +8,7 @@ import {
 import { Change } from "./compare/types.ts";
 import { ChainDiffTableView } from "./ChainDiffTableView.tsx";
 import { ChainDiffGraphView } from "./ChainDiffGraphView.tsx";
+import { ElementSchemasProvider } from "./ElementSchemasProvider.tsx";
 
 export type ChainDiffViewProps = {
   chain1?: Chain;
@@ -34,23 +35,25 @@ export const ChainDiffView: React.FC<ChainDiffViewProps> = ({
         onSelectChange={onSelectChange}
         onViewTypeChange={(viewType) => setViewType(viewType)}
       />
-      {viewType === "graph" ? (
-        <ChainDiffGraphView
-          chain1={chain1}
-          chain2={chain2}
-          changes={changes}
-          selectedChangeId={selectedChangeId}
-          onSelectChange={onSelectChange}
-        />
-      ) : (
-        <ChainDiffTableView
-          chain1={chain1}
-          chain2={chain2}
-          changes={changes}
-          selectedChangeId={selectedChangeId}
-          onSelectChange={onSelectChange}
-        />
-      )}
+      <ElementSchemasProvider>
+        {viewType === "graph" ? (
+          <ChainDiffGraphView
+            chain1={chain1}
+            chain2={chain2}
+            changes={changes}
+            selectedChangeId={selectedChangeId}
+            onSelectChange={onSelectChange}
+          />
+        ) : (
+          <ChainDiffTableView
+            chain1={chain1}
+            chain2={chain2}
+            changes={changes}
+            selectedChangeId={selectedChangeId}
+            onSelectChange={onSelectChange}
+          />
+        )}
+      </ElementSchemasProvider>
     </Flex>
   );
 };
