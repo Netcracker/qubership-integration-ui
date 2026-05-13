@@ -57,7 +57,8 @@ export const ChainDiffTextView: React.FC<ChainDiffTextViewProps> = ({
           return undefined;
         }
         if (key === "from" || key === "to") {
-          return chain.elements.find((e) => e.id === value)?.name ?? value;
+          const element = chain.elements.find((e) => e.id === value);
+          return element ? `${element.name} (${element.type})` : value;
         }
 
         if (key === "elements" && Array.isArray(value)) {
