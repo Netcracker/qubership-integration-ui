@@ -24,7 +24,7 @@ import React, {
 } from "react";
 import { ElementsLibrarySidebar } from "../components/elements_library/ElementsLibrarySidebar.tsx";
 import { DnDProvider } from "../components/DndContext.tsx";
-import { Flex, Modal } from "antd";
+import { Button, Flex, Modal } from "antd";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router-dom";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
@@ -37,6 +37,7 @@ import {
 import { useModalsContext } from "../Modals.tsx";
 import { ChainElementModification } from "../components/modal/chain_element/ChainElementModification.tsx";
 import styles from "./ChainGraph.module.css";
+import controlStyles from "../components/graph/ChainGraphViewControls.module.css";
 import {
   LibraryProvider,
   useLibraryContext,
@@ -44,7 +45,6 @@ import {
 
 import { useChainGraph } from "../hooks/graph/useChainGraph.tsx";
 import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
-import { useElkDirection } from "../hooks/graph/useElkDirection.tsx";
 import { PageWithRightPanel } from "./PageWithRightPanel.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
 import {
@@ -87,6 +87,7 @@ import { hasPermissions } from "../permissions/funcs.ts";
 import { getSwimlaneBorderColor } from "../components/graph/nodes/SwimlaneNode.tsx";
 import { useContextMenu } from "../hooks/graph/useContextMenu.tsx";
 import { useGenerateDds } from "../hooks/useGenerateDds.tsx";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 const readTheme = () => {
   if (typeof document === "undefined") return "light";
@@ -189,8 +190,9 @@ const ChainGraphInner: React.FC = () => {
     [edges, decorativeEdges],
   );
 
-  const { leftPanel, toggleLeftPanel, rightPanel, toggleRightPanel } =
-    useElkDirection();
+  const [leftPanelVisible, setLeftPanelVisible] = useState<boolean>(true);
+  const [rightPanelVisible, setRightPanelVisible] = useState<boolean>(false);
+
   const fitViewToElementIdRef = useRef<FitViewToElementIdFn | null>(null);
   const { showGenerateDdsModal } = useGenerateDds();
 
@@ -638,33 +640,29 @@ const ChainGraphInner: React.FC = () => {
 
   return (
     <Flex className={styles["graph-wrapper"]}>
-      <Require permissions={{ chain: ["update"] }}>
-        {leftPanel && (
-          <>
-            <ElementsLibrarySidebar width={leftPanelWidth} />
-            <PanelResizeHandle
-              direction="left"
-              onResize={(delta) =>
-                setLeftPanelWidth((w) =>
-                  clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
-                )
-              }
-            />
-          </>
-        )}
-      </Require>
-      <div className="react-flow-container" ref={reactFlowWrapper}>
-        <ElkDirectionContextProvider
-          elkDirectionControl={{
-            direction,
-            toggleDirection,
-            leftPanel,
-            toggleLeftPanel,
-            rightPanel,
-            toggleRightPanel,
-          }}
-        >
-          <ElementFocusContext.Provider value={fitViewToElementIdRef}>
+      <ElkDirectionContextProvider
+        elkDirectionControl={{
+          direction,
+          toggleDirection,
+        }}
+      >
+        <ElementFocusContext.Provider value={fitViewToElementIdRef}>
+          <Require permissions={{ chain: ["update"] }}>
+            {!readOnly && leftPanelVisible && (
+              <>
+                <ElementsLibrarySidebar width={leftPanelWidth} />
+                <PanelResizeHandle
+                  direction="left"
+                  onResize={(delta) =>
+                    setLeftPanelWidth((w) =>
+                      clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
+                    )
+                  }
+                />
+              </>
+            )}
+          </Require>
+          <div className="react-flow-container" ref={reactFlowWrapper}>
             <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <ReactFlow
@@ -726,41 +724,62 @@ const ChainGraphInner: React.FC = () => {
                     nodeStrokeWidth={2}
                   />
                   <ChainGraphViewControls
-                    showLeftPanelToggle={!readOnly}
+                    before={
+                      <>
+                        {!readOnly && (
+                          <Button
+                            className={controlStyles.button}
+                            type="text"
+                            title="Left Panel"
+                            data-active={leftPanelVisible}
+                            onClick={() => setLeftPanelVisible((prev) => !prev)}
+                            icon={<OverridableIcon name="leftPanel" />}
+                          />
+                        )}
+                        <Button
+                          className={controlStyles.button}
+                          type="text"
+                          title="Right Panel"
+                          data-active={rightPanelVisible}
+                          onClick={() => setRightPanelVisible((prev) => !prev)}
+                          icon={<OverridableIcon name="rightPanel" />}
+                        />
+                      </>
+                    }
                     onExpandAllContainers={expandAllContainers}
                     onCollapseAllContainers={collapseAllContainers}
                   />
                   {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
                 </ReactFlow>
               </div>
-              {rightPanel && (
-                <>
-                  <PanelResizeHandle
-                    direction="right"
-                    onResize={(delta) =>
-                      setRightPanelWidth((w) =>
-                        clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
-                      )
-                    }
-                  />
-                  <div
-                    style={{
-                      width: rightPanelWidth,
-                      minWidth: MIN_PANEL_WIDTH,
-                      flexShrink: 0,
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
-                  >
-                    <PageWithRightPanel width={rightPanelWidth} />
-                  </div>
-                </>
-              )}
             </div>
-          </ElementFocusContext.Provider>
-        </ElkDirectionContextProvider>
-      </div>
+          </div>
+          {rightPanelVisible && (
+            <>
+              <PanelResizeHandle
+                direction="right"
+                onResize={(delta) =>
+                  setRightPanelWidth((w) =>
+                    clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
+                  )
+                }
+              />
+              <div
+                style={{
+                  width: rightPanelWidth,
+                  minWidth: MIN_PANEL_WIDTH,
+                  flexShrink: 0,
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <PageWithRightPanel width={rightPanelWidth} />
+              </div>
+            </>
+          )}
+        </ElementFocusContext.Provider>
+      </ElkDirectionContextProvider>
     </Flex>
   );
 };

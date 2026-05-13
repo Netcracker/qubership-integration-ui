@@ -25,20 +25,11 @@ jest.mock("@xyflow/react", () => ({
 }));
 
 const mockToggleDirection = jest.fn();
-const mockToggleLeftPanel = jest.fn();
-const mockToggleRightPanel = jest.fn();
-
-let mockLeftPanel = true;
-let mockRightPanel = false;
 
 jest.mock("../../../src/pages/ElkDirectionContext", () => ({
   useElkDirectionContext: () => ({
     direction: "RIGHT",
     toggleDirection: mockToggleDirection,
-    leftPanel: mockLeftPanel,
-    toggleLeftPanel: mockToggleLeftPanel,
-    rightPanel: mockRightPanel,
-    toggleRightPanel: mockToggleRightPanel,
   }),
 }));
 
@@ -80,8 +71,6 @@ import { ChainGraphViewControls } from "../../../src/components/graph/ChainGraph
 describe("ChainGraphViewControls", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLeftPanel = true;
-    mockRightPanel = false;
     mockZoom = 1;
     mockMinZoom = 0.5;
     mockMaxZoom = 2;
@@ -100,22 +89,6 @@ describe("ChainGraphViewControls", () => {
     expect(screen.getByTitle("Change Layout Direction")).toBeInTheDocument();
     expect(screen.getByTitle("Expand All")).toBeInTheDocument();
     expect(screen.getByTitle("Collapse All")).toBeInTheDocument();
-    expect(screen.getByTitle("Right Panel")).toBeInTheDocument();
-  });
-
-  it("renders Left Panel button when showLeftPanelToggle is true", () => {
-    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
-    expect(screen.getByTitle("Left Panel")).toBeInTheDocument();
-  });
-
-  it("does not render Left Panel button when showLeftPanelToggle is false", () => {
-    render(<ChainGraphViewControls showLeftPanelToggle={false} />);
-    expect(screen.queryByTitle("Left Panel")).not.toBeInTheDocument();
-  });
-
-  it("does not render Left Panel button when showLeftPanelToggle is undefined", () => {
-    render(<ChainGraphViewControls />);
-    expect(screen.queryByTitle("Left Panel")).not.toBeInTheDocument();
   });
 
   it("renders Fullscreen button when fullscreen context is available", () => {
@@ -129,58 +102,28 @@ describe("ChainGraphViewControls", () => {
     expect(screen.queryByTitle("Fullscreen")).not.toBeInTheDocument();
   });
 
-  it("calls toggleLeftPanel on Left Panel click", () => {
-    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
-    fireEvent.click(screen.getByTitle("Left Panel"));
-    expect(mockToggleLeftPanel).toHaveBeenCalledTimes(1);
+  it("renders before slot content", () => {
+    render(
+      <ChainGraphViewControls
+        before={<button data-testid="before-btn">Before</button>}
+      />,
+    );
+    expect(screen.getByTestId("before-btn")).toBeInTheDocument();
   });
 
-  it("calls toggleRightPanel on Right Panel click", () => {
-    render(<ChainGraphViewControls />);
-    fireEvent.click(screen.getByTitle("Right Panel"));
-    expect(mockToggleRightPanel).toHaveBeenCalledTimes(1);
+  it("renders after slot content with divider", () => {
+    render(
+      <ChainGraphViewControls
+        after={<button data-testid="after-btn">After</button>}
+      />,
+    );
+    expect(screen.getByTestId("after-btn")).toBeInTheDocument();
   });
 
   it("calls toggleFullscreen on Fullscreen click", () => {
     render(<ChainGraphViewControls />);
     fireEvent.click(screen.getByTitle("Fullscreen"));
     expect(mockToggleFullscreen).toHaveBeenCalledTimes(1);
-  });
-
-  it("marks Left Panel as active when leftPanel is true", () => {
-    mockLeftPanel = true;
-    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
-    expect(screen.getByTitle("Left Panel")).toHaveAttribute(
-      "data-active",
-      "true",
-    );
-  });
-
-  it("marks Left Panel as inactive when leftPanel is false", () => {
-    mockLeftPanel = false;
-    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
-    expect(screen.getByTitle("Left Panel")).toHaveAttribute(
-      "data-active",
-      "false",
-    );
-  });
-
-  it("marks Right Panel as active when rightPanel is true", () => {
-    mockRightPanel = true;
-    render(<ChainGraphViewControls />);
-    expect(screen.getByTitle("Right Panel")).toHaveAttribute(
-      "data-active",
-      "true",
-    );
-  });
-
-  it("marks Right Panel as inactive when rightPanel is false", () => {
-    mockRightPanel = false;
-    render(<ChainGraphViewControls />);
-    expect(screen.getByTitle("Right Panel")).toHaveAttribute(
-      "data-active",
-      "false",
-    );
   });
 
   it("marks Fullscreen as active when fullscreen is true", () => {
@@ -257,14 +200,5 @@ describe("ChainGraphViewControls", () => {
     mockMinZoom = 0.5;
     render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Zoom Out")).not.toBeDisabled();
-  });
-
-  it("renders extra buttons with divider", () => {
-    render(
-      <ChainGraphViewControls
-        extraButtons={<button data-testid="extra-btn">Extra</button>}
-      />,
-    );
-    expect(screen.getByTestId("extra-btn")).toBeInTheDocument();
   });
 });

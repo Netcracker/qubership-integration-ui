@@ -126,16 +126,6 @@ jest.mock("../../src/hooks/graph/useContextMenu", () => ({
   }),
 }));
 
-let mockLeftPanel = true;
-let mockRightPanel = false;
-jest.mock("../../src/hooks/graph/useElkDirection", () => ({
-  useElkDirection: () => ({
-    leftPanel: mockLeftPanel,
-    toggleLeftPanel: jest.fn(),
-    rightPanel: mockRightPanel,
-    toggleRightPanel: jest.fn(),
-  }),
-}));
 
 jest.mock("../../src/components/LibraryContext", () => ({
   LibraryProvider: ({ children }: { children: React.ReactNode }) => (
@@ -186,9 +176,14 @@ jest.mock("@xyflow/react", () => ({
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
-  ReactFlow: (props: Record<string, unknown>) => {
+  ReactFlow: ({
+    children,
+    ...props
+  }: {
+    children?: React.ReactNode;
+  } & Record<string, unknown>) => {
     mockReactFlow(props);
-    return <div data-testid="react-flow" />;
+    return <div data-testid="react-flow">{children}</div>;
   },
   Background: () => null,
   BackgroundVariant: { Dots: "dots" },
@@ -214,7 +209,24 @@ jest.mock("../../src/components/PanelResizeHandle", () => ({
 }));
 
 jest.mock("../../src/components/graph/ChainGraphViewControls.tsx", () => ({
-  CustomControls: () => null,
+  ChainGraphViewControls: ({
+    before,
+    after,
+  }: {
+    before?: React.ReactNode;
+    after?: React.ReactNode;
+  }) => (
+    <>
+      {before}
+      {after}
+    </>
+  ),
+}));
+
+jest.mock("../../src/icons/IconProvider", () => ({
+  OverridableIcon: ({ name }: { name: string }) => (
+    <span data-testid={`icon-${name}`} />
+  ),
 }));
 
 jest.mock("../../src/components/graph/ElementFocus", () => ({
@@ -282,8 +294,6 @@ jest.mock("../../src/pages/ChainPage", () => ({
 describe("ChainGraph", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLeftPanel = true;
-    mockRightPanel = false;
     mockElementId = undefined;
     document.body.dataset.theme = "light";
   });
@@ -325,15 +335,17 @@ describe("ChainGraph", () => {
     expect(screen.getByTestId("panel-resize-handle")).toBeInTheDocument();
   });
 
-  it("renders PageWithRightPanel when rightPanel is true", () => {
-    mockRightPanel = true;
+  it("renders PageWithRightPanel when Right Panel button is clicked", () => {
     render(<ChainGraph />);
+    expect(screen.queryByTestId("page-with-right-panel")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTitle("Right Panel"));
     expect(screen.getByTestId("page-with-right-panel")).toBeInTheDocument();
   });
 
-  it("hides ElementsLibrarySidebar when leftPanel is false", () => {
-    mockLeftPanel = false;
+  it("hides ElementsLibrarySidebar when Left Panel button is clicked", () => {
     render(<ChainGraph />);
+    expect(screen.getByTestId("elements-library-sidebar")).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle("Left Panel"));
     expect(
       screen.queryByTestId("elements-library-sidebar"),
     ).not.toBeInTheDocument();

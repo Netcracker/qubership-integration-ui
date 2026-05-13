@@ -8,15 +8,15 @@ import { Button } from "antd";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
 type ChainGraphViewControlsProps = {
-  extraButtons?: React.ReactNode;
-  showLeftPanelToggle?: boolean;
+  before?: React.ReactNode;
+  after?: React.ReactNode;
   onExpandAllContainers?: () => void;
   onCollapseAllContainers?: () => void;
 };
 
 export const ChainGraphViewControls = ({
-  extraButtons,
-  showLeftPanelToggle,
+  before,
+  after,
   onExpandAllContainers,
   onCollapseAllContainers,
 }: ChainGraphViewControlsProps) => {
@@ -27,34 +27,18 @@ export const ChainGraphViewControls = ({
     maxZoom: s.maxZoom,
   }));
   const {
-    toggleDirection,
-    leftPanel,
-    toggleLeftPanel,
-    rightPanel,
-    toggleRightPanel,
+    toggleDirection
   } = useElkDirectionContext();
   const fullscreenCtx = useChainFullscreenContext();
 
   return (
     <div className={styles.container}>
-      {showLeftPanelToggle && (
-        <Button
-          className={styles.button}
-          type={"text"}
-          title="Left Panel"
-          data-active={leftPanel}
-          onClick={toggleLeftPanel}
-          icon={<OverridableIcon name="leftPanel" />}
-        />
-      )}
-      <Button
-        className={styles.button}
-        type={"text"}
-        title="Right Panel"
-        data-active={rightPanel}
-        onClick={toggleRightPanel}
-        icon={<OverridableIcon name="rightPanel" />}
-      />
+      {before ? (
+        <>
+          {before}
+          <span className={styles.extraDivider} />
+        </>
+      ) : null}
       {fullscreenCtx && (
         <Button
           className={styles.button}
@@ -113,10 +97,10 @@ export const ChainGraphViewControls = ({
         onClick={onCollapseAllContainers}
         icon={<OverridableIcon name="collapseAll" />}
       />
-      {extraButtons ? (
+      {after ? (
         <>
           <span className={styles.extraDivider} />
-          {extraButtons}
+          {after}
         </>
       ) : null}
     </div>
