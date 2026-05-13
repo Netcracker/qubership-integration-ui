@@ -1,25 +1,25 @@
 import type React from "react";
 import { useReactFlow, useStore, useViewport } from "@xyflow/react";
 
-import styles from "./CustomControls.module.css";
+import styles from "./ChainGraphViewControls.module.css";
 import { useElkDirectionContext } from "../../pages/ElkDirectionContext.tsx";
 import { useChainFullscreenContext } from "../../pages/ChainFullscreenContext.tsx";
 import { Button } from "antd";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
-type CustomControlsProps = {
+type ChainGraphViewControlsProps = {
   extraButtons?: React.ReactNode;
   showLeftPanelToggle?: boolean;
   onExpandAllContainers?: () => void;
   onCollapseAllContainers?: () => void;
 };
 
-export const CustomControls = ({
+export const ChainGraphViewControls = ({
   extraButtons,
   showLeftPanelToggle,
   onExpandAllContainers,
   onCollapseAllContainers,
-}: CustomControlsProps) => {
+}: ChainGraphViewControlsProps) => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
   const { minZoom, maxZoom } = useStore((s) => ({

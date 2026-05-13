@@ -213,7 +213,7 @@ jest.mock("../../src/components/PanelResizeHandle", () => ({
   PanelResizeHandle: () => <div data-testid="panel-resize-handle" />,
 }));
 
-jest.mock("../../src/components/graph/CustomControls", () => ({
+jest.mock("../../src/components/graph/ChainGraphViewControls.tsx", () => ({
   CustomControls: () => null,
 }));
 

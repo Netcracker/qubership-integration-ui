@@ -75,9 +75,9 @@ Object.defineProperty(globalThis, "matchMedia", {
   })),
 });
 
-import { CustomControls } from "../../../src/components/graph/CustomControls";
+import { ChainGraphViewControls } from "../../../src/components/graph/ChainGraphViewControls.tsx";
 
-describe("CustomControls", () => {
+describe("ChainGraphViewControls", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLeftPanel = true;
@@ -92,7 +92,7 @@ describe("CustomControls", () => {
   });
 
   it("renders standard buttons", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
 
     expect(screen.getByTitle("Zoom In")).toBeInTheDocument();
     expect(screen.getByTitle("Zoom Out")).toBeInTheDocument();
@@ -104,52 +104,52 @@ describe("CustomControls", () => {
   });
 
   it("renders Left Panel button when showLeftPanelToggle is true", () => {
-    render(<CustomControls showLeftPanelToggle={true} />);
+    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
     expect(screen.getByTitle("Left Panel")).toBeInTheDocument();
   });
 
   it("does not render Left Panel button when showLeftPanelToggle is false", () => {
-    render(<CustomControls showLeftPanelToggle={false} />);
+    render(<ChainGraphViewControls showLeftPanelToggle={false} />);
     expect(screen.queryByTitle("Left Panel")).not.toBeInTheDocument();
   });
 
   it("does not render Left Panel button when showLeftPanelToggle is undefined", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.queryByTitle("Left Panel")).not.toBeInTheDocument();
   });
 
   it("renders Fullscreen button when fullscreen context is available", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Fullscreen")).toBeInTheDocument();
   });
 
   it("does not render Fullscreen button when fullscreen context is null", () => {
     mockFullscreenCtx = null;
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.queryByTitle("Fullscreen")).not.toBeInTheDocument();
   });
 
   it("calls toggleLeftPanel on Left Panel click", () => {
-    render(<CustomControls showLeftPanelToggle={true} />);
+    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
     fireEvent.click(screen.getByTitle("Left Panel"));
     expect(mockToggleLeftPanel).toHaveBeenCalledTimes(1);
   });
 
   it("calls toggleRightPanel on Right Panel click", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     fireEvent.click(screen.getByTitle("Right Panel"));
     expect(mockToggleRightPanel).toHaveBeenCalledTimes(1);
   });
 
   it("calls toggleFullscreen on Fullscreen click", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     fireEvent.click(screen.getByTitle("Fullscreen"));
     expect(mockToggleFullscreen).toHaveBeenCalledTimes(1);
   });
 
   it("marks Left Panel as active when leftPanel is true", () => {
     mockLeftPanel = true;
-    render(<CustomControls showLeftPanelToggle={true} />);
+    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
     expect(screen.getByTitle("Left Panel")).toHaveAttribute(
       "data-active",
       "true",
@@ -158,7 +158,7 @@ describe("CustomControls", () => {
 
   it("marks Left Panel as inactive when leftPanel is false", () => {
     mockLeftPanel = false;
-    render(<CustomControls showLeftPanelToggle={true} />);
+    render(<ChainGraphViewControls showLeftPanelToggle={true} />);
     expect(screen.getByTitle("Left Panel")).toHaveAttribute(
       "data-active",
       "false",
@@ -167,7 +167,7 @@ describe("CustomControls", () => {
 
   it("marks Right Panel as active when rightPanel is true", () => {
     mockRightPanel = true;
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Right Panel")).toHaveAttribute(
       "data-active",
       "true",
@@ -176,7 +176,7 @@ describe("CustomControls", () => {
 
   it("marks Right Panel as inactive when rightPanel is false", () => {
     mockRightPanel = false;
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Right Panel")).toHaveAttribute(
       "data-active",
       "false",
@@ -188,7 +188,7 @@ describe("CustomControls", () => {
       fullscreen: true,
       toggleFullscreen: mockToggleFullscreen,
     };
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Fullscreen")).toHaveAttribute(
       "data-active",
       "true",
@@ -200,7 +200,7 @@ describe("CustomControls", () => {
       fullscreen: false,
       toggleFullscreen: mockToggleFullscreen,
     };
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Fullscreen")).toHaveAttribute(
       "data-active",
       "false",
@@ -208,25 +208,25 @@ describe("CustomControls", () => {
   });
 
   it("calls zoomIn on Zoom In click", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     fireEvent.click(screen.getByTitle("Zoom In"));
     expect(mockZoomIn).toHaveBeenCalledTimes(1);
   });
 
   it("calls zoomOut on Zoom Out click", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     fireEvent.click(screen.getByTitle("Zoom Out"));
     expect(mockZoomOut).toHaveBeenCalledTimes(1);
   });
 
   it("calls fitView on Fit View click", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     fireEvent.click(screen.getByTitle("Fit View"));
     expect(mockFitView).toHaveBeenCalledTimes(1);
   });
 
   it("calls toggleDirection on Change Layout Direction click", () => {
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     fireEvent.click(screen.getByTitle("Change Layout Direction"));
     expect(mockToggleDirection).toHaveBeenCalledTimes(1);
   });
@@ -234,34 +234,34 @@ describe("CustomControls", () => {
   it("disables Zoom In when zoom is at max", () => {
     mockZoom = 2;
     mockMaxZoom = 2;
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Zoom In")).toBeDisabled();
   });
 
   it("does not disable Zoom In when zoom is below max", () => {
     mockZoom = 1;
     mockMaxZoom = 2;
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Zoom In")).not.toBeDisabled();
   });
 
   it("disables Zoom Out when zoom is at min", () => {
     mockZoom = 0.5;
     mockMinZoom = 0.5;
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Zoom Out")).toBeDisabled();
   });
 
   it("does not disable Zoom Out when zoom is above min", () => {
     mockZoom = 1;
     mockMinZoom = 0.5;
-    render(<CustomControls />);
+    render(<ChainGraphViewControls />);
     expect(screen.getByTitle("Zoom Out")).not.toBeDisabled();
   });
 
   it("renders extra buttons with divider", () => {
     render(
-      <CustomControls
+      <ChainGraphViewControls
         extraButtons={<button data-testid="extra-btn">Extra</button>}
       />,
     );

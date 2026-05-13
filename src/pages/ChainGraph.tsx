@@ -28,7 +28,7 @@ import { Flex, Modal } from "antd";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router-dom";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
-import { CustomControls } from "../components/graph/CustomControls.tsx";
+import { ChainGraphViewControls } from "../components/graph/ChainGraphViewControls.tsx";
 import {
   ElementFocus,
   ElementFocusContext,
@@ -725,7 +725,7 @@ const ChainGraphInner: React.FC = () => {
                     nodeStrokeColor={getMinimapNodeStrokeColor}
                     nodeStrokeWidth={2}
                   />
-                  <CustomControls
+                  <ChainGraphViewControls
                     showLeftPanelToggle={!readOnly}
                     onExpandAllContainers={expandAllContainers}
                     onCollapseAllContainers={collapseAllContainers}

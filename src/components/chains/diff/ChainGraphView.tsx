@@ -14,7 +14,7 @@ import {
   type FitViewToElementIdFn,
 } from "../../graph/ElementFocus.tsx";
 import { nodeTypes } from "../../graph/nodes/ChainGraphNodeTypes.ts";
-import { CustomControls } from "../../graph/CustomControls.tsx";
+import { ChainGraphViewControls } from "../../graph/ChainGraphViewControls.tsx";
 import { useChainGraph } from "../../../hooks/graph/useChainGraph.tsx";
 import { sanitizeEdge } from "../../../misc/chain-graph-utils.ts";
 import { useElkDirection } from "../../../hooks/graph/useElkDirection.tsx";
@@ -86,7 +86,7 @@ export const ChainGraphViewInner: React.FC<ChainGraphViewProps> = ({
                   // nodeStrokeColor={getMinimapNodeStrokeColor}
                   nodeStrokeWidth={2}
                 />
-                <CustomControls
+                <ChainGraphViewControls
                   showLeftPanelToggle={false}
                   onExpandAllContainers={expandAllContainers}
                   onCollapseAllContainers={collapseAllContainers}
