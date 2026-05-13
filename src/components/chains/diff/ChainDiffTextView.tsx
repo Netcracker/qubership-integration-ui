@@ -1,6 +1,6 @@
 import { Chain } from "../../../api/apiTypes.ts";
 import { Change } from "./compare/types.ts";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import yaml, { DumpOptions } from "js-yaml";
 import { DiffEditor } from "@monaco-editor/react";
 import { useMonacoTheme } from "../../../hooks/useMonacoTheme.ts";
@@ -32,12 +32,38 @@ const IGNORED_PROPERTIES = new Set<string>([
   "unsavedChanges",
 ]);
 
+export function dumpYaml(chain: Chain, m: Map<string, string>): string {
+  const options: DumpOptions = {
+    indent: 2,
+    noArrayIndent: true,
+    skipInvalid: true,
+    sortKeys: true,
+    replacer: (key, value) => {
+      if (IGNORED_PROPERTIES.has(key)) {
+        return undefined;
+      }
+      if (key === "from" || key === "to") {
+        const element = chain.elements.find((e) => e.id === value);
+        return element ? `${element.name} (${element.type})` : value;
+      }
+
+      if (key === "elements" && Array.isArray(value)) {
+        return value.sort((v1, v2) => {
+          const id1 = m.get(v1?.id) ?? v1?.id;
+          const id2 = m.get(v2?.id) ?? v2?.id;
+          return id1.toString().localeCompare(id2.toString());
+        });
+      }
+
+      return value;
+    },
+  };
+  return yaml.dump(chain, options);
+}
+
 export const ChainDiffTextView: React.FC<ChainDiffTextViewProps> = ({
   chain1,
   chain2,
-  changes,
-  selectedChangeId,
-  onSelectChange,
 }): React.ReactNode => {
   const [elementMap, setElementMap] = useState<Map<string, string>>(
     new Map<string, string>(),
@@ -45,35 +71,6 @@ export const ChainDiffTextView: React.FC<ChainDiffTextViewProps> = ({
   const [yaml1, setYaml1] = useState<string>("");
   const [yaml2, setYaml2] = useState<string>("");
   const monacoTheme = useMonacoTheme();
-
-  const dumpYaml = useCallback((chain: Chain, m: Map<string, string>) => {
-    const options: DumpOptions = {
-      indent: 2,
-      noArrayIndent: true,
-      skipInvalid: true,
-      sortKeys: true,
-      replacer: (key, value) => {
-        if (IGNORED_PROPERTIES.has(key)) {
-          return undefined;
-        }
-        if (key === "from" || key === "to") {
-          const element = chain.elements.find((e) => e.id === value);
-          return element ? `${element.name} (${element.type})` : value;
-        }
-
-        if (key === "elements" && Array.isArray(value)) {
-          return value.sort((v1, v2) => {
-            const id1 = m.get(v1?.id) ?? v1?.id;
-            const id2 = m.get(v2?.id) ?? v2?.id;
-            return id1.toString().localeCompare(id2.toString());
-          });
-        }
-
-        return value;
-      },
-    };
-    return yaml.dump(chain, options);
-  }, []);
 
   useEffect(() => {
     setYaml1(chain1 ? dumpYaml(chain1, new Map<string, string>()) : "");
