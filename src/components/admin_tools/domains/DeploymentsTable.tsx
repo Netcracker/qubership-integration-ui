@@ -2,12 +2,12 @@ import React, { useMemo } from "react";
 import { Table, Typography, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { ChainDeployment } from "../../../api/apiTypes.ts";
-import tableStyles from "./Tables.module.css";
 import { DeploymentRuntimeState } from "../../deployment_runtime_states/DeploymentRuntimeState";
 import {
   attachResizeToColumns,
   useTableColumnResize,
 } from "../../table/useTableColumnResize.tsx";
+import layoutStyles from "./DomainsTablesLayout.module.css";
 
 interface Props {
   deployments: ChainDeployment[];
@@ -16,7 +16,7 @@ interface Props {
 
 const deploymentColumns: ColumnsType<ChainDeployment> = [
   {
-    title: <span className={tableStyles.columnHeader}>Chain Name</span>,
+    title: "Chain Name",
     dataIndex: "chainName",
     key: "chainName",
     render: (text, record) => (
@@ -26,7 +26,7 @@ const deploymentColumns: ColumnsType<ChainDeployment> = [
     ),
   },
   {
-    title: <span className={tableStyles.columnHeader}>Snapshot Name</span>,
+    title: "Snapshot Name",
     dataIndex: "snapshotName",
     key: "snapshotName",
     render: (text) => (
@@ -35,7 +35,7 @@ const deploymentColumns: ColumnsType<ChainDeployment> = [
     align: "right",
   },
   {
-    title: <span className={tableStyles.columnHeader}>State</span>,
+    title: "State",
     key: "state",
     render: (_: unknown, record: ChainDeployment) => (
       <DeploymentRuntimeState
@@ -68,24 +68,25 @@ export const DeploymentsTable: React.FC<Props> = ({
         { minWidth: 80 },
       ),
     [
-      deploymentColumns,
       deploymentColumnResize.columnWidths,
       deploymentColumnResize.createResizeHandlers,
     ],
   );
 
   return (
-    <Spin spinning={isLoading}>
-      <Table
-        rowKey="id"
-        columns={columnsWithResize}
-        dataSource={deployments}
-        pagination={false}
-        size="small"
-        className={tableStyles.smallHeaderTable}
-        scroll={{ x: deploymentColumnResize.totalColumnsWidth }}
-        components={deploymentColumnResize.resizableHeaderComponents}
-      />
-    </Spin>
+    <div className={layoutStyles.nestedTableHost}>
+      <Spin spinning={isLoading}>
+        <Table
+          rowKey="id"
+          className={`flex-table ${layoutStyles.nestedTable}`}
+          columns={columnsWithResize}
+          dataSource={deployments}
+          pagination={false}
+          size="small"
+          tableLayout="fixed"
+          components={deploymentColumnResize.resizableHeaderComponents}
+        />
+      </Spin>
+    </div>
   );
 };

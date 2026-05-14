@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import React, {
   useEffect,
+  useLayoutEffect,
   useState,
   useMemo,
   useCallback,
@@ -269,6 +270,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formRef = useRef<any>(null);
   const elementNameRef = useRef<ElementNameInlineEditRef>(null);
+  const modalFocusRootRef = useRef<HTMLDivElement>(null);
   const isInitializingRef = useRef(true);
   const hasUserEditedFormRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
@@ -291,6 +293,18 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     },
     [],
   );
+
+  const moveFocusIntoModal = useCallback(() => {
+    globalThis.requestAnimationFrame(() => {
+      modalFocusRootRef.current?.focus({ preventScroll: true });
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!libraryElementIsLoading) {
+      moveFocusIntoModal();
+    }
+  }, [libraryElementIsLoading, moveFocusIntoModal]);
 
   const schemaModules = useMemo(() => getSchemaModules(), []);
 
@@ -888,6 +902,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   return (
     <ModalWithFullscreenToggle
       open
+      afterOpenChange={(open) => {
+        if (open) {
+          moveFocusIntoModal();
+        }
+      }}
       title={
         <Flex
           align="center"
@@ -896,9 +915,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           justify="space-between"
           style={{ width: "100%" }}
         >
-          <div
-            className={styles["modal-title"]}
-          >
+          <div className={styles["modal-title"]}>
             <ElementNameInlineEdit
               ref={elementNameRef}
               value={(formData.name as string) ?? node.data.label ?? ""}
@@ -955,43 +972,52 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           </Flex>
         </Flex>
       }
+      classNames={{
+        body: "nokey",
+      }}
     >
-      {schema && activeKey && (
-        <>
-          <Tabs
-            activeKey={activeKey}
-            onChange={handleTabChange}
-            items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
-          />
-          <div
-            className={styles["form-wrapper"]}
-            onClickCapture={markUserInteracted}
-            onKeyDownCapture={markUserInteracted}
-            onMouseDownCapture={markUserInteracted}
-          >
-            <Form
-              ref={formRef}
-              className={styles["parameters-form"]}
-              schema={schema}
-              formData={formData}
-              validator={validator}
-              uiSchema={uiSchema}
-              transformErrors={transformErrors}
-              onError={handleRjsfFormErrors}
-              liveValidate={"onChange"}
-              showErrorList={false}
-              experimental_defaultFormStateBehavior={
-                FORM_DEFAULT_STATE_BEHAVIOR
-              }
-              formContext={formContext}
-              templates={TEMPLATES}
-              fields={FIELDS}
-              widgets={WIDGETS}
-              onChange={handleFormChange}
+      <div
+        ref={modalFocusRootRef}
+        tabIndex={-1}
+        className={styles["modalFocusRoot"]}
+      >
+        {schema && activeKey && (
+          <>
+            <Tabs
+              activeKey={activeKey}
+              onChange={handleTabChange}
+              items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
             />
-          </div>
-        </>
-      )}
+            <div
+              className={styles["form-wrapper"]}
+              onClickCapture={markUserInteracted}
+              onKeyDownCapture={markUserInteracted}
+              onMouseDownCapture={markUserInteracted}
+            >
+              <Form
+                ref={formRef}
+                className={styles["parameters-form"]}
+                schema={schema}
+                formData={formData}
+                validator={validator}
+                uiSchema={uiSchema}
+                transformErrors={transformErrors}
+                onError={handleRjsfFormErrors}
+                liveValidate={"onChange"}
+                showErrorList={false}
+                experimental_defaultFormStateBehavior={
+                  FORM_DEFAULT_STATE_BEHAVIOR
+                }
+                formContext={formContext}
+                templates={TEMPLATES}
+                fields={FIELDS}
+                widgets={WIDGETS}
+                onChange={handleFormChange}
+              />
+            </div>
+          </>
+        )}
+      </div>
     </ModalWithFullscreenToggle>
   );
 };

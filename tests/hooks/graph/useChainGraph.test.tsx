@@ -531,8 +531,9 @@ describe("useChainGraph", () => {
         await result.current.onDrop(makeDropEvent("script"));
       });
 
-      expect(mockRequestFailed).toHaveBeenCalledWith(
+      expect(mockErrorWithDetails).toHaveBeenCalledWith(
         expect.stringContaining("Failed to create element"),
+        expect.stringContaining("create failed"),
         expect.any(Error),
       );
     });
@@ -1011,7 +1012,7 @@ describe("useChainGraph", () => {
       });
 
       expect(mockRequestFailed).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to delete element"),
+        expect.stringContaining("delete failed"),
         expect.any(Error),
       );
       expect(refresh).not.toHaveBeenCalled();
@@ -1405,7 +1406,7 @@ describe("useChainGraph", () => {
       expect(refresh).not.toHaveBeenCalled();
       expect(mockErrorWithDetails).toHaveBeenCalledWith(
         expect.stringContaining("Drag element failed"),
-        expect.stringContaining("Failed to drag element"),
+        expect.stringContaining("transfer failed"),
         expect.any(Error),
       );
     });

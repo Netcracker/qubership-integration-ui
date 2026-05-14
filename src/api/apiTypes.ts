@@ -43,6 +43,7 @@ export type Dependency = {
 export type CreateElementRequest = {
   type: string;
   parentElementId?: string;
+  swimlaneId?: string;
 };
 
 export type PatchElementRequest = {
@@ -288,7 +289,7 @@ export type EngineDomain = {
 };
 
 export enum DomainType {
-  NATIVE = "NATIVE",
+  CLASSIC = "CLASSIC",
   MICRO = "MICRO",
 }
 

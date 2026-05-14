@@ -99,8 +99,8 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
   const [isPageLoaded, setIsPageLoaded] = useState(false);
 
   const deleteKeyCode = useMemo<KeyCode | null>(
-    () => (readOnly || elementId ? null : ["Backspace", "Delete"]),
-    [elementId, readOnly],
+    () => (readOnly ? null : ["Backspace", "Delete"]),
+    [readOnly],
   );
 
   const {
@@ -199,6 +199,11 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
     },
     [onDelete],
   );
+
+  const onBeforeDelete = useCallback(async () => {
+    if (typeof document === "undefined") return true;
+    return !document.querySelector(".ant-modal-wrap");
+  }, []);
 
   const { menu, closeMenu, onContextMenuCall } = useContextMenu(
     handleDelete,
@@ -410,6 +415,7 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
                   void handleDelete(changes);
                 }
           }
+          onBeforeDelete={readOnly ? undefined : onBeforeDelete}
           onDrop={readOnly ? undefined : (event) => void onDrop(event)}
           onDragOver={readOnly ? undefined : onDragOver}
           onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}

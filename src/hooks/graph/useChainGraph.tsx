@@ -63,7 +63,9 @@ import {
   useDecorativeEdges,
 } from "./useDecorativeEdges.tsx";
 import { useHoverDragVisuals } from "./useHoverDragVisuals.tsx";
+import { getErrorMessage } from "../../misc/error-utils.ts";
 import { ChainContext } from "../../pages/ChainPage.tsx";
+import { traverseElementsDepthFirst } from "../../misc/tree-utils.ts";
 
 const getAbsolutePosition = (
   node: ChainGraphNode,
@@ -249,7 +251,9 @@ export const useChainGraph = () => {
       }
       setIsLoading(true);
       try {
-        const newNodes: ChainGraphNode[] = chainContext.chain.elements
+        const elements: Element[] = [];
+        traverseElementsDepthFirst(chainContext.chain.elements, (e) => elements.push(e));
+        const newNodes: ChainGraphNode[] = elements
           .map((element: Element) =>
             getNodeFromElement(
               element,
@@ -447,7 +451,11 @@ export const useChainGraph = () => {
 
         clearDragVisuals();
       } catch (error) {
-        notificationService.requestFailed("Failed to create element", error);
+        notificationService.errorWithDetails(
+          "Failed to create element",
+          getErrorMessage(error, "Failed to create element"),
+          error,
+        );
       }
     },
     [
@@ -620,7 +628,10 @@ export const useChainGraph = () => {
           structureChanged(ids);
         }
       } catch (error) {
-        notificationService.requestFailed("Failed to delete element", error);
+        notificationService.requestFailed(
+          getErrorMessage(error, "Failed to delete element"),
+          error,
+        );
       }
     },
     [
@@ -710,7 +721,7 @@ export const useChainGraph = () => {
       } catch (error) {
         notificationService.errorWithDetails(
           "Drag element failed",
-          "Failed to drag element",
+          getErrorMessage(error, "Failed to drag element"),
           error,
         );
         finalParentId = originalParentId;

@@ -6,6 +6,18 @@
   flex: 1;
 }
 
+/* Description is now rendered in the footer, hide RJSF's default placement */
+.modalFocusRoot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalFocusRoot:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .parameters-form {
   min-height: 500px;
   overflow-y: auto;

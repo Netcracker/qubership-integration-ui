@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 jest.mock("@xyflow/react/dist/style.css", () => ({}));
@@ -70,6 +70,8 @@ const mockRequestFailed = jest.fn();
 const mockInfo = jest.fn();
 const mockNavigate = jest.fn();
 let mockElementId: string | undefined;
+/** When false, `hasPermissions(..., { chain: ["update"] })` is false → read-only graph. */
+let mockHasChainUpdatePermission = true;
 const mockReactFlow = jest.fn();
 
 jest.mock("../../src/Modals", () => ({
@@ -142,7 +144,16 @@ jest.mock("../../src/permissions/usePermissions", () => ({
 }));
 
 jest.mock("../../src/permissions/funcs", () => ({
-  hasPermissions: () => true,
+  hasPermissions: (
+    provided: { chain?: string[] },
+    required: { chain?: string[] },
+  ) => {
+    if (required?.chain?.includes("update")) {
+      if (!mockHasChainUpdatePermission) return false;
+      return required.chain.every((op) => provided?.chain?.includes(op));
+    }
+    return true;
+  },
 }));
 
 jest.mock("../../src/api/rest/vscodeExtensionApi", () => ({
@@ -295,6 +306,7 @@ describe("ChainGraph", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockElementId = undefined;
+    mockHasChainUpdatePermission = true;
     document.body.dataset.theme = "light";
   });
 
@@ -313,7 +325,7 @@ describe("ChainGraph", () => {
     expect(lastProps.deleteKeyCode).toEqual(["Backspace", "Delete"]);
   });
 
-  it("disables delete hotkeys on graph when element modal is open", () => {
+  it("keeps delete hotkeys enabled when element route is open (modal isolates via nokey)", () => {
     mockElementId = "element-1";
 
     render(<ChainGraph />);
@@ -322,7 +334,59 @@ describe("ChainGraph", () => {
     const lastProps = mockReactFlow.mock.calls.at(-1)?.[0] as {
       deleteKeyCode?: string[] | null;
     };
-    expect(lastProps.deleteKeyCode).toBeNull();
+    expect(lastProps.deleteKeyCode).toEqual(["Backspace", "Delete"]);
+  });
+
+  it("passes onBeforeDelete that allows deletion when no ant modal wrap exists", async () => {
+    render(<ChainGraph />);
+
+    const lastProps = mockReactFlow.mock.calls.at(-1)?.[0] as {
+      onBeforeDelete?: (args: {
+        nodes: unknown[];
+        edges: unknown[];
+      }) => Promise<boolean>;
+    };
+    expect(lastProps.onBeforeDelete).toEqual(expect.any(Function));
+    await expect(
+      lastProps.onBeforeDelete!({ nodes: [], edges: [] }),
+    ).resolves.toBe(true);
+  });
+
+  it("passes onBeforeDelete that blocks deletion while ant-modal-wrap is in the document", async () => {
+    render(<ChainGraph />);
+
+    const lastProps = mockReactFlow.mock.calls.at(-1)?.[0] as {
+      onBeforeDelete?: (args: {
+        nodes: unknown[];
+        edges: unknown[];
+      }) => Promise<boolean>;
+    };
+
+    const wrap = document.createElement("div");
+    wrap.className = "ant-modal-wrap";
+    document.body.appendChild(wrap);
+    try {
+      await expect(
+        lastProps.onBeforeDelete!({ nodes: [], edges: [] }),
+      ).resolves.toBe(false);
+    } finally {
+      wrap.remove();
+    }
+  });
+
+  it("omits onBeforeDelete when graph is read-only", async () => {
+    mockHasChainUpdatePermission = false;
+
+    render(<ChainGraph />);
+
+    await waitFor(() => {
+      const lastProps = mockReactFlow.mock.calls.at(-1)?.[0] as {
+        onBeforeDelete?: unknown;
+        deleteKeyCode?: string[] | null;
+      };
+      expect(lastProps.onBeforeDelete).toBeUndefined();
+      expect(lastProps.deleteKeyCode).toBeNull();
+    });
   });
 
   it("renders ElementsLibrarySidebar", () => {
@@ -381,7 +445,7 @@ describe("ChainGraph", () => {
       }>;
     };
     expect(modalArg?.component?.props?.onSubmit).toEqual(expect.any(Function));
-    await modalArg.component.props.onSubmit([{ name: "domain-1", type: DomainType.NATIVE }]);
+    await modalArg.component.props.onSubmit([{ name: "domain-1", type: DomainType.CLASSIC }]);
 
     expect(createSnapshot).toHaveBeenCalledWith("chain-1");
     expect(createDeployment).toHaveBeenCalledWith(
@@ -423,7 +487,7 @@ describe("ChainGraph", () => {
         onSubmit: (domains: { name: string; type: DomainType }[]) => void | Promise<void>;
       }>;
     };
-    await modalArg.component.props.onSubmit([{ name: "domain-1", type: DomainType.NATIVE }]);
+    await modalArg.component.props.onSubmit([{ name: "domain-1", type: DomainType.CLASSIC }]);
 
     expect(createSnapshot).toHaveBeenCalledWith("chain-1");
     expect(createDeployment).toHaveBeenCalled();

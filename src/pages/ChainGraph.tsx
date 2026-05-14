@@ -353,6 +353,7 @@ const ChainGraphInner: React.FC = () => {
               }
             />
             <div
+              className="nokey"
               style={{
                 width: rightPanelWidth,
                 minWidth: MIN_PANEL_WIDTH,
