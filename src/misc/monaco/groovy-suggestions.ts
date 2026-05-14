@@ -1,0 +1,483 @@
+import { IRange, languages } from "monaco-editor";
+import {
+  getDotChainPrefix,
+  markdown,
+  PartialCompletionItem,
+  withRange,
+} from "./completion-helpers";
+
+export const GROOVY_STATEMENT_KEYWORDS: readonly string[] = [
+  "abstract",
+  "assert",
+  "boolean",
+  "break",
+  "byte",
+  "case",
+  "catch",
+  "char",
+  "class",
+  "const",
+  "continue",
+  "def",
+  "default",
+  "do",
+  "double",
+  "else",
+  "enum",
+  "extends",
+  "final",
+  "finally",
+  "float",
+  "for",
+  "goto",
+  "if",
+  "implements",
+  "import",
+  "int",
+  "interface",
+  "long",
+  "native",
+  "package",
+  "private",
+  "protected",
+  "public",
+  "return",
+  "short",
+  "static",
+  "strictfp",
+  "switch",
+  "synchronized",
+  "throw",
+  "throws",
+  "transient",
+  "try",
+  "void",
+  "volatile",
+  "while",
+];
+
+export const GROOVY_EXPRESSION_KEYWORDS: readonly string[] = [
+  "as",
+  "false",
+  "in",
+  "instanceof",
+  "new",
+  "null",
+  "super",
+  "this",
+  "true",
+];
+
+export const GROOVY_KEYWORDS: readonly string[] = [
+  ...GROOVY_STATEMENT_KEYWORDS,
+  ...GROOVY_EXPRESSION_KEYWORDS,
+].sort();
+
+const GROOVY_SNIPPET_DEFINITIONS: {
+  label: string;
+  insertText: string;
+  doc: string;
+}[] = [
+  {
+    label: "if",
+    insertText: "if (${1:condition}) {\n\t$0\n}",
+    doc: "if statement",
+  },
+  {
+    label: "ifelse",
+    insertText: "if (${1:condition}) {\n\t$2\n} else {\n\t$0\n}",
+    doc: "if/else statement",
+  },
+  {
+    label: "for",
+    insertText: "for (int ${1:i} = 0; $1 < ${2:n}; $1++) {\n\t$0\n}",
+    doc: "Classic for loop",
+  },
+  {
+    label: "forin",
+    insertText: "for (${1:item} in ${2:collection}) {\n\t$0\n}",
+    doc: "for-in loop",
+  },
+  {
+    label: "while",
+    insertText: "while (${1:condition}) {\n\t$0\n}",
+    doc: "while loop",
+  },
+  {
+    label: "try",
+    insertText: "try {\n\t$1\n} catch (${2:Exception} ${3:e}) {\n\t$0\n}",
+    doc: "try/catch block",
+  },
+  {
+    label: "tryf",
+    insertText:
+      "try {\n\t$1\n} catch (${2:Exception} ${3:e}) {\n\t$4\n} finally {\n\t$0\n}",
+    doc: "try/catch/finally block",
+  },
+  {
+    label: "closure",
+    insertText: "{ ${1:it} -> $0 }",
+    doc: "Groovy closure",
+  },
+  {
+    label: "switch",
+    insertText:
+      "switch (${1:value}) {\n\tcase ${2:option}:\n\t\t$0\n\t\tbreak\n\tdefault:\n\t\tbreak\n}",
+    doc: "switch/case statement",
+  },
+  {
+    label: "method",
+    insertText: "def ${1:name}(${2:args}) {\n\t$0\n}",
+    doc: "Method definition",
+  },
+  {
+    label: "each",
+    insertText: "${1:collection}.each { ${2:it} ->\n\t$0\n}",
+    doc: "Iterate over collection",
+  },
+  {
+    label: "find",
+    insertText: "${1:collection}.find { ${2:it} -> ${3:condition} }",
+    doc: "Find first match in collection",
+  },
+  {
+    label: "collect",
+    insertText: "${1:collection}.collect { ${2:it} -> $0 }",
+    doc: "Transform collection",
+  },
+];
+
+const EXCHANGE_API_DEFINITIONS: {
+  label: string;
+  insertText: string;
+  detail: string;
+  doc: string;
+}[] = [
+  {
+    label: "exchange",
+    insertText: "exchange",
+    detail: "org.apache.camel.Exchange",
+    doc: "Current Camel Exchange (root variable in script)",
+  },
+  {
+    label: "log",
+    insertText: "log",
+    detail: "org.slf4j.Logger",
+    doc: "Logger available in script (use `log.info(...)`)",
+  },
+];
+
+const EXCHANGE_MEMBER_DEFINITIONS: {
+  label: string;
+  insertText: string;
+  doc: string;
+  isSnippet?: boolean;
+}[] = [
+  {
+    label: "getIn",
+    insertText: "getIn()",
+    doc: "Returns the inbound message of the exchange.",
+  },
+  {
+    label: "getMessage",
+    insertText: "getMessage()",
+    doc: "Returns the message of the exchange (preferred over `getIn()` in Camel 3+).",
+  },
+  {
+    label: "setMessage",
+    insertText: "setMessage($0)",
+    doc: "Sets the message of the exchange.",
+    isSnippet: true,
+  },
+  {
+    label: "getProperty",
+    insertText: "getProperty('${1:name}')$0",
+    doc: "Reads an exchange property by name.",
+    isSnippet: true,
+  },
+  {
+    label: "setProperty",
+    insertText: "setProperty('${1:name}', ${2:value})$0",
+    doc: "Sets an exchange property.",
+    isSnippet: true,
+  },
+  {
+    label: "getProperties",
+    insertText: "getProperties()",
+    doc: "Returns all exchange properties as a map.",
+  },
+  {
+    label: "removeProperty",
+    insertText: "removeProperty('${1:name}')$0",
+    doc: "Removes an exchange property by name.",
+    isSnippet: true,
+  },
+  {
+    label: "getException",
+    insertText: "getException()",
+    doc: "Returns the exception associated with the exchange (if any).",
+  },
+  {
+    label: "getContext",
+    insertText: "getContext()",
+    doc: "Returns the CamelContext.",
+  },
+  {
+    label: "getFromEndpoint",
+    insertText: "getFromEndpoint()",
+    doc: "Returns the endpoint that produced the exchange.",
+  },
+];
+
+const MESSAGE_MEMBER_DEFINITIONS: {
+  label: string;
+  insertText: string;
+  doc: string;
+  isSnippet?: boolean;
+}[] = [
+  {
+    label: "getBody",
+    insertText: "getBody()",
+    doc: "Returns the message body.",
+  },
+  {
+    label: "getBodyAs",
+    insertText: "getBody(${1:Type}.class)$0",
+    doc: "Returns the message body converted to the given type.",
+    isSnippet: true,
+  },
+  {
+    label: "setBody",
+    insertText: "setBody($0)",
+    doc: "Sets the message body.",
+    isSnippet: true,
+  },
+  {
+    label: "getHeader",
+    insertText: "getHeader('${1:name}')$0",
+    doc: "Returns a message header by name.",
+    isSnippet: true,
+  },
+  {
+    label: "getHeaders",
+    insertText: "getHeaders()",
+    doc: "Returns all message headers as a map.",
+  },
+  {
+    label: "setHeader",
+    insertText: "setHeader('${1:name}', ${2:value})$0",
+    doc: "Sets a message header.",
+    isSnippet: true,
+  },
+  {
+    label: "removeHeader",
+    insertText: "removeHeader('${1:name}')$0",
+    doc: "Removes a message header by name.",
+    isSnippet: true,
+  },
+  {
+    label: "getMessageId",
+    insertText: "getMessageId()",
+    doc: "Returns the unique message id.",
+  },
+];
+
+function keywordItem(keyword: string): PartialCompletionItem {
+  return {
+    label: keyword,
+    kind: languages.CompletionItemKind.Keyword,
+    insertText: keyword,
+  };
+}
+
+function snippetItem(
+  label: string,
+  insertText: string,
+  doc: string,
+): PartialCompletionItem {
+  return {
+    label,
+    kind: languages.CompletionItemKind.Snippet,
+    insertText,
+    insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
+    documentation: markdown(doc),
+  };
+}
+
+function methodItem(
+  label: string,
+  insertText: string,
+  doc: string,
+  isSnippet = false,
+): PartialCompletionItem {
+  const item: PartialCompletionItem = {
+    label,
+    kind: languages.CompletionItemKind.Method,
+    insertText,
+    documentation: markdown(doc),
+  };
+  if (isSnippet) {
+    item.insertTextRules =
+      languages.CompletionItemInsertTextRule.InsertAsSnippet;
+  }
+  return item;
+}
+
+function variableItem(
+  label: string,
+  insertText: string,
+  detail: string,
+  doc: string,
+): PartialCompletionItem {
+  return {
+    label,
+    kind: languages.CompletionItemKind.Variable,
+    insertText,
+    detail,
+    documentation: markdown(doc),
+  };
+}
+
+const groovyKeywordItems: readonly PartialCompletionItem[] =
+  GROOVY_KEYWORDS.map(keywordItem);
+
+const groovyExpressionKeywordItems: readonly PartialCompletionItem[] =
+  GROOVY_EXPRESSION_KEYWORDS.map(keywordItem);
+
+const groovySnippetItems: readonly PartialCompletionItem[] =
+  GROOVY_SNIPPET_DEFINITIONS.map(({ label, insertText, doc }) =>
+    snippetItem(label, insertText, doc),
+  );
+
+const exchangeApiItems: readonly PartialCompletionItem[] =
+  EXCHANGE_API_DEFINITIONS.map(({ label, insertText, detail, doc }) =>
+    variableItem(label, insertText, detail, doc),
+  );
+
+const exchangeMemberItems: readonly PartialCompletionItem[] =
+  EXCHANGE_MEMBER_DEFINITIONS.map(({ label, insertText, doc, isSnippet }) =>
+    methodItem(label, insertText, doc, isSnippet),
+  );
+
+const messageMemberItems: readonly PartialCompletionItem[] =
+  MESSAGE_MEMBER_DEFINITIONS.map(({ label, insertText, doc, isSnippet }) =>
+    methodItem(label, insertText, doc, isSnippet),
+  );
+
+export function groovyKeywordSuggestions(
+  range: IRange,
+): languages.CompletionItem[] {
+  return withRange(groovyKeywordItems, range);
+}
+
+export function groovySnippetSuggestions(
+  range: IRange,
+): languages.CompletionItem[] {
+  return withRange(groovySnippetItems, range);
+}
+
+export function exchangeApiSuggestions(
+  range: IRange,
+): languages.CompletionItem[] {
+  return withRange(exchangeApiItems, range);
+}
+
+export function exchangeMemberSuggestions(
+  range: IRange,
+): languages.CompletionItem[] {
+  return withRange(exchangeMemberItems, range);
+}
+
+export function messageMemberSuggestions(
+  range: IRange,
+): languages.CompletionItem[] {
+  return withRange(messageMemberItems, range);
+}
+
+export function resolveGroovyContextSuggestions(
+  textBefore: string,
+  range: IRange,
+): languages.CompletionItem[] | null {
+  const chain = getDotChainPrefix(textBefore);
+  if (!chain || chain.length === 0) {
+    return null;
+  }
+  const lastSegment = chain[chain.length - 1];
+  if (lastSegment === "exchange") {
+    return exchangeMemberSuggestions(range);
+  }
+  if (lastSegment === "getMessage()" || lastSegment === "getIn()") {
+    return messageMemberSuggestions(range);
+  }
+  return [];
+}
+
+const GROOVY_STRING_OR_COMMENT_RE =
+  /\/\*[\s\S]*?\*\/|\/\/[^\n]*|('''[\s\S]*?'''|'(?:[^'\\\n]|\\.)*')|("""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*")/g;
+
+function stripGroovyStringsAndComments(text: string): string {
+  return text.replace(
+    GROOVY_STRING_OR_COMMENT_RE,
+    (
+      _match,
+      singleQuoted: string | undefined,
+      doubleQuoted: string | undefined,
+    ) => {
+      if (singleQuoted) return "''";
+      if (doubleQuoted) return '""';
+      return "";
+    },
+  );
+}
+
+const GROOVY_STATEMENT_SEPARATOR_CHARS = ";{}";
+
+// Characters that, when they end the previous code, signal an unfinished
+// expression continuing onto the next line. If we crossed a newline but the
+// previous non-whitespace char is one of these, we are still inside an
+// expression, not at a new statement.
+const GROOVY_CONTINUATION_CHARS = "+-*/<>=!&|,(?:.[";
+
+export function isGroovyStatementStart(textBefore: string): boolean {
+  const beforeWord = stripGroovyStringsAndComments(textBefore).replace(
+    /[A-Za-z_$][\w$]*$/,
+    "",
+  );
+  let i = beforeWord.length - 1;
+  let crossedNewline = false;
+  while (i >= 0 && /\s/.test(beforeWord[i])) {
+    if (beforeWord[i] === "\n") {
+      crossedNewline = true;
+    }
+    i--;
+  }
+  if (i < 0) {
+    return true;
+  }
+  const prev = beforeWord[i];
+  if (GROOVY_STATEMENT_SEPARATOR_CHARS.includes(prev)) {
+    return true;
+  }
+  return crossedNewline && !GROOVY_CONTINUATION_CHARS.includes(prev);
+}
+
+export function getGroovyCompletionItems(
+  textBefore: string,
+  range: IRange,
+): languages.CompletionItem[] {
+  const contextual = resolveGroovyContextSuggestions(textBefore, range);
+  if (contextual !== null) {
+    return contextual;
+  }
+  if (isGroovyStatementStart(textBefore)) {
+    return [
+      ...groovyKeywordSuggestions(range),
+      ...groovySnippetSuggestions(range),
+      ...exchangeApiSuggestions(range),
+    ];
+  }
+  return [
+    ...withRange(groovyExpressionKeywordItems, range),
+    ...exchangeApiSuggestions(range),
+  ];
+}
