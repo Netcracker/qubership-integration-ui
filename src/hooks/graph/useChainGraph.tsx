@@ -14,6 +14,7 @@
 import React, {
   DragEvent,
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -62,6 +63,7 @@ import {
   useDecorativeEdges,
 } from "./useDecorativeEdges.tsx";
 import { useHoverDragVisuals } from "./useHoverDragVisuals.tsx";
+import { ChainContext } from "../../pages/ChainPage.tsx";
 
 const getAbsolutePosition = (
   node: ChainGraphNode,
@@ -109,10 +111,8 @@ const computeAffectedParents = (
   return Array.from(affected);
 };
 
-export const useChainGraph = (
-  chainId?: string,
-  onChainUpdate?: () => void | Promise<void>,
-) => {
+export const useChainGraph = () => {
+  const chainContext = useContext(ChainContext);
   const { screenToFlowPosition, getIntersectingNodes } = useReactFlow();
   const { libraryElements, isLibraryLoading } = useLibraryContext();
 
@@ -128,6 +128,12 @@ export const useChainGraph = (
 
   const structureChangedRef = useRef<boolean>(false);
   const structureChangedParentIdsRef = useRef<string[] | null>(null);
+
+  const onChainUpdate = useCallback(async () => {
+    if (chainContext?.refresh) {
+      await chainContext.refresh();
+    }
+  }, [chainContext]);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -233,20 +239,17 @@ export const useChainGraph = (
   useEffect(() => {
     if (isInitialized.current) return;
     if (isLibraryLoading) return;
-    if (!chainId) return;
+    if (!chainContext?.chain) return;
 
     isInitialized.current = true;
 
     const fetchData = async () => {
+      if (!chainContext?.chain) {
+        return;
+      }
       setIsLoading(true);
       try {
-        const [elementsResponse, connections] = await Promise.all([
-          api.getElements(chainId),
-          api.getConnections(chainId),
-        ]);
-        const elements = elementsResponse as unknown as Element[];
-
-        const newNodes: ChainGraphNode[] = elements
+        const newNodes: ChainGraphNode[] = chainContext.chain.elements
           .map((element: Element) =>
             getNodeFromElement(
               element,
@@ -256,11 +259,13 @@ export const useChainGraph = (
           )
           .filter((n): n is ChainGraphNode => !!n);
 
-        const newEdges: Edge[] = connections.map((c: Connection) => ({
-          id: c.id,
-          source: c.from,
-          target: c.to,
-        }));
+        const newEdges: Edge[] = chainContext.chain.dependencies.map(
+          (c: Connection) => ({
+            id: c.id,
+            source: c.from,
+            target: c.to,
+          }),
+        );
 
         const arranged = await arrangeNodes(newNodes, newEdges);
         const withToggle = attachToggle(arranged);
@@ -284,15 +289,15 @@ export const useChainGraph = (
 
     void fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chainId, isLibraryLoading]);
+  }, [chainContext, isLibraryLoading]);
 
   const onConnect = useCallback(
     async (connection: ReactFlowConnection) => {
-      if (!chainId) return;
+      if (!chainContext?.chain) return;
       try {
         const response = await api.createConnection(
           { from: connection.source, to: connection.target },
-          chainId,
+          chainContext?.chain.id,
         );
         const createdId = response.createdDependencies?.[0]?.id;
         if (!createdId) return;
@@ -317,7 +322,7 @@ export const useChainGraph = (
       }
     },
     [
-      chainId,
+      chainContext,
       nodes,
       notificationService,
       setEdges,
@@ -352,7 +357,7 @@ export const useChainGraph = (
   const onDrop = useCallback(
     async (event: React.DragEvent) => {
       event.preventDefault();
-      if (!chainId) return;
+      if (!chainContext?.chain) return;
 
       const name = event.dataTransfer.getData("application/reactflow");
       if (!name) return;
@@ -384,7 +389,10 @@ export const useChainGraph = (
       }
 
       try {
-        const response = await api.createElement(createElementRequest, chainId);
+        const response = await api.createElement(
+          createElementRequest,
+          chainContext?.chain.id,
+        );
         const createdElement = response.createdElements?.[0];
         if (!createdElement) return;
 
@@ -443,7 +451,7 @@ export const useChainGraph = (
       }
     },
     [
-      chainId,
+      chainContext,
       screenToFlowPosition,
       getIntersectingNodes,
       libraryElements,
@@ -462,7 +470,7 @@ export const useChainGraph = (
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      if (!chainId) return;
+      if (!chainContext?.chain) return;
 
       const baseChanges = changes.filter(
         (c) => !isDecorativeEdgeId((c as { id: string }).id),
@@ -481,12 +489,12 @@ export const useChainGraph = (
         setDecorativeEdges((eds) => applyEdgeChanges(decoNonRemove, eds));
       }
     },
-    [chainId, setEdges, setDecorativeEdges],
+    [chainContext, setEdges, setDecorativeEdges],
   );
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ChainGraphNode>[]) => {
-      if (!chainId) return;
+      if (!chainContext?.chain) return;
       const nonRemove = changes.filter((c) => c.type !== "remove");
       if (!nonRemove.length) return;
       setNodes((nds) => {
@@ -494,12 +502,12 @@ export const useChainGraph = (
         return sortParentsBeforeChildren(next as ChainGraphNode[]);
       });
     },
-    [chainId, setNodes],
+    [chainContext, setNodes],
   );
 
   const onDelete = useCallback(
     async (changes: OnDeleteEvent) => {
-      if (!chainId) return;
+      if (!chainContext?.chain) return;
 
       const nodesToDelete: ChainGraphNode[] = changes.nodes as ChainGraphNode[];
       const edgesToDelete: Edge[] = changes.edges;
@@ -557,7 +565,7 @@ export const useChainGraph = (
         try {
           const response = await api.deleteConnections(
             separateEdgesToDelete.map((edge) => edge.id),
-            chainId,
+            chainContext?.chain.id,
           );
           response.removedDependencies?.forEach((connection) =>
             deletedEdgeIds.push(connection.id),
@@ -573,7 +581,7 @@ export const useChainGraph = (
       try {
         const elementsDeleteResponse = await api.deleteElements(
           rootIdsToDelete,
-          chainId,
+          chainContext?.chain.id,
         );
 
         const deletedNodeIds = (
@@ -616,7 +624,7 @@ export const useChainGraph = (
       }
     },
     [
-      chainId,
+      chainContext,
       nodes,
       edges,
       notificationService,
@@ -638,7 +646,7 @@ export const useChainGraph = (
 
   const onNodeDragStop = useCallback(
     async (_event: React.MouseEvent, draggedNode: ChainGraphNode) => {
-      if (!chainId) return;
+      if (!chainContext?.chain) return;
       if (isLibraryLoading) return;
 
       clearHoverTimer();
@@ -687,7 +695,10 @@ export const useChainGraph = (
               : null,
           elements: selectedIds,
         };
-        const response = await api.transferElement(request, chainId);
+        const response = await api.transferElement(
+          request,
+          chainContext?.chain.id,
+        );
         const updatedElement = findUpdatedElement(
           response.updatedElements,
           draggedNode.id,
@@ -740,7 +751,7 @@ export const useChainGraph = (
       );
     },
     [
-      chainId,
+      chainContext,
       isLibraryLoading,
       getIntersectingNodes,
       libraryElements,

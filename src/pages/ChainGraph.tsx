@@ -152,15 +152,6 @@ const ChainGraphInner: React.FC = () => {
     setReadOnly(!hasPermissions(permissions, { chain: ["update"] }));
   }, [permissions]);
 
-  const refreshChain = useCallback(async () => {
-    if (!chainContext?.refresh) return;
-    try {
-      await chainContext.refresh();
-    } catch (err) {
-      notificationService.requestFailed("Failed to refresh chain", err);
-    }
-  }, [chainContext, notificationService]);
-
   const {
     nodes,
     setNodes,
@@ -183,7 +174,7 @@ const ChainGraphInner: React.FC = () => {
     expandAllContainers,
     collapseAllContainers,
     structureChanged,
-  } = useChainGraph(chainId, refreshChain);
+  } = useChainGraph();
 
   const renderEdges = useMemo(
     () => [...edges, ...decorativeEdges].map(sanitizeEdge),
@@ -199,9 +190,9 @@ const ChainGraphInner: React.FC = () => {
   const handleElementUpdated = useCallback(
     (element: Element, node: ChainGraphNode) => {
       updateNodeData(element, node);
-      void refreshChain();
+      void chainContext?.refresh();
     },
-    [updateNodeData, refreshChain],
+    [updateNodeData, chainContext],
   );
 
   const clearElementPath = useCallback(() => {
@@ -277,7 +268,7 @@ const ChainGraphInner: React.FC = () => {
     setEdges,
     structureChanged,
     chainId,
-    refreshChain,
+    chainContext?.refresh,
   );
 
   const onNodeDoubleClick = (
@@ -640,146 +631,142 @@ const ChainGraphInner: React.FC = () => {
 
   return (
     <Flex className={styles["graph-wrapper"]}>
-      <ElkDirectionContextProvider
-        elkDirectionControl={{
-          direction,
-          toggleDirection,
-        }}
-      >
-        <ElementFocusContext.Provider value={fitViewToElementIdRef}>
-          <Require permissions={{ chain: ["update"] }}>
-            {!readOnly && leftPanelVisible && (
-              <>
-                <ElementsLibrarySidebar width={leftPanelWidth} />
-                <PanelResizeHandle
-                  direction="left"
-                  onResize={(delta) =>
-                    setLeftPanelWidth((w) =>
-                      clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
-                    )
-                  }
-                />
-              </>
-            )}
-          </Require>
-          <div className="react-flow-container" ref={reactFlowWrapper}>
-            <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <ReactFlow
-                  nodes={
-                    readOnly
-                      ? nodes.map((node) => ({
-                          ...node,
-                          draggable: false,
-                          connectable: false,
-                        }))
-                      : nodes
-                  }
-                  nodeTypes={nodeTypes}
-                  defaultEdgeOptions={{ zIndex: 1001 }}
-                  edges={renderEdges}
-                  onNodeDragStart={readOnly ? undefined : onNodeDragStart}
-                  onNodeDrag={readOnly ? undefined : onNodeDrag}
-                  onNodeDragStop={
-                    readOnly
-                      ? undefined
-                      : (event, draggedNode) =>
-                          void onNodeDragStop(event, draggedNode)
-                  }
-                  onNodesChange={readOnly ? undefined : onNodesChange}
-                  onEdgesChange={
-                    readOnly ? undefined : (changes) => onEdgesChange(changes)
-                  }
-                  onConnect={
-                    readOnly
-                      ? undefined
-                      : (connection) => void onConnect(connection)
-                  }
-                  onDelete={
-                    readOnly
-                      ? undefined
-                      : (changes) => {
-                          void handleDelete(changes);
-                        }
-                  }
-                  onDrop={readOnly ? undefined : (event) => void onDrop(event)}
-                  onDragOver={readOnly ? undefined : onDragOver}
-                  onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
-                  zoomOnDoubleClick={false}
-                  deleteKeyCode={deleteKeyCode}
-                  proOptions={{ hideAttribution: true }}
-                  onContextMenu={readOnly ? undefined : onContextMenu}
-                  onNodeContextMenu={readOnly ? undefined : onNodeContextMenu}
-                  onPaneClick={closeMenu}
-                  fitView
-                >
-                  <ElementFocus />
-                  <Background variant={BackgroundVariant.Dots} />
-                  <MiniMap
-                    zoomable
-                    pannable
-                    position="top-right"
-                    nodeColor={getMinimapNodeColor}
-                    nodeStrokeColor={getMinimapNodeStrokeColor}
-                    nodeStrokeWidth={2}
-                  />
-                  <ChainGraphViewControls
-                    before={
-                      <>
-                        {!readOnly && (
-                          <Button
-                            className={controlStyles.button}
-                            type="text"
-                            title="Left Panel"
-                            data-active={leftPanelVisible}
-                            onClick={() => setLeftPanelVisible((prev) => !prev)}
-                            icon={<OverridableIcon name="leftPanel" />}
-                          />
-                        )}
-                        <Button
-                          className={controlStyles.button}
-                          type="text"
-                          title="Right Panel"
-                          data-active={rightPanelVisible}
-                          onClick={() => setRightPanelVisible((prev) => !prev)}
-                          icon={<OverridableIcon name="rightPanel" />}
-                        />
-                      </>
-                    }
-                    onExpandAllContainers={expandAllContainers}
-                    onCollapseAllContainers={collapseAllContainers}
-                  />
-                  {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
-                </ReactFlow>
-              </div>
-            </div>
-          </div>
-          {rightPanelVisible && (
+      <ElementFocusContext.Provider value={fitViewToElementIdRef}>
+        <Require permissions={{ chain: ["update"] }}>
+          {!readOnly && leftPanelVisible && (
             <>
+              <ElementsLibrarySidebar width={leftPanelWidth} />
               <PanelResizeHandle
-                direction="right"
+                direction="left"
                 onResize={(delta) =>
-                  setRightPanelWidth((w) =>
+                  setLeftPanelWidth((w) =>
                     clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
                   )
                 }
               />
-              <div
-                style={{
-                  width: rightPanelWidth,
-                  minWidth: MIN_PANEL_WIDTH,
-                  flexShrink: 0,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <PageWithRightPanel width={rightPanelWidth} />
-              </div>
             </>
           )}
-        </ElementFocusContext.Provider>
-      </ElkDirectionContextProvider>
+        </Require>
+        <div className="react-flow-container" ref={reactFlowWrapper}>
+          <ElkDirectionContextProvider
+            elkDirectionControl={{
+              direction,
+              toggleDirection,
+            }}
+          >
+            <ReactFlow
+              nodes={
+                readOnly
+                  ? nodes.map((node) => ({
+                      ...node,
+                      draggable: false,
+                      connectable: false,
+                    }))
+                  : nodes
+              }
+              nodeTypes={nodeTypes}
+              defaultEdgeOptions={{ zIndex: 1001 }}
+              edges={renderEdges}
+              onNodeDragStart={readOnly ? undefined : onNodeDragStart}
+              onNodeDrag={readOnly ? undefined : onNodeDrag}
+              onNodeDragStop={
+                readOnly
+                  ? undefined
+                  : (event, draggedNode) =>
+                      void onNodeDragStop(event, draggedNode)
+              }
+              onNodesChange={readOnly ? undefined : onNodesChange}
+              onEdgesChange={
+                readOnly ? undefined : (changes) => onEdgesChange(changes)
+              }
+              onConnect={
+                readOnly
+                  ? undefined
+                  : (connection) => void onConnect(connection)
+              }
+              onDelete={
+                readOnly
+                  ? undefined
+                  : (changes) => {
+                      void handleDelete(changes);
+                    }
+              }
+              onDrop={readOnly ? undefined : (event) => void onDrop(event)}
+              onDragOver={readOnly ? undefined : onDragOver}
+              onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
+              zoomOnDoubleClick={false}
+              deleteKeyCode={deleteKeyCode}
+              proOptions={{ hideAttribution: true }}
+              onContextMenu={readOnly ? undefined : onContextMenu}
+              onNodeContextMenu={readOnly ? undefined : onNodeContextMenu}
+              onPaneClick={closeMenu}
+              fitView
+            >
+              <ElementFocus />
+              <Background variant={BackgroundVariant.Dots} />
+              <MiniMap
+                zoomable
+                pannable
+                position="top-right"
+                nodeColor={getMinimapNodeColor}
+                nodeStrokeColor={getMinimapNodeStrokeColor}
+                nodeStrokeWidth={2}
+              />
+              <ChainGraphViewControls
+                before={
+                  <>
+                    {!readOnly && (
+                      <Button
+                        className={controlStyles.button}
+                        type="text"
+                        title="Left Panel"
+                        data-active={leftPanelVisible}
+                        onClick={() => setLeftPanelVisible((prev) => !prev)}
+                        icon={<OverridableIcon name="leftPanel" />}
+                      />
+                    )}
+                    <Button
+                      className={controlStyles.button}
+                      type="text"
+                      title="Right Panel"
+                      data-active={rightPanelVisible}
+                      onClick={() => setRightPanelVisible((prev) => !prev)}
+                      icon={<OverridableIcon name="rightPanel" />}
+                    />
+                  </>
+                }
+                onExpandAllContainers={expandAllContainers}
+                onCollapseAllContainers={collapseAllContainers}
+              />
+              {menu && <ContextMenu menu={menu} closeMenu={closeMenu} />}
+            </ReactFlow>
+          </ElkDirectionContextProvider>
+        </div>
+        {rightPanelVisible && (
+          <>
+            <PanelResizeHandle
+              direction="right"
+              onResize={(delta) =>
+                setRightPanelWidth((w) =>
+                  clamp(w + delta, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH),
+                )
+              }
+            />
+            <div
+              style={{
+                width: rightPanelWidth,
+                minWidth: MIN_PANEL_WIDTH,
+                flexShrink: 0,
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <PageWithRightPanel width={rightPanelWidth} />
+            </div>
+          </>
+        )}
+      </ElementFocusContext.Provider>
     </Flex>
   );
 };

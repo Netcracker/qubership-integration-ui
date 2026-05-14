@@ -80,8 +80,6 @@ jest.mock("../../../src/hooks/graph/useExpandCollapse", () => ({
 
 jest.mock("../../../src/api/api", () => ({
   api: {
-    getElements: jest.fn(),
-    getConnections: jest.fn(),
     transferElement: jest.fn(),
     createConnection: jest.fn(),
     createElement: jest.fn(),
@@ -132,6 +130,12 @@ jest.mock("../../../src/misc/chain-graph-utils", () => {
   };
 });
 
+jest.mock("../../../src/pages/ChainPage.tsx", () => {
+  const { createContext } =
+    jest.requireActual<typeof import("react")>("react");
+  return { ChainContext: createContext(undefined) };
+});
+
 import { api } from "../../../src/api/api";
 import {
   getPossibleGraphIntersection,
@@ -142,17 +146,23 @@ import {
   getLeastCommonParent,
 } from "../../../src/misc/chain-graph-utils";
 import { useChainGraph } from "../../../src/hooks/graph/useChainGraph";
+import { ChainContext } from "../../../src/pages/ChainPage.tsx";
 import type {
   ChainGraphNode,
   OnDeleteEvent,
 } from "../../../src/components/graph/nodes/ChainGraphNodeTypes";
 import type { EdgeChange, NodeChange, Edge } from "@xyflow/react";
+import type { Chain } from "../../../src/api/apiTypes";
 
 type HookResult = ReturnType<typeof useChainGraph>;
 
+type ChainContextData = {
+  chain: Chain | undefined;
+  update: () => Promise<void>;
+  refresh: () => Promise<void>;
+};
+
 const apiMock = api as unknown as {
-  getElements: jest.Mock;
-  getConnections: jest.Mock;
   transferElement: jest.Mock;
   createConnection: jest.Mock;
   createElement: jest.Mock;
@@ -200,18 +210,46 @@ const settle = async () => {
   });
 };
 
+const makeChain = (overrides: Partial<Chain> = {}): Chain =>
+  ({
+    id: "chain-1",
+    name: "Test Chain",
+    description: "",
+    elements: [],
+    dependencies: [],
+    deployments: [],
+    labels: [],
+    navigationPath: [],
+    defaultSwimlaneId: "",
+    reuseSwimlaneId: "",
+    ...overrides,
+  }) as unknown as Chain;
+
 const renderChainGraph = async (
-  onChainUpdate?: jest.Mock,
-  options?: { chainId?: string | undefined },
+  refresh?: jest.Mock,
+  options?: { chain?: Chain | undefined },
 ) => {
-  const chainId = options && "chainId" in options ? options.chainId : "chain-1";
-  const rendered = renderHook(() => useChainGraph(chainId, onChainUpdate));
+  const chain =
+    options && "chain" in options ? options.chain : makeChain();
+  const contextValue: ChainContextData = {
+    chain,
+    update: jest.fn(),
+    refresh: refresh ?? jest.fn(),
+  };
+  const rendered = renderHook(() => useChainGraph(), {
+    wrapper: ({ children }) => (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      <ChainContext.Provider value={contextValue as any}>
+        {children}
+      </ChainContext.Provider>
+    ),
+  });
   await settle();
   return rendered;
 };
 
-const withInitialNodes = async (onChainUpdate?: jest.Mock) => {
-  const rendered = await renderChainGraph(onChainUpdate);
+const withInitialNodes = async (refresh?: jest.Mock) => {
+  const rendered = await renderChainGraph(refresh);
   act(() => {
     rendered.result.current.setNodes(initialNodes);
   });
@@ -225,8 +263,6 @@ describe("useChainGraph", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsLibraryLoading = false;
-    apiMock.getElements.mockResolvedValue([]);
-    apiMock.getConnections.mockResolvedValue([]);
     mockUseReactFlow.mockReturnValue({
       screenToFlowPosition: mockScreenToFlowPosition,
       getIntersectingNodes: mockGetIntersectingNodes,
@@ -236,22 +272,15 @@ describe("useChainGraph", () => {
 
   describe("initialization", () => {
     it("loads elements and connections on mount", async () => {
-      apiMock.getElements.mockResolvedValue([
-        {
-          id: "elem-1",
-          type: "script",
-          name: "Elem",
-          description: "",
-        },
-      ]);
-      apiMock.getConnections.mockResolvedValue([
-        { id: "conn-1", from: "a", to: "b" },
-      ]);
+      const chain = makeChain({
+        elements: [
+          { id: "elem-1", type: "script", name: "Elem", description: "" },
+        ],
+        dependencies: [{ id: "conn-1", from: "a", to: "b" }],
+      });
 
-      const { result } = await renderChainGraph();
+      const { result } = await renderChainGraph(undefined, { chain });
 
-      expect(apiMock.getElements).toHaveBeenCalledWith("chain-1");
-      expect(apiMock.getConnections).toHaveBeenCalledWith("chain-1");
       await waitFor(() => {
         expect(result.current.edges).toEqual([
           expect.objectContaining({
@@ -264,8 +293,19 @@ describe("useChainGraph", () => {
     });
 
     it("reports fetch errors via notificationService", async () => {
-      apiMock.getElements.mockRejectedValue(new Error("boom"));
-      await renderChainGraph();
+      const utilsMock = jest.requireMock<{
+        getNodeFromElement: jest.Mock;
+      }>("../../../src/misc/chain-graph-utils");
+      utilsMock.getNodeFromElement.mockImplementationOnce(() => {
+        throw new Error("boom");
+      });
+
+      const chain = makeChain({
+        elements: [
+          { id: "elem-1", type: "script", name: "Elem", description: "" },
+        ],
+      });
+      await renderChainGraph(undefined, { chain });
 
       expect(mockRequestFailed).toHaveBeenCalledWith(
         expect.stringContaining("Failed to load elements or connections"),
@@ -273,23 +313,28 @@ describe("useChainGraph", () => {
       );
     });
 
-    it("does not fetch when chainId is not provided", async () => {
-      await renderChainGraph(undefined, { chainId: undefined });
-      expect(apiMock.getElements).not.toHaveBeenCalled();
-      expect(apiMock.getConnections).not.toHaveBeenCalled();
+    it("does not fetch when chain is not provided", async () => {
+      const { result } = await renderChainGraph(undefined, { chain: undefined });
+      expect(result.current.nodes).toHaveLength(0);
+      expect(result.current.edges).toHaveLength(0);
     });
 
     it("does not fetch while library is loading", async () => {
       mockIsLibraryLoading = true;
-      await renderChainGraph();
-      expect(apiMock.getElements).not.toHaveBeenCalled();
+      const chain = makeChain({
+        elements: [
+          { id: "elem-1", type: "script", name: "Elem", description: "" },
+        ],
+      });
+      const { result } = await renderChainGraph(undefined, { chain });
+      expect(result.current.nodes).toHaveLength(0);
     });
   });
 
-  describe("chainId guards", () => {
-    it("onConnect, onDrop, onEdgesChange, onDelete all no-op without chainId", async () => {
+  describe("chain guards", () => {
+    it("onConnect, onDrop, onEdgesChange, onDelete all no-op without chain", async () => {
       const { result } = await renderChainGraph(undefined, {
-        chainId: undefined,
+        chain: undefined,
       });
 
       await act(async () => {
@@ -331,8 +376,8 @@ describe("useChainGraph", () => {
       apiMock.createConnection.mockResolvedValue({
         createdDependencies: [{ id: "edge-1" }],
       });
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onConnect({
@@ -347,7 +392,7 @@ describe("useChainGraph", () => {
         { from: "node-1", to: "container-2" },
         "chain-1",
       );
-      expect(onChainUpdate).toHaveBeenCalled();
+      expect(refresh).toHaveBeenCalled();
       expect(result.current.edges).toContainEqual(
         expect.objectContaining({ id: "edge-1" }),
       );
@@ -394,8 +439,8 @@ describe("useChainGraph", () => {
 
     it("skips setEdges when backend returns no createdDependencies", async () => {
       apiMock.createConnection.mockResolvedValue({ createdDependencies: [] });
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onConnect({
@@ -406,7 +451,7 @@ describe("useChainGraph", () => {
         });
       });
 
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
     });
 
     it("reports error via notificationService on failure", async () => {
@@ -452,8 +497,8 @@ describe("useChainGraph", () => {
         ],
         updatedElements: [],
       });
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onDrop(makeDropEvent("script"));
@@ -463,19 +508,19 @@ describe("useChainGraph", () => {
         expect.objectContaining({ type: "script" }),
         "chain-1",
       );
-      expect(onChainUpdate).toHaveBeenCalled();
+      expect(refresh).toHaveBeenCalled();
     });
 
     it("returns early if dataTransfer has no element name", async () => {
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onDrop(makeDropEvent(""));
       });
 
       expect(apiMock.createElement).not.toHaveBeenCalled();
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
     });
 
     it("reports failure via notificationService", async () => {
@@ -569,14 +614,14 @@ describe("useChainGraph", () => {
         createdElements: [],
         updatedElements: [],
       });
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onDrop(makeDropEvent("script"));
       });
 
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
     });
 
     it("handles intersecting nodes without width/height", async () => {
@@ -621,14 +666,14 @@ describe("useChainGraph", () => {
         ],
         updatedElements: [],
       });
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onDrop(makeDropEvent("script"));
       });
 
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
     });
 
     it("uses newNode.parentId for structureChanged when no parentNode", async () => {
@@ -719,8 +764,8 @@ describe("useChainGraph", () => {
         removedDependencies: [],
         updatedElements: [],
       });
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       const changes: OnDeleteEvent = {
         nodes: [initialNodes[0]],
@@ -735,7 +780,7 @@ describe("useChainGraph", () => {
         ["node-1"],
         "chain-1",
       );
-      expect(onChainUpdate).toHaveBeenCalled();
+      expect(refresh).toHaveBeenCalled();
     });
 
     it("deletes standalone edges via deleteConnections", async () => {
@@ -893,17 +938,25 @@ describe("useChainGraph", () => {
     });
 
     it("filters edges by deletedEdgeIds when edges exist", async () => {
-      apiMock.getConnections.mockResolvedValue([
-        { id: "keep-edge", from: "container-1", to: "container-2" },
-        { id: "to-delete", from: "node-1", to: "container-2" },
-      ]);
+      const chain = makeChain({
+        dependencies: [
+          { id: "keep-edge", from: "container-1", to: "container-2" },
+          { id: "to-delete", from: "node-1", to: "container-2" },
+        ],
+      });
       apiMock.deleteElements.mockResolvedValue({
         removedElements: [{ id: "node-1" }],
         removedDependencies: [{ id: "to-delete" }],
         updatedElements: [],
       });
 
-      const { result } = await withInitialNodes();
+      const { result } = await renderChainGraph(undefined, { chain });
+      act(() => {
+        result.current.setNodes(initialNodes);
+      });
+      await waitFor(() => {
+        expect(result.current.nodes.length).toBe(initialNodes.length);
+      });
       await waitFor(() => {
         expect(result.current.edges.length).toBeGreaterThan(0);
       });
@@ -947,8 +1000,8 @@ describe("useChainGraph", () => {
 
     it("reports element delete failure via notificationService", async () => {
       apiMock.deleteElements.mockRejectedValue(new Error("delete failed"));
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onDelete({
@@ -961,7 +1014,7 @@ describe("useChainGraph", () => {
         expect.stringContaining("Failed to delete element"),
         expect.any(Error),
       );
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
     });
   });
 
@@ -998,8 +1051,6 @@ describe("useChainGraph", () => {
       (hiddenContainer as unknown as { parentId?: string }).parentId =
         "container-p";
 
-      apiMock.getElements.mockResolvedValue([]);
-      apiMock.getConnections.mockResolvedValue([]);
       const { result } = await renderChainGraph();
 
       act(() => {
@@ -1029,10 +1080,10 @@ describe("useChainGraph", () => {
 
   describe("onEdgesChange", () => {
     it("filters out remove changes", async () => {
-      apiMock.getConnections.mockResolvedValue([
-        { id: "edge-1", from: "a", to: "b" },
-      ]);
-      const { result } = await renderChainGraph();
+      const chain = makeChain({
+        dependencies: [{ id: "edge-1", from: "a", to: "b" }],
+      });
+      const { result } = await renderChainGraph(undefined, { chain });
 
       await waitFor(() => {
         expect(result.current.edges.length).toBe(1);
@@ -1065,10 +1116,10 @@ describe("useChainGraph", () => {
     });
 
     it("applies non-remove base changes", async () => {
-      apiMock.getConnections.mockResolvedValue([
-        { id: "edge-1", from: "a", to: "b" },
-      ]);
-      const { result } = await renderChainGraph();
+      const chain = makeChain({
+        dependencies: [{ id: "edge-1", from: "a", to: "b" }],
+      });
+      const { result } = await renderChainGraph(undefined, { chain });
 
       await waitFor(() => {
         expect(result.current.edges.length).toBe(1);
@@ -1114,9 +1165,9 @@ describe("useChainGraph", () => {
       expect(updated?.selected).toBe(false);
     });
 
-    it("does nothing without chainId", async () => {
+    it("does nothing without chain", async () => {
       const { result } = await renderChainGraph(undefined, {
-        chainId: undefined,
+        chain: undefined,
       });
       act(() => {
         result.current.onNodesChange([
@@ -1269,8 +1320,8 @@ describe("useChainGraph", () => {
         updatedElements: [{ id: "node-1", parentElementId: "container-2" }],
       });
 
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onNodeDragStop(
@@ -1287,7 +1338,7 @@ describe("useChainGraph", () => {
         }),
         "chain-1",
       );
-      expect(onChainUpdate).toHaveBeenCalled();
+      expect(refresh).toHaveBeenCalled();
       expect(mockErrorWithDetails).not.toHaveBeenCalled();
     });
 
@@ -1308,8 +1359,8 @@ describe("useChainGraph", () => {
         updatedElements: [{ id: "node-1", swimlaneId: "swimlane-1" }],
       });
 
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onNodeDragStop(
@@ -1326,7 +1377,7 @@ describe("useChainGraph", () => {
         }),
         "chain-1",
       );
-      expect(onChainUpdate).toHaveBeenCalled();
+      expect(refresh).toHaveBeenCalled();
     });
 
     it("does not call onChainUpdate when transferElement fails", async () => {
@@ -1340,8 +1391,8 @@ describe("useChainGraph", () => {
       });
       apiMock.transferElement.mockRejectedValue(new Error("transfer failed"));
 
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onNodeDragStop(
@@ -1351,7 +1402,7 @@ describe("useChainGraph", () => {
       });
 
       expect(apiMock.transferElement).toHaveBeenCalled();
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
       expect(mockErrorWithDetails).toHaveBeenCalledWith(
         expect.stringContaining("Drag element failed"),
         expect.stringContaining("Failed to drag element"),
@@ -1369,8 +1420,8 @@ describe("useChainGraph", () => {
         type: "container",
       });
 
-      const onChainUpdate = jest.fn();
-      const { result } = await withInitialNodes(onChainUpdate);
+      const refresh = jest.fn();
+      const { result } = await withInitialNodes(refresh);
 
       await act(async () => {
         await result.current.onNodeDragStop(
@@ -1380,13 +1431,13 @@ describe("useChainGraph", () => {
       });
 
       expect(apiMock.transferElement).not.toHaveBeenCalled();
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
     });
 
-    it("does not call transferElement without chainId", async () => {
-      const onChainUpdate = jest.fn();
-      const rendered = await renderChainGraph(onChainUpdate, {
-        chainId: undefined,
+    it("does not call transferElement without chain", async () => {
+      const refresh = jest.fn();
+      const rendered = await renderChainGraph(refresh, {
+        chain: undefined,
       });
 
       await act(async () => {
@@ -1397,7 +1448,7 @@ describe("useChainGraph", () => {
       });
 
       expect(apiMock.transferElement).not.toHaveBeenCalled();
-      expect(onChainUpdate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
     });
 
     it("uses leastCommonParent when provided", async () => {
@@ -1561,8 +1612,8 @@ describe("useChainGraph", () => {
 
     it("skips while library is loading", async () => {
       mockIsLibraryLoading = true;
-      const onChainUpdate = jest.fn();
-      const rendered = await renderChainGraph(onChainUpdate);
+      const refresh = jest.fn();
+      const rendered = await renderChainGraph(refresh);
 
       await act(async () => {
         await rendered.result.current.onNodeDragStop(

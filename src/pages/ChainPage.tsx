@@ -17,6 +17,7 @@ import { BreadcrumbProps } from "antd/es/breadcrumb/Breadcrumb";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { useChainFullscreenContext } from "./ChainFullscreenContext.tsx";
+import { useNotificationService } from "../hooks/useNotificationService.tsx";
 
 export type ChainContextData = {
   chain: Chain | undefined;
@@ -32,6 +33,7 @@ const ChainPage = () => {
   const { chainId, sessionId } = useParams();
   const [pathItems, setPathItems] = useState<BreadcrumbProps["items"]>([]);
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
+  const notificationService = useNotificationService();
 
   const location = useLocation();
   const { pathname } = location;
@@ -42,13 +44,18 @@ const ChainPage = () => {
     useChain(chainId);
 
   const refreshChain = useCallback(async () => {
-    if (chainId) {
+    if (!chainId) {
+      return;
+    }
+    try {
       const updatedChain = await getChain();
       if (updatedChain) {
         setChain(updatedChain);
       }
+    } catch (err) {
+      notificationService.requestFailed("Failed to refresh chain", err);
     }
-  }, [chainId, getChain, setChain]);
+  }, [chainId, getChain, setChain, notificationService]);
 
   useEffect(() => {
     const link = (href: string, content: React.ReactNode) => (
@@ -244,10 +251,7 @@ const ChainPageHeader: FC<ChainPageHeaderProps> = ({
         align="middle"
       >
         <Col flex="auto">
-          <Breadcrumb
-            items={pathItems}
-            className={styles.breadcrumb}
-          />
+          <Breadcrumb items={pathItems} className={styles.breadcrumb} />
         </Col>
         {showUnsavedChanges ? (
           <Col flex="none">
