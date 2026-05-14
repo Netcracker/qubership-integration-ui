@@ -16,16 +16,12 @@ jest.mock("monaco-editor", () => ({
 }));
 
 import {
-  exchangeApiSuggestions,
-  exchangeMemberSuggestions,
   getGroovyCompletionItems,
   GROOVY_EXPRESSION_KEYWORDS,
   GROOVY_KEYWORDS,
-  groovyKeywordSuggestions,
-  groovySnippetSuggestions,
+  groovySuggestionsFor,
   GROOVY_STATEMENT_KEYWORDS,
   isGroovyStatementStart,
-  messageMemberSuggestions,
   resolveGroovyContextSuggestions,
 } from "../../../src/misc/monaco/groovy-suggestions";
 
@@ -47,20 +43,18 @@ describe("groovy-suggestions", () => {
     });
   });
 
-  describe("groovyKeywordSuggestions", () => {
-    it("returns one item per keyword with Keyword kind", () => {
-      const items = groovyKeywordSuggestions(RANGE);
+  describe("groovySuggestionsFor", () => {
+    it("'keywords' returns one item per keyword with Keyword kind", () => {
+      const items = groovySuggestionsFor("keywords", RANGE);
       expect(items).toHaveLength(GROOVY_KEYWORDS.length);
       for (const item of items) {
         expect(item.kind).toBe(17);
         expect(item.range).toEqual(RANGE);
       }
     });
-  });
 
-  describe("groovySnippetSuggestions", () => {
-    it("includes core control-flow snippets with InsertAsSnippet rule", () => {
-      const items = groovySnippetSuggestions(RANGE);
+    it("'snippets' includes core control-flow snippets with InsertAsSnippet rule", () => {
+      const items = groovySuggestionsFor("snippets", RANGE);
       const labels = items.map((i) => i.label);
       expect(labels).toEqual(
         expect.arrayContaining(["if", "ifelse", "for", "try", "closure"]),
@@ -70,21 +64,18 @@ describe("groovy-suggestions", () => {
         expect(item.kind).toBe(27);
       }
     });
-  });
 
-  describe("exchangeApiSuggestions", () => {
-    it("includes 'exchange' with Variable kind and detail", () => {
-      const items = exchangeApiSuggestions(RANGE);
+    it("'exchangeApi' includes 'exchange' with Variable kind and detail", () => {
+      const items = groovySuggestionsFor("exchangeApi", RANGE);
       const exchange = items.find((i) => i.label === "exchange");
       expect(exchange).toBeTruthy();
       expect(exchange?.kind).toBe(4);
       expect(exchange?.detail).toBe("org.apache.camel.Exchange");
     });
-  });
 
-  describe("exchangeMemberSuggestions", () => {
-    it("includes core Exchange methods", () => {
-      const labels = exchangeMemberSuggestions(RANGE).map((i) => i.label);
+    it("'exchangeMembers' includes core Exchange methods with Method kind", () => {
+      const items = groovySuggestionsFor("exchangeMembers", RANGE);
+      const labels = items.map((i) => i.label);
       expect(labels).toEqual(
         expect.arrayContaining([
           "getIn",
@@ -96,26 +87,23 @@ describe("groovy-suggestions", () => {
           "getContext",
         ]),
       );
-    });
-
-    it("uses Method kind for all entries", () => {
-      for (const item of exchangeMemberSuggestions(RANGE)) {
+      for (const item of items) {
         expect(item.kind).toBe(0);
       }
     });
 
-    it("marks parameterized methods as snippets", () => {
-      const items = exchangeMemberSuggestions(RANGE);
+    it("'exchangeMembers' marks parameterized methods as snippets", () => {
+      const items = groovySuggestionsFor("exchangeMembers", RANGE);
       const setProp = items.find((i) => i.label === "setProperty");
       expect(setProp?.insertTextRules).toBe(4);
       const getMessage = items.find((i) => i.label === "getMessage");
       expect(getMessage?.insertTextRules).toBeUndefined();
     });
-  });
 
-  describe("messageMemberSuggestions", () => {
-    it("includes core Message methods", () => {
-      const labels = messageMemberSuggestions(RANGE).map((i) => i.label);
+    it("'messageMembers' includes core Message methods", () => {
+      const labels = groovySuggestionsFor("messageMembers", RANGE).map(
+        (i) => i.label,
+      );
       expect(labels).toEqual(
         expect.arrayContaining([
           "getBody",

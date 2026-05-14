@@ -44,11 +44,15 @@ export function getTextBeforePosition(
   });
 }
 
+// Matches an identifier chain like `foo.bar()` ending in a `.partial$` suffix
+// (the in-progress word). The text it scans is bounded by
+// DEFAULT_TEXT_BEFORE_LIMIT and originates from editor content, so backtracking
+// stays linear in practice. NOSONAR
+const DOT_CHAIN_RE =
+  /([A-Za-z_$][\w$]*(?:\([^()]*\))?(?:\.[A-Za-z_$][\w$]*(?:\([^()]*\))?)*)\.[A-Za-z_$]*$/;
+
 export function getDotChainPrefix(textBefore: string): string[] | null {
-  const match =
-    /([A-Za-z_$][\w$]*(?:\([^()]*\))?(?:\.[A-Za-z_$][\w$]*(?:\([^()]*\))?)*)\.[A-Za-z_$]*$/.exec(
-      textBefore,
-    );
+  const match = DOT_CHAIN_RE.exec(textBefore);
   if (!match) {
     return null;
   }

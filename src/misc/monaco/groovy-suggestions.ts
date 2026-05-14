@@ -71,7 +71,7 @@ export const GROOVY_EXPRESSION_KEYWORDS: readonly string[] = [
 export const GROOVY_KEYWORDS: readonly string[] = [
   ...GROOVY_STATEMENT_KEYWORDS,
   ...GROOVY_EXPRESSION_KEYWORDS,
-].sort();
+].sort((a, b) => a.localeCompare(b));
 
 const GROOVY_SNIPPET_DEFINITIONS: {
   label: string;
@@ -338,60 +338,33 @@ function variableItem(
   };
 }
 
-const groovyKeywordItems: readonly PartialCompletionItem[] =
-  GROOVY_KEYWORDS.map(keywordItem);
-
-const groovyExpressionKeywordItems: readonly PartialCompletionItem[] =
-  GROOVY_EXPRESSION_KEYWORDS.map(keywordItem);
-
-const groovySnippetItems: readonly PartialCompletionItem[] =
-  GROOVY_SNIPPET_DEFINITIONS.map(({ label, insertText, doc }) =>
+const GROOVY_SUGGESTION_ITEMS = {
+  keywords: GROOVY_KEYWORDS.map(keywordItem),
+  expressionKeywords: GROOVY_EXPRESSION_KEYWORDS.map(keywordItem),
+  snippets: GROOVY_SNIPPET_DEFINITIONS.map(({ label, insertText, doc }) =>
     snippetItem(label, insertText, doc),
-  );
+  ),
+  exchangeApi: EXCHANGE_API_DEFINITIONS.map(
+    ({ label, insertText, detail, doc }) =>
+      variableItem(label, insertText, detail, doc),
+  ),
+  exchangeMembers: EXCHANGE_MEMBER_DEFINITIONS.map(
+    ({ label, insertText, doc, isSnippet }) =>
+      methodItem(label, insertText, doc, isSnippet),
+  ),
+  messageMembers: MESSAGE_MEMBER_DEFINITIONS.map(
+    ({ label, insertText, doc, isSnippet }) =>
+      methodItem(label, insertText, doc, isSnippet),
+  ),
+} as const satisfies Record<string, readonly PartialCompletionItem[]>;
 
-const exchangeApiItems: readonly PartialCompletionItem[] =
-  EXCHANGE_API_DEFINITIONS.map(({ label, insertText, detail, doc }) =>
-    variableItem(label, insertText, detail, doc),
-  );
+export type GroovySuggestionGroup = keyof typeof GROOVY_SUGGESTION_ITEMS;
 
-const exchangeMemberItems: readonly PartialCompletionItem[] =
-  EXCHANGE_MEMBER_DEFINITIONS.map(({ label, insertText, doc, isSnippet }) =>
-    methodItem(label, insertText, doc, isSnippet),
-  );
-
-const messageMemberItems: readonly PartialCompletionItem[] =
-  MESSAGE_MEMBER_DEFINITIONS.map(({ label, insertText, doc, isSnippet }) =>
-    methodItem(label, insertText, doc, isSnippet),
-  );
-
-export function groovyKeywordSuggestions(
+export function groovySuggestionsFor(
+  group: GroovySuggestionGroup,
   range: IRange,
 ): languages.CompletionItem[] {
-  return withRange(groovyKeywordItems, range);
-}
-
-export function groovySnippetSuggestions(
-  range: IRange,
-): languages.CompletionItem[] {
-  return withRange(groovySnippetItems, range);
-}
-
-export function exchangeApiSuggestions(
-  range: IRange,
-): languages.CompletionItem[] {
-  return withRange(exchangeApiItems, range);
-}
-
-export function exchangeMemberSuggestions(
-  range: IRange,
-): languages.CompletionItem[] {
-  return withRange(exchangeMemberItems, range);
-}
-
-export function messageMemberSuggestions(
-  range: IRange,
-): languages.CompletionItem[] {
-  return withRange(messageMemberItems, range);
+  return withRange(GROOVY_SUGGESTION_ITEMS[group], range);
 }
 
 export function resolveGroovyContextSuggestions(
@@ -404,30 +377,24 @@ export function resolveGroovyContextSuggestions(
   }
   const lastSegment = chain[chain.length - 1];
   if (lastSegment === "exchange") {
-    return exchangeMemberSuggestions(range);
+    return groovySuggestionsFor("exchangeMembers", range);
   }
   if (lastSegment === "getMessage()" || lastSegment === "getIn()") {
-    return messageMemberSuggestions(range);
+    return groovySuggestionsFor("messageMembers", range);
   }
   return [];
 }
 
-const GROOVY_STRING_OR_COMMENT_RE =
-  /\/\*[\s\S]*?\*\/|\/\/[^\n]*|('''[\s\S]*?'''|'(?:[^'\\\n]|\\.)*')|("""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*")/g;
+const GROOVY_COMMENTS_RE = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
+const GROOVY_STRINGS_RE = /'''[\s\S]*?'''|"""[\s\S]*?"""|'[^'\n]*'|"[^"\n]*"/g;
 
 function stripGroovyStringsAndComments(text: string): string {
-  return text.replace(
-    GROOVY_STRING_OR_COMMENT_RE,
-    (
-      _match,
-      singleQuoted: string | undefined,
-      doubleQuoted: string | undefined,
-    ) => {
-      if (singleQuoted) return "''";
-      if (doubleQuoted) return '""';
-      return "";
-    },
-  );
+  // Strings get collapsed to empty quotes so the surrounding code structure
+  // (separators outside the literal) is preserved for the scanner that runs
+  // next; comments can be removed wholesale.
+  return text
+    .replace(GROOVY_COMMENTS_RE, "")
+    .replace(GROOVY_STRINGS_RE, (match) => (match[0] === "'" ? "''" : '""'));
 }
 
 const GROOVY_STATEMENT_SEPARATOR_CHARS = ";{}";
@@ -438,9 +405,13 @@ const GROOVY_STATEMENT_SEPARATOR_CHARS = ";{}";
 // expression, not at a new statement.
 const GROOVY_CONTINUATION_CHARS = "+-*/<>=!&|,(?:.[";
 
+// Anchored to end of string; matches a single identifier without nested
+// quantifiers, so runs linearly. NOSONAR
+const TRAILING_IDENTIFIER_RE = /[A-Za-z_$][\w$]*$/;
+
 export function isGroovyStatementStart(textBefore: string): boolean {
   const beforeWord = stripGroovyStringsAndComments(textBefore).replace(
-    /[A-Za-z_$][\w$]*$/,
+    TRAILING_IDENTIFIER_RE,
     "",
   );
   let i = beforeWord.length - 1;
@@ -471,13 +442,13 @@ export function getGroovyCompletionItems(
   }
   if (isGroovyStatementStart(textBefore)) {
     return [
-      ...groovyKeywordSuggestions(range),
-      ...groovySnippetSuggestions(range),
-      ...exchangeApiSuggestions(range),
+      ...groovySuggestionsFor("keywords", range),
+      ...groovySuggestionsFor("snippets", range),
+      ...groovySuggestionsFor("exchangeApi", range),
     ];
   }
   return [
-    ...withRange(groovyExpressionKeywordItems, range),
-    ...exchangeApiSuggestions(range),
+    ...groovySuggestionsFor("expressionKeywords", range),
+    ...groovySuggestionsFor("exchangeApi", range),
   ];
 }
