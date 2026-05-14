@@ -282,79 +282,48 @@ const MESSAGE_MEMBER_DEFINITIONS: {
   },
 ];
 
-function keywordItem(keyword: string): PartialCompletionItem {
-  return {
-    label: keyword,
-    kind: languages.CompletionItemKind.Keyword,
-    insertText: keyword,
-  };
-}
-
-function snippetItem(
-  label: string,
-  insertText: string,
-  doc: string,
-): PartialCompletionItem {
-  return {
-    label,
-    kind: languages.CompletionItemKind.Snippet,
-    insertText,
-    insertTextRules: languages.CompletionItemInsertTextRule.InsertAsSnippet,
-    documentation: markdown(doc),
-  };
-}
-
-function methodItem(
-  label: string,
-  insertText: string,
-  doc: string,
-  isSnippet = false,
-): PartialCompletionItem {
+function makeItem(props: {
+  label: string;
+  insertText: string;
+  kind: languages.CompletionItemKind;
+  doc?: string;
+  detail?: string;
+  isSnippet?: boolean;
+}): PartialCompletionItem {
   const item: PartialCompletionItem = {
-    label,
-    kind: languages.CompletionItemKind.Method,
-    insertText,
-    documentation: markdown(doc),
+    label: props.label,
+    kind: props.kind,
+    insertText: props.insertText,
   };
-  if (isSnippet) {
+  if (props.doc) item.documentation = markdown(props.doc);
+  if (props.detail) item.detail = props.detail;
+  if (props.isSnippet) {
     item.insertTextRules =
       languages.CompletionItemInsertTextRule.InsertAsSnippet;
   }
   return item;
 }
 
-function variableItem(
-  label: string,
-  insertText: string,
-  detail: string,
-  doc: string,
-): PartialCompletionItem {
-  return {
-    label,
-    kind: languages.CompletionItemKind.Variable,
-    insertText,
-    detail,
-    documentation: markdown(doc),
-  };
-}
+const { Keyword, Snippet, Method, Variable } = languages.CompletionItemKind;
 
 const GROOVY_SUGGESTION_ITEMS = {
-  keywords: GROOVY_KEYWORDS.map(keywordItem),
-  expressionKeywords: GROOVY_EXPRESSION_KEYWORDS.map(keywordItem),
-  snippets: GROOVY_SNIPPET_DEFINITIONS.map(({ label, insertText, doc }) =>
-    snippetItem(label, insertText, doc),
+  keywords: GROOVY_KEYWORDS.map((kw) =>
+    makeItem({ label: kw, insertText: kw, kind: Keyword }),
   ),
-  exchangeApi: EXCHANGE_API_DEFINITIONS.map(
-    ({ label, insertText, detail, doc }) =>
-      variableItem(label, insertText, detail, doc),
+  expressionKeywords: GROOVY_EXPRESSION_KEYWORDS.map((kw) =>
+    makeItem({ label: kw, insertText: kw, kind: Keyword }),
   ),
-  exchangeMembers: EXCHANGE_MEMBER_DEFINITIONS.map(
-    ({ label, insertText, doc, isSnippet }) =>
-      methodItem(label, insertText, doc, isSnippet),
+  snippets: GROOVY_SNIPPET_DEFINITIONS.map((d) =>
+    makeItem({ ...d, kind: Snippet, isSnippet: true }),
   ),
-  messageMembers: MESSAGE_MEMBER_DEFINITIONS.map(
-    ({ label, insertText, doc, isSnippet }) =>
-      methodItem(label, insertText, doc, isSnippet),
+  exchangeApi: EXCHANGE_API_DEFINITIONS.map((d) =>
+    makeItem({ ...d, kind: Variable }),
+  ),
+  exchangeMembers: EXCHANGE_MEMBER_DEFINITIONS.map((d) =>
+    makeItem({ ...d, kind: Method }),
+  ),
+  messageMembers: MESSAGE_MEMBER_DEFINITIONS.map((d) =>
+    makeItem({ ...d, kind: Method }),
   ),
 } as const satisfies Record<string, readonly PartialCompletionItem[]>;
 
