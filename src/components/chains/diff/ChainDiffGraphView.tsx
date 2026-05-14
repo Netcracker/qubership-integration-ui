@@ -3,8 +3,19 @@ import { Chain } from "../../../api/apiTypes.ts";
 import { Change } from "./compare/types.ts";
 import { Col, Flex, Row } from "antd";
 import { ChangedEntityView, LinkToChain } from "./ChangedEntityView.tsx";
-import { ChainGraphView } from "./ChainGraphView.tsx";
+import { ChainGraphPanel } from "./ChainGraphPanel.tsx";
 import styles from "./ChainDiffGraphView.module.css";
+
+export function getElementId(
+  change: Change | undefined,
+  key: "one" | "another",
+): string | undefined {
+  return change?.kind === "element-property"
+    ? change[key]?.entityId
+    : change?.kind === "connection"
+      ? change[key]?.from
+      : undefined;
+}
 
 export type ChainDiffGraphViewProps = {
   chain1?: Chain;
@@ -66,12 +77,20 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
       <Row gutter={16} style={{ minHeight: 0, flexGrow: 1, flexShrink: 0 }}>
         <Col span={12}>
           {chain1 ? (
-            <ChainGraphView chain={chain1} className={styles["left-view"]} />
+            <ChainGraphPanel
+              chain={chain1}
+              className={styles["left-view"]}
+              selectedElementId={getElementId(selectedChange, "one")}
+            />
           ) : null}
         </Col>
         <Col span={12}>
           {chain2 ? (
-            <ChainGraphView chain={chain2} className={styles["right-view"]} />
+            <ChainGraphPanel
+              chain={chain2}
+              className={styles["right-view"]}
+              selectedElementId={getElementId(selectedChange, "another")}
+            />
           ) : null}
         </Col>
       </Row>
