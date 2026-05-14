@@ -85,6 +85,8 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
   readOnly,
   controls,
   submitOpenElement,
+  className,
+  ...rest
 }) => {
   const { elementId } = useParams<string>();
   const reactFlowWrapper = useRef(null);
@@ -361,7 +363,13 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
   ]);
 
   return (
-    <div className="react-flow-container" ref={reactFlowWrapper}>
+    <div
+      className={["react-flow-container", className]
+        .filter((n) => !!n)
+        .join(" ")}
+      ref={reactFlowWrapper}
+      {...rest}
+    >
       <ElkDirectionContextProvider
         elkDirectionControl={{
           direction,

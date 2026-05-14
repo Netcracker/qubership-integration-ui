@@ -4,6 +4,7 @@ import { Change } from "./compare/types.ts";
 import { Col, Flex, Row } from "antd";
 import { ChangedEntityView, LinkToChain } from "./ChangedEntityView.tsx";
 import { ChainGraphView } from "./ChainGraphView.tsx";
+import styles from "./ChainDiffGraphView.module.css";
 
 export type ChainDiffGraphViewProps = {
   chain1?: Chain;
@@ -62,9 +63,17 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
           ) : null}
         </Col>
       </Row>
-      <Row gutter={16}  style={{ minHeight: 0, flexGrow: 1, flexShrink: 0 }}>
-        <Col span={12}>{chain1 ? <ChainGraphView chain={chain1} /> : null}</Col>
-        <Col span={12}>{chain2 ? <ChainGraphView chain={chain2} /> : null}</Col>
+      <Row gutter={16} style={{ minHeight: 0, flexGrow: 1, flexShrink: 0 }}>
+        <Col span={12}>
+          {chain1 ? (
+            <ChainGraphView chain={chain1} className={styles["left-view"]} />
+          ) : null}
+        </Col>
+        <Col span={12}>
+          {chain2 ? (
+            <ChainGraphView chain={chain2} className={styles["right-view"]} />
+          ) : null}
+        </Col>
       </Row>
     </Flex>
   );
