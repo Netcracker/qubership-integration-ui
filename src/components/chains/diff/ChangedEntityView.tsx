@@ -11,12 +11,19 @@ import { EntityLabels } from "../../labels/EntityLabels.tsx";
 import { ElementSchemasContext } from "./ElementSchemasProvider.tsx";
 import { JSONSchema7 } from "json-schema";
 import styles from "./ChangedEntityView.module.css";
+import { traverseElementsDepthFirst } from "../../../misc/tree-utils.ts";
 
 export function getElement(
   elementId: string,
   chain: Chain,
 ): Element | undefined {
-  return chain.elements.find((e) => e.id === elementId);
+  let element: Element | undefined = undefined;
+  traverseElementsDepthFirst(chain.elements, (e) => {
+    if (e.id === elementId) {
+      element = e;
+    }
+  });
+  return element;
 }
 
 export const LinkToChain: React.FC<{ chain?: Chain }> = ({
@@ -198,9 +205,7 @@ export const ElementProperty: React.FC<{
             name === "labels" ? (
               <EntityLabels labels={(value ?? []) as EntityLabel[]} />
             ) : name === "parentElementId" || name === "swimlaneId" ? (
-              <LinkToElement
-                element={chain.elements.find((e) => e.id === value)}
-              />
+              <LinkToElement element={getElement(value as string, chain)} />
             ) : (
               <ChangedValue value={value} />
             ),

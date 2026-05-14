@@ -10,11 +10,16 @@ export function getElementId(
   change: Change | undefined,
   key: "one" | "another",
 ): string | undefined {
-  return change?.kind === "element-property"
-    ? change[key]?.entityId
-    : change?.kind === "connection"
-      ? change[key]?.from
-      : undefined;
+  switch (change?.kind) {
+    case "element-property":
+      return change[key]?.entityId;
+    case "connection":
+      return change[key]?.from;
+    case "element":
+      return change[key]?.id;
+    default:
+      return undefined;
+  }
 }
 
 export type ChainDiffGraphViewProps = {
