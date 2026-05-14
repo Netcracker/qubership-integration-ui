@@ -7,7 +7,7 @@ import { useChainFullscreenContext } from "../../pages/ChainFullscreenContext.ts
 import { Button } from "antd";
 import { OverridableIcon } from "../../icons/IconProvider.tsx";
 
-type ChainGraphViewControlsProps = {
+export type ChainGraphViewControlsProps = {
   before?: React.ReactNode;
   after?: React.ReactNode;
   onExpandAllContainers?: () => void;
