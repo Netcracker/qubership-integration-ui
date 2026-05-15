@@ -24,7 +24,7 @@ export const ChainGraphPanelInner: React.FC<ChainGraphPanelInnerProps> = ({
     if (selectedElementId) {
       focusToElementId(selectedElementId);
     }
-  }, [selectedElementId]);
+  }, [focusToElementId, selectedElementId]);
 
   return <ChainGraphView readOnly={true} {...rest} />;
 };

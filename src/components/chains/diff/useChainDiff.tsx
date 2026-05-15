@@ -41,7 +41,8 @@ export const useChainDiff = (chainId1: string, chainId2: string) => {
     async (chain1: Chain, chain2: Chain): Promise<Change[]> => {
       try {
         setIsComparing(true);
-        return await (async () => doCompareChains(chain1, chain2))();
+        return await (async () =>
+          Promise.resolve(doCompareChains(chain1, chain2)))();
       } catch (e) {
         notificationService.errorWithDetails("Failed to compare chains", "", e);
         return [];
@@ -49,23 +50,23 @@ export const useChainDiff = (chainId1: string, chainId2: string) => {
         setIsComparing(false);
       }
     },
-    [],
+    [notificationService],
   );
 
   useEffect(() => {
     void loadChain(chainId1, setIsChain1Loading).then(setChain1);
-  }, [chainId1]);
+  }, [chainId1, loadChain]);
 
   useEffect(() => {
     void loadChain(chainId2, setIsChain2Loading).then(setChain2);
-  }, [chainId2]);
+  }, [chainId2, loadChain]);
 
   useEffect(() => {
     if (!chain1 || !chain2) {
       return;
     }
     void compareChains(chain1, chain2).then(setChanges);
-  }, [chain1, chain2]);
+  }, [chain1, chain2, compareChains]);
 
   useEffect(() => {
     setIsLoading(isChain1Loading || isChain2Loading || isComparing);

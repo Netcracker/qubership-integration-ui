@@ -51,7 +51,7 @@ export function dumpYaml(chain: Chain, m: Map<string, string>): string {
         return value.sort((v1, v2) => {
           const id1 = m.get(v1?.id) ?? v1?.id;
           const id2 = m.get(v2?.id) ?? v2?.id;
-          return id1.toString().localeCompare(id2.toString());
+          return id1.toString().localeCompare(`${id2}`);
         });
       }
 
@@ -74,11 +74,11 @@ export const ChainDiffTextView: React.FC<ChainDiffTextViewProps> = ({
 
   useEffect(() => {
     setYaml1(chain1 ? dumpYaml(chain1, new Map<string, string>()) : "");
-  }, [chain1, dumpYaml]);
+  }, [chain1]);
 
   useEffect(() => {
     setYaml2(chain2 ? dumpYaml(chain2, elementMap) : "");
-  }, [chain2, dumpYaml, elementMap]);
+  }, [chain2, elementMap]);
 
   useEffect(() => {
     setElementMap(

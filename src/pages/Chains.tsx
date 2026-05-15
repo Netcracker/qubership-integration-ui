@@ -1180,7 +1180,7 @@ const Chains = () => {
                 onChange={setSearchString}
                 placeholder="Full text search"
                 allowClear
-                className={commonStyles["searchField"] as string}
+                className={commonStyles["searchField"]}
               />
             </Flex>
           }

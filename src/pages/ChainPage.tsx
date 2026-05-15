@@ -93,11 +93,11 @@ const ChainPage = () => {
       .map(([key, value], index, arr) => ({
         title:
           index < arr.length - 1 ? (
-            <span className={styles.breadcrumbItem as string}>
+            <span className={styles.breadcrumbItem}>
               {link(`/chains?folder=${key}`, value)}
             </span>
           ) : (
-            <span className={styles.breadcrumbItem as string}>{value}</span>
+            <span className={styles.breadcrumbItem}>{value}</span>
           ),
       }));
 
@@ -105,7 +105,7 @@ const ChainPage = () => {
       {
         title: (
           <span
-            className={`${styles.breadcrumbItem as string} ${styles.breadcrumbHome as string}`}
+            className={`${styles.breadcrumbItem} ${styles.breadcrumbHome}`}
           >
             {link("/chains", <OverridableIcon name="home" />)}
           </span>
@@ -116,14 +116,14 @@ const ChainPage = () => {
         ? [
             {
               title: (
-                <span className={styles.breadcrumbItem as string}>
+                <span className={styles.breadcrumbItem}>
                   {link(`/chains/${chainId}/sessions`, "Sessions")}
                 </span>
               ),
             },
             {
               title: (
-                <span className={styles.breadcrumbItem as string}>
+                <span className={styles.breadcrumbItem}>
                   {sessionId}
                 </span>
               ),
@@ -243,13 +243,13 @@ const ChainPageHeader: FC<ChainPageHeaderProps> = ({
   if (isVsCode) {
     return (
       <Tabs
-        className={styles.chainPageTabs as string}
+        className={styles.chainPageTabs}
         activeKey={activeKey}
         onChange={onTabChange}
         items={tabItems}
         style={{ marginBottom: 0 }}
         tabBarExtraContent={
-          <div className={styles.chainTabBarExtra as string}>
+          <div className={styles.chainTabBarExtra}>
             {headerActions}
           </div>
         }
@@ -258,13 +258,13 @@ const ChainPageHeader: FC<ChainPageHeaderProps> = ({
   }
 
   const tabsBarExtra = (
-    <div className={styles.chainTabBarExtra as string}>{headerActions}</div>
+    <div className={styles.chainTabBarExtra}>{headerActions}</div>
   );
 
   return (
-    <div className={styles.chainPageHeader as string}>
+    <div className={styles.chainPageHeader}>
       <Row
-        className={styles.chainPageHeaderRow as string}
+        className={styles.chainPageHeaderRow}
         justify="space-between"
         align="middle"
       >
@@ -275,7 +275,7 @@ const ChainPageHeader: FC<ChainPageHeaderProps> = ({
           <Col flex="none">
             <Tag
               color="warning"
-              className={styles.unsavedChangesTag as string}
+              className={styles.unsavedChangesTag}
               data-testid="chain-unsaved-changes"
             >
               Unsaved changes
@@ -284,7 +284,7 @@ const ChainPageHeader: FC<ChainPageHeaderProps> = ({
         ) : null}
       </Row>
       <Tabs
-        className={styles.chainPageTabs as string}
+        className={styles.chainPageTabs}
         activeKey={activeKey}
         onChange={onTabChange}
         items={tabItems}

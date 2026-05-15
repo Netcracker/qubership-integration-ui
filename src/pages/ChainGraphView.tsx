@@ -96,7 +96,7 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
   const currentThemeRef = useRef(currentTheme);
   const [selectedByRightClick, setSelectedByRightClick] =
     useState<boolean>(false);
-  const [isPageLoaded, setIsPageLoaded] = useState(false);
+  const [, setIsPageLoaded] = useState<boolean>(false);
 
   const deleteKeyCode = useMemo<KeyCode | null>(
     () => (readOnly ? null : ["Backspace", "Delete"]),
@@ -202,7 +202,7 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
 
   const onBeforeDelete = useCallback(async () => {
     if (typeof document === "undefined") return true;
-    return !document.querySelector(".ant-modal-wrap");
+    return Promise.resolve(!document.querySelector(".ant-modal-wrap"));
   }, []);
 
   const { menu, closeMenu, onContextMenuCall } = useContextMenu(
@@ -349,15 +349,18 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
   };
 
   useEffect(() => {
-    if (!isPageLoaded && !isLoading && !isLibraryLoading && nodes?.length) {
-      setIsPageLoaded(true);
-      if (elementId) {
-        const targetNode = nodes.find((node) => node.id === elementId);
-        if (targetNode) {
-          submitOpenElement?.(targetNode, updateNodeData);
+    setIsPageLoaded((state) => {
+      if (!state && !isLoading && !isLibraryLoading && nodes?.length) {
+        if (elementId) {
+          const targetNode = nodes.find((node) => node.id === elementId);
+          if (targetNode) {
+            submitOpenElement?.(targetNode, updateNodeData);
+          }
         }
+        return true;
       }
-    }
+      return state;
+    });
   }, [
     elementId,
     isLoading,

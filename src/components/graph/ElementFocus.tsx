@@ -31,7 +31,7 @@ export const ElementFocus = () => {
     ref.current = (id: string) => {
       const nodes = getNodes();
       if (!nodes.some((n) => n.id === id)) return;
-      fitView({
+      void fitView({
         nodes: [{ id }],
         padding: 0.2,
         duration: 300,

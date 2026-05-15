@@ -30,7 +30,7 @@ export const LinkToChain: React.FC<{ chain?: Chain }> = ({
   chain,
 }): React.ReactNode => {
   return chain ? (
-    <a href={`/chains/${chain.id}`} target="_blank">
+    <a href={`/chains/${chain.id}`} target="_blank" rel="noreferrer">
       {chain.name}
     </a>
   ) : null;
@@ -40,7 +40,11 @@ export const LinkToElement: React.FC<{ element?: Element }> = ({
   element,
 }): React.ReactNode => {
   return element ? (
-    <a href={`/chains/${element.chainId}/graph/${element.id}`} target="_blank">
+    <a
+      href={`/chains/${element.chainId}/graph/${element.id}`}
+      target="_blank"
+      rel="noreferrer"
+    >
       {element.name}
     </a>
   ) : (
@@ -176,7 +180,7 @@ export const ElementProperty: React.FC<{
           : name;
       }
     });
-  }, [element, getSchema]);
+  }, [element, getSchema, name]);
   return (
     <Descriptions
       size="small"
