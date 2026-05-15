@@ -38,7 +38,7 @@ export function dumpYaml(chain: Chain, m: Map<string, string>): string {
     noArrayIndent: true,
     skipInvalid: true,
     sortKeys: true,
-    replacer: (key, value) => {
+    replacer: (key, value: unknown) => {
       if (IGNORED_PROPERTIES.has(key)) {
         return undefined;
       }
@@ -49,10 +49,12 @@ export function dumpYaml(chain: Chain, m: Map<string, string>): string {
 
       if (key === "elements" && Array.isArray(value)) {
         return value.sort((v1, v2) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-member-access
           const id1 = m.get(v1?.id) ?? v1?.id;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-member-access
           const id2 = m.get(v2?.id) ?? v2?.id;
-          return id1.toString().localeCompare(`${id2}`);
-        });
+          return `${id1}`.localeCompare(`${id2}`);
+        }) as unknown[];
       }
 
       return value;
