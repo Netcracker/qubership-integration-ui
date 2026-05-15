@@ -128,6 +128,7 @@ export const useChainGraph = () => {
   const notificationService = useNotificationService();
   const { arrangeNodes, direction, toggleDirection } = useAutoLayout();
 
+  const prevArrangeNodesRef = useRef<typeof arrangeNodes | null>(null);
   const structureChangedRef = useRef<boolean>(false);
   const structureChangedParentIdsRef = useRef<string[] | null>(null);
 
@@ -184,11 +185,21 @@ export const useChainGraph = () => {
   );
 
   useEffect(() => {
+    const directionChanged =
+      prevArrangeNodesRef.current !== null &&
+      prevArrangeNodesRef.current !== arrangeNodes;
+    prevArrangeNodesRef.current = arrangeNodes;
+
     const autoArrange = async () => {
-      if (!structureChangedRef.current) return;
+      const shouldRunForDirection =
+        directionChanged && isInitialized.current && nodes.length > 0;
+      if (!structureChangedRef.current && !shouldRunForDirection) return;
       structureChangedRef.current = false;
 
-      const parentIds = structureChangedParentIdsRef.current;
+      // Direction change always needs a full re-layout; ignore partial parent IDs
+      const parentIds = shouldRunForDirection
+        ? null
+        : structureChangedParentIdsRef.current;
       let arrangedNodes: ChainGraphNode[];
 
       if (parentIds && parentIds.length) {
