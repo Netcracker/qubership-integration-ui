@@ -26,9 +26,8 @@ const mockScreenToFlowPosition = jest.fn(
 const mockGetIntersectingNodes = jest.fn();
 
 jest.mock("@xyflow/react", () => {
-  const actual = jest.requireActual<typeof import("@xyflow/react")>(
-    "@xyflow/react",
-  );
+  const actual =
+    jest.requireActual<typeof import("@xyflow/react")>("@xyflow/react");
   return {
     ...actual,
     useReactFlow: (...args: unknown[]) =>
@@ -57,11 +56,13 @@ jest.mock("../../../src/hooks/useNotificationService", () => ({
   }),
 }));
 
+const mockArrangeNodes = jest.fn((nodes: unknown[]) => Promise.resolve(nodes));
+const mockToggleDirection = jest.fn();
 jest.mock("../../../src/hooks/graph/useAutoLayout", () => ({
   useAutoLayout: () => ({
-    arrangeNodes: jest.fn((nodes: unknown[]) => Promise.resolve(nodes)),
+    arrangeNodes: mockArrangeNodes,
     direction: "RIGHT",
-    toggleDirection: jest.fn(),
+    toggleDirection: mockToggleDirection,
   }),
 }));
 
@@ -119,20 +120,17 @@ jest.mock("../../../src/misc/chain-graph-utils", () => {
       name: "default",
       title: "Default",
     })),
-    getDataFromElement: jest.fn(
-      (element: { type: string; name?: string }) => ({
-        elementType: element.type,
-        label: element.name,
-      }),
-    ),
+    getDataFromElement: jest.fn((element: { type: string; name?: string }) => ({
+      elementType: element.type,
+      label: element.name,
+    })),
     buildGraphNodes: jest.fn(() => []),
     applyHighlight: jest.fn((nodes: unknown[]) => nodes),
   };
 });
 
 jest.mock("../../../src/pages/ChainPage.tsx", () => {
-  const { createContext } =
-    jest.requireActual<typeof import("react")>("react");
+  const { createContext } = jest.requireActual<typeof import("react")>("react");
   return { ChainContext: createContext(undefined) };
 });
 
@@ -229,8 +227,7 @@ const renderChainGraph = async (
   refresh?: jest.Mock,
   options?: { chain?: Chain | undefined },
 ) => {
-  const chain =
-    options && "chain" in options ? options.chain : makeChain();
+  const chain = options && "chain" in options ? options.chain : makeChain();
   const contextValue: ChainContextData = {
     chain,
     update: jest.fn(),
@@ -262,6 +259,9 @@ const withInitialNodes = async (refresh?: jest.Mock) => {
 describe("useChainGraph", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockArrangeNodes.mockImplementation((nodes: unknown[]) =>
+      Promise.resolve(nodes),
+    );
     mockIsLibraryLoading = false;
     mockUseReactFlow.mockReturnValue({
       screenToFlowPosition: mockScreenToFlowPosition,
@@ -314,7 +314,9 @@ describe("useChainGraph", () => {
     });
 
     it("does not fetch when chain is not provided", async () => {
-      const { result } = await renderChainGraph(undefined, { chain: undefined });
+      const { result } = await renderChainGraph(undefined, {
+        chain: undefined,
+      });
       expect(result.current.nodes).toHaveLength(0);
       expect(result.current.edges).toHaveLength(0);
     });
@@ -475,9 +477,7 @@ describe("useChainGraph", () => {
   });
 
   describe("onDrop", () => {
-    const makeDropEvent = (
-      dataValue: string | undefined,
-    ): React.DragEvent => {
+    const makeDropEvent = (dataValue: string | undefined): React.DragEvent => {
       const dataTransfer = {
         getData: jest.fn(() => dataValue ?? ""),
         dropEffect: "move" as const,
@@ -1090,9 +1090,7 @@ describe("useChainGraph", () => {
         expect(result.current.edges.length).toBe(1);
       });
 
-      const changes: EdgeChange[] = [
-        { id: "edge-1", type: "remove" },
-      ];
+      const changes: EdgeChange[] = [{ id: "edge-1", type: "remove" }];
       act(() => {
         result.current.onEdgesChange(changes);
       });
@@ -1185,10 +1183,7 @@ describe("useChainGraph", () => {
       const { result } = await withInitialNodes();
 
       act(() => {
-        result.current.onNodeDragStart(
-          {} as React.MouseEvent,
-          draggedNode,
-        );
+        result.current.onNodeDragStart({} as React.MouseEvent, draggedNode);
       });
       act(() => {
         result.current.onNodeDrag({} as React.MouseEvent, draggedNode);
@@ -1267,7 +1262,9 @@ describe("useChainGraph", () => {
         "script",
       );
       expect((updated?.data as { label?: string }).label).toBe("Updated");
-      const untouched = result.current.nodes.find((n) => n.id === "container-1");
+      const untouched = result.current.nodes.find(
+        (n) => n.id === "container-1",
+      );
       expect(untouched).toBeDefined();
     });
   });
@@ -1501,8 +1498,8 @@ describe("useChainGraph", () => {
 
       const { result } = await renderChainGraph();
 
-      const unselectedNodes = initialNodes.map((n) =>
-        ({ ...n, selected: false }) as ChainGraphNode,
+      const unselectedNodes = initialNodes.map(
+        (n) => ({ ...n, selected: false }) as ChainGraphNode,
       );
       act(() => {
         result.current.setNodes(unselectedNodes);

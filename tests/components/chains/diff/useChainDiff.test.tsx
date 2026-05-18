@@ -10,6 +10,10 @@ const mockGetChain = jest.fn();
 const mockRequestFailed = jest.fn();
 const mockErrorWithDetails = jest.fn();
 const mockCompareChains = jest.fn();
+const stableNotificationService = {
+  requestFailed: mockRequestFailed,
+  errorWithDetails: mockErrorWithDetails,
+};
 
 jest.mock("../../../../src/api/api", () => ({
   api: {
@@ -18,10 +22,7 @@ jest.mock("../../../../src/api/api", () => ({
 }));
 
 jest.mock("../../../../src/hooks/useNotificationService", () => ({
-  useNotificationService: () => ({
-    requestFailed: mockRequestFailed,
-    errorWithDetails: mockErrorWithDetails,
-  }),
+  useNotificationService: () => stableNotificationService,
 }));
 
 jest.mock("../../../../src/components/chains/diff/compare/compare", () => ({
