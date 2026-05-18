@@ -23,7 +23,9 @@ export const ModalWithFullscreenToggle: React.FC<ModalProps> = ({
     ): string | undefined => {
       const suffix = isFullscreen ? "-fullscreen" : "";
       const className = (classNamePrefix + suffix) as keyof typeof styles;
-      return [classes, styles[classNamePrefix], styles[className]].filter((i) => !!i).join(" ");
+      return [classes, styles[classNamePrefix], styles[className]]
+        .filter((i) => !!i)
+        .join(" ");
     },
     [isFullscreen],
   );

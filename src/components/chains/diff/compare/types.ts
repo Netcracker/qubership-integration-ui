@@ -11,11 +11,25 @@ export type PropertyDetails = {
   entityId: string;
   name: string;
   value: unknown;
-}
+};
 export type ChangedSide = "one" | "another";
-export type ChangeKind = "element" | "chain-property" | "element-property" | "connection";
-export type ElementChange = GenericChange<"element", Element>
-export type ChainPropertyChange = GenericChange<"chain-property", PropertyDetails>;
-export type ElementPropertyChange = GenericChange<"element-property", PropertyDetails>;
+export type ChangeKind =
+  | "element"
+  | "chain-property"
+  | "element-property"
+  | "connection";
+export type ElementChange = GenericChange<"element", Element>;
+export type ChainPropertyChange = GenericChange<
+  "chain-property",
+  PropertyDetails
+>;
+export type ElementPropertyChange = GenericChange<
+  "element-property",
+  PropertyDetails
+>;
 export type ConnectionChange = GenericChange<"connection", Connection>;
-export type Change = ElementChange | ChainPropertyChange | ElementPropertyChange | ConnectionChange;
+export type Change =
+  | ElementChange
+  | ChainPropertyChange
+  | ElementPropertyChange
+  | ConnectionChange;

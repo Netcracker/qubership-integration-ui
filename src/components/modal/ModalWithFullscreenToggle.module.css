@@ -30,7 +30,8 @@
   min-height: 0;
 }
 
-.modal-header, .modal-footer {
+.modal-header,
+.modal-footer {
   flex-grow: 0;
   flex-shrink: 0;
 }

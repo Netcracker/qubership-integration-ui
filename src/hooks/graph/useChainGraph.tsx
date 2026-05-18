@@ -263,7 +263,9 @@ export const useChainGraph = () => {
       setIsLoading(true);
       try {
         const elements: Element[] = [];
-        traverseElementsDepthFirst(chainContext.chain.elements, (e) => elements.push(e));
+        traverseElementsDepthFirst(chainContext.chain.elements, (e) =>
+          elements.push(e),
+        );
         const newNodes: ChainGraphNode[] = elements
           .map((element: Element) =>
             getNodeFromElement(

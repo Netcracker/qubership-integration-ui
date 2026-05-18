@@ -1,8 +1,17 @@
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { ChainGraphNode } from "./ChainGraphNodeTypes.ts";
-import React, { HTMLAttributes, PropsWithChildren, ReactNode, useContext, useMemo } from "react";
+import React, {
+  HTMLAttributes,
+  PropsWithChildren,
+  ReactNode,
+  useContext,
+  useMemo,
+} from "react";
 import styles from "./NodeContentWrapper.module.css";
-import { ChainGraphChangeContext, NodeState } from "../../chains/diff/ChainGraphChangeProvider.tsx";
+import {
+  ChainGraphChangeContext,
+  NodeState,
+} from "../../chains/diff/ChainGraphChangeProvider.tsx";
 
 export type NodeContentWrapperProps = PropsWithChildren<
   NodeProps<ChainGraphNode>

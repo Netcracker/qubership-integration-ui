@@ -233,7 +233,10 @@ export const UsedPropertiesList: React.FC<UsedPropertiesListProps> = ({
           setOpenKeysState(openKeysBeforeSearch.current);
         }}
       />
-      <Flex vertical style={{ minHeight: 0, flexGrow: 1, flexShrink: 1, overflow: "auto" }}>
+      <Flex
+        vertical
+        style={{ minHeight: 0, flexGrow: 1, flexShrink: 1, overflow: "auto" }}
+      >
         {displayProperties.map((property) => {
           const isExpanded = openKeysState.includes(property.id);
 

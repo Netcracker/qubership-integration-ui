@@ -104,9 +104,7 @@ const ChainPage = () => {
     setPathItems([
       {
         title: (
-          <span
-            className={`${styles.breadcrumbItem} ${styles.breadcrumbHome}`}
-          >
+          <span className={`${styles.breadcrumbItem} ${styles.breadcrumbHome}`}>
             {link("/chains", <OverridableIcon name="home" />)}
           </span>
         ),
@@ -122,11 +120,7 @@ const ChainPage = () => {
               ),
             },
             {
-              title: (
-                <span className={styles.breadcrumbItem}>
-                  {sessionId}
-                </span>
-              ),
+              title: <span className={styles.breadcrumbItem}>{sessionId}</span>,
             },
           ]
         : []),
@@ -249,9 +243,7 @@ const ChainPageHeader: FC<ChainPageHeaderProps> = ({
         items={tabItems}
         style={{ marginBottom: 0 }}
         tabBarExtraContent={
-          <div className={styles.chainTabBarExtra}>
-            {headerActions}
-          </div>
+          <div className={styles.chainTabBarExtra}>{headerActions}</div>
         }
       />
     );

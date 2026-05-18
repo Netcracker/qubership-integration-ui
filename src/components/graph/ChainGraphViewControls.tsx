@@ -26,9 +26,7 @@ export const ChainGraphViewControls = ({
     minZoom: s.minZoom,
     maxZoom: s.maxZoom,
   }));
-  const {
-    toggleDirection
-  } = useElkDirectionContext();
+  const { toggleDirection } = useElkDirectionContext();
   const fullscreenCtx = useChainFullscreenContext();
 
   return (
