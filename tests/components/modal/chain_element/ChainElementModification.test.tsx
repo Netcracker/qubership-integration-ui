@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
   fireEvent,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
@@ -65,6 +66,19 @@ jest.mock("../../../../src/hooks/useElement", () => ({
   useElement: () => ({ updateElement: mockUpdateElement }),
 }));
 
+const mockGetOperationInfo = jest.fn().mockResolvedValue({
+  id: "op-any",
+  specification: {},
+  requestSchema: {},
+  responseSchemas: {},
+});
+jest.mock("../../../../src/api/api", () => ({
+  api: {
+    getOperationInfo: (...args: unknown[]): unknown =>
+      mockGetOperationInfo(...args) as unknown,
+  },
+}));
+
 const mockNotificationService = {
   errorWithDetails: jest.fn(),
   requestFailed: jest.fn(),
@@ -78,7 +92,7 @@ jest.mock("../../../../src/hooks/useDocumentation", () => ({
   useDocumentation: () => ({ openElementDoc: mockOpenElementDoc }),
 }));
 
-const mockShowModal = jest.fn();
+const mockShowModal = jest.fn<void, [{ component: React.ReactElement }]>();
 jest.mock("../../../../src/Modals", () => ({
   useModalsContext: () => ({ showModal: mockShowModal }),
 }));
@@ -104,9 +118,11 @@ let formContextShouldAutoUpdateOnMount = false;
 jest.mock(
   "../../../../src/components/modal/chain_element/ChainElementModificationContext",
   () => {
-    const actual = jest.requireActual(
+    const actual = jest.requireActual<
+      typeof import("../../../../src/components/modal/chain_element/ChainElementModificationContext")
+    >(
       "../../../../src/components/modal/chain_element/ChainElementModificationContext",
-    ) as typeof import("../../../../src/components/modal/chain_element/ChainElementModificationContext");
+    );
 
     return {
       ...actual,
@@ -226,16 +242,19 @@ jest.mock("@rjsf/antd", () => {
       ref,
     ) => {
       React.useImperativeHandle(ref, () => ({ validateForm: () => {} }));
+      const firedRef = React.useRef(false);
       React.useEffect(() => {
-        if (formMockOnMountChangeMode === "same" && onChange) {
+        if (firedRef.current || !onChange) return;
+        if (formMockOnMountChangeMode === "same") {
+          firedRef.current = true;
           onChange({ formData });
-        }
-        if (formMockOnMountChangeMode === "dirty" && onChange) {
+        } else if (formMockOnMountChangeMode === "dirty") {
+          firedRef.current = true;
           onChange({
             formData: { ...(formData as object), __testDirty: true },
           });
         }
-      }, []);
+      }, [formData, onChange]);
       return (
         <form
           data-testid="rjsf-form"
@@ -315,7 +334,7 @@ const mockNode: ChainGraphNode = {
     elementType: "script",
     label: "My Script",
     description: "",
-    properties: {},
+    properties: { common: [], advanced: [], hidden: [], unknown: [] },
     typeTitle: "Script",
   },
   parentId: undefined,
@@ -516,7 +535,7 @@ describe("ChainElementModification", () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  it("unsaved dialog Yes saves changes and closes parent modal", async () => {
+  it("unsaved dialog Yes closes parent modal without saving", async () => {
     renderWithPermissions({ chain: ["update"] });
 
     await waitFor(() => {
@@ -526,31 +545,10 @@ describe("ChainElementModification", () => {
     fireEvent.click(screen.getByTestId("rjsf-user-change"));
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
-    const unsavedModal = mockShowModal.mock.calls[0][0]
-      .component as React.ReactElement;
+    const unsavedModal = mockShowModal.mock.calls[0][0].component;
     render(unsavedModal);
 
     fireEvent.click(screen.getByRole("button", { name: "Yes" }));
-
-    await waitFor(() => expect(mockUpdateElement).toHaveBeenCalled());
-    expect(defaultProps.onSubmit).toHaveBeenCalled();
-  });
-
-  it("unsaved dialog No closes parent modal without saving", async () => {
-    renderWithPermissions({ chain: ["update"] });
-
-    await waitFor(() => {
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByTestId("rjsf-user-change"));
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-
-    const unsavedModal = mockShowModal.mock.calls[0][0]
-      .component as React.ReactElement;
-    render(unsavedModal);
-
-    fireEvent.click(screen.getByRole("button", { name: "No" }));
 
     expect(defaultProps.onClose).toHaveBeenCalled();
     expect(mockUpdateElement).not.toHaveBeenCalled();
@@ -566,11 +564,14 @@ describe("ChainElementModification", () => {
     fireEvent.click(screen.getByTestId("rjsf-user-change"));
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
-    const unsavedModal = mockShowModal.mock.calls[0][0]
-      .component as React.ReactElement;
+    const unsavedModal = mockShowModal.mock.calls[0][0].component;
     render(unsavedModal);
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    const dialogs = screen.getAllByRole("dialog");
+    const unsavedDialog = dialogs[dialogs.length - 1];
+    fireEvent.click(
+      within(unsavedDialog).getByRole("button", { name: "Close" }),
+    );
 
     expect(defaultProps.onClose).not.toHaveBeenCalled();
     expect(mockUpdateElement).not.toHaveBeenCalled();
@@ -634,7 +635,7 @@ describe("ChainElementModification", () => {
 
     const input = screen.getByTestId("element-name-input");
     fireEvent.change(input, { target: { value: "Updated Script Name" } });
-    fireEvent.click(screen.getByTestId("element-name-apply"));
+    fireEvent.blur(input);
 
     await waitFor(() => {
       expect(mockUpdateElement).toHaveBeenCalledWith(
@@ -693,6 +694,104 @@ describe("ChainElementModification", () => {
         expect(mockNotificationService.errorWithDetails).toHaveBeenCalledWith(
           "Failed to load schema",
           expect.any(String),
+          expect.any(Error),
+        );
+      });
+    });
+  });
+
+  describe("Centralized OperationInfo loader", () => {
+    // A service-call node so integrationOperationId is part of the form.
+    const mockServiceCallSchema = `type: object
+title: Service Call
+properties:
+  type:
+    type: string
+  name:
+    type: string
+  description:
+    type: string
+  properties:
+    type: object
+    properties:
+      integrationOperationId:
+        type: string
+required: [type]`;
+
+    const serviceCallNode: ChainGraphNode = {
+      ...mockNode,
+      data: {
+        ...mockNode.data,
+        elementType: "service-call",
+        typeTitle: "Service Call",
+        properties: {
+          integrationOperationId: "op-42",
+          integrationOperationProtocolType: "http",
+        } as unknown as typeof mockNode.data.properties,
+      },
+    };
+
+    beforeEach(() => {
+      schemaModulesOverride = {
+        "/node_modules/@netcracker/qip-schemas/assets/service-call.schema.yaml":
+          mockServiceCallSchema,
+      };
+      mockGetOperationInfo.mockResolvedValue({
+        id: "op-42",
+        specification: {
+          parameters: [{ in: "query", name: "q", required: false }],
+        },
+        requestSchema: { "application/json": { type: "object" } },
+        responseSchemas: { "200": { "application/json": { type: "object" } } },
+      });
+    });
+
+    it("fetches OperationInfo when integrationOperationId is set on mount", async () => {
+      render(
+        <UserPermissionsContext.Provider value={{ chain: ["update"] }}>
+          <ChainElementModification {...defaultProps} node={serviceCallNode} />
+        </UserPermissionsContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(mockGetOperationInfo).toHaveBeenCalledWith("op-42");
+      });
+    });
+
+    it("does not call getOperationInfo when no operationId is set", async () => {
+      const noOpNode: ChainGraphNode = {
+        ...serviceCallNode,
+        data: {
+          ...serviceCallNode.data,
+          properties: {} as unknown as typeof mockNode.data.properties,
+        },
+      };
+      render(
+        <UserPermissionsContext.Provider value={{ chain: ["update"] }}>
+          <ChainElementModification {...defaultProps} node={noOpNode} />
+        </UserPermissionsContext.Provider>,
+      );
+
+      // Wait for form mount + a microtask tick.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      expect(mockGetOperationInfo).not.toHaveBeenCalled();
+    });
+
+    it("shows notification when OperationInfo fetch fails", async () => {
+      mockGetOperationInfo.mockRejectedValueOnce(new Error("boom"));
+
+      render(
+        <UserPermissionsContext.Provider value={{ chain: ["update"] }}>
+          <ChainElementModification {...defaultProps} node={serviceCallNode} />
+        </UserPermissionsContext.Provider>,
+      );
+
+      await waitFor(() => {
+        expect(mockNotificationService.requestFailed).toHaveBeenCalledWith(
+          "Failed to load operation info",
           expect.any(Error),
         );
       });

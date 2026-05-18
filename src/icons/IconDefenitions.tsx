@@ -107,6 +107,7 @@ import {
   BulbOutlined,
   BarChartOutlined,
   ToolOutlined,
+  KubernetesOutlined,
   MenuUnfoldOutlined,
   InfoCircleOutlined,
   HddOutlined,
@@ -120,12 +121,17 @@ import {
   InsertRowLeftOutlined,
   CommentOutlined,
   PaperClipOutlined,
+  SearchOutlined,
+  ClockCircleOutlined,
+  MinusCircleOutlined,
+  SyncOutlined,
+  ColumnWidthOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
 
 /**
- * Дефолтный логотип шапки (текст QIP). Override: configure({ icons: { logo: … } }).
- * Устаревшее имя ключа в конфиге: `qip` — см. merge в IconProvider.
+ * Default header logo (QIP text). Override: configure({ icons: { logo: … } }).
+ * Deprecated key name in configuration: `qip` — see merge in IconProvider.
  */
 const QIP_WORDMARK_FONT_FAMILY =
   '"Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", sans-serif';
@@ -231,6 +237,7 @@ export const commonIcons = {
   solution: SolutionOutlined,
   columnHeight: ColumnHeightOutlined,
   verticalAlignMiddle: VerticalAlignMiddleOutlined,
+  kubernetes: KubernetesOutlined,
   database: DatabaseOutlined,
   fullscreen: FullscreenOutlined,
   fullscreenExit: FullscreenExitOutlined,
@@ -253,6 +260,19 @@ export const commonIcons = {
   mcp: MessageOutlined,
   comment: CommentOutlined,
   paperClip: PaperClipOutlined,
+  user: UserOutlined,
+  logout: LogoutOutlined,
+  resetPreferences: ReloadOutlined,
+  search: SearchOutlined,
+  deploymentStatusDeployed: CheckCircleOutlined,
+  deploymentStatusProcessing: SyncOutlined,
+  deploymentStatusFailed: CloseCircleOutlined,
+  deploymentStatusWarning: ExclamationCircleOutlined,
+  deploymentStatusRemoved: MinusCircleOutlined,
+  deploymentStatusDraft: ClockCircleOutlined,
+  documentationSearchResult: FileTextOutlined,
+  compare: DiffOutlined,
+  diagram: ColumnWidthOutlined,
 };
 
 export const elementIcons = {

@@ -14,6 +14,7 @@ import { capitalize } from "../misc/format-utils.ts";
 
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
+import { pickLoggingProperties } from "../misc/logging-utils.ts";
 import styles from "./Chain.module.css";
 import { LoggingSettingsSourceTag } from "../components/logging/LoggingSettingsSourceTag.tsx";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
@@ -65,11 +66,8 @@ export const LoggingSettings: React.FC = () => {
 
   useEffect(() => {
     if (loggingSettings) {
-      const properties: ChainLoggingProperties =
-        loggingSettings?.custom ??
-        loggingSettings?.consulDefault ??
-        loggingSettings?.fallbackDefault;
-      const custom = !!loggingSettings?.custom;
+      const properties = pickLoggingProperties(loggingSettings);
+      const custom = !!loggingSettings.custom;
       setIsCustom(custom);
       form.setFieldsValue({ custom, ...properties });
     }
@@ -150,9 +148,9 @@ export const LoggingSettings: React.FC = () => {
     });
 
   const logLoggingLevelOptions: SelectProps<LogLoggingLevel>["options"] =
-    Object.values(LogLoggingLevel).map((value) => ({
+    Object.entries(LogLoggingLevel).map(([key, value]) => ({
       value: value,
-      label: capitalize(value),
+      label: capitalize(key),
     }));
 
   const logPayloadOptions: SelectProps<LogPayload>["options"] = Object.values(

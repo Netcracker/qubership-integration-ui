@@ -4,20 +4,26 @@ import {
   sumScrollXForColumns,
   useTableColumnResize,
 } from "../components/table/useTableColumnResize.tsx";
-import { Flex, Table, Tooltip } from "antd";
+import { Flex, Space, Table, Tag, Tooltip } from "antd";
+import { DeploymentStateTag } from "../components/deployment_runtime_states/DeploymentStateTag.tsx";
 import { useDeployments } from "../hooks/useDeployments.tsx";
 import { useParams } from "react-router";
 import { TableProps } from "antd/lib/table";
 import {
   CreateDeploymentRequest,
   Deployment,
+  DeployMode,
+  DomainType,
+  MicroDomainDeployRequest,
   Snapshot,
 } from "../api/apiTypes.ts";
-import { DeploymentRuntimeStates } from "../components/deployment_runtime_states/DeploymentRuntimeStates.tsx";
 import { useSnapshots } from "../hooks/useSnapshots.tsx";
-import { formatTimestamp } from "../misc/format-utils.ts";
+import { formatOptional, formatTimestamp } from "../misc/format-utils.ts";
 import { useModalsContext } from "../Modals.tsx";
-import { DeploymentCreate } from "../components/modal/DeploymentCreate.tsx";
+import {
+  CreateDeploymentOptions,
+  DeploymentCreate,
+} from "../components/modal/DeploymentCreate.tsx";
 import { api } from "../api/api.ts";
 import { LongActionButton } from "../components/LongActionButton.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
@@ -30,11 +36,9 @@ import {
   disableResizeBeforeActions,
 } from "../components/table/actionsColumn.ts";
 import { matchesByFields } from "../components/table/tableSearch.ts";
-import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
-import commonStyles from "../components/admin_tools/CommonStyle.module.css";
+import { TableToolbar } from "../components/table/TableToolbar.tsx";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
-import chainPageStyles from "./Chain.module.css";
 
 function deploymentMatchesSearch(
   deployment: Deployment,
@@ -50,7 +54,7 @@ function deploymentMatchesSearch(
     deployment.serviceName,
     snapshotName,
     deployment.snapshotId,
-    deployment.createdBy.username,
+    deployment.createdBy?.username ?? "",
     formatTimestamp(deployment.createdWhen),
   ]);
 }
@@ -75,7 +79,14 @@ export const Deployments: React.FC = () => {
   const deleteDeployment = useCallback(
     async (deployment: Deployment) => {
       try {
-        await api.deleteDeployment(deployment.id);
+        if (deployment.domainType === DomainType.MICRO) {
+          await api.deleteSnapshotFromMicroDomain(
+            deployment.domain,
+            deployment.snapshotId,
+          );
+        } else {
+          await api.deleteDeployment(deployment.id);
+        }
         removeDeployment(deployment);
       } catch (error) {
         notificationService.requestFailed("Failed to delete deployment", error);
@@ -98,24 +109,47 @@ export const Deployments: React.FC = () => {
           </>
         ),
       },
-      { title: "Domain", dataIndex: "domain", key: "domain" },
+      {
+        title: "Domain",
+        dataIndex: "domain",
+        key: "domain",
+        render: (_, deployment) =>
+          deployment.domainType === DomainType.MICRO ? (
+            <Space size={"small"}>
+              {deployment.domain}
+              <Tag>micro</Tag>
+            </Space>
+          ) : (
+            deployment.domain
+          ),
+      },
       {
         title: "Status",
         dataIndex: "runtime",
         key: "runtime",
         render: (_, deployment) => (
-          <DeploymentRuntimeStates
-            timestamp={deployment.createdWhen}
-            service={deployment.serviceName}
-            runtimeStates={deployment.runtime ?? { states: {} }}
-          />
+          <Flex gap="4px 4px" wrap>
+            {Object.entries(deployment.runtime?.states ?? {}).map(
+              ([name, runtimeState]) => (
+                <DeploymentStateTag
+                  key={name}
+                  name={name}
+                  service={deployment.serviceName}
+                  timestamp={deployment.createdWhen}
+                  runtimeState={runtimeState}
+                />
+              ),
+            )}
+          </Flex>
         ),
       },
       {
         title: "Created By",
         dataIndex: "createdBy",
         key: "createdBy",
-        render: (_, deployment) => deployment.createdBy.username,
+        render: (_, deployment) => (
+          <>{formatOptional(deployment.createdBy?.username)}</>
+        ),
       },
       {
         title: "Created At",
@@ -179,20 +213,42 @@ export const Deployments: React.FC = () => {
     [columnsWithResize, deploymentsColumnResize.columnWidths],
   );
 
+  const onDeploymentCreated = useCallback(
+    (deployment: Deployment) => {
+      setDeployments((prev) => [...(prev ?? []), deployment]);
+    },
+    [setDeployments],
+  );
+
   const createDeployment = useCallback(
-    async (request: CreateDeploymentRequest) => {
+    async (options: CreateDeploymentOptions) => {
       if (!chainId) return;
       try {
-        const deployment = await api.createDeployment(chainId, request);
-        setDeployments((prevDeployments) => [
-          ...(prevDeployments ?? []),
-          deployment,
-        ]);
+        await Promise.all(
+          options.domains.map(async (domain) => {
+            if (domain.type === DomainType.MICRO) {
+              const request: MicroDomainDeployRequest = {
+                name: domain.name,
+                snapshotIds: [options.snapshotId],
+                mode: DeployMode.APPEND,
+              };
+              await api.deploySnapshotsToMicroDomain(request);
+            } else {
+              const request: CreateDeploymentRequest = {
+                domain: domain.name,
+                snapshotId: options.snapshotId,
+                suspended: false,
+              };
+              const deployment = await api.createDeployment(chainId, request);
+              onDeploymentCreated(deployment);
+            }
+          }),
+        );
       } catch (error) {
         notificationService.requestFailed("Failed to create deployment", error);
       }
     },
-    [chainId, notificationService, setDeployments],
+    [chainId, notificationService, onDeploymentCreated],
   );
 
   const onCreateClick = useCallback(() => {
@@ -205,22 +261,17 @@ export const Deployments: React.FC = () => {
 
   const chainTabToolbar = useMemo(
     () => (
-      <Flex
-        className={chainPageStyles.chainTabToolbarRow}
-        align="center"
-        gap={8}
-        wrap="wrap"
-      >
-        <CompactSearch
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Search deployments..."
-          allowClear
-          className={commonStyles.searchField as string}
-          style={{ minWidth: 160, maxWidth: 360, flex: "0 1 auto" }}
-        />
-        <Flex align="center" gap={8} wrap="wrap" style={{ flexShrink: 0 }}>
-          {columnSettingsButton}
+      <TableToolbar
+        variant="chain-tab"
+        search={{
+          value: searchTerm,
+          onChange: setSearchTerm,
+          placeholder: "Search deployments...",
+          allowClear: true,
+          style: { minWidth: 160, maxWidth: 360, flex: "0 1 auto" },
+        }}
+        columnSettingsButton={columnSettingsButton}
+        actions={
           <ProtectedButton
             require={{ deployment: ["create"] }}
             tooltipProps={{ title: "Create deployment" }}
@@ -230,15 +281,14 @@ export const Deployments: React.FC = () => {
               onClick: onCreateClick,
             }}
           />
-        </Flex>
-      </Flex>
+        }
+      />
     ),
-    [searchTerm, setSearchTerm, columnSettingsButton, onCreateClick],
+    [searchTerm, columnSettingsButton, onCreateClick],
   );
 
   useRegisterChainHeaderActions(chainTabToolbar, [
     searchTerm,
-    setSearchTerm,
     onCreateClick,
   ]);
 

@@ -7,6 +7,8 @@
 import React from "react";
 import { screen, waitFor, fireEvent, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import type { Deployment } from "../../src/api/apiTypes.ts";
+import { DomainType } from "../../src/api/apiTypes.ts";
 import { Deployments } from "../../src/pages/Deployments.tsx";
 import { renderPageWithChainHeader } from "../helpers/renderWithChainHeader.tsx";
 
@@ -19,10 +21,12 @@ jest.mock("react-router", () => ({
 const mockSetDeployments = jest.fn();
 const mockRemoveDeployment = jest.fn();
 
+let mockDeployments: Deployment[] = [];
+
 jest.mock("../../src/hooks/useDeployments.tsx", () => ({
   useDeployments: () => ({
     isLoading: false,
-    deployments: [],
+    deployments: mockDeployments,
     setDeployments: mockSetDeployments,
     removeDeployment: mockRemoveDeployment,
   }),
@@ -109,23 +113,12 @@ jest.mock("../../src/Modals.tsx", () => {
     closeModal: jest.fn(),
   };
   return {
-    Modals: ({
-      children,
-    }: {
-      children: import("react").ReactNode;
-    }) => <R.Fragment>{children}</R.Fragment>,
+    Modals: ({ children }: { children: import("react").ReactNode }) => (
+      <R.Fragment>{children}</R.Fragment>
+    ),
     useModalsContext: () => modalsApi,
   };
 });
-
-jest.mock(
-  "../../src/components/deployment_runtime_states/DeploymentRuntimeStates.tsx",
-  () => ({
-    DeploymentRuntimeStates: () => (
-      <div data-testid="deployment-runtime-stub" />
-    ),
-  }),
-);
 
 jest.mock("../../src/components/modal/DeploymentCreate.tsx", () => ({
   DeploymentCreate: () => <div data-testid="deployment-create-stub" />,
@@ -158,9 +151,24 @@ function renderDeployments() {
   return renderPageWithChainHeader(<Deployments />);
 }
 
+function sampleDeployment(): Deployment {
+  return {
+    id: "dep-1",
+    chainId: "chain-1",
+    snapshotId: "snap-1",
+    name: "dep-a",
+    domain: "dom",
+    domainType: DomainType.NATIVE,
+    createdWhen: 0,
+    createdBy: { id: "u1", username: "user" },
+    serviceName: "svc",
+  };
+}
+
 describe("Deployments chain header toolbar", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDeployments = [];
     mockUseParams.mockReturnValue({ chainId: "chain-1" });
   });
 
@@ -180,8 +188,9 @@ describe("Deployments chain header toolbar", () => {
     type ModalsTest = {
       useModalsContext: () => { showModal: jest.Mock; closeModal: jest.Mock };
     };
-    const { useModalsContext } =
-      jest.requireMock<ModalsTest>("../../src/Modals.tsx");
+    const { useModalsContext } = jest.requireMock<ModalsTest>(
+      "../../src/Modals.tsx",
+    );
     const { showModal } = useModalsContext();
 
     renderDeployments();
@@ -192,5 +201,34 @@ describe("Deployments chain header toolbar", () => {
     );
 
     expect(showModal).toHaveBeenCalledTimes(1);
+  });
+
+  test("table scroll includes empty y when filtered deployments exist", async () => {
+    mockDeployments = [sampleDeployment()];
+    renderDeployments();
+
+    await waitFor(() => {
+      const raw = document
+        .querySelector(".flex-table")
+        ?.getAttribute("data-scroll");
+      expect(raw).toBeTruthy();
+      const scroll = JSON.parse(raw!) as { x: number; y?: string };
+      expect(scroll.y).toBe("");
+      expect(typeof scroll.x).toBe("number");
+    });
+  });
+
+  test("table scroll omits y when there are no filtered deployments", async () => {
+    mockDeployments = [];
+    renderDeployments();
+
+    await waitFor(() => {
+      const raw = document
+        .querySelector(".flex-table")
+        ?.getAttribute("data-scroll");
+      expect(raw).toBeTruthy();
+      const scroll = JSON.parse(raw!) as { x: number; y?: string };
+      expect("y" in scroll).toBe(false);
+    });
   });
 });

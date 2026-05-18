@@ -469,6 +469,10 @@ pre[class*="language-"] .token.punctuation {
   color: var(--vscode-textLink-foreground, var(--vscode-foreground)) !important;
 }
 
+.ant-notification-notice-warning .ant-notification-notice-icon {
+  color: var(--vscode-warningForeground, #faad14) !important;
+}
+
 .ant-notification-notice-error .ant-notification-notice-icon {
   color: var(--vscode-errorForeground, #f87171) !important;
 }
@@ -536,11 +540,14 @@ pre[class*="language-"] .token.punctuation {
 }
 
 .ant-table-tbody > tr.highlight-row > td {
-  background-color: #fffef0 !important;
+  background-color: var(--qip-table-warning-row-background, #f7f6f2) !important;
 }
 
 .ant-table-tbody > tr.highlight-row:hover > td {
-  background-color: #fffef0 !important;
+  background-color: var(
+    --qip-table-warning-row-background-hover,
+    #f1f0eb
+  ) !important;
 }
 
 .ant-table-cell {

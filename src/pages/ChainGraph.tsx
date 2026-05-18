@@ -47,7 +47,12 @@ import { ElkDirectionContextProvider } from "./ElkDirectionContext.tsx";
 import { useElkDirection } from "../hooks/graph/useElkDirection.tsx";
 import { PageWithRightPanel } from "./PageWithRightPanel.tsx";
 import { SaveAndDeploy } from "../components/modal/SaveAndDeploy.tsx";
-import { CreateDeploymentRequest, Element } from "../api/apiTypes.ts";
+import {
+  CreateDeploymentRequest,
+  DeployMode,
+  DomainType,
+  Element,
+} from "../api/apiTypes.ts";
 import { api } from "../api/api.ts";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { SequenceDiagram } from "../components/modal/SequenceDiagram.tsx";
@@ -74,12 +79,14 @@ import {
 import { downloadFile, mergeZipArchives } from "../misc/download-utils.ts";
 import { exportAdditionsForChains } from "../misc/export-additions.ts";
 import { generateSequenceDiagrams } from "../diagrams/main.ts";
+import { Domain } from "../components/SelectDomains.tsx";
 import { Require } from "../permissions/Require.tsx";
 import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
 import { usePermissions } from "../permissions/usePermissions.tsx";
 import { hasPermissions } from "../permissions/funcs.ts";
 import { getSwimlaneBorderColor } from "../components/graph/nodes/SwimlaneNode.tsx";
 import { useContextMenu } from "../hooks/graph/useContextMenu.tsx";
+import { useGenerateDds } from "../hooks/useGenerateDds.tsx";
 
 const readTheme = () => {
   if (typeof document === "undefined") return "light";
@@ -134,10 +141,11 @@ const ChainGraphInner: React.FC = () => {
   const permissions = usePermissions();
   const [readOnly, setReadOnly] = useState<boolean>(false);
   const deleteKeyCode = useMemo<KeyCode | null>(
-    () => (readOnly || elementId ? null : ["Backspace", "Delete"]),
-    [elementId, readOnly],
+    () => (readOnly ? null : ["Backspace", "Delete"]),
+    [readOnly],
   );
-  const [selectedByRightClick, setSelectedByRightClick] = useState<boolean>(false);
+  const [selectedByRightClick, setSelectedByRightClick] =
+    useState<boolean>(false);
 
   useEffect(() => {
     setReadOnly(!hasPermissions(permissions, { chain: ["update"] }));
@@ -184,6 +192,7 @@ const ChainGraphInner: React.FC = () => {
   const { leftPanel, toggleLeftPanel, rightPanel, toggleRightPanel } =
     useElkDirection();
   const fitViewToElementIdRef = useRef<FitViewToElementIdFn | null>(null);
+  const { showGenerateDdsModal } = useGenerateDds();
 
   const handleElementUpdated = useCallback(
     (element: Element, node: ChainGraphNode) => {
@@ -257,7 +266,12 @@ const ChainGraphInner: React.FC = () => {
     [onDelete],
   );
 
-  const { menu, closeMenu, onContextMenuCall} = useContextMenu(
+  const onBeforeDelete = useCallback(async () => {
+    if (typeof document === "undefined") return true;
+    return !document.querySelector(".ant-modal-wrap");
+  }, []);
+
+  const { menu, closeMenu, onContextMenuCall } = useContextMenu(
     handleDelete,
     openElementModal,
     nodes,
@@ -343,25 +357,36 @@ const ChainGraphInner: React.FC = () => {
   };
 
   const saveAndDeploy = useCallback(
-    async (domain: string) => {
-      if (!chainId) return;
+    async (domains: Domain[]) => {
+      if (!chainId || domains.length === 0) return;
       try {
-        await api.createSnapshot(chainId).then(async (snapshot) => {
-          notificationService.info(
-            "Created snapshot",
-            `Created snapshot ${snapshot.name}`,
-          );
-          const request: CreateDeploymentRequest = {
-            domain,
-            snapshotId: snapshot.id,
-            suspended: false,
-          };
-          await api.createDeployment(chainId, request);
-          notificationService.info(
-            "Deployed snapshot",
-            `Deployed snapshot ${snapshot.name}`,
-          );
-        });
+        const snapshot = await api.createSnapshot(chainId);
+        notificationService.info(
+          "Created snapshot",
+          `Created snapshot ${snapshot.name}`,
+        );
+        await Promise.all(
+          domains.map(async (domain) => {
+            if (domain.type === DomainType.MICRO) {
+              await api.deploySnapshotsToMicroDomain({
+                name: domain.name,
+                snapshotIds: [snapshot.id],
+                mode: DeployMode.APPEND,
+              });
+            } else {
+              const request: CreateDeploymentRequest = {
+                domain: domain.name,
+                snapshotId: snapshot.id,
+                suspended: false,
+              };
+              await api.createDeployment(chainId, request);
+            }
+            notificationService.info(
+              "Deployed snapshot",
+              `Deployed snapshot ${snapshot.name}`,
+            );
+          }),
+        );
       } catch (error) {
         notificationService.requestFailed(
           "Failed to create snapshot and deploy it",
@@ -369,7 +394,7 @@ const ChainGraphInner: React.FC = () => {
         );
       }
     },
-    [chainId, notificationService],
+    [chainId, chainContext, notificationService],
   );
 
   const openSaveAndDeployDialog = useCallback(() => {
@@ -453,20 +478,20 @@ const ChainGraphInner: React.FC = () => {
           require={{ chain: ["read"] }}
           tooltipProps={{ title: "Show sequence diagram" }}
           buttonProps={{
-            icon: (
-              <span
-                className={String(styles.sequenceDiagramIcon ?? "")}
-                data-icon="sequence-diagram"
-                role="img"
-              >
-                ⇄
-              </span>
-            ),
+            iconName: "diagram",
             onClick: openSequenceDiagram,
           }}
         />
         {!isVsCode && (
           <>
+            <ProtectedButton
+              require={{ chain: ["read"] }}
+              tooltipProps={{ title: "Generate DDS" }}
+              buttonProps={{
+                iconName: "file",
+                onClick: () => showGenerateDdsModal(chainId!),
+              }}
+            />
             <ProtectedButton
               require={{ chain: ["export"] }}
               tooltipProps={{ title: "Export chain" }}
@@ -668,11 +693,7 @@ const ChainGraphInner: React.FC = () => {
                       : (event, draggedNode) =>
                           void onNodeDragStop(event, draggedNode)
                   }
-                  onNodesChange={
-                    readOnly
-                      ? undefined
-                      : (changes) => void onNodesChange(changes)
-                  }
+                  onNodesChange={readOnly ? undefined : onNodesChange}
                   onEdgesChange={
                     readOnly ? undefined : (changes) => onEdgesChange(changes)
                   }
@@ -688,6 +709,7 @@ const ChainGraphInner: React.FC = () => {
                           void handleDelete(changes);
                         }
                   }
+                  onBeforeDelete={readOnly ? undefined : onBeforeDelete}
                   onDrop={readOnly ? undefined : (event) => void onDrop(event)}
                   onDragOver={readOnly ? undefined : onDragOver}
                   onNodeDoubleClick={readOnly ? undefined : onNodeDoubleClick}
@@ -728,6 +750,7 @@ const ChainGraphInner: React.FC = () => {
                     }
                   />
                   <div
+                    className="nokey"
                     style={{
                       width: rightPanelWidth,
                       minWidth: MIN_PANEL_WIDTH,

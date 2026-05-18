@@ -1,4 +1,3 @@
-import "./lunr-init";
 import "./vscode-entry";
 import { initExternalMonaco } from "./monaco-init-runtime";
 
@@ -50,3 +49,12 @@ export {
 } from "./monaco-worker-config";
 export { configureMonacoLoader } from "./monaco-loader-config";
 export type { MonacoLoaderConfig } from "./monaco-loader-config";
+export {
+  ResourceTypes,
+  Operations,
+} from "./permissions/types"
+export type { 
+  ResourceType,
+  Operation,
+  UserPermissions,
+ } from "./permissions/types";

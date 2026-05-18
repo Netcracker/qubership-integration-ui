@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button, Dropdown, Space, Typography, Divider } from "antd";
-import { SettingOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { ThemeMode } from "../theme/themeInit";
+import { OverridableIcon } from "../icons/IconProvider.tsx";
 
 const { Text } = Typography;
 
@@ -81,26 +81,8 @@ export const SettingsPanel = ({
     >
       <Button
         type="text"
-        icon={<SettingOutlined />}
-        size="small"
-        style={{
-          color: "var(--vscode-foreground)",
-          border: "none",
-          background: "transparent",
-          borderRadius: "4px",
-          padding: "4px 8px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        icon={<OverridableIcon name="settings" />}
         title="Settings"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor =
-            "var(--vscode-list-hoverBackground)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "transparent";
-        }}
       />
     </Dropdown>
   );

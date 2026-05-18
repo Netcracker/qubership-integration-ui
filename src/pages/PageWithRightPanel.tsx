@@ -5,15 +5,12 @@ import {
   useMemo,
   useRef,
   useState,
+  ReactElement,
+  ReactNode,
 } from "react";
 import Sider from "antd/lib/layout/Sider";
 import styles from "../components/elements_library/ElementsLibrarySidebar.module.css";
 import { Flex, Menu, Tabs } from "antd";
-import { Editor, Monaco } from "@monaco-editor/react";
-import {
-  useMonacoTheme,
-  applyVSCodeThemeToMonaco,
-} from "../hooks/useMonacoTheme.ts";
 import { OverridableIcon, IconName } from "../icons/IconProvider.tsx";
 import { Element } from "../api/apiTypes.ts";
 import { useModalsContext } from "../Modals.tsx";
@@ -32,13 +29,23 @@ import { ChainGraphNode } from "../components/graph/nodes/ChainGraphNodeTypes.ts
 import { useElkDirectionContext } from "./ElkDirectionContext.tsx";
 import { useFocusToElementId } from "../components/graph/ElementFocus.tsx";
 import { UsedPropertiesList } from "../components/UsedPropertiesList.tsx";
+import { AnalyzableElement } from "../misc/used-properties-analyzer.ts";
 import { isVsCode } from "../api/rest/vscodeExtensionApi.ts";
-import { useElementsAsCode } from "../hooks/useElementsAsCode.tsx";
+import { SidebarSearch } from "../components/elements_library/SidebarSearch.tsx";
+import { ChainTextViewPanel } from "../components/chains/ChainTextViewPanel.tsx";
 
 const DEFAULT_WIDTH = 240;
 
 export type PageWithRightPanelProps = {
   width?: number;
+};
+
+export type MenuItem = {
+  key: string;
+  label: ReactNode;
+  name: string;
+  icon?: ReactElement;
+  children?: MenuItem[];
 };
 
 export const PageWithRightPanel = ({
@@ -48,19 +55,21 @@ export const PageWithRightPanel = ({
 
   const { showModal } = useModalsContext();
   const [activeTab, setActiveTab] = useState<string>("listElements");
-  const [textViewContent, setTextViewContent] = useState<string>("");
 
   const params = useParams<{ chainId?: string }>();
   const chainId = params.chainId;
-  const { elementAsCode } = useElementsAsCode(chainId ?? "");
   const { libraryElements } = useLibraryContext();
-  const monacoTheme = useMonacoTheme();
-  const monacoRef = useRef<Monaco | null>(null); // eslint-disable-line @typescript-eslint/no-redundant-type-constituents -- Monaco from @monaco-editor/react may include any in union
   const notificationService = useNotificationService();
   const navigate = useNavigate();
   const [elements, setElements] = useState<Element[]>(
     chainContext?.chain?.elements ?? [],
   );
+
+  const allItems = useRef<MenuItem[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [openKeysState, setOpenKeysState] = useState<string[]>();
+  const openKeysBeforeSearch = useRef<string[]>();
+  const [isSearch, setIsSearch] = useState(false);
 
   let direction: "RIGHT" | "DOWN" = "RIGHT";
   try {
@@ -85,10 +94,6 @@ export const PageWithRightPanel = ({
         if (cancelled) return;
         setElements(elementsResponse);
       } catch (error) {
-        console.error(
-          "Failed to refresh chain structure before loading schema",
-          error,
-        );
         notificationService.requestFailed("Failed to load elements", error);
       }
     };
@@ -99,17 +104,17 @@ export const PageWithRightPanel = ({
     };
   }, [chainContext?.chain?.id]);
 
-  useEffect(() => {
-    if (elementAsCode?.code != null && typeof elementAsCode.code === "string") {
-      setTextViewContent(elementAsCode.code);
-    }
-  }, [elementAsCode]);
-
-  useEffect(() => {
-    if (monacoRef.current) {
-      applyVSCodeThemeToMonaco(monacoRef.current);
-    }
-  }, [monacoTheme]);
+  const handleSearch = useCallback(
+    (filtered: MenuItem[], openKeys: string[]) => {
+      if (!isSearch) {
+        setIsSearch(true);
+        openKeysBeforeSearch.current = openKeysState;
+      }
+      setOpenKeysState(openKeys);
+      setItems(filtered);
+    },
+    [isSearch, openKeysState],
+  );
 
   const handleElementDoubleClick = useCallback(
     (element: Element) => {
@@ -168,7 +173,7 @@ export const PageWithRightPanel = ({
     [focusToElementId],
   );
 
-  const elementMenuItems: MenuProps["items"] = useMemo(() => {
+  const elementMenuItems: MenuItem[] = useMemo(() => {
     if (!elements?.length || !libraryElements) {
       return [];
     }
@@ -179,6 +184,7 @@ export const PageWithRightPanel = ({
       const elementTypeLabel = libraryElement.title || element.type;
       return {
         key: element.id,
+        name: elementName,
         label: (
           <button
             type="button"
@@ -204,6 +210,13 @@ export const PageWithRightPanel = ({
     });
   }, [elements, libraryElements, handleElementDoubleClick]);
 
+  useEffect(() => {
+    allItems.current = elementMenuItems;
+    if (!isSearch) {
+      setItems(elementMenuItems);
+    }
+  }, [elementMenuItems, isSearch]);
+
   return (
     <Sider
       width={width}
@@ -219,13 +232,13 @@ export const PageWithRightPanel = ({
               key: "listElements",
               label: <OverridableIcon name="unorderedList" />,
             },
+            {
+              key: "elementProperties",
+              label: <OverridableIcon name="menuUnfold" />,
+            },
             ...(isVsCode
               ? []
               : [
-                  {
-                    key: "elementProperties",
-                    label: <OverridableIcon name="menuUnfold" />,
-                  },
                   {
                     key: "textView",
                     label: <OverridableIcon name="file" />,
@@ -245,50 +258,50 @@ export const PageWithRightPanel = ({
         }}
       >
         {activeTab === "listElements" && (
-          <Menu
-            className={styles.libraryElements}
-            mode="vertical"
-            items={elementMenuItems}
-            selectable={false}
-            selectedKeys={[]}
-            onClick={({ key }) => handleElementSingleClick(String(key))}
-            style={{ borderRight: "none", width: "100%" }}
-          />
+          <Flex
+            vertical
+            style={{ flex: 1, minHeight: 0, overflow: "auto", width: "100%" }}
+          >
+            <SidebarSearch
+              items={elementMenuItems}
+              onSearch={handleSearch}
+              onClear={() => {
+                setItems(allItems.current);
+                setIsSearch(false);
+                setOpenKeysState(openKeysBeforeSearch.current);
+              }}
+            />
+            <Menu
+              className={styles.libraryElements}
+              mode="vertical"
+              items={elementMenuItems}
+              selectable={false}
+              selectedKeys={[]}
+              onClick={({ key }) => handleElementSingleClick(String(key))}
+              style={{ borderRight: "none", width: "100%" }}
+            />
+          </Flex>
         )}
         {activeTab === "elementProperties" && chainId && (
           <UsedPropertiesList
-            chainId={chainId}
+            elements={elements as unknown as AnalyzableElement[]}
             onElementSingleClick={handleElementSingleClick}
             onElementDoubleClick={handleElementDoubleClickById}
           />
         )}
         {activeTab === "elementProperties" && !chainId && (
-          <div style={{ padding: "16px", textAlign: "center", color: "#999" }}>
+          <div
+            style={{
+              padding: "16px",
+              textAlign: "center",
+              color: "var(--vscode-descriptionForeground)",
+            }}
+          >
             No chain selected
           </div>
         )}
         {activeTab === "textView" && (
-          <div className={`${styles.rightPanelCodeBlock} qip-editor`}>
-            <Editor
-              height="100%"
-              language="yaml"
-              value={textViewContent}
-              theme={monacoTheme}
-              options={{
-                readOnly: true,
-                folding: true,
-                fixedOverflowWidgets: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-              }}
-              onMount={(_, monaco) => {
-                monacoRef.current = monaco ?? null;
-                if (monaco) {
-                  applyVSCodeThemeToMonaco(monaco);
-                }
-              }}
-            />
-          </div>
+          <ChainTextViewPanel chainId={chainId ?? ""} elements={elements} />
         )}
       </Flex>
     </Sider>

@@ -4,6 +4,14 @@ import { setAiServiceUrlOverride } from "./config/aiServiceUrlOverride.ts";
 import { IconOverrides } from "./icons/IconProvider";
 import type { ThemeConfig } from "antd";
 import { UserPermissions } from "./permissions/types.ts";
+import { DomainType } from "./api/apiTypes.ts";
+
+export type UserInfo = {
+  userName?: string;
+  email?: string;
+  tenantName?: string;
+  tenantId?: string;
+};
 
 export type AppConfig = {
   apiGateway?: string;
@@ -17,6 +25,9 @@ export type AppConfig = {
   documentationBaseUrl?: string;
   dev?: boolean;
   permissions?: UserPermissions;
+  userInfo?: UserInfo;
+  domainTypes?: DomainType[];
+  onLogout?: () => void;
 };
 
 const appConfigValue: AppConfig = {
@@ -158,6 +169,23 @@ export function configure(config: Partial<AppConfig>): void {
     );
   }
 
+  if (config.userInfo !== undefined) {
+    const previous = appConfigValue.userInfo || {};
+    const next = { ...previous, ...config.userInfo };
+    const changedKeys = Object.keys(config.userInfo).filter(
+      (key) => next[key as keyof UserInfo] !== previous[key as keyof UserInfo],
+    );
+    if (changedKeys.length > 0) {
+      appConfigValue.userInfo = next;
+      overrides.push(`userInfo: ${changedKeys.length} field(s) updated`);
+    }
+  }
+
+  if ("onLogout" in config && appConfigValue.onLogout !== config.onLogout) {
+    appConfigValue.onLogout = config.onLogout;
+    overrides.push(`onLogout: handler ${config.onLogout ? "set" : "cleared"}`);
+  }
+
   if (overrides.length > 0) {
     console.log("[QIP UI Config] Configuration overrides applied:", overrides);
   }
@@ -168,17 +196,15 @@ export function configure(config: Partial<AppConfig>): void {
 }
 
 export async function loadConfigFromJson(url: string): Promise<AppConfig> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to load config: ${response.statusText}`);
-    }
-    const config = (await response.json()) as AppConfig;
-    return config;
-  } catch (error) {
-    console.error("Error loading config from JSON:", error);
-    throw error;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to load config: ${response.statusText}`);
   }
+  const contentType = response.headers.get("content-type");
+  if (!contentType?.includes("application/json")) {
+    throw new Error(`Config file ${url} is not JSON`);
+  }
+  return (await response.json()) as AppConfig;
 }
 
 export function loadConfigFromEnv(): Partial<AppConfig> {

@@ -66,6 +66,7 @@ import {
   Element,
   SystemOperation,
   SpecApiFile,
+  CustomResourceBuildRequest,
   LiveExchange,
   ContextSystem,
   IntegrationSystemType,
@@ -76,6 +77,8 @@ import {
   CreateMaasRabbitMQRequest,
   GetMaasKafkaDeclarativeRequest,
   GetMaasRabbitMQDeclarativeRequest,
+  MicroDomainDeployRequest,
+  BulkMicroDomainDeployResult,
   ImportVariablesResult,
   VariableImportPreview,
   UsedProperty,
@@ -88,7 +91,6 @@ import {
   ImportInstructionRequest,
   ImportInstructionResult,
   DeleteImportInstructionsRequest,
-  ImportEntityType,
   ChainElementCodeResponse,
   type MCPSystem,
   type MCPSystemCreateRequest,
@@ -164,6 +166,7 @@ export class RestApi implements Api {
     );
   }
 
+  private readonly newV1 = (): string => `/api/${getAppName()}/v1`;
   private readonly v1 = (): string => `/api/v1/${getAppName()}`;
   private readonly v2 = (): string => `/api/${getAppName()}/v2`;
   private readonly v3 = (): string => `/api/${getAppName()}/v3`;
@@ -1960,6 +1963,14 @@ export class RestApi implements Api {
     return response.data;
   };
 
+  buildCR = async (request: CustomResourceBuildRequest): Promise<string> => {
+    const response = await this.instance.post<string>(
+      `${this.v1()}/catalog/cr`,
+      request,
+    );
+    return response.data;
+  };
+
   getValidation = async (
     validationId: string,
   ): Promise<DiagnosticValidation> => {
@@ -1992,7 +2003,7 @@ export class RestApi implements Api {
   createMaasKafkaEntity = async (
     request: CreateMaasKafkaRequest,
   ): Promise<void> => {
-    await this.instance.post(`${this.v1()}/maas-actions/kafka`, undefined, {
+    await this.instance.post(`${this.newV1()}/maas-actions/kafka`, undefined, {
       params: {
         namespace: request.namespace,
         topicClassifierName: request.topicClassifierName,
@@ -2003,22 +2014,26 @@ export class RestApi implements Api {
   createMaasRabbitMQEntity = async (
     request: CreateMaasRabbitMQRequest,
   ): Promise<void> => {
-    await this.instance.post(`${this.v1()}/maas-actions/rabbitmq`, undefined, {
-      params: {
-        namespace: request.namespace,
-        vhost: request.vhost,
-        exchange: request.exchange,
-        queue: request.queue,
-        routingKey: request.routingKey,
+    await this.instance.post(
+      `${this.newV1()}/maas-actions/rabbitmq`,
+      undefined,
+      {
+        params: {
+          namespace: request.namespace,
+          vhost: request.vhost,
+          exchange: request.exchange,
+          queue: request.queue,
+          routingKey: request.routingKey,
+        },
       },
-    });
+    );
   };
 
   getMaasKafkaDeclarativeFile = async (
     request: GetMaasKafkaDeclarativeRequest,
   ): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `${this.v1()}/maas-actions/kafka/declarative`,
+      `${this.newV1()}/maas-actions/kafka/declarative`,
       undefined,
       {
         params: { topicClassifierName: request.topicClassifierName },
@@ -2032,7 +2047,7 @@ export class RestApi implements Api {
     request: GetMaasRabbitMQDeclarativeRequest,
   ): Promise<File> => {
     const response = await this.instance.post<Blob>(
-      `${this.v1()}/maas-actions/rabbitmq/declarative`,
+      `${this.newV1()}/maas-actions/rabbitmq/declarative`,
       undefined,
       {
         params: {
@@ -2119,26 +2134,9 @@ export class RestApi implements Api {
 
   // Admin Tools: Import Instructions
   getImportInstructions = async (): Promise<GeneralImportInstructions> => {
-    const [catalog, variables] = await Promise.all([
-      this.instance.get<GeneralImportInstructions>(
-        `${this.v1()}/systems-catalog/import-instructions`,
-      ),
-      this.instance.get<{
-        ignore?: ImportInstruction[];
-        delete?: ImportInstruction[];
-      }>(
-        `${this.v1()}/variables-management/common-variables/import-instructions`,
-      ),
-    ]);
-    const cv = variables.data as {
-      commonVariables?: {
-        delete?: ImportInstruction[];
-        ignore?: ImportInstruction[];
-      };
-      delete?: ImportInstruction[];
-      ignore?: ImportInstruction[];
-    };
-    const cvData = cv?.commonVariables ?? cv;
+    const catalog = await this.instance.get<GeneralImportInstructions>(
+      `${this.v1()}/catalog/import-instructions`,
+    );
     return {
       chains: catalog.data.chains ?? { delete: [], ignore: [], override: [] },
       services: catalog.data.services ?? { delete: [], ignore: [] },
@@ -2147,9 +2145,9 @@ export class RestApi implements Api {
         ignore: [],
       },
       specifications: catalog.data.specifications ?? { delete: [], ignore: [] },
-      commonVariables: {
-        delete: cvData?.delete ?? [],
-        ignore: cvData?.ignore ?? [],
+      commonVariables: catalog.data.commonVariables ?? {
+        delete: [],
+        ignore: [],
       },
     };
   };
@@ -2157,16 +2155,8 @@ export class RestApi implements Api {
   addImportInstruction = async (
     request: ImportInstructionRequest,
   ): Promise<void | ImportInstruction> => {
-    if (request.entityType === ImportEntityType.COMMON_VARIABLE) {
-      const response = await this.instance.post<ImportInstruction>(
-        `${this.v1()}/variables-management/common-variables/import-instructions`,
-        request,
-        { headers: { "content-type": "application/json" } },
-      );
-      return response.data;
-    }
     const response = await this.instance.post<ImportInstruction>(
-      `${this.v1()}/systems-catalog/import-instructions`,
+      `${this.v1()}/catalog/import-instructions`,
       request,
       { headers: { "content-type": "application/json" } },
     );
@@ -2176,16 +2166,8 @@ export class RestApi implements Api {
   updateImportInstruction = async (
     request: ImportInstructionRequest,
   ): Promise<void | ImportInstruction> => {
-    if (request.entityType === ImportEntityType.COMMON_VARIABLE) {
-      const response = await this.instance.patch<ImportInstruction>(
-        `${this.v1()}/variables-management/common-variables/import-instructions`,
-        request,
-        { headers: { "content-type": "application/json" } },
-      );
-      return response.data;
-    }
     const response = await this.instance.patch<ImportInstruction>(
-      `${this.v1()}/systems-catalog/import-instructions`,
+      `${this.v1()}/catalog/import-instructions`,
       request,
       { headers: { "content-type": "application/json" } },
     );
@@ -2195,37 +2177,14 @@ export class RestApi implements Api {
   deleteImportInstructions = async (
     payload: DeleteImportInstructionsRequest,
   ): Promise<void> => {
-    const hasCatalog =
-      (payload.chains?.length ?? 0) > 0 || (payload.services?.length ?? 0) > 0;
-    const hasVariables = (payload.commonVariables?.length ?? 0) > 0;
-
-    const promises: Promise<unknown>[] = [];
-    if (hasCatalog) {
-      promises.push(
-        this.instance.delete(
-          `${this.v1()}/systems-catalog/import-instructions`,
-          {
-            headers: { "content-type": "application/json" },
-            data: {
-              chains: payload.chains ?? [],
-              services: payload.services ?? [],
-            },
-          },
-        ),
-      );
-    }
-    if (hasVariables) {
-      promises.push(
-        this.instance.delete(
-          `${this.v1()}/variables-management/common-variables/import-instructions`,
-          {
-            headers: { "content-type": "application/json" },
-            data: { chains: [], services: payload.commonVariables ?? [] },
-          },
-        ),
-      );
-    }
-    await Promise.all(promises);
+    await this.instance.delete(`${this.v1()}/catalog/import-instructions`, {
+      headers: { "content-type": "application/json" },
+      data: {
+        chains: payload.chains ?? [],
+        services: payload.services ?? [],
+        commonVariables: payload.commonVariables ?? [],
+      },
+    });
   };
 
   uploadImportInstructions = async (
@@ -2249,6 +2208,39 @@ export class RestApi implements Api {
       { responseType: "blob" },
     );
     return getFileFromResponse(response);
+  };
+
+  deployToMicroDomain = async (
+    request: BulkMicroDomainDeployResult,
+  ): Promise<BulkDeploymentResult[]> => {
+    const response = await this.instance.post<BulkDeploymentResult[]>(
+      `${this.v1()}/catalog/cr/deploy-chains`,
+      request,
+    );
+    return response.data;
+  };
+
+  deploySnapshotsToMicroDomain = async (
+    request: MicroDomainDeployRequest,
+  ): Promise<void> => {
+    const response = await this.instance.post<void>(
+      `${this.v1()}/catalog/cr/deploy`,
+      request,
+    );
+    return response.data;
+  };
+
+  deleteMicroDomain = async (name: string): Promise<void> => {
+    await this.instance.delete<void>(`${this.v1()}/catalog/cr/${name}`);
+  };
+
+  deleteSnapshotFromMicroDomain = async (
+    name: string,
+    chainId: string,
+  ): Promise<void> => {
+    await this.instance.delete<void>(
+      `${this.v1()}/catalog/cr/${name}/${chainId}`,
+    );
   };
 
   getMcpSystems = async (withChains: boolean): Promise<MCPSystem[]> => {

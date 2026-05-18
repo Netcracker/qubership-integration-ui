@@ -1,20 +1,29 @@
 /// <reference types="vite/client" />
 import React, {
   useEffect,
+  useLayoutEffect,
   useState,
   useMemo,
   useCallback,
   useRef,
 } from "react";
 import { Button, Modal, Tabs, Flex } from "antd";
-import { CloseOutlined } from "@ant-design/icons";
 import { useModalContext } from "../../../ModalContextProvider.tsx";
 import styles from "./ChainElementModification.module.css";
-import { Element, PatchElementRequest } from "../../../api/apiTypes.ts";
+import {
+  Element,
+  OperationInfo,
+  PatchElementRequest,
+} from "../../../api/apiTypes.ts";
 import { useLibraryElement } from "../../../hooks/useLibraryElement.tsx";
 import Form from "@rjsf/antd";
 import yaml from "js-yaml";
+import { api } from "../../../api/api.ts";
 import { useElement } from "../../../hooks/useElement.tsx";
+import {
+  isHttpProtocol,
+  normalizeProtocol,
+} from "../../../misc/protocol-utils.ts";
 import { useNotificationService } from "../../../hooks/useNotificationService.tsx";
 import {
   ObjectFieldTemplateProps,
@@ -49,7 +58,6 @@ import EnhancedPatternPropertiesField from "./field/EnhancedPatternPropertiesFie
 import BodyMimeTypeField from "./field/BodyMimeTypeField.tsx";
 import { useModalsContext } from "../../../Modals.tsx";
 import { UnsavedChangesModal } from "../UnsavedChangesModal.tsx";
-import { normalizeProtocol } from "../../../misc/protocol-utils.ts";
 import CustomOneOfField from "./field/CustomOneOfField.tsx";
 import SingleSelectField from "./field/select/SingleSelectField.tsx";
 import ContextServiceField from "./field/select/ContextServiceField.tsx";
@@ -78,6 +86,7 @@ import {
 } from "./ElementNameInlineEdit.tsx";
 import { usePermissions } from "../../../permissions/usePermissions.tsx";
 import { hasPermissions } from "../../../permissions/funcs.ts";
+import { isVsCode } from "../../../api/rest/vscodeExtensionApi.ts";
 import { JsonAsStringField } from "./field/JsonAsStringField.tsx";
 import { MCPServiceField } from "./field/select/MCPServiceField.tsx";
 
@@ -168,6 +177,75 @@ function CustomObjectFieldTemplate({ properties }: ObjectFieldTemplateProps) {
   return <div>{properties.filter((p) => !p.hidden).map((p) => p.content)}</div>;
 }
 
+function extractAutoFillQueryParams(
+  info: OperationInfo,
+  protocolType: string | undefined,
+  currentQueryParams: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  const normalized = normalizeProtocol(protocolType ?? "");
+  const shouldFill =
+    isHttpProtocol(normalized) &&
+    (!currentQueryParams || Object.keys(currentQueryParams).length === 0);
+  if (!shouldFill) return undefined;
+
+  const parameters = (info.specification as { parameters?: unknown })
+    ?.parameters;
+  if (!Array.isArray(parameters)) return undefined;
+
+  const extracted: Record<string, string> = {};
+  for (const p of parameters as Array<{ in?: string; name?: string }>) {
+    if (p.in === "query" && typeof p.name === "string") {
+      extracted[p.name] = "";
+    }
+  }
+  return Object.keys(extracted).length > 0 ? extracted : undefined;
+}
+
+// Static RJSF registries — defined outside the component so references are stable
+// across renders and RJSF doesn't rebuild its internal registry on every re-render.
+const WIDGETS: RegistryWidgetsType = {
+  stringAsMultipleSelectWidget: StringAsMultipleSelectWidget,
+  multipleSelectWidget: MultipleSelectWidget,
+  singleColumnTableWidget: SingleColumnTableWidget,
+  debouncedTextareaWidget: DebouncedTextareaWidget,
+  textarea: DebouncedTextareaWidget,
+};
+
+const FIELDS = {
+  OneOfField: CustomOneOfField,
+  oneOfAsSingleInputField: OneOfAsSingleInputField,
+  patternPropertiesField: PatternPropertiesField,
+  enhancedPatternPropertiesField: EnhancedPatternPropertiesField,
+  mappingField: MappingField,
+  customArrayField: CustomArrayField,
+  scriptField: ScriptField,
+  jsonField: JsonField,
+  jsonAsStringField: JsonAsStringField,
+  serviceField: ServiceField,
+  mcpServiceField: MCPServiceField,
+  specificationField: SpecificationField,
+  systemOperationField: SystemOperationField,
+  bodyMimeTypeField: BodyMimeTypeField,
+  singleSelectField: SingleSelectField,
+  contextServiceField: ContextServiceField,
+  chainTriggerElementIdField: ChainTriggerElementIdField,
+  basePathField: BasePathField,
+  externalRouteCheckbox: ExternalRouteCheckbox,
+  contextPathWithPrefixField: ContextPathWithPrefixField,
+};
+
+const TEMPLATES = {
+  ObjectFieldTemplate: CustomObjectFieldTemplate,
+  FieldTemplate: DescriptionTooltipFieldTemplate,
+};
+
+const FORM_DEFAULT_STATE_BEHAVIOR = {
+  allOf: "populateDefaults" as const,
+  arrayMinItems: {
+    populate: "never" as const,
+  },
+};
+
 export const ChainElementModification: React.FC<ElementModificationProps> = ({
   node,
   chainId,
@@ -197,6 +275,7 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formRef = useRef<any>(null);
   const elementNameRef = useRef<ElementNameInlineEditRef>(null);
+  const modalFocusRootRef = useRef<HTMLDivElement>(null);
   const isInitializingRef = useRef(true);
   const hasUserEditedFormRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
@@ -223,6 +302,18 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   const handleFullscreen = useCallback(() => {
     setIsFullscreen((prevValue) => !prevValue);
   }, []);
+
+  const moveFocusIntoModal = useCallback(() => {
+    globalThis.requestAnimationFrame(() => {
+      modalFocusRootRef.current?.focus({ preventScroll: true });
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!libraryElementIsLoading) {
+      moveFocusIntoModal();
+    }
+  }, [libraryElementIsLoading, moveFocusIntoModal]);
 
   const schemaModules = useMemo(() => getSchemaModules(), []);
 
@@ -327,7 +418,17 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         },
       );
 
-      setFormContext({ ...initialContext, reportMissingRequiredParams });
+      // Functional update so that operation schemas already loaded by the
+      // centralized loader (see useEffect below) are preserved across
+      // re-runs of this mount effect — otherwise a stale node reference
+      // change would wipe out schemas and break auto-apply in MappingField.
+      setFormContext((prev) => ({
+        ...initialContext,
+        reportMissingRequiredParams,
+        operationSpecification: prev.operationSpecification,
+        operationRequestSchema: prev.operationRequestSchema,
+        operationResponseSchemas: prev.operationResponseSchemas,
+      }));
     } catch (err) {
       console.error("Failed to parse schema:", err);
       notificationService.errorWithDetails(
@@ -382,7 +483,108 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     // Programmatic validateForm() after mount; errors are shown in the form UI.
   }, []);
 
-  // Sync formContext → formData.properties whenever context changes
+  const handleFormChange = useCallback(
+    (e: { formData?: Record<string, unknown> }) => {
+      const nextFormData = e.formData;
+      if (!nextFormData) return;
+      setFormData(nextFormData);
+      if (
+        !isInitializingRef.current &&
+        (hasUserEditedFormRef.current || hasUserInteractedRef.current)
+      ) {
+        hasUserEditedFormRef.current = true;
+        setHasChanges(true);
+      }
+    },
+    [],
+  );
+
+  /**
+   * Centralized OperationInfo loader.
+   *
+   * Rationale: `SystemOperationField` is only mounted on the "Endpoint" tab
+   * (in non-Endpoint tabs `ui:field: "hidden"` is applied by `uiSchemaForTab`),
+   * so we can't rely on it to fetch schemas — otherwise custom fields on
+   * "Prepare Request" / "Handle Response" would see empty request/response
+   * schemas when the user opens those tabs first. This effect lives in the
+   * parent, which is always mounted, and publishes schemas through `setFormContext`
+   * on every real change of `integrationOperationId`.
+   *
+   * Query parameters are auto-filled (HTTP only) only when the form doesn't
+   * have them yet — we don't want to overwrite values the user previously saved.
+   */
+  const loadedOperationIdRef = useRef<string | null>(null);
+  // Snapshotted via refs (not deps) so protocol / query-param updates don't
+  // re-trigger the loader — that would create a feedback loop via the
+  // auto-fill for integrationOperationQueryParameters below.
+  const protocolTypeRef = useRef<string | undefined>(undefined);
+  const queryParamsRef = useRef<Record<string, string> | undefined>(undefined);
+  protocolTypeRef.current = formContext.integrationOperationProtocolType;
+  queryParamsRef.current = formContext.integrationOperationQueryParameters;
+
+  useEffect(() => {
+    const operationId = formContext.integrationOperationId;
+    if (!operationId) {
+      // Operation cleared — drop stale schemas so MappingField doesn't
+      // auto-apply them to a freshly-selected different operation later.
+      if (loadedOperationIdRef.current !== null) {
+        loadedOperationIdRef.current = null;
+        setFormContext((prev) => ({
+          ...prev,
+          operationSpecification: {},
+          operationRequestSchema: {},
+          operationResponseSchemas: {},
+        }));
+      }
+      return;
+    }
+    if (loadedOperationIdRef.current === operationId) return;
+
+    const controller = new AbortController();
+    loadedOperationIdRef.current = operationId;
+
+    void (async () => {
+      try {
+        const info = await api.getOperationInfo(operationId);
+        if (controller.signal.aborted) return;
+
+        const queryParamsUpdate = extractAutoFillQueryParams(
+          info,
+          protocolTypeRef.current,
+          queryParamsRef.current,
+        );
+
+        setFormContext((prev) => ({
+          ...prev,
+          operationSpecification: info.specification ?? {},
+          operationRequestSchema: info.requestSchema ?? {},
+          operationResponseSchemas: info.responseSchemas ?? {},
+          ...(queryParamsUpdate
+            ? { integrationOperationQueryParameters: queryParamsUpdate }
+            : {}),
+        }));
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        notificationService.requestFailed(
+          "Failed to load operation info",
+          error,
+        );
+        setFormContext((prev) => ({
+          ...prev,
+          operationSpecification: {},
+          operationRequestSchema: {},
+          operationResponseSchemas: {},
+        }));
+      }
+    })();
+
+    return () => controller.abort();
+  }, [formContext.integrationOperationId, notificationService]);
+
+  // Sync formContext → formData.properties whenever context changes.
+  // `enrichPropertiesUtil` also filters out metadata-only keys (see
+  // METADATA_ONLY_CONTEXT_KEYS in Context.ts); we additionally null them here
+  // so that the serialized-comparison below doesn't see stale references.
   useEffect(() => {
     setFormData((prevFormData) => {
       const contextProperties = {
@@ -394,6 +596,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         elementType: undefined,
         chainId: undefined,
         reportMissingRequiredParams: undefined,
+        operationSpecification: undefined,
+        operationRequestSchema: undefined,
+        operationResponseSchemas: undefined,
       };
       const enrichedProps = enrichPropertiesUtil(
         prevFormData.properties as Record<string, unknown>,
@@ -414,11 +619,22 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     });
   }, [formContext]);
 
+  // Memoized error transformer — only re-created when the protocol type changes,
+  // not on every formContext update, to avoid triggering unnecessary AJV validation.
+  const transformErrors = useMemo(
+    () =>
+      transformValidationErrors({
+        integrationOperationProtocolType:
+          formContext.integrationOperationProtocolType,
+      }),
+    [formContext.integrationOperationProtocolType],
+  );
+
   const validationErrors = useMemo(() => {
     if (!schema || !formData || Object.keys(schema).length === 0) return [];
     const result = validator.validateFormData(formData, schema);
-    return transformValidationErrors(formContext)(result.errors);
-  }, [formData, schema, formContext]);
+    return transformErrors(result.errors);
+  }, [formData, schema, transformErrors]);
 
   const kafkaError = useMemo(
     () =>
@@ -440,32 +656,28 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
   const handleNameSave = useCallback(
     async (newName: string) => {
+      // Inline name edit is a name-only operation. Send the pristine
+      // description/properties from node.data so we don't silently persist
+      // the user's unsaved form draft along with the rename — otherwise
+      // Cancel wouldn't revert those drafted changes.
       const request: PatchElementRequest = {
         name: newName,
-        description: formData.description as string,
+        description: node.data.description,
         type: node.data.elementType,
         parentElementId: node.parentId,
-        properties: formData.properties as Record<string, unknown>,
+        properties: node.data.properties as Record<string, unknown>,
       };
       const changedElement = await updateElement(chainId, elementId, request);
       if (changedElement) {
         setFormData((prev) => ({ ...prev, name: newName }));
         const elementWithProperties = {
           ...changedElement,
-          properties: formData.properties,
+          properties: node.data.properties,
         } as Element;
         onSubmit?.(elementWithProperties, node);
       }
     },
-    [
-      formData.description,
-      formData.properties,
-      node,
-      chainId,
-      elementId,
-      updateElement,
-      onSubmit,
-    ],
+    [node, chainId, elementId, updateElement, onSubmit],
   );
 
   const handleOk = useCallback(async () => {
@@ -563,11 +775,17 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
 
   const uniqueTabs = useMemo(() => {
     const rawTabs = new Set(tabFields.map((f) => f.tab));
+    // Pass only the protocol type that conditionalTabs.isVisible actually reads,
+    // so tabs don't recalculate on unrelated formContext property changes.
+    const ctx: Record<string, unknown> = {
+      integrationOperationProtocolType:
+        formContext.integrationOperationProtocolType,
+    };
     return desiredTabOrder.filter(rawTabs.has.bind(rawTabs)).filter((tab) => {
       const condition = conditionalTabs.find((ct) => ct.tab === tab);
-      return !condition || condition.isVisible(formContext);
+      return !condition || condition.isVisible(ctx);
     });
-  }, [tabFields, formContext]);
+  }, [tabFields, formContext.integrationOperationProtocolType]);
 
   useEffect(() => {
     if (
@@ -635,14 +853,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
     [],
   );
 
-  const widgets: RegistryWidgetsType = {
-    stringAsMultipleSelectWidget: StringAsMultipleSelectWidget,
-    multipleSelectWidget: MultipleSelectWidget,
-    singleColumnTableWidget: SingleColumnTableWidget,
-    debouncedTextareaWidget: DebouncedTextareaWidget,
-    textarea: DebouncedTextareaWidget,
-  };
-
   const uiSchemaForTab = useCallback(
     (initialUiSchema: UiSchema, activeKey?: string) => {
       const ui = structuredClone(initialUiSchema || {});
@@ -701,6 +911,11 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
   return (
     <Modal
       open
+      afterOpenChange={(open) => {
+        if (open) {
+          moveFocusIntoModal();
+        }
+      }}
       title={
         <Flex
           align="center"
@@ -721,16 +936,6 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
                 node.data.typeTitle ??
                 node.data.elementType
               }
-              afterTypeLabel={
-                <Button
-                  icon={<OverridableIcon name="questionCircle" />}
-                  onClick={() => openElementDoc(node.data.elementType)}
-                  type="text"
-                  title="Help"
-                  size="small"
-                  className={styles["modal-header-help-btn"]}
-                />
-              }
               onSave={handleNameSave}
               disabled={!canEditChain || libraryElementIsLoading}
             />
@@ -741,12 +946,21 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
             wrap={false}
             style={{ flexShrink: 0, marginLeft: "auto" }}
           >
+            {!isVsCode && (
+              <Button
+                icon={<OverridableIcon name="questionCircle" />}
+                onClick={() => openElementDoc(node.data.elementType)}
+                type="text"
+                title="Help"
+                size="small"
+              />
+            )}
             <FullscreenButton
               isFullscreen={isFullscreen}
               onClick={handleFullscreen}
             />
             <Button
-              icon={<CloseOutlined />}
+              icon={<OverridableIcon name="close" />}
               onClick={handleCheckUnsavedAndClose}
               type="text"
               title="Close"
@@ -787,14 +1001,23 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
           ? [styles["modal"], styles["modal-fullscreen"]].join(" ")
           : styles["modal"],
         body: isFullscreen
-          ? [styles["modal-body"], styles["modal-body-fullscreen"]].join(" ")
-          : styles["modal-body"],
+          ? [
+              styles["modal-body"],
+              styles["modal-body-fullscreen"],
+              "nokey",
+            ].join(" ")
+          : [styles["modal-body"], "nokey"].join(" "),
         header: styles["modal-header"],
       }}
     >
-      {schema && activeKey && (
-        <>
-          <Tabs
+      <div
+        ref={modalFocusRootRef}
+        tabIndex={-1}
+        className={styles["modalFocusRoot"]}
+      >
+        {schema && activeKey && (
+          <>
+            <Tabs
             activeKey={activeKey}
             onChange={handleTabChange}
             items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
@@ -811,17 +1034,18 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               formData={formData}
               validator={validator}
               uiSchema={uiSchema}
-              transformErrors={transformValidationErrors(formContext)}
+              transformErrors={transformErrors}
               onError={handleRjsfFormErrors}
               liveValidate={"onChange"}
               showErrorList={false}
-              experimental_defaultFormStateBehavior={{
-                allOf: "populateDefaults",
-                arrayMinItems: {
-                  populate: "never",
-                },
-              }}
+              experimental_defaultFormStateBehavior={
+                FORM_DEFAULT_STATE_BEHAVIOR
+              }
               formContext={formContext}
+              templates={TEMPLATES}
+              fields={FIELDS}
+              widgets={WIDGETS}
+              onChange={handleFormChange}
               templates={{
                 ObjectFieldTemplate: CustomObjectFieldTemplate,
                 FieldTemplate: DescriptionTooltipFieldTemplate,
@@ -866,8 +1090,9 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
               }}
             />
           </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </Modal>
   );
 };

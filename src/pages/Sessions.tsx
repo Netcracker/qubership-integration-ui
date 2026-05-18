@@ -3,10 +3,9 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
-import { Button, Flex, message, Table, Tooltip } from "antd";
+import { Flex, message, Table } from "antd";
 import { useNavigate, useParams } from "react-router";
 import { TableProps } from "antd/lib/table";
 import {
@@ -34,7 +33,6 @@ import { SessionStatus } from "../components/sessions/SessionStatus.tsx";
 import { useModalsContext } from "../Modals.tsx";
 import { downloadFile } from "../misc/download-utils.ts";
 import { ImportSessions } from "../components/modal/ImportSessions.tsx";
-import { CompactSearch } from "../components/table/CompactSearch.tsx";
 import {
   isTimestampFilter,
   TimestampColumnFilterDropdown,
@@ -53,9 +51,7 @@ import { parseJson } from "../misc/json-helper.ts";
 import { TablePageLayout } from "../components/TablePageLayout.tsx";
 import { filterOutByIds, toStringIds } from "../misc/selection-utils.ts";
 import { useRegisterChainHeaderActions } from "./ChainHeaderActionsContext.tsx";
-import chainPageStyles from "./Chain.module.css";
 import { confirmAndRun } from "../misc/confirm-utils.ts";
-import { OverridableIcon } from "../icons/IconProvider.tsx";
 import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
 import { useColumnSettingsBasedOnColumnsType } from "../components/table/useColumnSettingsButton.tsx";
 import {
@@ -64,6 +60,8 @@ import {
   useTableColumnResize,
 } from "../components/table/useTableColumnResize.tsx";
 import commonStyles from "../components/admin_tools/CommonStyle.module.css";
+import { TableToolbar } from "../components/table/TableToolbar.tsx";
+import { AdminToolsHeader } from "../components/admin_tools/AdminToolsHeader.tsx";
 
 type SessionTableItem = Session & {
   children?: SessionTableItem[];
@@ -133,7 +131,13 @@ function compareTimestamps(s1: string, s2: string): number {
 const SESSIONS_EXPAND_COLUMN_WIDTH = 48;
 const SESSIONS_SELECTION_COLUMN_WIDTH = 48;
 
-export const Sessions: React.FC = () => {
+type SessionsProps = {
+  variant?: "chain-tab" | "admin-page";
+};
+
+export const Sessions: React.FC<SessionsProps> = ({
+  variant = "chain-tab",
+}) => {
   const { chainId } = useParams<{ chainId: string }>();
   const { showModal } = useModalsContext();
   const navigate = useNavigate();
@@ -152,11 +156,6 @@ export const Sessions: React.FC = () => {
   );
   const [messageApi, contextHolder] = message.useMessage();
   const notificationService = useNotificationService();
-  const sessionsRef = useRef<Session[]>([]);
-
-  useEffect(() => {
-    sessionsRef.current = sessions;
-  }, [sessions]);
 
   const updateTableData = useCallback(() => {
     setIsLoading(true);
@@ -441,7 +440,10 @@ export const Sessions: React.FC = () => {
     [chainId, navigate, retryFromLastCheckpoint],
   );
 
-  const tableColumnDefinitions = useMemo(() => buildColumns(), [buildColumns]);
+  const tableColumnDefinitions = useMemo(
+    () => buildColumns() ?? [],
+    [buildColumns],
+  );
 
   const sessionsColumnSettingsKey = chainId
     ? "sessionsTableChain"
@@ -493,32 +495,27 @@ export const Sessions: React.FC = () => {
     [columnsWithResize, sessionsColumnResize.columnWidths],
   );
 
-  const onScroll = async (event: UIEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLDivElement;
-    const isScrolledToTheEnd =
-      target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
-    if (!allSessionsLoaded && isScrolledToTheEnd) {
-      await fetchSessions(offset);
-    }
-  };
+  const onScroll = useCallback(
+    async (event: UIEvent<HTMLDivElement>) => {
+      if (isLoading || allSessionsLoaded) return;
+      const target = event.target as HTMLDivElement;
+      const isScrolledToTheEnd =
+        target.scrollTop + target.clientHeight + 1 >= target.scrollHeight;
+      if (isScrolledToTheEnd) {
+        await fetchSessions(offset);
+      }
+    },
+    [isLoading, allSessionsLoaded, offset, fetchSessions],
+  );
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  const onDeleteBtnClick = () => {
-    if (selectedRowKeys.length === 0) return;
-    confirmAndRun({
-      title: "Delete Sessions",
-      content: `Are you sure you want to delete ${selectedRowKeys.length} session(s)?`,
-      onOk: deleteSelectedSessions,
-    });
-  };
-
-  const deleteSelectedSessions = async () => {
+  const deleteSelectedSessions = useCallback(async () => {
     try {
       const ids = toStringIds(selectedRowKeys);
-      if (isAllSessionsSelected()) {
+      if (selectedRowKeys.length === sessions.length) {
         await api.deleteSessionsByChainId(chainId);
         setSessions([]);
       } else {
@@ -528,13 +525,18 @@ export const Sessions: React.FC = () => {
     } catch (error) {
       notificationService.requestFailed("Failed to delete sessions", error);
     }
-  };
+  }, [selectedRowKeys, sessions.length, chainId, notificationService]);
 
-  const isAllSessionsSelected = (): boolean => {
-    return selectedRowKeys.length === sessionsRef.current.length;
-  };
+  const onDeleteBtnClick = useCallback(() => {
+    if (selectedRowKeys.length === 0) return;
+    confirmAndRun({
+      title: "Delete Sessions",
+      content: `Are you sure you want to delete ${selectedRowKeys.length} session(s)?`,
+      onOk: deleteSelectedSessions,
+    });
+  }, [selectedRowKeys, deleteSelectedSessions]);
 
-  const onExportBtnClick = async () => {
+  const onExportBtnClick = useCallback(async () => {
     if (selectedRowKeys.length === 0) return;
     try {
       const ids = toStringIds(selectedRowKeys);
@@ -543,9 +545,9 @@ export const Sessions: React.FC = () => {
     } catch (error) {
       notificationService.requestFailed("Failed to export sessions", error);
     }
-  };
+  }, [selectedRowKeys, notificationService]);
 
-  const onImportBtnClick = () => {
+  const onImportBtnClick = useCallback(() => {
     showModal({
       component: (
         <ImportSessions
@@ -558,7 +560,7 @@ export const Sessions: React.FC = () => {
         />
       ),
     });
-  };
+  }, [showModal]);
 
   const onRefreshSessions = useCallback(() => {
     setSelectedRowKeys([]);
@@ -580,102 +582,125 @@ export const Sessions: React.FC = () => {
     void updateTableData();
   }, [updateTableData]);
 
-  const chainTabToolbar = useMemo(
+  const sessionsToolbarActions = useMemo(
     () => (
-      <Flex
-        className={chainPageStyles.chainTabToolbarRow}
-        align="center"
-        gap={8}
-        wrap="wrap"
-      >
-        <CompactSearch
-          value={filters.searchString}
-          onChange={(value) =>
-            setFilters((prev) => ({ ...prev, searchString: value }))
-          }
-          placeholder="Search sessions..."
-          allowClear
-          className={commonStyles.searchField}
-          style={{ minWidth: 160, maxWidth: 360, flex: "0 1 auto" }}
+      <>
+        <ProtectedButton
+          require={{ session: ["read"] }}
+          tooltipProps={{ title: "Refresh", placement: "bottom" }}
+          buttonProps={{
+            "data-testid": "sessions-refresh",
+            iconName: "refresh",
+            onClick: () => onRefreshSessions(),
+          }}
         />
-        <Flex align="center" gap={8} wrap="wrap" style={{ flexShrink: 0 }}>
-          {columnSettingsButton}
+        <ProtectedButton
+          require={{ session: ["export"] }}
+          tooltipProps={{ title: "Export selected sessions" }}
+          buttonProps={{
+            iconName: "cloudDownload",
+            onClick: () => void onExportBtnClick(),
+          }}
+        />
+        {chainId ? null : (
           <ProtectedButton
-            require={{ session: ["delete"] }}
-            tooltipProps={{ title: "Delete selected sessions" }}
+            require={{ session: ["import"] }}
+            tooltipProps={{ title: "Import sessions" }}
             buttonProps={{
-              iconName: "delete",
-              onClick: onDeleteBtnClick,
+              iconName: "cloudUpload",
+              onClick: onImportBtnClick,
             }}
           />
-          <ProtectedButton
-            require={{ session: ["export"] }}
-            tooltipProps={{ title: "Export selected sessions" }}
-            buttonProps={{
-              iconName: "cloudDownload",
-              onClick: () => void onExportBtnClick(),
-            }}
-          />
-          {chainId ? null : (
-            <ProtectedButton
-              require={{ session: ["import"] }}
-              tooltipProps={{ title: "Import sessions" }}
-              buttonProps={{
-                iconName: "cloudUpload",
-                onClick: onImportBtnClick,
-              }}
-            />
-          )}
-          <Tooltip title="Refresh" placement="bottom">
-            <Button
-              data-testid="sessions-refresh"
-              icon={<OverridableIcon name="refresh" />}
-              onClick={() => onRefreshSessions()}
-            >
-              Refresh
-            </Button>
-          </Tooltip>
-        </Flex>
-      </Flex>
+        )}
+        <ProtectedButton
+          require={{ session: ["delete"] }}
+          tooltipProps={{ title: "Delete selected sessions" }}
+          buttonProps={{
+            iconName: "delete",
+            onClick: onDeleteBtnClick,
+          }}
+        />
+      </>
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over latest state; register deps omit unstable columnSettingsButton
     [
-      filters.searchString,
-      columnSettingsButton,
       chainId,
-      selectedRowKeys,
       onRefreshSessions,
+      onDeleteBtnClick,
+      onExportBtnClick,
+      onImportBtnClick,
     ],
   );
 
-  useRegisterChainHeaderActions(chainTabToolbar, [
-    filters.searchString,
-    chainId,
-    selectedRowKeys,
-    onRefreshSessions,
-  ]);
+  const sessionsToolbar = useMemo(
+    () => (
+      <TableToolbar
+        variant={variant === "admin-page" ? "admin" : "chain-tab"}
+        search={{
+          value: filters.searchString,
+          onChange: (value) =>
+            setFilters((prev) => ({ ...prev, searchString: value })),
+          placeholder: "Search sessions...",
+          allowClear: true,
+        }}
+        columnSettingsButton={columnSettingsButton}
+        actions={sessionsToolbarActions}
+      />
+    ),
+    [
+      variant,
+      filters.searchString,
+      columnSettingsButton,
+      sessionsToolbarActions,
+    ],
+  );
+
+  useRegisterChainHeaderActions(
+    variant === "chain-tab" ? sessionsToolbar : undefined,
+    [
+      filters.searchString,
+      chainId,
+      selectedRowKeys,
+      onRefreshSessions,
+      variant,
+    ],
+  );
+
+  const sessionsTable = (
+    <TablePageLayout>
+      <Table<SessionTableItem>
+        size="small"
+        className="flex-table"
+        columns={columnsWithResize}
+        rowSelection={rowSelection}
+        dataSource={tableData}
+        pagination={false}
+        loading={isLoading}
+        rowKey="id"
+        sticky
+        style={{ flex: 1, minHeight: 0 }}
+        scroll={tableData.length > 0 ? { x: scrollX, y: "" } : { x: scrollX }}
+        components={sessionsColumnResize.resizableHeaderComponents}
+        onScroll={(event) => void onScroll(event)}
+        onChange={(_, tableFilters) => setTableFilters(tableFilters)}
+      />
+    </TablePageLayout>
+  );
 
   return (
     <>
       {contextHolder}
-      <TablePageLayout>
-        <Table<SessionTableItem>
-          size="small"
-          className="flex-table"
-          columns={columnsWithResize}
-          rowSelection={rowSelection}
-          dataSource={tableData}
-          pagination={false}
-          loading={isLoading}
-          rowKey="id"
-          sticky
-          style={{ flex: 1, minHeight: 0 }}
-          scroll={tableData.length > 0 ? { x: scrollX, y: "" } : { x: scrollX }}
-          components={sessionsColumnResize.resizableHeaderComponents}
-          onScroll={(event) => void onScroll(event)}
-          onChange={(_, tableFilters) => setTableFilters(tableFilters)}
-        />
-      </TablePageLayout>
+      {variant === "admin-page" ? (
+        <Flex vertical className={commonStyles.container}>
+          <AdminToolsHeader
+            title="Sessions"
+            iconName="snippets"
+            toolbar={sessionsToolbar}
+          />
+          {sessionsTable}
+        </Flex>
+      ) : (
+        sessionsTable
+      )}
     </>
   );
 };

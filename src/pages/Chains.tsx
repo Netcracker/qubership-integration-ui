@@ -6,6 +6,7 @@ import {
   CatalogItemType,
   ChainCreationRequest,
   ChainItem,
+  DeployMode,
   FolderItem,
   ListFolderRequest,
   UpdateFolderRequest,
@@ -36,13 +37,11 @@ import { exportAdditionsForChains } from "../misc/export-additions.ts";
 import { ImportChains } from "../components/modal/ImportChains.tsx";
 import { useNotificationService } from "../hooks/useNotificationService.tsx";
 import { useChainFilters } from "../hooks/useChainFilter.ts";
-import { GenerateDdsModal } from "../components/modal/GenerateDdsModal.tsx";
-import { DdsPreview } from "../components/modal/DdsPreview.tsx";
 import styles from "./Chains.module.css";
 import { OverridableIcon } from "../icons/IconProvider.tsx";
 import {
   DeployChains,
-  DeployOptions,
+  DeployRequest,
 } from "../components/modal/DeployChains.tsx";
 import { toStringIds } from "../misc/selection-utils.ts";
 import { ProtectedButton } from "../permissions/ProtectedButton.tsx";
@@ -65,9 +64,12 @@ import {
   createActionsColumnBase,
   disableResizeBeforeActions,
 } from "../components/table/actionsColumn.ts";
+import { ChainDetailsDrawer } from "../components/chains/ChainDetailsDrawer.tsx";
+import { useGenerateDds } from "../hooks/useGenerateDds.tsx";
 
 const CHAINS_EXPAND_COLUMN_WIDTH = 48;
 const CHAINS_SELECTION_COLUMN_WIDTH = 48;
+import { Domain } from "../components/SelectDomains.tsx";
 
 type ChainTableItem = (FolderItem | ChainItem) & {
   children?: ChainTableItem[];
@@ -120,6 +122,18 @@ type Operation = {
 
 const chainExpandIcon = treeExpandIcon<ChainTableItem>();
 
+// antd's checkbox / expand button / dropdown trigger don't stop click
+// propagation, so row onClick fires on them too. Filter those targets out
+// so row click only opens the details drawer on empty row area.
+const ROW_CLICK_IGNORE_SELECTOR =
+  "a, button, input, label, .ant-checkbox, .ant-dropdown-trigger, .ant-table-row-expand-icon, .ant-table-selection-column";
+
+function shouldIgnoreRowClick(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element && !!target.closest(ROW_CLICK_IGNORE_SELECTOR)
+  );
+}
+
 const Chains = () => {
   const navigate = useNavigate();
   const { showModal } = useModalsContext();
@@ -134,8 +148,11 @@ const Chains = () => {
   const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
   const [operation, setOperation] = useState<Operation | undefined>(undefined);
   const [searchString, setSearchString] = useState<string>("");
+  const [detailsChain, setDetailsChain] = useState<ChainItem | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
   const notificationService = useNotificationService();
   const { filters, filterButton } = useChainFilters();
+  const { showGenerateDdsModal } = useGenerateDds();
 
   const getFolderId = useCallback((): string | undefined => {
     return searchParams.get("folder") ?? undefined;
@@ -384,7 +401,7 @@ const Chains = () => {
 
   const deployChains = async (
     chainIds: string[],
-    domains: string[],
+    domains: Domain[],
     snapshotAction: BulkDeploymentSnapshotAction,
   ) => {
     if (chainIds.length === 0) {
@@ -392,7 +409,12 @@ const Chains = () => {
     }
     setIsLoading(true);
     try {
-      return await api.bulkDeploy({ chainIds, domains, snapshotAction });
+      return await api.deployToMicroDomain({
+        domains: domains.map((domain) => domain.name),
+        chainIds,
+        snapshotAction,
+        mode: DeployMode.APPEND,
+      });
     } catch (error) {
       notificationService.requestFailed("Failed to deploy chains", error);
       throw error;
@@ -502,13 +524,33 @@ const Chains = () => {
     isDragging,
     dropBreadcrumbId,
     getBreadcrumbDropProps,
-    onRow,
+    onRow: dragDropRowProps,
   } = useTableDragDrop({
     tableItems,
     onMoveChain: moveChain,
     onMoveFolder: moveFolder,
     disabled: isLoading,
   });
+
+  const handleRow = useCallback(
+    (record: ChainTableItem) => {
+      const base = dragDropRowProps(record);
+      return {
+        ...base,
+        onClick: (event: React.MouseEvent<HTMLTableRowElement>) => {
+          if (record.itemType !== CatalogItemType.CHAIN) {
+            return;
+          }
+          if (shouldIgnoreRowClick(event.target)) {
+            return;
+          }
+          setDetailsChain(record as ChainItem);
+          setIsDetailsOpen(true);
+        },
+      };
+    },
+    [dragDropRowProps],
+  );
 
   const breadcrumbItems: BreadcrumbProps["items"] = useMemo(() => {
     const dropClass = (dropId: string) =>
@@ -520,6 +562,7 @@ const Chains = () => {
           {...(isDragging ? getBreadcrumbDropProps(undefined) : {})}
           className={[
             styles.breadcrumbItem,
+            styles.breadcrumbHome,
             isDragging ? dropClass("root") : undefined,
           ]
             .filter(Boolean)
@@ -671,34 +714,6 @@ const Chains = () => {
     });
   };
 
-  const showGenerateDdsModal = (chainId: string) => {
-    showModal({
-      component: (
-        <GenerateDdsModal
-          onSubmit={(templateId, fileName) => {
-            showDdsModal(chainId, templateId, fileName);
-          }}
-        />
-      ),
-    });
-  };
-
-  const showDdsModal = (
-    chainId: string,
-    templateId: string,
-    fileName: string,
-  ) => {
-    showModal({
-      component: (
-        <DdsPreview
-          chainId={chainId}
-          templateId={templateId}
-          fileName={fileName}
-        />
-      ),
-    });
-  };
-
   const onCreateFolderBtnClick = (parentId?: string) => {
     showEditFolderModal("create", undefined, undefined, parentId);
   };
@@ -747,7 +762,7 @@ const Chains = () => {
         component: (
           <DeployChains
             chainCount={selectedRowKeys.length}
-            onSubmit={(options: DeployOptions) => deploySelectedChains(options)}
+            onSubmit={(request: DeployRequest) => deploySelectedChains(request)}
           />
         ),
       });
@@ -797,7 +812,7 @@ const Chains = () => {
     await deleteChains(chainIds);
   };
 
-  const deploySelectedChains = async (options: DeployOptions) => {
+  const deploySelectedChains = async (request: DeployRequest) => {
     const chainIds = folderItems
       .filter(
         (i) =>
@@ -805,7 +820,7 @@ const Chains = () => {
           i.itemType === CatalogItemType.CHAIN,
       )
       .map((i) => i.id);
-    return deployChains(chainIds, options.domains, options.snapshotAction);
+    return deployChains(chainIds, request.domains, request.snapshotAction);
   };
 
   const onContextMenuItemClick = async (item: FolderItem, key: React.Key) => {
@@ -1140,7 +1155,6 @@ const Chains = () => {
                 placeholder="Full text search"
                 allowClear
                 className={commonStyles["searchField"] as string}
-                style={{ flex: 1, minWidth: 200 }}
               />
             </Flex>
           }
@@ -1154,7 +1168,7 @@ const Chains = () => {
                   title: "Compare selected chains",
                   placement: "bottom",
                 }}
-                buttonProps={{ icon: <>⇄</>, disabled: true }}
+                buttonProps={{ iconName: "compare", disabled: true }}
               />
               <ProtectedButton
                 require={{ chain: ["create"] }}
@@ -1253,7 +1267,7 @@ const Chains = () => {
               .filter(Boolean)
               .join(" ")
           }
-          onRow={onRow}
+          onRow={handleRow}
           loading={isLoading}
           expandable={{
             expandIcon: ({ record, ...rest }) => {
@@ -1281,6 +1295,11 @@ const Chains = () => {
           }}
         />
       </Flex>
+      <ChainDetailsDrawer
+        chain={detailsChain}
+        open={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+      />
     </>
   );
 };
