@@ -185,6 +185,54 @@ describe("ColumnsFilter", () => {
     );
   });
 
+  it("keeps order-locked columns first after picker reorder", async () => {
+    const onChange = jest.fn();
+    render(
+      <ColumnsFilter
+        allColumns={["actionTime*", "username", "operation"]}
+        defaultColumns={["actionTime*", "username", "operation"]}
+        storageKey={STORAGE_KEY}
+        onChange={onChange}
+        orderLockedKeys={["actionTime*"]}
+        labelsByKey={{ "actionTime*": "Action Time" }}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("simulate-picker-reorder"));
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(getColumnsOrderKey(STORAGE_KEY))!,
+      ) as string[];
+      expect(stored).toEqual(["actionTime*", "operation", "username"]);
+    });
+  });
+
+  it("normalizes stored order so order-locked columns are first on load", async () => {
+    const onChange = jest.fn();
+    localStorage.setItem(
+      getColumnsOrderKey(STORAGE_KEY),
+      JSON.stringify(["status", "id*", "name"]),
+    );
+    localStorage.setItem(
+      getColumnsVisibleKey(STORAGE_KEY),
+      JSON.stringify(["id*", "name", "status"]),
+    );
+    render(
+      <ColumnsFilter
+        allColumns={["id*", "name", "status"]}
+        defaultColumns={["id*", "name", "status"]}
+        storageKey={STORAGE_KEY}
+        onChange={onChange}
+        orderLockedKeys={["id*"]}
+      />,
+    );
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem(getColumnsOrderKey(STORAGE_KEY))!,
+      ) as string[];
+      expect(stored).toEqual(["id*", "name", "status"]);
+    });
+  });
+
   it("merges picker reorder with excluded tail keys (e.g. actions)", async () => {
     const onChange = jest.fn();
     render(
