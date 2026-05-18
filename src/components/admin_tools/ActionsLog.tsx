@@ -240,6 +240,7 @@ export const ActionsLog: React.FC = () => {
       dataIndex: "actionTime",
       settings: {
         visibilityLocked: true,
+        orderLocked: true,
       },
       width: actionLogColumnResize.columnWidths.actionTime,
       sorter: (a: ActionLog, b: ActionLog) => b.actionTime - a.actionTime,

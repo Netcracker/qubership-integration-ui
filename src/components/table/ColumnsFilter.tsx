@@ -39,6 +39,7 @@ export interface ColumnFilterProps {
   storageKey: string;
   onChange: (columnsOrder: string[], visibleColumns: string[]) => void;
   labelsByKey?: Record<string, string>;
+  orderLockedKeys?: string[];
 }
 
 export const getColumnsOrderKey = (storageKey: string): string => {
@@ -55,7 +56,9 @@ export const ColumnsFilter: React.FC<ColumnFilterProps> = ({
   storageKey,
   onChange,
   labelsByKey,
+  orderLockedKeys = [],
 }) => {
+  const orderLockedKeySet = new Set(orderLockedKeys);
   const initialColumns =
     defaultColumns && defaultColumns.length > 0 ? defaultColumns : allColumns;
 
@@ -132,22 +135,26 @@ export const ColumnsFilter: React.FC<ColumnFilterProps> = ({
         }
         animation={150}
         handle=".drag-handle"
+        filter=".filtered"
       >
         {columnOrderForPicker.map((key) => (
           <div
             key={key}
+            className={orderLockedKeySet.has(key) ? "filtered" : undefined}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 8,
               marginBottom: 6,
-              cursor: "grab",
+              cursor: orderLockedKeySet.has(key) ? "default" : "grab",
             }}
           >
             <span
-              className="drag-handle"
+              className={
+                orderLockedKeySet.has(key) ? "filtered" : "drag-handle"
+              }
               style={{
-                cursor: "grab",
+                cursor: orderLockedKeySet.has(key) ? "default" : "grab",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
