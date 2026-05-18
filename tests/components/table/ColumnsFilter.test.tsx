@@ -206,7 +206,7 @@ describe("ColumnsFilter", () => {
     });
   });
 
-  it("normalizes stored order so order-locked columns are first on load", async () => {
+  it("moves order-locked columns first on load without changing other column order", async () => {
     const onChange = jest.fn();
     localStorage.setItem(
       getColumnsOrderKey(STORAGE_KEY),
@@ -229,7 +229,7 @@ describe("ColumnsFilter", () => {
       const stored = JSON.parse(
         localStorage.getItem(getColumnsOrderKey(STORAGE_KEY))!,
       ) as string[];
-      expect(stored).toEqual(["id*", "name", "status"]);
+      expect(stored).toEqual(["id*", "status", "name"]);
     });
   });
 
