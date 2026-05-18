@@ -91,7 +91,13 @@ describe("sortBy", () => {
   });
 
   test("should sort descending when comparator is reversed", () => {
-    expect(sortBy([3, 1, 2], (v) => v, (a, b) => b - a)).toEqual([3, 2, 1]);
+    expect(
+      sortBy(
+        [3, 1, 2],
+        (v) => v,
+        (a, b) => b - a,
+      ),
+    ).toEqual([3, 2, 1]);
   });
 
   test("should return empty array when input is empty", () => {
@@ -133,7 +139,9 @@ describe("intersection", () => {
   });
 
   test("should return s1 elements when s1 is a subset of s2", () => {
-    expect(intersection(new Set([2]), new Set([1, 2, 3]))).toEqual(new Set([2]));
+    expect(intersection(new Set([2]), new Set([1, 2, 3]))).toEqual(
+      new Set([2]),
+    );
   });
 
   test("should return all elements when sets are identical", () => {

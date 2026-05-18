@@ -82,5 +82,5 @@ export function compareArraysLexicographically<T>(a: T[], b: T[]): number {
 }
 
 export function intersection<T>(s1: Set<T>, s2: Set<T>): Set<T> {
-  return new Set([...s1].filter(x => s2.has(x)));
+  return new Set([...s1].filter((x) => s2.has(x)));
 }

@@ -126,8 +126,18 @@ describe("getElementRank", () => {
   });
 
   test("should add 1 when element originalId matches reference element originalId", () => {
-    const element = makeElement({ id: "e1", type: "script", name: "A", originalId: "orig-x" });
-    const ref = makeElement({ id: "ref", type: "trigger", name: "B", originalId: "orig-x" });
+    const element = makeElement({
+      id: "e1",
+      type: "script",
+      name: "A",
+      originalId: "orig-x",
+    });
+    const ref = makeElement({
+      id: "ref",
+      type: "trigger",
+      name: "B",
+      originalId: "orig-x",
+    });
     // base 3 + originalId match 1 = 4; but originalId match is already counted in base when both are undefined,
     // so here: id no match, originalId match (explicit) +1, type no match, name no match,
     // no parentElementId +1, no swimlaneId +1 = 3
@@ -135,36 +145,90 @@ describe("getElementRank", () => {
   });
 
   test("should not add originalId rank when originalIds differ", () => {
-    const element = makeElement({ id: "e1", type: "script", name: "A", originalId: "orig-1" });
-    const ref = makeElement({ id: "ref", type: "trigger", name: "B", originalId: "orig-2" });
+    const element = makeElement({
+      id: "e1",
+      type: "script",
+      name: "A",
+      originalId: "orig-1",
+    });
+    const ref = makeElement({
+      id: "ref",
+      type: "trigger",
+      name: "B",
+      originalId: "orig-2",
+    });
     // originalId no match → 0; no parentElementId +1, no swimlaneId +1 = 2
     expect(getElementRank(element, [], ref, [], new Map())).toBe(2);
   });
 
   test("should add 1 when both elements lack parentElementId", () => {
-    const element = makeElement({ id: "e1", type: "script", name: "A", originalId: "orig-1" });
-    const ref = makeElement({ id: "ref", type: "trigger", name: "B", originalId: "orig-2" });
+    const element = makeElement({
+      id: "e1",
+      type: "script",
+      name: "A",
+      originalId: "orig-1",
+    });
+    const ref = makeElement({
+      id: "ref",
+      type: "trigger",
+      name: "B",
+      originalId: "orig-2",
+    });
     // no parentElementId +1; no swimlaneId +1; originalId differ = 2
     expect(getElementRank(element, [], ref, [], new Map())).toBe(2);
   });
 
   test("should not add parentElementId rank when one element has it and the other does not", () => {
-    const element = makeElement({ id: "e1", type: "script", name: "A", originalId: "o1", parentElementId: "p1" });
-    const ref = makeElement({ id: "ref", type: "trigger", name: "B", originalId: "o2" });
+    const element = makeElement({
+      id: "e1",
+      type: "script",
+      name: "A",
+      originalId: "o1",
+      parentElementId: "p1",
+    });
+    const ref = makeElement({
+      id: "ref",
+      type: "trigger",
+      name: "B",
+      originalId: "o2",
+    });
     // originalId differ, parentElementId: one has it the other doesn't → 0; no swimlaneId +1 = 1
     expect(getElementRank(element, [], ref, [], new Map())).toBe(1);
   });
 
   test("should add 1 when both elements lack swimlaneId", () => {
-    const element = makeElement({ id: "e1", type: "script", name: "A", originalId: "orig-1", parentElementId: "p1" });
-    const ref = makeElement({ id: "ref", type: "trigger", name: "B", originalId: "orig-2", parentElementId: "p2" });
+    const element = makeElement({
+      id: "e1",
+      type: "script",
+      name: "A",
+      originalId: "orig-1",
+      parentElementId: "p1",
+    });
+    const ref = makeElement({
+      id: "ref",
+      type: "trigger",
+      name: "B",
+      originalId: "orig-2",
+      parentElementId: "p2",
+    });
     // originalId differ, parentElementId: both present but p1 not self-mapped → 0; no swimlaneId +1 = 1
     expect(getElementRank(element, [], ref, [], new Map())).toBe(1);
   });
 
   test("should not add swimlaneId rank when one element has it and the other does not", () => {
-    const element = makeElement({ id: "e1", type: "script", name: "A", originalId: "o1", swimlaneId: "s1" });
-    const ref = makeElement({ id: "ref", type: "trigger", name: "B", originalId: "o2" });
+    const element = makeElement({
+      id: "e1",
+      type: "script",
+      name: "A",
+      originalId: "o1",
+      swimlaneId: "s1",
+    });
+    const ref = makeElement({
+      id: "ref",
+      type: "trigger",
+      name: "B",
+      originalId: "o2",
+    });
     // originalId differ, no parentElementId +1; swimlaneId: one has it, the other doesn't → 0 = 1
     expect(getElementRank(element, [], ref, [], new Map())).toBe(1);
   });
@@ -285,7 +349,10 @@ describe("compareChainProperties", () => {
 
   test("should return one change per differing property when multiple properties differ", () => {
     const one = makeChain({ description: "desc-1", assumptions: "assume-1" });
-    const another = makeChain({ description: "desc-2", assumptions: "assume-2" });
+    const another = makeChain({
+      description: "desc-2",
+      assumptions: "assume-2",
+    });
     const result = compareChainProperties(one, another);
     expect(result).toHaveLength(2);
     expect(result.every((c) => c.kind === "chain-property")).toBe(true);
@@ -325,7 +392,11 @@ describe("compareChainProperties", () => {
 describe("compareElementProperties", () => {
   test("should return empty array when both elements have identical properties", () => {
     const one = makeElement({ type: "script", name: "E", description: "d" });
-    const another = makeElement({ type: "script", name: "E", description: "d" });
+    const another = makeElement({
+      type: "script",
+      name: "E",
+      description: "d",
+    });
     expect(compareElementProperties(one, another, new Map())).toEqual([]);
   });
 
@@ -361,7 +432,10 @@ describe("compareElementProperties", () => {
 
   test("should return a change when a shared property value differs", () => {
     const one = makeElement({ id: "e1", properties: { key: "old" } as never });
-    const another = makeElement({ id: "e2", properties: { key: "new" } as never });
+    const another = makeElement({
+      id: "e2",
+      properties: { key: "new" } as never,
+    });
     const result = compareElementProperties(one, another, new Map());
     expect(result).toEqual(
       expect.arrayContaining([
@@ -375,7 +449,10 @@ describe("compareElementProperties", () => {
   });
 
   test("should return a change when a property exists in one element but not another", () => {
-    const one = makeElement({ id: "e1", properties: { extra: "val" } as never });
+    const one = makeElement({
+      id: "e1",
+      properties: { extra: "val" } as never,
+    });
     const another = makeElement({ id: "e2", properties: {} as never });
     const result = compareElementProperties(one, another, new Map());
     expect(result).toEqual(
@@ -391,7 +468,10 @@ describe("compareElementProperties", () => {
 
   test("should return a change when a property exists in another element but not one", () => {
     const one = makeElement({ id: "e1", properties: {} as never });
-    const another = makeElement({ id: "e2", properties: { extra: "val" } as never });
+    const another = makeElement({
+      id: "e2",
+      properties: { extra: "val" } as never,
+    });
     const result = compareElementProperties(one, another, new Map());
     expect(result).toEqual(
       expect.arrayContaining([
@@ -406,7 +486,10 @@ describe("compareElementProperties", () => {
 
   test("should set the one side to undefined when one element's property value is null", () => {
     const one = makeElement({ id: "e1", properties: { key: null } as never });
-    const another = makeElement({ id: "e2", properties: { key: "val" } as never });
+    const another = makeElement({
+      id: "e2",
+      properties: { key: "val" } as never,
+    });
     const result = compareElementProperties(one, another, new Map());
     expect(result).toEqual(
       expect.arrayContaining([
@@ -427,7 +510,10 @@ describe("compareElementProperties", () => {
       expect.arrayContaining([
         expect.objectContaining({
           kind: "element-property",
-          one: expect.objectContaining({ name: "parentElementId", value: "parent-1" }),
+          one: expect.objectContaining({
+            name: "parentElementId",
+            value: "parent-1",
+          }),
           another: undefined,
         }),
       ]),
@@ -443,8 +529,14 @@ describe("compareElementProperties", () => {
       expect.arrayContaining([
         expect.objectContaining({
           kind: "element-property",
-          one: expect.objectContaining({ name: "parentElementId", value: "parent-1" }),
-          another: expect.objectContaining({ name: "parentElementId", value: "parent-2" }),
+          one: expect.objectContaining({
+            name: "parentElementId",
+            value: "parent-1",
+          }),
+          another: expect.objectContaining({
+            name: "parentElementId",
+            value: "parent-2",
+          }),
         }),
       ]),
     );
@@ -510,8 +602,18 @@ describe("compareElements", () => {
   });
 
   test("should return no changes when matched elements are identical", () => {
-    const one = makeElement({ id: "e1", type: "script", name: "E", description: "d" });
-    const another = makeElement({ id: "e2", type: "script", name: "E", description: "d" });
+    const one = makeElement({
+      id: "e1",
+      type: "script",
+      name: "E",
+      description: "d",
+    });
+    const another = makeElement({
+      id: "e2",
+      type: "script",
+      name: "E",
+      description: "d",
+    });
     const elementMap = new Map([
       ["e1", "e2"],
       ["e2", "e1"],
@@ -656,10 +758,14 @@ describe("buildElementMap", () => {
 
   test("should create a bidirectional mapping when originalIds match even when types differ", () => {
     const one = makeChain({
-      elements: [makeElement({ id: "a1", type: "script", originalId: "orig-shared" })],
+      elements: [
+        makeElement({ id: "a1", type: "script", originalId: "orig-shared" }),
+      ],
     });
     const another = makeChain({
-      elements: [makeElement({ id: "b1", type: "trigger", originalId: "orig-shared" })],
+      elements: [
+        makeElement({ id: "b1", type: "trigger", originalId: "orig-shared" }),
+      ],
     });
     const result = buildElementMap(one, another);
     expect(result.get("a1")).toBe("b1");
@@ -685,28 +791,50 @@ describe("getElementPropertyChange", () => {
     expect(result).toEqual(
       expect.objectContaining({
         kind: "element-property",
-        one: expect.objectContaining({ entityId: "e1", name: "name", value: "alpha" }),
-        another: expect.objectContaining({ entityId: "e2", name: "name", value: "beta" }),
+        one: expect.objectContaining({
+          entityId: "e1",
+          name: "name",
+          value: "alpha",
+        }),
+        another: expect.objectContaining({
+          entityId: "e2",
+          name: "name",
+          value: "beta",
+        }),
       }),
     );
   });
 
   test("should set one side to undefined when the key value is null in one element", () => {
-    const one = makeElement({ id: "e1", description: null as unknown as string });
+    const one = makeElement({
+      id: "e1",
+      description: null as unknown as string,
+    });
     const another = makeElement({ id: "e2", description: "desc" });
     const result = getElementPropertyChange(one, another, "description");
     expect(result.one).toBeUndefined();
     expect(result.another).toEqual(
-      expect.objectContaining({ entityId: "e2", name: "description", value: "desc" }),
+      expect.objectContaining({
+        entityId: "e2",
+        name: "description",
+        value: "desc",
+      }),
     );
   });
 
   test("should set another side to undefined when the key value is undefined in another element", () => {
     const one = makeElement({ id: "e1", description: "desc" });
-    const another = makeElement({ id: "e2", description: undefined as unknown as string });
+    const another = makeElement({
+      id: "e2",
+      description: undefined as unknown as string,
+    });
     const result = getElementPropertyChange(one, another, "description");
     expect(result.one).toEqual(
-      expect.objectContaining({ entityId: "e1", name: "description", value: "desc" }),
+      expect.objectContaining({
+        entityId: "e1",
+        name: "description",
+        value: "desc",
+      }),
     );
     expect(result.another).toBeUndefined();
   });
@@ -724,7 +852,10 @@ describe("compareChains", () => {
   test("should return empty array when both chains are identical", () => {
     const element = makeElement({ id: "e1" });
     const connection = makeConnection("c1", "e1", "e1");
-    const chain = makeChain({ elements: [element], dependencies: [connection] });
+    const chain = makeChain({
+      elements: [element],
+      dependencies: [connection],
+    });
     expect(compareChains(chain, chain)).toEqual([]);
   });
 
@@ -750,8 +881,16 @@ describe("compareChains", () => {
 
   test("should return only property changes when elements and connections are identical", () => {
     const element = makeElement({ id: "e1" });
-    const one = makeChain({ id: "c1", description: "old", elements: [element] });
-    const another = makeChain({ id: "c2", description: "new", elements: [element] });
+    const one = makeChain({
+      id: "c1",
+      description: "old",
+      elements: [element],
+    });
+    const another = makeChain({
+      id: "c2",
+      description: "new",
+      elements: [element],
+    });
     const result = compareChains(one, another);
     expect(result.length).toBeGreaterThan(0);
     expect(result.every((c) => c.kind === "chain-property")).toBe(true);

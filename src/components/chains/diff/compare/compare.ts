@@ -284,7 +284,8 @@ export function compareElementProperties(
           !!one[key] !== !!another[key] ||
           (one[key] &&
             another[key] &&
-            one[key] !== elementMap.get((another[key] as string | undefined) ?? ""))
+            one[key] !==
+              elementMap.get((another[key] as string | undefined) ?? ""))
         );
       })
       .map((key) => getElementPropertyChange(one, another, key)),
