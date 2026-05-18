@@ -113,6 +113,24 @@ describe("ColumnsFilter", () => {
     expect(screen.getByRole("checkbox", { name: /locked col/i })).toBeDisabled();
   });
 
+  it("keeps Action Time checked and not toggleable when visibility-locked (Audit)", () => {
+    const onChange = jest.fn();
+    render(
+      <ColumnsFilter
+        allColumns={["actionTime*", "username", "operation"]}
+        defaultColumns={["actionTime*", "username", "operation"]}
+        storageKey={STORAGE_KEY}
+        onChange={onChange}
+        labelsByKey={{ "actionTime*": "Action Time" }}
+      />,
+    );
+    const actionTime = screen.getByRole("checkbox", { name: /action time/i });
+    expect(actionTime).toBeDisabled();
+    expect(actionTime).toBeChecked();
+    fireEvent.click(actionTime);
+    expect(actionTime).toBeChecked();
+  });
+
   it("updates visibility when a toggleable column is unchecked", async () => {
     const onChange = jest.fn();
     render(
