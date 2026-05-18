@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Chain } from "../../../api/apiTypes.ts";
 import { Change } from "./compare/types.ts";
-import { Col, Flex, Row } from "antd";
+import { Col, Flex, Row, Tag } from "antd";
 import { ChangedEntityView, LinkToChain } from "./ChangedEntityView.tsx";
 import { ChainGraphPanel } from "./ChainGraphPanel.tsx";
 import styles from "./ChainDiffGraphView.module.css";
+import { ChainGraphContextProvider } from "./ChainGraphChangeProvider.tsx";
+import { buildElementMap } from "./compare/compare.ts";
 
 export function getElementId(
   change: Change | undefined,
@@ -45,6 +47,12 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
     setSelectedChange(changes.find((c) => c.id === selectedChangeId));
   }, [changes, selectedChangeId]);
 
+  const elementMap = useMemo(() => {
+    return chain1 && chain2
+      ? buildElementMap(chain1, chain2)
+      : new Map<string, string>();
+  }, [chain1, chain2]);
+
   return (
     <Flex
       vertical
@@ -82,21 +90,43 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
       <Row gutter={16} style={{ minHeight: 0, flexGrow: 1, flexShrink: 0 }}>
         <Col span={12}>
           {chain1 ? (
-            <ChainGraphPanel
+            <ChainGraphContextProvider
               chain={chain1}
-              className={styles["left-view"]}
-              selectedElementId={getElementId(selectedChange, "one")}
-            />
+              changes={changes}
+              elementMap={elementMap}
+              side={"one"}
+            >
+              <ChainGraphPanel
+                chain={chain1}
+                className={styles["left-view"]}
+                selectedElementId={getElementId(selectedChange, "one")}
+              />
+            </ChainGraphContextProvider>
           ) : null}
         </Col>
         <Col span={12}>
           {chain2 ? (
-            <ChainGraphPanel
+            <ChainGraphContextProvider
               chain={chain2}
-              className={styles["right-view"]}
-              selectedElementId={getElementId(selectedChange, "another")}
-            />
+              changes={changes}
+              elementMap={elementMap}
+              side={"another"}
+            >
+              <ChainGraphPanel
+                chain={chain2}
+                className={styles["right-view"]}
+                selectedElementId={getElementId(selectedChange, "another")}
+              />
+            </ChainGraphContextProvider>
           ) : null}
+        </Col>
+      </Row>
+      <Row>
+        <Col span={24}>
+          <Tag color={"var(--node-not-changed-color, #727272)"}>Identical</Tag>
+          <Tag color={"var(--node-changed-color, #ffcc02)"}>Changed</Tag>
+          <Tag color={"var(--node-removed-color, #f48771)"}>Removed</Tag>
+          <Tag color={"var(--node-created-color, #4ec9b0)"}>Created</Tag>
         </Col>
       </Row>
     </Flex>

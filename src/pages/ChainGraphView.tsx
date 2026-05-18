@@ -46,6 +46,10 @@ import { ChainContext } from "./ChainPage.tsx";
 import { useLibraryContext } from "../components/LibraryContext.tsx";
 import { useParams } from "react-router-dom";
 import { Element } from "../api/apiTypes";
+import {
+  ChainGraphChangeContext,
+  NodeState,
+} from "../components/chains/diff/ChainGraphChangeProvider.tsx";
 
 const readTheme = () => {
   if (typeof document === "undefined") return "light";
@@ -102,6 +106,7 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
     () => (readOnly ? null : ["Backspace", "Delete"]),
     [readOnly],
   );
+  const changeContext = useContext(ChainGraphChangeContext);
 
   const {
     nodes,
@@ -252,6 +257,19 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
 
   const getMinimapNodeColor = useCallback(
     (node: Node<ChainGraphNodeData>) => {
+      if (changeContext) {
+        const state = changeContext?.nodeState?.get(node.id);
+        switch (state) {
+          case NodeState.NOT_CHANGED:
+            return getCssVariableValue("--node-not-changed-color", "#727272");
+          case NodeState.CHANGED:
+            return getCssVariableValue("--node-changed-color", "#ffcc02");
+          case NodeState.REMOVED:
+            return getCssVariableValue("--node-removed-color", "#f48771");
+          case NodeState.CREATED:
+            return getCssVariableValue("--node-created-color", "#4ec9b0");
+        }
+      }
       if (node.type === "swimlane") {
         return getSwimlaneBorderColor(
           (node.data.properties as Record<string, unknown>)["color"] as string,
