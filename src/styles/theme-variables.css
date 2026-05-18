@@ -66,6 +66,7 @@
   --container-border-color: #dedacd;
   --container-header-background: #fff9e6;
 
+  /* Node color when compare */
   --node-not-changed-color: #727272;
   --node-changed-color: #ffcc02;
   --node-created-color: #28a745;
