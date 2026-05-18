@@ -171,13 +171,13 @@ export const ElementProperty: React.FC<{
 
   useEffect(() => {
     setTitle(() => {
-      if (!element) {
-        return name;
-      } else {
+      if (element) {
         const schema = getSchema(element.type)?.properties?.properties;
         return schema && typeof schema === "object"
           ? getElementPropertyTitle(schema, name)
           : name;
+      } else {
+        return name;
       }
     });
   }, [element, getSchema, name]);

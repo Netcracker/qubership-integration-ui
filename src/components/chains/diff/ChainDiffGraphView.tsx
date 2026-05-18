@@ -5,7 +5,7 @@ import { Col, Flex, Row, Tag } from "antd";
 import { ChangedEntityView, LinkToChain } from "./ChangedEntityView.tsx";
 import { ChainGraphPanel } from "./ChainGraphPanel.tsx";
 import styles from "./ChainDiffGraphView.module.css";
-import { ChainGraphContextProvider } from "./ChainGraphChangeProvider.tsx";
+import { ChainGraphChangeProvider } from "./ChainGraphChangeProvider.tsx";
 import { buildElementMap } from "./compare/compare.ts";
 
 export function getElementId(
@@ -37,7 +37,6 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
   chain2,
   changes,
   selectedChangeId,
-  onSelectChange,
 }): React.ReactNode => {
   const [selectedChange, setSelectedChange] = useState<Change | undefined>(
     undefined,
@@ -90,7 +89,7 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
       <Row gutter={16} style={{ minHeight: 0, flexGrow: 1, flexShrink: 0 }}>
         <Col span={12}>
           {chain1 ? (
-            <ChainGraphContextProvider
+            <ChainGraphChangeProvider
               chain={chain1}
               changes={changes}
               elementMap={elementMap}
@@ -101,12 +100,12 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
                 className={styles["left-view"]}
                 selectedElementId={getElementId(selectedChange, "one")}
               />
-            </ChainGraphContextProvider>
+            </ChainGraphChangeProvider>
           ) : null}
         </Col>
         <Col span={12}>
           {chain2 ? (
-            <ChainGraphContextProvider
+            <ChainGraphChangeProvider
               chain={chain2}
               changes={changes}
               elementMap={elementMap}
@@ -117,7 +116,7 @@ export const ChainDiffGraphView: React.FC<ChainDiffGraphViewProps> = ({
                 className={styles["right-view"]}
                 selectedElementId={getElementId(selectedChange, "another")}
               />
-            </ChainGraphContextProvider>
+            </ChainGraphChangeProvider>
           ) : null}
         </Col>
       </Row>

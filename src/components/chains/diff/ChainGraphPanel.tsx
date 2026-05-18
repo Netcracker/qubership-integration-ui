@@ -1,5 +1,5 @@
 import { ReactFlowProvider } from "@xyflow/react";
-import React, { HTMLAttributes, useEffect, useRef } from "react";
+import React, { HTMLAttributes, useEffect, useMemo, useRef } from "react";
 import { Chain } from "../../../api/apiTypes.ts";
 import {
   ElementFocusContext,
@@ -38,15 +38,13 @@ export const ChainGraphPanel: React.FC<ChainGraphViewProps> = ({
   ...rest
 }): React.ReactNode => {
   const fitViewToElementIdRef = useRef<FitViewToElementIdFn | null>(null);
+  const context = useMemo(
+    () => ({ chain, update: async () => {}, refresh: async () => {} }),
+    [chain],
+  );
   return (
     <LibraryProvider>
-      <ChainContext.Provider
-        value={{
-          chain,
-          update: async () => {},
-          refresh: async () => {},
-        }}
-      >
+      <ChainContext.Provider value={context}>
         <ReactFlowProvider>
           <ElementFocusContext.Provider value={fitViewToElementIdRef}>
             <ChainGraphPanelInner {...rest} />

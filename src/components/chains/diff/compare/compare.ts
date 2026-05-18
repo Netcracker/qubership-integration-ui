@@ -273,7 +273,7 @@ export function compareElementProperties(
   const propertyNames = new Set<string>();
   [one.properties, another.properties]
     .flatMap((obj) => Object.keys(obj))
-    .map((name) => propertyNames.add(name));
+    .forEach((name) => propertyNames.add(name));
   return [
     ...(["type", "name", "description"] as (keyof Element)[])
       .filter((key) => one[key] !== another[key])

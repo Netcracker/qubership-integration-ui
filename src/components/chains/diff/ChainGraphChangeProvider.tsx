@@ -45,27 +45,28 @@ export function createNodeStateMap(
         (c.kind === "element-property" && c[side]?.entityId === element.id),
     );
     const oppositeSide = getOppositeSide(side);
-    const state = !change
-      ? elementMap.get(element.id)
-        ? NodeState.NOT_CHANGED
-        : NodeState.REMOVED
-      : change[oppositeSide] === undefined
+    const state = change
+      ? change[oppositeSide] === undefined
         ? NodeState.CREATED
-        : NodeState.CHANGED;
+        : NodeState.CHANGED
+      : elementMap.get(element.id)
+        ? NodeState.NOT_CHANGED
+        : NodeState.REMOVED;
     m.set(element.id, state);
   });
   return m;
 }
 
-export const ChainGraphContextProvider: React.FC<
+export const ChainGraphChangeProvider: React.FC<
   ChainGraphContextProviderProps
 > = ({ chain, side, changes, children, elementMap }): React.ReactNode => {
   const nodeState = useMemo(
     () => createNodeStateMap(chain, side, changes, elementMap),
     [chain, side, changes, elementMap],
   );
+  const context = useMemo(() => ({ nodeState }), [nodeState]);
   return (
-    <ChainGraphChangeContext.Provider value={{ nodeState }}>
+    <ChainGraphChangeContext.Provider value={context}>
       {children}
     </ChainGraphChangeContext.Provider>
   );

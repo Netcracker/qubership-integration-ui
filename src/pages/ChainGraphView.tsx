@@ -189,8 +189,8 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
     async (changes: OnDeleteEvent) => {
       if (
         changes.nodes.length > 0 &&
-        (await nonEmptyContainerExists(changes.nodes as ChainGraphNode[])) &&
-        !isSwimlanesOnly(changes.nodes as ChainGraphNode[])
+        (await nonEmptyContainerExists(changes.nodes)) &&
+        !isSwimlanesOnly(changes.nodes)
       ) {
         Modal.confirm({
           title: "Delete Container",
@@ -325,12 +325,7 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
       })),
     );
 
-    (
-      onContextMenuCall as (
-        event: MouseEvent,
-        elements: Node<ChainGraphNodeData>[],
-      ) => void
-    )(event, elements);
+    onContextMenuCall(event, elements);
   };
 
   const onNodeContextMenu = (
