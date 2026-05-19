@@ -1018,78 +1018,36 @@ export const ChainElementModification: React.FC<ElementModificationProps> = ({
         {schema && activeKey && (
           <>
             <Tabs
-            activeKey={activeKey}
-            onChange={handleTabChange}
-            items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
-          />
-          <div
-            onClickCapture={markUserInteracted}
-            onKeyDownCapture={markUserInteracted}
-            onMouseDownCapture={markUserInteracted}
-          >
-            <Form
-              ref={formRef}
-              className={styles["parameters-form"]}
-              schema={schema}
-              formData={formData}
-              validator={validator}
-              uiSchema={uiSchema}
-              transformErrors={transformErrors}
-              onError={handleRjsfFormErrors}
-              liveValidate={"onChange"}
-              showErrorList={false}
-              experimental_defaultFormStateBehavior={
-                FORM_DEFAULT_STATE_BEHAVIOR
-              }
-              formContext={formContext}
-              templates={TEMPLATES}
-              fields={FIELDS}
-              widgets={WIDGETS}
-              onChange={handleFormChange}
-              templates={{
-                ObjectFieldTemplate: CustomObjectFieldTemplate,
-                FieldTemplate: DescriptionTooltipFieldTemplate,
-              }}
-              fields={{
-                OneOfField: CustomOneOfField, //Rewrite default oneOfField
-                oneOfAsSingleInputField: OneOfAsSingleInputField,
-                patternPropertiesField: PatternPropertiesField,
-                enhancedPatternPropertiesField: EnhancedPatternPropertiesField,
-                mappingField: MappingField,
-                customArrayField: CustomArrayField,
-                scriptField: ScriptField,
-                jsonField: JsonField,
-                jsonAsStringField: JsonAsStringField,
-              serviceField: ServiceField,
-              mcpServiceField: MCPServiceField,
-                specificationField: SpecificationField,
-                systemOperationField: SystemOperationField,
-                bodyMimeTypeField: BodyMimeTypeField,
-                singleSelectField: SingleSelectField,
-                contextServiceField: ContextServiceField,
-                chainTriggerElementIdField: ChainTriggerElementIdField,
-                basePathField: BasePathField,
-                externalRouteCheckbox: ExternalRouteCheckbox,
-                contextPathWithPrefixField: ContextPathWithPrefixField,
-              }}
-              widgets={widgets}
-              onChange={(e) => {
-                const nextFormData = e.formData as Record<string, unknown>;
-                if (JSON.stringify(nextFormData) === JSON.stringify(formData)) {
-                  return;
-                }
-
-                setFormData(nextFormData);
-                if (
-                  !isInitializingRef.current &&
-                  (hasUserEditedFormRef.current || hasUserInteractedRef.current)
-                ) {
-                  hasUserEditedFormRef.current = true;
-                  setHasChanges(true);
-                }
-              }}
+              activeKey={activeKey}
+              onChange={handleTabChange}
+              items={uniqueTabs.map((tab) => ({ key: tab, label: tab }))}
             />
-          </div>
+            <div
+              onClickCapture={markUserInteracted}
+              onKeyDownCapture={markUserInteracted}
+              onMouseDownCapture={markUserInteracted}
+            >
+              <Form
+                ref={formRef}
+                className={styles["parameters-form"]}
+                schema={schema}
+                formData={formData}
+                validator={validator}
+                uiSchema={uiSchema}
+                transformErrors={transformErrors}
+                onError={handleRjsfFormErrors}
+                liveValidate={"onChange"}
+                showErrorList={false}
+                experimental_defaultFormStateBehavior={
+                  FORM_DEFAULT_STATE_BEHAVIOR
+                }
+                formContext={formContext}
+                templates={TEMPLATES}
+                fields={FIELDS}
+                widgets={WIDGETS}
+                onChange={handleFormChange}
+              />
+            </div>
           </>
         )}
       </div>
