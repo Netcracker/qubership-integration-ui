@@ -25,12 +25,20 @@ export const useFocusToElementId = (): FitViewToElementIdFn => {
 
 export const ElementFocus = () => {
   const ref = useElementFocusRef();
-  const { fitView, getNodes } = useReactFlow();
+  const { fitView, getNodes, setNodes } = useReactFlow();
 
   useEffect(() => {
     ref.current = (id: string) => {
       const nodes = getNodes();
       if (!nodes.some((n) => n.id === id)) return;
+
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => ({
+          ...node,
+          selected: node.id === id,
+        })),
+      );
+
       fitView({
         nodes: [{ id }],
         padding: 0.2,
@@ -40,7 +48,7 @@ export const ElementFocus = () => {
     return () => {
       ref.current = null;
     };
-  }, [ref, fitView, getNodes]);
+  }, [ref, fitView, getNodes, setNodes]);
 
   return null;
 };
