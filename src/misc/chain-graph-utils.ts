@@ -32,13 +32,18 @@ export function getDataFromElement(
   return node;
 }
 
+export function findLibraryElement(
+  libraryElements: LibraryElement[] | null,
+  type: string,
+): LibraryElement | undefined {
+  return libraryElements?.find((descriptor) => descriptor.name === type);
+}
+
 export function getLibraryElement(
   element: Element,
   libraryElements: LibraryElement[] | null,
 ): LibraryElement {
-  const libraryElement = libraryElements?.find(
-    (descriptor) => descriptor.name === element.type,
-  );
+  const libraryElement = findLibraryElement(libraryElements, element.type);
   return (
     libraryElement ??
     ({
@@ -381,7 +386,7 @@ function buildTree(
   return result;
 }
 
-async function getLibraryElementByType(
+export async function getLibraryElementByType(
   elementType: string,
 ): Promise<LibraryElement | undefined> {
   if (elementType === "container") return;

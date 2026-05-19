@@ -14,12 +14,14 @@ import {
 import {
   buildGraphNodes,
   collectChildren,
+  findLibraryElement,
+  getLibraryElementByType,
   getNodeFromElement,
   sortParentsBeforeChildren,
 } from "../../misc/chain-graph-utils.ts";
 import { useAutoLayout } from "./useAutoLayout.tsx";
 import { api } from "../../api/api.ts";
-import { Element } from "../../api/apiTypes.ts";
+import { Element, LibraryElement } from "../../api/apiTypes.ts";
 import { useNotificationService } from "../useNotificationService.tsx";
 import { useLibraryContext } from "../../components/LibraryContext.tsx";
 import { useExpandCollapse } from "./useExpandCollapse.tsx";
@@ -52,7 +54,23 @@ export const useContextMenu = (
 
   const closeMenu = () => setMenu(null);
 
-  const onContextMenuCall = (
+  const parentElementHasRestrictions = async (
+    elements: Node<ChainGraphNodeData>[],
+  ): Promise<boolean> => {
+    for (const nodeData of elements) {
+      if (
+        nodeData.parentId &&
+        ((await getLibraryElementByType(nodeData.data.elementType))
+          ?.parentRestriction?.length ??
+          0 > 0)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const onContextMenuCall = async (
     event: MouseEvent,
     selectedElements: Node<ChainGraphNodeData>[],
   ) => {
@@ -69,11 +87,15 @@ export const useContextMenu = (
             },
           ]
         : [
-            {
-              id: uuidv4(),
-              text: "Copy",
-              handler: () => copyElements(selectedElements),
-            },
+            ...((await parentElementHasRestrictions(selectedElements))
+              ? []
+              : [
+                  {
+                    id: uuidv4(),
+                    text: "Copy",
+                    handler: () => copyElements(selectedElements),
+                  },
+                ]),
             ...(selectedElements?.length === 1 &&
             selectedElements[0].data.elementType === "container"
               ? [
@@ -92,17 +114,44 @@ export const useContextMenu = (
             },
           ];
     if (selectedElements?.length === 1) {
+      const nodeData = selectedElements[0];
       if (selectedElements[0].data.elementType === "container") {
         items.unshift({
           id: uuidv4(),
           text: "Ungroup",
-          handler: () => ungroupElements(selectedElements[0]),
+          handler: () => ungroupElements(nodeData),
         });
       } else {
+        const elementTemplate = findLibraryElement(libraryElements, nodeData.data.elementType)!;
+
+        const allowedChildren = elementTemplate.allowedChildren;
+        if (
+          elementTemplate.container &&
+          Object.keys(allowedChildren).length > 0
+        ) {
+          items.unshift({
+            id: uuidv4(),
+            text: "Add child",
+            children: Object.keys(allowedChildren).map((key) => {
+              const childTemplate: LibraryElement = findLibraryElement(
+                libraryElements,
+                key,
+              )!;
+
+              return {
+                id: uuidv4(),
+                text: childTemplate.title,
+                handler: () => console.log("Add child"),
+              };
+            }),
+            handler: () => {},
+          });
+        }
+
         items.unshift({
           id: uuidv4(),
           text: "Edit",
-          handler: () => openElementModal(selectedElements[0]),
+          handler: () => openElementModal(nodeData),
         });
       }
     } else if (selectedElements?.length > 1) {
