@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import {
   AdvancedFilterConditions,
   DateFilterConditions,
@@ -22,7 +22,7 @@ const protocolValues: ListValue[] = [
 
 export const useServiceFilters = (): {
   filters: EntityFilterModel[];
-  filterButton: JSX.Element;
+  filterButton: ReactNode;
   resetFilters: () => void;
 } => {
   const filterColumns: FilterColumn[] = useMemo(
