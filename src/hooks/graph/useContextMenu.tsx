@@ -15,7 +15,6 @@ import {
   buildGraphNodes,
   collectChildren,
   findLibraryElement,
-  getLibraryElementByType,
   getNodeFromElement,
   sortParentsBeforeChildren,
 } from "../../misc/chain-graph-utils.ts";
@@ -54,13 +53,13 @@ export const useContextMenu = (
 
   const closeMenu = () => setMenu(null);
 
-  const parentElementHasRestrictions = async (
+  const parentElementHasRestrictions = (
     elements: Node<ChainGraphNodeData>[],
-  ): Promise<boolean> => {
+  ): boolean => {
     for (const nodeData of elements) {
       if (
         nodeData.parentId &&
-        ((await getLibraryElementByType(nodeData.data.elementType))
+        (findLibraryElement(nodeData.data.elementType, libraryElements)
           ?.parentRestriction?.length ??
           0 > 0)
       ) {
@@ -70,7 +69,7 @@ export const useContextMenu = (
     return false;
   };
 
-  const onContextMenuCall = async (
+  const onContextMenuCall = (
     event: MouseEvent,
     selectedElements: Node<ChainGraphNodeData>[],
   ) => {
@@ -87,7 +86,7 @@ export const useContextMenu = (
             },
           ]
         : [
-            ...((await parentElementHasRestrictions(selectedElements))
+            ...(parentElementHasRestrictions(selectedElements)
               ? []
               : [
                   {
@@ -122,7 +121,10 @@ export const useContextMenu = (
           handler: () => ungroupElements(nodeData),
         });
       } else {
-        const elementTemplate = findLibraryElement(libraryElements, nodeData.data.elementType)!;
+        const elementTemplate = findLibraryElement(
+          nodeData.data.elementType,
+          libraryElements,
+        )!;
 
         const allowedChildren = elementTemplate.allowedChildren;
         if (
@@ -134,8 +136,8 @@ export const useContextMenu = (
             text: "Add child",
             children: Object.keys(allowedChildren).map((key) => {
               const childTemplate: LibraryElement = findLibraryElement(
-                libraryElements,
                 key,
+                libraryElements,
               )!;
 
               return {

@@ -33,8 +33,8 @@ export function getDataFromElement(
 }
 
 export function findLibraryElement(
-  libraryElements: LibraryElement[] | null,
   type: string,
+  libraryElements: LibraryElement[] | null,
 ): LibraryElement | undefined {
   return libraryElements?.find((descriptor) => descriptor.name === type);
 }
@@ -43,7 +43,7 @@ export function getLibraryElement(
   element: Element,
   libraryElements: LibraryElement[] | null,
 ): LibraryElement {
-  const libraryElement = findLibraryElement(libraryElements, element.type);
+  const libraryElement = findLibraryElement(element.type, libraryElements);
   return (
     libraryElement ??
     ({
