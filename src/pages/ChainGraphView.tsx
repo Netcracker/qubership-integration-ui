@@ -210,17 +210,17 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
     return Promise.resolve(!document.querySelector(".ant-modal-wrap"));
   }, []);
 
-  const { menu, closeMenu, onContextMenuCall } = useContextMenu(
+  const { menu, closeMenu, onContextMenuCall } = useContextMenu({
     handleDelete,
-    (node) => submitOpenElement?.(node, updateNodeData),
+    openElementModal: (node) => submitOpenElement?.(node, updateNodeData),
     nodes,
     setNodes,
     edges,
     setEdges,
     structureChanged,
-    chainContext?.chain?.id,
-    chainContext?.refresh,
-  );
+    chainId: chainContext?.chain?.id,
+    onChainUpdate: chainContext?.refresh,
+  });
 
   const handleSelectionChange = useCallback<
     OnSelectionChangeFunc<Node<ChainGraphNodeData>, Edge>

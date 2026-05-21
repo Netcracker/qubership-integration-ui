@@ -15,19 +15,18 @@ import {
   buildGraphNodes,
   collectChildren,
   findLibraryElement,
-  getLibraryElement,
   getNodeFromElement,
   sortParentsBeforeChildren,
 } from "../../misc/chain-graph-utils.ts";
 import { useAutoLayout } from "./useAutoLayout.tsx";
 import { api } from "../../api/api.ts";
-import { CreateElementRequest, Element, LibraryElement } from "../../api/apiTypes.ts";
+import { Element } from "../../api/apiTypes.ts";
 import { useNotificationService } from "../useNotificationService.tsx";
 import { useLibraryContext } from "../../components/LibraryContext.tsx";
 import { useExpandCollapse } from "./useExpandCollapse.tsx";
-import { getErrorMessage } from "../../misc/error-utils.ts";
+import { useAddChildContextMenuItem } from "./useAddChildContextMenuItem.tsx";
 
-export const useContextMenu = (
+export type ContextMenuItemsHookProps = {
   handleDelete: (changes: OnDeleteEvent) => Promise<void>,
   openElementModal: (node?: Node<ChainGraphNodeData>) => void,
   nodes: Node<ChainGraphNodeData>[],
@@ -37,7 +36,28 @@ export const useContextMenu = (
   structureChanged: (parentIds?: string[]) => void,
   chainId?: string,
   onChainUpdate?: () => void | Promise<void>,
+}
+
+export type ContextMenuItemsHook = (
+  props: ContextMenuItemsHookProps
 ) => {
+  buildItems: (selectedElements: Node<ChainGraphNodeData>[]) => ContextMenuItem[];
+};
+
+export const useContextMenu = (
+  props: ContextMenuItemsHookProps
+) => {
+  const {
+    handleDelete,
+    openElementModal,
+    nodes,
+    setNodes,
+    edges,
+    setEdges,
+    structureChanged,
+    chainId,
+    onChainUpdate,
+  } = props;
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const { arrangeNodes, direction } = useAutoLayout();
   const [copiedNodes, setCopiedNodes] = useState<Node<ChainGraphNodeData>[]>(
@@ -52,6 +72,7 @@ export const useContextMenu = (
     setEdges,
     structureChanged,
   );
+  const { buildItems: buildAddChildItem } = useAddChildContextMenuItem(props);
 
   const closeMenu = () => setMenu(null);
 
@@ -123,34 +144,7 @@ export const useContextMenu = (
           handler: () => ungroupElements(nodeData),
         });
       } else {
-        const elementTemplate = findLibraryElement(
-          nodeData.data.elementType,
-          libraryElements,
-        )!;
-
-        const allowedChildren = elementTemplate.allowedChildren;
-        if (
-          elementTemplate.container &&
-          Object.keys(allowedChildren).length > 0
-        ) {
-          items.unshift({
-            id: uuidv4(),
-            text: "Add child",
-            children: Object.keys(allowedChildren).map((key) => {
-              const childTemplate: LibraryElement = findLibraryElement(
-                key,
-                libraryElements,
-              )!;
-
-              return {
-                id: uuidv4(),
-                text: childTemplate.title,
-                handler: () => createChildElement(childTemplate.name, nodeData.id),
-              };
-            }),
-            handler: () => {},
-          });
-        }
+        items.unshift(...buildAddChildItem(selectedElements));
 
         items.unshift({
           id: uuidv4(),
@@ -171,60 +165,6 @@ export const useContextMenu = (
       y: event.clientY,
       items,
     });
-  };
-
-  const createChildElement = async (type: string, parentId: string) => {
-    const createElementRequest: CreateElementRequest = {
-      type: type,
-      parentElementId: parentId,
-    };
-
-    try {
-      const response = await api.createElement(createElementRequest, chainId!);
-      const createdElement = response.createdElements?.[0];
-      if (!createdElement) return;
-
-      const newNode: ChainGraphNode = getNodeFromElement(
-        createdElement,
-        getLibraryElement(createdElement, libraryElements),
-        direction,
-      );
-      if (!newNode) return;
-
-      const childNodes: ChainGraphNode[] = createdElement?.children
-        ? createdElement.children.map((child: Element) =>
-            getNodeFromElement(
-              child,
-              getLibraryElement(child, libraryElements),
-              direction,
-            ),
-          )
-        : [];
-
-      const updatedNodes = buildGraphNodes(
-        response.updatedElements ?? [],
-        libraryElements,
-      );
-
-      const arrangedNodes = await arrangeNodes(
-        childNodes.concat(newNode, ...updatedNodes),
-        edges,
-      );
-      const allNodes = (nodes as ChainGraphNode[])
-        .filter((node) => !arrangedNodes.some((n) => n.id === node.id))
-        .concat(arrangedNodes);
-      const withToggle = attachToggle(allNodes);
-      const withCount = setNestedUnitCounts(withToggle);
-
-      const ordered = sortParentsBeforeChildren(withCount);
-      setNodes(ordered);
-    } catch (error) {
-      notificationService.errorWithDetails(
-        "Failed to create element",
-        getErrorMessage(error, "Failed to create element"),
-        error,
-      );
-    }
   };
 
   const deleteElements = (selectedElements: Node<ChainGraphNodeData>[]) => {
