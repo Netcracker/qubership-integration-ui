@@ -213,6 +213,7 @@ export const ChainGraphView: React.FC<ChainGraphViewProps> = ({
   const { menu, closeMenu, onContextMenuCall } = useContextMenu({
     handleDelete,
     openElementModal: (node) => submitOpenElement?.(node, updateNodeData),
+    updateNodeData,
     nodes,
     setNodes,
     edges,

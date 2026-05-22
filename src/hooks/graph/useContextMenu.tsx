@@ -30,6 +30,7 @@ import { usePriorityContextMenuItems } from "./context_menu/usePriorityContextMe
 export type ContextMenuItemsHookProps = {
   handleDelete: (changes: OnDeleteEvent) => Promise<void>,
   openElementModal: (node?: Node<ChainGraphNodeData>) => void,
+  updateNodeData: (element: Element, node: ChainGraphNode) => void,
   nodes: Node<ChainGraphNodeData>[],
   setNodes: Dispatch<SetStateAction<Node<ChainGraphNodeData>[]>>,
   edges: Edge[],

@@ -3,7 +3,7 @@ import { LibraryElement, PatchElementRequest } from "../../../api/apiTypes";
 import { ContextMenuItem } from "../../../components/graph/ContextMenu";
 import { ChainGraphNodeData } from "../../../components/graph/nodes/ChainGraphNodeTypes";
 import { useLibraryContext } from "../../../components/LibraryContext";
-import { findLibraryElement } from "../../../misc/chain-graph-utils";
+import { findLibraryElement, findUpdatedElement } from "../../../misc/chain-graph-utils";
 import { ContextMenuItemsHook } from "../useContextMenu";
 import { Node } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 export const usePriorityContextMenuItems: ContextMenuItemsHook = ({
   nodes,
   chainId,
+  updateNodeData,
 }) => {
   const { libraryElements } = useLibraryContext();
 
@@ -107,7 +108,15 @@ export const usePriorityContextMenuItems: ContextMenuItemsHook = ({
       newPriority,
     );
 
-    await api.updateElement(patchRequest, chainId, node.id);
+    const response = await api.updateElement(patchRequest, chainId, node.id);
+
+    response.updatedElements?.forEach((updatedElement) => {
+      const updatedNode =
+        updatedElement.id === node.id
+          ? node
+          : nodes.find((n) => n.id === updatedElement.id)!;
+      updateNodeData(updatedElement, updatedNode);
+    });
   };
 
   const buildPatchRequest = (
