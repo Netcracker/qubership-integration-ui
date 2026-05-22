@@ -15,7 +15,7 @@ import {
   ChainGraphNode,
   ChainGraphNodeData,
 } from "../../components/graph/nodes/ChainGraphNodeTypes";
-import { arrangeNodes, useAutoLayout } from "./useAutoLayout";
+import { useAutoLayout } from "./useAutoLayout";
 import { getErrorMessage } from "../../misc/error-utils";
 import { Node } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
@@ -44,14 +44,14 @@ export const useAddChildContextMenuItem: ContextMenuItemsHook = ({
   const buildItems = (
     selectedElements: Node<ChainGraphNodeData>[],
   ): ContextMenuItem[] => {
-    const nodeData = selectedElements[0];
-    const elementTemplate = findLibraryElement(
-      nodeData.data.elementType,
+    const node = selectedElements[0];
+    const libraryElement = findLibraryElement(
+      node.data.elementType,
       libraryElements,
     )!;
 
-    const allowedChildren = elementTemplate.allowedChildren;
-    if (elementTemplate.container && Object.keys(allowedChildren).length > 0) {
+    const allowedChildren = libraryElement.allowedChildren;
+    if (libraryElement.container && Object.keys(allowedChildren).length > 0) {
       return [
         {
           id: uuidv4(),
@@ -66,7 +66,7 @@ export const useAddChildContextMenuItem: ContextMenuItemsHook = ({
               id: uuidv4(),
               text: childTemplate.title,
               handler: () =>
-                createChildElement(childTemplate.name, nodeData.id),
+                createChildElement(childTemplate.name, node.id),
             };
           }),
           handler: () => {},

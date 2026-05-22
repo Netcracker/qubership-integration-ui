@@ -25,6 +25,7 @@ import { useNotificationService } from "../useNotificationService.tsx";
 import { useLibraryContext } from "../../components/LibraryContext.tsx";
 import { useExpandCollapse } from "./useExpandCollapse.tsx";
 import { useAddChildContextMenuItem } from "./useAddChildContextMenuItem.tsx";
+import { usePriorityContextMenuItems } from "./context_menu/usePriorityContextMenuItems.tsx";
 
 export type ContextMenuItemsHookProps = {
   handleDelete: (changes: OnDeleteEvent) => Promise<void>,
@@ -73,6 +74,7 @@ export const useContextMenu = (
     structureChanged,
   );
   const { buildItems: buildAddChildItem } = useAddChildContextMenuItem(props);
+  const { buildItems: buildPriorityItems } = usePriorityContextMenuItems(props);
 
   const closeMenu = () => setMenu(null);
 
@@ -159,6 +161,8 @@ export const useContextMenu = (
         handler: () => groupElements(selectedElements),
       });
     }
+
+    items.unshift(...buildPriorityItems(selectedElements));
 
     setMenu({
       x: event.clientX,

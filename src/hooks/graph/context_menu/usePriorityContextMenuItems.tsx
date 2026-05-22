@@ -1,0 +1,85 @@
+import { LibraryElement } from "../../../api/apiTypes";
+import { ContextMenuItem } from "../../../components/graph/ContextMenu";
+import { ChainGraphNodeData } from "../../../components/graph/nodes/ChainGraphNodeTypes";
+import { useLibraryContext } from "../../../components/LibraryContext";
+import { findLibraryElement } from "../../../misc/chain-graph-utils";
+import { ContextMenuItemsHook } from "../useContextMenu";
+import { Node } from "@xyflow/react";
+import { v4 as uuidv4 } from "uuid";
+
+export const usePriorityContextMenuItems: ContextMenuItemsHook = ({
+  nodes,
+}) => {
+  const { libraryElements } = useLibraryContext();
+
+  const buildItems = (
+    selectedElements: Node<ChainGraphNodeData>[],
+  ): ContextMenuItem[] => {
+    if (selectedElements.length !== 1) {
+      return [];
+    }
+
+    const selectedNode = selectedElements[0];
+    const libraryElement: LibraryElement = findLibraryElement(
+      selectedNode.data.elementType,
+      libraryElements,
+    )!;
+
+    if (selectedNode.parentId && libraryElement.ordered) {
+      const priorityProperty: string =
+        libraryElement.priorityProperty ?? "priority";
+      const childrenOfTheSameType = nodes
+        .filter((node) => selectedNode.parentId === node.parentId)
+        .filter(
+          (node) => selectedNode.data.elementType === node.data.elementType,
+        )
+        .sort((leftElement, rightElement) =>
+          leftElement.data.properties[priorityProperty] >
+          rightElement.data.properties[priorityProperty]
+            ? 1
+            : -1,
+        );
+
+      const currentIndex: number = childrenOfTheSameType
+        .map((node) => node.id)
+        .indexOf(selectedNode.id);
+      const orderedChildrenLength: number = childrenOfTheSameType.filter(
+        (node) =>
+          node.data.properties[priorityProperty] < childrenOfTheSameType.length,
+      ).length;
+      const currentPriority: number = parseInt(
+        selectedNode.data.properties[priorityProperty],
+      );
+
+      const items: ContextMenuItem[] = [];
+      if (
+        currentIndex > 0 &&
+        currentPriority > 0 &&
+        currentPriority < orderedChildrenLength
+      ) {
+        items.push({
+          id: uuidv4(),
+          text: "Move up",
+          handler: () => console.log("updateElementPriority"),
+        });
+      }
+
+      if (
+        currentIndex + 1 < childrenOfTheSameType.length &&
+        currentPriority + 1 < orderedChildrenLength
+      ) {
+        items.push({
+          id: uuidv4(),
+          text: "Move down",
+          handler: () => console.log("updateElementPriority"),
+        });
+      }
+
+      return items;
+    }
+
+    return [];
+  };
+
+  return { buildItems };
+};
