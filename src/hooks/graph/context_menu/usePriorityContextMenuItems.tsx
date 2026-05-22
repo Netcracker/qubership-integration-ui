@@ -1,4 +1,5 @@
-import { LibraryElement } from "../../../api/apiTypes";
+import { api } from "../../../api/api";
+import { LibraryElement, PatchElementRequest } from "../../../api/apiTypes";
 import { ContextMenuItem } from "../../../components/graph/ContextMenu";
 import { ChainGraphNodeData } from "../../../components/graph/nodes/ChainGraphNodeTypes";
 import { useLibraryContext } from "../../../components/LibraryContext";
@@ -9,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 
 export const usePriorityContextMenuItems: ContextMenuItemsHook = ({
   nodes,
+  chainId,
 }) => {
   const { libraryElements } = useLibraryContext();
 
@@ -60,7 +62,13 @@ export const usePriorityContextMenuItems: ContextMenuItemsHook = ({
         items.push({
           id: uuidv4(),
           text: "Move up",
-          handler: () => console.log("updateElementPriority"),
+          handler: () =>
+            updateElementPriority(
+              chainId!,
+              selectedNode,
+              priorityProperty,
+              currentPriority - 1,
+            ),
         });
       }
 
@@ -71,7 +79,13 @@ export const usePriorityContextMenuItems: ContextMenuItemsHook = ({
         items.push({
           id: uuidv4(),
           text: "Move down",
-          handler: () => console.log("updateElementPriority"),
+          handler: () =>
+            updateElementPriority(
+              chainId!,
+              selectedNode,
+              priorityProperty,
+              currentPriority + 1,
+            ),
         });
       }
 
@@ -79,6 +93,35 @@ export const usePriorityContextMenuItems: ContextMenuItemsHook = ({
     }
 
     return [];
+  };
+
+  const updateElementPriority = async (
+    chainId: string,
+    node: Node<ChainGraphNodeData>,
+    priorityProperty: string,
+    newPriority: number,
+  ) => {
+    const patchRequest: PatchElementRequest = buildPatchRequest(
+      node,
+      priorityProperty,
+      newPriority,
+    );
+
+    await api.updateElement(patchRequest, chainId, node.id);
+  };
+
+  const buildPatchRequest = (
+    node: Node<ChainGraphNodeData>,
+    priorityProperty: string,
+    newPriority: number,
+  ): PatchElementRequest => {
+    return {
+      name: node.data.label,
+      description: node.data.description,
+      type: node.data.elementType,
+      parentElementId: node.parentId,
+      properties: { ...node.data.properties, [priorityProperty]: newPriority },
+    };
   };
 
   return { buildItems };
