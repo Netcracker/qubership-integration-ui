@@ -1,26 +1,26 @@
-import { useLibraryContext } from "../../components/LibraryContext";
-import { useNotificationService } from "../useNotificationService";
-import { ContextMenuItemsHook } from "./useContextMenu";
-import { CreateElementRequest, LibraryElement } from "../../api/apiTypes";
-import { api } from "../../api/api";
-import { Element } from "../../api/apiTypes.ts";
+import { useLibraryContext } from "../../../components/LibraryContext.tsx";
+import { useNotificationService } from "../../useNotificationService.tsx";
+import { ContextMenuItemsHook } from "./useContextMenu.tsx";
+import { CreateElementRequest, LibraryElement } from "../../../api/apiTypes.ts";
+import { api } from "../../../api/api.ts";
+import { Element } from "../../../api/apiTypes.ts";
 import {
   buildGraphNodes,
   findLibraryElement,
   getLibraryElement,
   getNodeFromElement,
   sortParentsBeforeChildren,
-} from "../../misc/chain-graph-utils";
+} from "../../../misc/chain-graph-utils.ts";
 import {
   ChainGraphNode,
   ChainGraphNodeData,
-} from "../../components/graph/nodes/ChainGraphNodeTypes";
-import { useAutoLayout } from "./useAutoLayout";
-import { getErrorMessage } from "../../misc/error-utils";
+} from "../../../components/graph/nodes/ChainGraphNodeTypes.ts";
+import { useAutoLayout } from "../useAutoLayout.tsx";
+import { getErrorMessage } from "../../../misc/error-utils.ts";
 import { Node } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
-import { ContextMenuItem } from "../../components/graph/ContextMenu";
-import { useExpandCollapse } from "./useExpandCollapse";
+import { ContextMenuItem } from "../../../components/graph/ContextMenu.tsx";
+import { useExpandCollapse } from "../useExpandCollapse.tsx";
 
 export const useAddChildContextMenuItem: ContextMenuItemsHook = ({
   nodes,

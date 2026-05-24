@@ -40,7 +40,7 @@ import {
   nonEmptyContainerExists,
   sanitizeEdge,
 } from "../misc/chain-graph-utils.ts";
-import { useContextMenu } from "../hooks/graph/useContextMenu.tsx";
+import { useContextMenu } from "../hooks/graph/context_menu/useContextMenu.tsx";
 import { getSwimlaneBorderColor } from "../components/graph/nodes/SwimlaneNode.tsx";
 import { ChainContext } from "./ChainPage.tsx";
 import { useLibraryContext } from "../components/LibraryContext.tsx";

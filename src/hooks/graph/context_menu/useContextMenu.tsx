@@ -3,29 +3,29 @@ import {
   ChainGraphNode,
   ChainGraphNodeData,
   OnDeleteEvent,
-} from "../../components/graph/nodes/ChainGraphNodeTypes";
+} from "../../../components/graph/nodes/ChainGraphNodeTypes";
 
 import { Edge, Node } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
 import {
   ContextMenuData,
   ContextMenuItem,
-} from "../../components/graph/ContextMenu.tsx";
+} from "../../../components/graph/ContextMenu.tsx";
 import {
   buildGraphNodes,
   collectChildren,
   findLibraryElement,
   getNodeFromElement,
   sortParentsBeforeChildren,
-} from "../../misc/chain-graph-utils.ts";
-import { useAutoLayout } from "./useAutoLayout.tsx";
-import { api } from "../../api/api.ts";
-import { Element } from "../../api/apiTypes.ts";
-import { useNotificationService } from "../useNotificationService.tsx";
-import { useLibraryContext } from "../../components/LibraryContext.tsx";
-import { useExpandCollapse } from "./useExpandCollapse.tsx";
-import { useAddChildContextMenuItem } from "./useAddChildContextMenuItem.tsx";
-import { usePriorityContextMenuItems } from "./context_menu/usePriorityContextMenuItems.tsx";
+} from "../../../misc/chain-graph-utils.ts";
+import { useAutoLayout } from "./../useAutoLayout.tsx";
+import { api } from "../../../api/api.ts";
+import { Element } from "../../../api/apiTypes.ts";
+import { useNotificationService } from "../../useNotificationService.tsx";
+import { useLibraryContext } from "../../../components/LibraryContext.tsx";
+import { useExpandCollapse } from "./../useExpandCollapse.tsx";
+import { useAddChildContextMenuItem } from "./../context_menu/useAddChildContextMenuItem.tsx";
+import { usePriorityContextMenuItems } from "./../context_menu/usePriorityContextMenuItems.tsx";
 
 export type ContextMenuItemsHookProps = {
   handleDelete: (changes: OnDeleteEvent) => Promise<void>,

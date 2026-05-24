@@ -4,7 +4,7 @@ import { ContextMenuItem } from "../../../components/graph/ContextMenu";
 import { ChainGraphNodeData } from "../../../components/graph/nodes/ChainGraphNodeTypes";
 import { useLibraryContext } from "../../../components/LibraryContext";
 import { findLibraryElement } from "../../../misc/chain-graph-utils";
-import { ContextMenuItemsHook } from "../useContextMenu";
+import { ContextMenuItemsHook } from "./useContextMenu";
 import { Node } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
 
